@@ -1,0 +1,11 @@
+prefix=${pcfiledir}/../..
+libdir=${prefix}/lib
+includedir=${prefix}/include
+openssl_prefix=${pcfiledir}/../../../openssl/macos-arm64
+boost_prefix=${pcfiledir}/../../../boost
+
+Name: libtorrent
+Description: Bittorrent library
+Version: 2.0.11
+Libs: -L${libdir} -ltorrent-rasterbar -L${openssl_prefix}/lib -framework CoreFoundation -framework SystemConfiguration -lssl -lcrypto
+Cflags: -fexceptions -I${includedir} -I${openssl_prefix}/include -I${boost_prefix}/include -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DTORRENT_USE_OPENSSL -DTORRENT_USE_LIBCRYPTO -DTORRENT_SSL_PEERS -DOPENSSL_NO_SSL2

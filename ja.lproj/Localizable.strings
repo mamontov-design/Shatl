@@ -1,0 +1,246 @@
+/* Japanese localization. Russian remains the canonical source copy. */
+
+"app.name" = "Shatl";
+
+"common.change" = "変更";
+"common.choose" = "選択";
+"common.ok" = "OK";
+"common.cancel" = "キャンセル";
+"common.delete" = "削除";
+"common.or" = "または";
+
+"message_block.error" = "エラー";
+
+"unit.byte" = "B";
+"unit.kilobyte" = "KB";
+"unit.megabyte" = "MB";
+"unit.gigabyte" = "GB";
+"unit.terabyte" = "TB";
+"unit.speed.bytes_per_second" = "B/秒";
+"unit.speed.megabytes_per_second" = "MB/秒";
+"unit.speed.kilobytes_per_second" = "KB/秒";
+"unit.speed.per_second_suffix" = "/秒";
+"unit.time.seconds" = "秒";
+"unit.time.minutes" = "分";
+"unit.time.hours" = "時間";
+"unit.time.days" = "日";
+"unit.time.weeks" = "週";
+
+"toolbar.add" = "追加";
+"toolbar.start" = "開始";
+"toolbar.stop" = "停止";
+"toolbar.delete" = "削除";
+"toolbar.search" = "検索";
+
+"session.restore.in_progress" = "セッションを復元中…";
+
+"onboarding.action.next" = "次へ";
+"onboarding.action.not_now" = "今はしない";
+"onboarding.action.allow_notifications" = "通知を許可";
+"onboarding.action.help_development" = "改善に協力";
+"onboarding.action.close" = "閉じる";
+"onboarding.welcome.title" = "Shatlへようこそ";
+"onboarding.welcome.description" = "libtorrentをベースにしたMac向けの軽量Torrentクライアントです。オープンソースで、必要な機能だけを備え、洗練されたインターフェイスを提供します。";
+"onboarding.download_folder.title" = "デフォルトのダウンロード保存先";
+"onboarding.download_folder.description" = "ファイルは標準で「ダウンロード」フォルダに保存されます。保存先は今すぐ変更することも、あとで設定から変更することもできます。";
+"onboarding.download_folder.save_to" = "保存先：";
+"onboarding.expanded_card.title" = "詳細表示";
+"onboarding.expanded_card.description.prefix" = "右上の";
+"onboarding.expanded_card.description.suffix" = "ボタンをクリックすると、シード、ピア、サイズ、アップロードなどのデータを確認できます。もう一度クリックすると、カードをコンパクト表示に戻せます。";
+"onboarding.expanded_card.demo_title" = "トレント";
+"onboarding.metrics_mode.title" = "データ表示モード";
+"onboarding.metrics_mode.description" = "簡易モードでは丸めた値を表示し、詳細モードではより正確な値を維持します。";
+"onboarding.theme.title" = "外観テーマを選択";
+"onboarding.theme.follow_macos" = "macOSの設定に従う";
+"onboarding.notifications.title" = "通知";
+"onboarding.notifications.description" = "ダウンロードが完了したとき、\nまたはエラーが発生したときにShatlが通知できます。";
+"onboarding.data.title" = "匿名の統計";
+"onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。送信されるのは起動回数、アプリのバージョン、インターフェイスの言語だけです。";
+"onboarding.done.title" = "設定が完了しました";
+"onboarding.done.description" = "Shatlを使用できます。これらのオプションは、いつでも設定で変更できます。";
+
+"menu.view.enter_full_screen" = "フルスクリーンにする";
+"menu.torrent" = "Torrent";
+"menu.torrent.add" = "Torrentを追加";
+
+"torrent.action.open" = "開く";
+"torrent.action.reveal_in_finder" = "Finderに表示";
+"torrent.action.start" = "開始";
+"torrent.action.stop" = "停止";
+"torrent.action.remove_from_list" = "リストから削除";
+"torrent.action.remove_with_files" = "ファイルごと削除";
+"torrent.action.redownload" = "再ダウンロード";
+"torrent.action.download_to_another_folder" = "別のフォルダにダウンロード";
+
+"torrent.status.downloading" = "ダウンロード中";
+"torrent.status.stopped" = "停止中";
+"torrent.status.seeding" = "シード中";
+"torrent.status.completed" = "ダウンロード済み";
+"torrent.status.error" = "エラー";
+"torrent.status.checking" = "確認中";
+
+"torrent.card.original_title" = "Torrent名：%@";
+
+"torrent.metric.download_speed" = "ダウンロード速度";
+"torrent.metric.eta" = "残り時間";
+"torrent.metric.seeds_and_peers" = "シードとピア";
+"torrent.metric.upload_speed" = "アップロード速度";
+"torrent.metric.uploaded" = "アップロード済み";
+"torrent.metric.size" = "サイズ";
+
+"torrent.error.missing_content.title" = "ダウンロードファイルを利用できません";
+"torrent.error.missing_content.message" = "Shatlは保存済みの場所でTorrentデータを見つけられませんでした。再ダウンロードするか、リストから削除できます。";
+"torrent.error.save_path_unavailable.title" = "ダウンロードフォルダを利用できません";
+"torrent.error.save_path_unavailable.message" = "Shatlは保存先フォルダを開けませんでした。別のフォルダを選ぶか、Torrentをリストから削除してください。";
+"torrent.error.not_found.title" = "ダウンロードを利用できません";
+"torrent.error.not_found.message" = "このTorrentが見つかりませんでした。もう一度追加してください。";
+"torrent.error.action_failed.title" = "操作できませんでした";
+"torrent.error.action_failed.message" = "問題が発生しました。もう一度試してください。";
+
+"remove_dialog.choice.title" = "「%@」を削除しますか？";
+"remove_dialog.choice.message.with_files" = "リスト項目だけを削除するか、ダウンロード済みファイルごと削除できます。";
+"remove_dialog.choice.message.list_only" = "Shatlはリスト項目だけを削除します。このカードではファイル削除を利用できません。";
+"remove_dialog.delete_with_files.title" = "「%@」をファイルごと削除しますか？";
+"remove_dialog.delete_with_files.message" = "ShatlはTorrentをリストから削除し、関連するすべてのファイルをディスクから削除します。";
+
+"payload_deletion.files_not_deleted.title" = "ファイルは削除されませんでした";
+"payload_deletion.not_all_files_deleted.title" = "一部のファイルは削除されませんでした";
+"payload_deletion.engine_stop_failed.message" = "ShatlはTorrentをリストから削除しましたが、ファイル削除前にエンジン内で安全に停止できませんでした。";
+"payload_deletion.partial_failure.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の%lld個のファイルを削除できませんでした。";
+"payload_deletion.unresolved.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の関連ファイルを安全に特定できませんでした。";
+
+"add_torrent.loading_metadata" = "メタデータを取得中…";
+"add_torrent.title" = "ダウンロードを追加";
+"add_torrent.entry.empty_title" = "Torrentリストは空です";
+"add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
+"add_torrent.entry.choose_file" = ".torrentファイルを選択…";
+"add_torrent.review.tab.files" = "ファイル";
+"add_torrent.review.tab.settings" = "設定";
+"add_torrent.review.no_selection" = "まだTorrentが選択されていません";
+"add_torrent.review.invalid_placeholder" = "ダウンロードを準備できませんでした。";
+"add_torrent.review.files_after_metadata" = "メタデータ取得後にファイルが表示されます。";
+"add_torrent.review.no_files" = "ダウンロードするファイルがありません。";
+"add_torrent.review.no_draft" = "ダウンロードの下書きはまだ作成されていません。";
+"add_torrent.review.alias_caption" = "エイリアスはTorrentカードで元のTorrent名の代わりに表示されます。元のTorrent名はカードを展開すると確認できます。";
+"add_torrent.review.download_to_folder" = "「%@」にダウンロード";
+"add_torrent.review.folder_not_selected" = "フォルダが選択されていません";
+"add_torrent.review.stop_after_download" = "ダウンロード完了後にシードを停止";
+"add_torrent.review.use_alias" = "エイリアスを使用";
+"add_torrent.review.alias_placeholder" = "エイリアスを入力";
+"add_torrent.review.confirm" = "ダウンロード";
+"add_torrent.review.summary.selected_files" = "選択したファイル";
+"add_torrent.review.summary.size" = "サイズ";
+"add_torrent.review.summary.free_space" = "空き容量";
+"add_torrent.review.summary.unavailable" = "利用できません";
+"add_torrent.review.summary.selected_count" = "%lld／%lld";
+"add_torrent.review.folder.files.none" = "ファイルは選択されていません";
+"add_torrent.review.folder.files.count.other" = "%lld件のファイル";
+"add_torrent.review.folder.files.partial.other" = "%2$lld件中%1$lld件を選択";
+"add_torrent.error.empty_magnet.title" = "magnetリンクを追加してください";
+"add_torrent.error.empty_magnet.message" = "フィールドが空です。magnetリンクを貼り付けてもう一度試してください。";
+"add_torrent.error.unrecognized_link.title" = "リンクを認識できませんでした";
+"add_torrent.error.unrecognized_link.message" = "magnet:?で始まり、完全にコピーされていることを確認してください。";
+"add_torrent.error.invalid_magnet.title" = "magnetリンクを認識できませんでした";
+"add_torrent.error.invalid_magnet.message" = "リンクが完全にコピーされていることを確認して、もう一度試してください。";
+"add_torrent.error.invalid_torrent_file.title" = "ファイルを開けませんでした";
+"add_torrent.error.invalid_torrent_file.message" = "ファイルが破損しているか、対応していない可能性があります。別の.torrentファイルを選択してもう一度試してください。";
+"add_torrent.error.metadata_timeout.title" = "メタデータを取得できませんでした";
+"add_torrent.error.metadata_timeout.message" = "ソースから時間内にデータが送信されませんでした。後でもう一度試してください。";
+"add_torrent.error.draft_lost.title" = "ダウンロードの準備が中断されました";
+"add_torrent.error.draft_lost.message" = "データは保存されませんでした。再試行をクリックしてもう一度試してください。";
+"add_torrent.error.duplicate.title" = "このダウンロードはすでに追加されています";
+"add_torrent.error.duplicate.message" = "このTorrentはすでにリストにあります。";
+"add_torrent.error.generic.title" = "ダウンロードを準備できませんでした";
+"add_torrent.error.generic.message" = "もう一度試してください。エラーが繰り返される場合は、ファイルまたはリンクを確認してください。";
+
+"settings.tab.downloads" = "ダウンロード";
+"settings.tab.appearance" = "外観";
+"settings.tab.data" = "データ";
+"settings.tab.about" = "Shatlについて";
+"settings.tab.localization" = "言語";
+"settings.tab.debug" = "デバッグ";
+
+"settings.notifications.section" = "通知";
+"settings.notifications.show" = "通知を表示";
+"settings.notifications.play_sound_on_completion" = "ダウンロード完了時にサウンドを再生";
+
+"settings.data.section" = "使用統計";
+"settings.data.help_development" = "匿名の統計でShatlの改善に協力する";
+"settings.data.sent_data" = "送信されるデータ";
+"settings.data.sent_data.description" = "送信されるデータを確認できます";
+"settings.data.sent_data.show" = "表示";
+"settings.data.status.never_sent.enabled" = "使用統計はまだ送信されていません。";
+"settings.data.status.never_sent.disabled" = "統計がオフのため、データは送信されません。";
+"settings.data.status.sent_today.enabled" = "使用統計は今日送信されました。";
+"settings.data.status.sent_today.disabled" = "使用統計は今日送信されました。新しいデータは送信されません。";
+"settings.data.status.sent_yesterday.enabled" = "使用統計は昨日送信されました。";
+"settings.data.status.sent_yesterday.disabled" = "使用統計は昨日送信されました。新しいデータは送信されません。";
+"settings.data.status.sent_two_days_ago.enabled" = "使用統計は一昨日送信されました。";
+"settings.data.status.sent_two_days_ago.disabled" = "使用統計は一昨日送信されました。新しいデータは送信されません。";
+"settings.data.status.sent_earlier.enabled" = "使用統計は%@（%@）に送信されました。";
+"settings.data.status.sent_earlier.disabled" = "使用統計は%@（%@）に送信されました。新しいデータは送信されません。";
+"settings.data.collects.title" = "送信されるもの：";
+"settings.data.collects.launch_count" = "起動回数";
+"settings.data.collects.app_version" = "アプリのバージョン";
+"settings.data.collects.interface_language" = "インターフェイスの言語";
+"settings.data.does_not_collect.title" = "送信されないもの：";
+"settings.data.does_not_collect.torrent_data" = "Torrentデータ";
+"settings.data.does_not_collect.link_data" = "リンクのデータ";
+"settings.data.does_not_collect.file_data" = "ファイルのデータ";
+"settings.data.caption" = "この統計は、Shatlがどれだけ必要とされているかを把握し、サポート方針を決めるために役立ちます。";
+
+"settings.downloads.performance.section" = "パフォーマンス";
+"settings.downloads.performance.profile.economical" = "省エネ";
+"settings.downloads.performance.profile.balanced" = "バランス";
+"settings.downloads.performance.profile.maximum" = "最大";
+"settings.downloads.performance.caption.main" = "Shatlは、選択したモードに応じて低速にも高速にも動作できます。高いモードほどダウンロードとシードが活発になり、Macへの負荷も増えます。";
+"settings.downloads.performance.caption.economical" = "省エネモードでは、バッテリーを節約するためにダウンロードとアップロードの速度も抑えます。";
+"settings.downloads.folder.section" = "ダウンロードフォルダ";
+
+"settings.appearance.theme.section" = "テーマ";
+"settings.appearance.theme.system" = "システムに合わせる";
+"settings.appearance.theme.light" = "ライト";
+"settings.appearance.theme.dark" = "ダーク";
+"settings.appearance.theme.caption" = "ShatlはmacOSの外観に合わせることも、選択したテーマを使うこともできます。";
+"settings.appearance.metrics.section" = "データ表示";
+"settings.appearance.metrics.simplified" = "シンプル";
+"settings.appearance.metrics.detailed" = "詳細";
+"settings.appearance.metrics.toggle" = "データをシンプルモードで表示";
+"settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。推奨モードです。";
+"settings.appearance.metrics.info.help" = "値の精度について";
+"settings.appearance.metrics.popover.title" = "値の精度";
+"settings.appearance.metrics.popover.precision" = "シンプルモードをオフにすると、速度とデータ容量は必要に応じて小数第1位まで、より正確に表示されます。たとえば、10 MB/秒が10.5 MB/秒に、8 GBが7.7 GBになる場合があります。";
+"settings.appearance.metrics.popover.eta" = "1時間未満の残り時間は、5秒または5分刻みにまとめず表示されます。たとえば、35分が38分になる場合があります。1時間以上の時間表示は変わりません。";
+"settings.appearance.metrics.popover.unchanged" = "進捗、シードとピアの数、およびTorrentの動作は変わりません。";
+"settings.appearance.preview" = "プレビュー";
+
+"settings.about.application_version" = "アプリのバージョン";
+"settings.about.check_updates" = "アップデートを確認";
+"settings.about.check_for_updates_automatically" = "アップデートを確認";
+"settings.about.install_updates_automatically" = "アップデートを自動的にインストール";
+"settings.about.contact_section" = "開発者に連絡";
+"settings.about.contact_row" = "フィードバックを送信、または問題を報告";
+"settings.about.write" = "送信";
+"settings.about.logo.caption" = "あなたのMacのために、愛を込めて";
+
+"settings.localization.section" = "インターフェイスの言語";
+"settings.localization.app_language" = "Shatlの言語";
+"settings.localization.caption" = "ローカライズ確認用の一時的な切り替えです。リリース版ではmacOSの言語を使用します。";
+"settings.localization.language.system" = "システムに合わせる";
+"settings.localization.language.english" = "英語";
+"settings.localization.language.russian" = "ロシア語";
+"settings.localization.language.german" = "ドイツ語";
+"settings.localization.language.spanish" = "スペイン語";
+"settings.localization.language.french" = "フランス語";
+"settings.localization.language.japanese" = "日本語";
+"settings.localization.language.simplified_chinese" = "簡体字中国語";
+
+"settings.debug.logging.section" = "ログシステム";
+"settings.debug.logging.app" = "Shatlログ";
+"settings.debug.logging.disk_diagnostics" = "ファイルとパスの診断";
+"settings.debug.logging.metric_animation_diagnostics" = "メトリックアニメーション診断";
+"settings.debug.logging.snapshot_diagnostics" = "スナップショット更新診断";
+"settings.debug.logging.add_torrent_review_diagnostics" = "トレント追加ウインドウの診断";
+
+"notification.download_completed.title" = "ダウンロード完了";
+"notification.download_completed.body" = "%@のダウンロードが完了しました。";

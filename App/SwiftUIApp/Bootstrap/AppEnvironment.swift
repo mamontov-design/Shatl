@@ -1,0 +1,241 @@
+import Foundation
+
+/// Assembles the application's live dependencies in one place.
+struct AppEnvironment {
+    var engine: any TorrentEngine
+    var preferencesStore: AppPreferencesStore
+    var sessionStore: SessionStore
+    var torrentArchiveStore: TorrentArchiveStore
+    var bookmarkStore: BookmarkStore
+    var sessionRestoreCoordinator: SessionRestoreCoordinator
+    var diskIssueDetector: DiskIssueDetector
+    var torrentPayloadLocator: TorrentPayloadLocator
+    var torrentPayloadDeletionService: TorrentPayloadDeletionService
+    var externalOpenRouter: ExternalOpenRouter
+    var userEventNotifier: (any TorrentUserEventNotifying)?
+    var userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
+    var usageTelemetryCoordinator: UsageTelemetryLocalCoordinator
+    var usageTelemetrySender: (any UsageTelemetrySending)?
+
+    static func live() -> AppEnvironment {
+        let directories = ShatlDirectories()
+        let archiveStore = TorrentArchiveStore(directories: directories)
+        let bookmarkStore = BookmarkStore(directories: directories)
+        let resumeDataStore = ResumeDataStore(directories: directories)
+        let preferencesStore = AppPreferencesStore()
+        let engine = LibtorrentEngine()
+        let payloadLocator = TorrentPayloadLocator(
+            engine: engine,
+            archiveStore: archiveStore,
+            bookmarkStore: bookmarkStore
+        )
+        let usageTelemetryCoordinator = UsageTelemetryLocalCoordinator(
+            store: UsageTelemetryStore(directories: directories)
+        )
+        let usageTelemetrySender = UsageTelemetryHTTPSender()
+        let externalOpenRouter = ExternalOpenRouter.shared
+
+        return AppEnvironment(
+            engine: engine,
+            preferencesStore: preferencesStore,
+            sessionStore: SessionStore(
+                directories: directories,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore,
+                resumeDataStore: resumeDataStore
+            ),
+            torrentArchiveStore: archiveStore,
+            bookmarkStore: bookmarkStore,
+            sessionRestoreCoordinator: SessionRestoreCoordinator(
+                engine: engine,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore
+            ),
+            diskIssueDetector: DiskIssueDetector(
+                engine: engine,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore
+            ),
+            torrentPayloadLocator: payloadLocator,
+            torrentPayloadDeletionService: TorrentPayloadDeletionService(
+                payloadLocator: payloadLocator
+            ),
+            externalOpenRouter: externalOpenRouter,
+            userEventNotifier: MacTorrentUserEventNotifier(),
+            userEventBadgeDisplay: MacTorrentUserEventBadgeDisplay(),
+            usageTelemetryCoordinator: usageTelemetryCoordinator,
+            usageTelemetrySender: usageTelemetrySender
+        )
+    }
+}
+
+#if DEBUG
+extension AppEnvironment {
+    @MainActor
+    static func previewStore(torrents: [TorrentRecord] = []) -> AppStore {
+        let directories = ShatlDirectories.preview
+        let archiveStore = TorrentArchiveStore(directories: directories)
+        let bookmarkStore = BookmarkStore(directories: directories)
+        let resumeDataStore = ResumeDataStore(directories: directories)
+        let engine = PreviewTorrentEngine()
+        let payloadLocator = TorrentPayloadLocator(
+            engine: engine,
+            archiveStore: archiveStore,
+            bookmarkStore: bookmarkStore
+        )
+        let usageTelemetryCoordinator = UsageTelemetryLocalCoordinator(
+            store: UsageTelemetryStore(directories: directories)
+        )
+
+        return AppStore(
+            engine: engine,
+            sessionStore: SessionStore(
+                directories: directories,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore,
+                resumeDataStore: resumeDataStore
+            ),
+            torrentArchiveStore: archiveStore,
+            bookmarkStore: bookmarkStore,
+            sessionRestoreCoordinator: SessionRestoreCoordinator(
+                engine: engine,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore
+            ),
+            diskIssueDetector: DiskIssueDetector(
+                engine: engine,
+                archiveStore: archiveStore,
+                bookmarkStore: bookmarkStore
+            ),
+            torrentPayloadLocator: payloadLocator,
+            torrentPayloadDeletionService: TorrentPayloadDeletionService(
+                payloadLocator: payloadLocator
+            ),
+            externalOpenRouter: ExternalOpenRouter(),
+            userEventNotifier: nil,
+            userEventBadgeDisplay: nil,
+            usageTelemetryCoordinator: usageTelemetryCoordinator,
+            usageTelemetrySender: nil,
+            torrents: torrents,
+            preferences: .defaultValue,
+            hasLoadedInitialSession: true
+        )
+    }
+}
+
+private extension ShatlDirectories {
+    static var preview: ShatlDirectories {
+        let baseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ShatlPreview", isDirectory: true)
+
+        return ShatlDirectories(
+            applicationSupportURL: baseURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+            cachesURL: baseURL.appendingPathComponent("Caches", isDirectory: true)
+        )
+    }
+}
+
+private actor PreviewTorrentEngine: TorrentEngine {
+    func boot() async throws {}
+
+    func applyPerformanceSettings(_ settings: EnginePerformanceSettings) async throws {}
+
+    func prepareDraft(
+        from source: AddTorrentSource,
+        suggestedSavePath: String,
+        stopAfterDownload: Bool
+    ) async throws -> AddTorrentDraft {
+        AddTorrentDraft(
+            source: source,
+            originalName: "Preview Download",
+            infoHash: "preview-info-hash",
+            suggestedSavePath: suggestedSavePath,
+            alias: "",
+            stopAfterDownload: stopAfterDownload,
+            files: [
+                AddTorrentFileOption(
+                    name: "Preview Download.mp4",
+                    sizeBytes: 734_003_200,
+                    fileIndex: 0,
+                    isSelected: true
+                )
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+    }
+
+    func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor] {
+        []
+    }
+
+    func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws {}
+
+    func addTorrent(using draft: AddTorrentDraft) async throws -> TorrentRecord {
+        let selectedFiles = draft.files.filter(\.isSelected)
+
+        return TorrentRecord(
+            id: draft.id,
+            attemptID: UUID(),
+            infoHash: draft.infoHash,
+            originalName: draft.originalName,
+            alias: draft.alias.isEmpty ? nil : draft.alias,
+            progress: 0,
+            status: draft.stopAfterDownload ? .stopped : .downloading,
+            metrics: TorrentMetrics(
+                downloadSpeedBytesPerSecond: 0,
+                uploadSpeedBytesPerSecond: 0,
+                etaSeconds: nil,
+                seeds: nil,
+                peers: nil,
+                uploadedBytes: 0,
+                totalBytes: draft.totalBytes,
+                selectedBytes: draft.selectedBytes
+            ),
+            canonicalSavePath: draft.suggestedSavePath,
+            selectedFileIndices: draft.selectedFileIndices,
+            selectedFileRelativePaths: selectedFiles.map(\.name),
+            selectedFileCount: selectedFiles.count,
+            totalFileCount: draft.files.count,
+            materializedSelectionFootprint: nil,
+            persistentIssue: nil,
+            runtimeErrorState: nil,
+            lastKnownProgress: 0,
+            resumeCheckpointedAt: nil,
+            resumeCheckpointProgress: nil,
+            stopAfterDownload: draft.stopAfterDownload
+        )
+    }
+
+    func restoreSession(_ entries: [SessionRestoreEntry]) async throws -> [EngineTorrentSnapshot] {
+        []
+    }
+
+    func fetchMaterializedSelectedFileIndices(
+        for id: UUID,
+        selectedFileIndices: [Int]
+    ) async throws -> Set<Int> {
+        Set(selectedFileIndices)
+    }
+
+    func startTorrent(id: UUID) async throws {}
+
+    func stopTorrent(id: UUID) async throws {}
+
+    func forceRecheck(id: UUID) async throws {}
+
+    func checkpointTorrents(ids: [UUID]) async -> [EngineResumeCheckpointResult] {
+        ids.map { EngineResumeCheckpointResult(id: $0, status: .notFound) }
+    }
+
+    func removeTorrent(id: UUID, deleteData: Bool) async throws {}
+
+    func fetchActiveSnapshots() async throws -> [EngineTorrentSnapshot] {
+        []
+    }
+
+    func reconcileSleepingTorrents(_ records: [TorrentRecord]) async throws -> [EngineTorrentSnapshot] {
+        []
+    }
+}
+#endif

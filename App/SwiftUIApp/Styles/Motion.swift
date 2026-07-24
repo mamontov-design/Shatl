@@ -1,0 +1,144 @@
+import SwiftUI
+
+enum ShatlMotion {
+    /// Primary interface animation for revealing blocks and gently shifting adjacent elements.
+    /// `response` controls speed; a lower `dampingFraction` creates a more noticeable bounce.
+    static let interface = Animation.spring(response: 0.7, blendDuration: 0.08)
+
+    /// Local animation for containers whose width changes as numbers update.
+    static let metricResize = Animation.smooth(duration: 0.5)
+
+    /// Durations for the one-shot metric-set keyframe animation.
+    static let metricSetBounceUpDuration: TimeInterval = 0.14
+    static let metricSetBounceHoldDuration: TimeInterval = 0.14
+    static let metricSetBounceDownDuration: TimeInterval = 0.24
+
+    /// Peak scale of the metric-set bounce animation.
+    static let metricSetBounceScale: CGFloat = 1.1
+
+    /// Local animation for card height changes as large blocks appear or disappear.
+    static let cardLayout = Animation.smooth(duration: 0.28)
+
+    /// Smooth content transformation for the pinned row when its folder changes.
+    static let stickyContentReplace = Animation.smooth(duration: 0.38)
+
+    /// Reveals the pinned row with a subtle lift from the list and no zoom.
+    static let stickyPinInsertion = AnyTransition
+        .offset(y: 8)
+        .combined(with: .opacity)
+
+    /// Fast, bouncy toast appearance over current content.
+    static let messageToast = Animation.spring(response: 0.34, dampingFraction: 0.66, blendDuration: 0.02)
+    static let messageToastTransition = AnyTransition
+        .offset(y: 20)
+        .combined(with: .opacity)
+
+    /// Local animation for inserting and removing cards in the list.
+    /// Bind only to stable torrent IDs, never to card runtime metrics.
+    static let cardListMutation = Animation.smooth(duration: 0.42)
+
+    /// List-item transition with a subtle appearance and no movement of internal metrics.
+    static let cardListItem = AnyTransition.asymmetric(
+        insertion: .scale(scale: 0.995, anchor: .top).combined(with: .opacity),
+        removal: .scale(scale: 0.985, anchor: .center).combined(with: .opacity)
+    )
+
+    /// Transition between main window modes: empty state, list, and initial placeholder.
+    static let mainContent = AnyTransition
+        .scale(scale: 0.985, anchor: .center)
+        .combined(with: .opacity)
+
+    /// Local animation for changing the main window mode.
+    static let mainContentMode = Animation.smooth(duration: 0.24)
+
+    /// Smooth presentation and caption change between onboarding steps.
+    static let onboardingStepChange = Animation.smooth(duration: 0.48)
+
+    /// Local progress-bar fill animation.
+    static let progressBarFill = Animation.smooth(duration: 0.45)
+
+    /// Local animation for a status or progress badge whose width changes with its value.
+    static let progressGroupResize = Animation.smooth(duration: 0.32)
+
+    /// Native blur-replace animation for the torrent card's external status label.
+    static let progressStatusReplace = Animation.smooth(duration: 0.48)
+
+    /// Native SF Symbols wiggle options for the download icon in the progress group.
+    /// `continuous` keeps the effect active while `speed` lowers its intensity,
+    /// producing gentle motion without turning the icon into a distracting indicator.
+    static let progressDownloadSymbolEffectOptions = SymbolEffectOptions
+        .repeat(.continuous)
+        .speed(0.7)
+
+    /// Local animation for trailing control icons in a card.
+    static let cardControlSlide = Animation.smooth(duration: 0.24)
+
+    /// Local animation for the selected-card indicator.
+    static let selectedIndicatorAppear = Animation.spring(response: 0.48, dampingFraction: 0.62, blendDuration: 0.04)
+    static let selectedIndicatorDisappear = Animation.smooth(duration: 0.16)
+
+    /// Local toolbar-button animation for availability and symbol changes.
+    static let toolbarState = Animation.smooth(duration: 0.18)
+    static let toolbarSymbolReplace = Animation.smooth(duration: 0.22)
+
+    /// Local animation for changing a card's visual state.
+    static let cardState = Animation.smooth(duration: 0.2)
+
+    /// Short color pulse after pressing a selection card.
+    static let inputCardActivationPulseIn = Animation.smooth(duration: 0.12)
+    static let inputCardActivationPulseHoldDuration = Duration.milliseconds(100)
+    static let inputCardActivationPulseOut = Animation.smooth(duration: 0.3)
+
+    /// Shared transition for elements inserted into an existing layout:
+    /// the element shrinks and fades when hidden, then returns to full size and opacity.
+    static let appearFromTop = AnyTransition
+        .scale(scale: 0.85, anchor: .center)
+        .combined(with: .opacity)
+
+    /// Reverse transition for blocks that should fade gently upward.
+    static let disappearFromTop = AnyTransition.asymmetric(
+        insertion: appearFromTop,
+        removal: .scale(scale: 0.85, anchor: .center).combined(with: .opacity)
+    )
+
+    /// The selection indicator appears from its center with a slight overshoot and shrinks away.
+    static let selectedIndicator = AnyTransition.asymmetric(
+        insertion: .scale(scale: 1.5, anchor: .center)
+            .combined(with: .opacity)
+            .animation(selectedIndicatorAppear),
+        removal: .scale(scale: 1.5, anchor: .center)
+            .combined(with: .opacity)
+            .animation(selectedIndicatorDisappear)
+    )
+}
+
+// MARK: - Animation Environment
+
+private struct ShatlAnimationModeKey: EnvironmentKey {
+    static let defaultValue: AppAnimationMode = .lively
+}
+
+private struct ShatlMetricSetOutlinePulseEnabledKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct ShatlMetricSetOutlineFlashTriggerKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+extension EnvironmentValues {
+    var shatlAnimationMode: AppAnimationMode {
+        get { self[ShatlAnimationModeKey.self] }
+        set { self[ShatlAnimationModeKey.self] = newValue }
+    }
+
+    var shatlMetricSetOutlinePulseEnabled: Bool {
+        get { self[ShatlMetricSetOutlinePulseEnabledKey.self] }
+        set { self[ShatlMetricSetOutlinePulseEnabledKey.self] = newValue }
+    }
+
+    var shatlMetricSetOutlineFlashTrigger: Int {
+        get { self[ShatlMetricSetOutlineFlashTriggerKey.self] }
+        set { self[ShatlMetricSetOutlineFlashTriggerKey.self] = newValue }
+    }
+}

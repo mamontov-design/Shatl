@@ -1,0 +1,248 @@
+/* French localization. Russian remains the canonical source copy. */
+
+"app.name" = "Shatl";
+
+"common.change" = "Modifier";
+"common.choose" = "Choisir";
+"common.ok" = "OK";
+"common.cancel" = "Annuler";
+"common.delete" = "Supprimer";
+"common.or" = "Ou";
+
+"message_block.error" = "Erreur";
+
+"unit.byte" = "o";
+"unit.kilobyte" = "Ko";
+"unit.megabyte" = "Mo";
+"unit.gigabyte" = "Go";
+"unit.terabyte" = "To";
+"unit.speed.bytes_per_second" = "o/s";
+"unit.speed.megabytes_per_second" = "Mo/s";
+"unit.speed.kilobytes_per_second" = "Ko/s";
+"unit.speed.per_second_suffix" = "/s";
+"unit.time.seconds" = "s";
+"unit.time.minutes" = "min";
+"unit.time.hours" = "h";
+"unit.time.days" = "j";
+"unit.time.weeks" = "sem.";
+
+"toolbar.add" = "Ajouter";
+"toolbar.start" = "Démarrer";
+"toolbar.stop" = "Arrêter";
+"toolbar.delete" = "Supprimer";
+"toolbar.search" = "Rechercher";
+
+"session.restore.in_progress" = "Restauration de la session…";
+
+"onboarding.action.next" = "Suivant";
+"onboarding.action.not_now" = "Pas maintenant";
+"onboarding.action.allow_notifications" = "Autoriser les notifications";
+"onboarding.action.help_development" = "Aider au développement";
+"onboarding.action.close" = "Fermer";
+"onboarding.welcome.title" = "Bienvenue dans Shatl";
+"onboarding.welcome.description" = "Découvrez un client torrent léger pour Mac basé sur libtorrent. Open source, avec uniquement les fonctions essentielles et une interface soignée.";
+"onboarding.download_folder.title" = "Dossier de téléchargement par défaut";
+"onboarding.download_folder.description" = "Par défaut, les fichiers sont enregistrés dans Téléchargements. Vous pouvez modifier l’emplacement maintenant ou plus tard dans les réglages.";
+"onboarding.download_folder.save_to" = "Enregistrer dans :";
+"onboarding.expanded_card.title" = "Vue détaillée";
+"onboarding.expanded_card.description.prefix" = "Cliquez sur le bouton ";
+"onboarding.expanded_card.description.suffix" = " en haut à droite pour voir plus de données : seeds, pairs, taille et envoi. Cliquez à nouveau sur le bouton pour remettre la carte en vue compacte.";
+"onboarding.expanded_card.demo_title" = "Torrent";
+"onboarding.metrics_mode.title" = "Mode d’affichage des données";
+"onboarding.metrics_mode.description" = "Le mode simplifié affiche des valeurs arrondies, tandis que le mode détaillé conserve des valeurs plus précises.";
+"onboarding.theme.title" = "Choix du thème d’apparence";
+"onboarding.theme.follow_macos" = "Suivre les réglages de macOS";
+"onboarding.notifications.title" = "Notifications";
+"onboarding.notifications.description" = "Shatl peut vous prévenir lorsqu’un téléchargement est terminé\nou lorsqu’une erreur survient.";
+"onboarding.data.title" = "Statistiques anonymes";
+"onboarding.data.description" = "Vous pouvez aider à savoir si Shatl est utile aux utilisateurs. Seuls le nombre de lancements, la version de l’app et la langue de l’interface sont envoyés.";
+"onboarding.done.title" = "Tout est prêt";
+"onboarding.done.description" = "Shatl est prêt à être utilisé. Vous pouvez modifier ces options dans les réglages à tout moment.";
+
+"menu.view.enter_full_screen" = "Activer le plein écran";
+"menu.torrent" = "Torrent";
+"menu.torrent.add" = "Ajouter un torrent";
+
+"torrent.action.open" = "Ouvrir";
+"torrent.action.reveal_in_finder" = "Afficher dans le Finder";
+"torrent.action.start" = "Démarrer";
+"torrent.action.stop" = "Arrêter";
+"torrent.action.remove_from_list" = "Retirer de la liste";
+"torrent.action.remove_with_files" = "Supprimer avec les fichiers";
+"torrent.action.redownload" = "Télécharger à nouveau";
+"torrent.action.download_to_another_folder" = "Télécharger dans un autre dossier";
+
+"torrent.status.downloading" = "Téléchargement";
+"torrent.status.stopped" = "Arrêté";
+"torrent.status.seeding" = "Envoi";
+"torrent.status.completed" = "Téléchargé";
+"torrent.status.error" = "Erreur";
+"torrent.status.checking" = "Vérification";
+
+"torrent.card.original_title" = "Nom du torrent — %@";
+
+"torrent.metric.download_speed" = "Vitesse de téléchargement";
+"torrent.metric.eta" = "Restant";
+"torrent.metric.seeds_and_peers" = "Seeds et peers";
+"torrent.metric.upload_speed" = "Vitesse d’envoi";
+"torrent.metric.uploaded" = "Envoyé";
+"torrent.metric.size" = "Taille";
+
+"torrent.error.missing_content.title" = "Fichiers de téléchargement indisponibles";
+"torrent.error.missing_content.message" = "Shatl n’a pas trouvé les données du torrent à l’emplacement enregistré. Vous pouvez les télécharger à nouveau ou retirer l’entrée de la liste.";
+"torrent.error.save_path_unavailable.title" = "Dossier de téléchargement indisponible";
+"torrent.error.save_path_unavailable.message" = "Shatl n’a pas pu ouvrir le dossier d’enregistrement. Choisissez un autre dossier ou retirez le torrent de la liste.";
+"torrent.error.not_found.title" = "Téléchargement indisponible";
+"torrent.error.not_found.message" = "Ce torrent est introuvable. Essayez de l’ajouter à nouveau.";
+"torrent.error.action_failed.title" = "Action impossible";
+"torrent.error.action_failed.message" = "Une erreur s’est produite. Réessayez.";
+
+"remove_dialog.choice.title" = "Supprimer « %@ » ?";
+"remove_dialog.choice.message.with_files" = "Vous pouvez retirer seulement l’entrée de la liste ou la supprimer avec les fichiers téléchargés.";
+"remove_dialog.choice.message.list_only" = "Shatl retirera seulement l’entrée de la liste. La suppression des fichiers n’est pas disponible pour cette carte.";
+"remove_dialog.delete_with_files.title" = "Supprimer « %@ » avec les fichiers ?";
+"remove_dialog.delete_with_files.message" = "Shatl retirera le torrent de la liste et supprimera tous les fichiers associés du disque.";
+
+"payload_deletion.files_not_deleted.title" = "Les fichiers n’ont pas été supprimés";
+"payload_deletion.not_all_files_deleted.title" = "Certains fichiers n’ont pas été supprimés";
+"payload_deletion.engine_stop_failed.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu l’arrêter correctement dans le moteur avant de supprimer les fichiers.";
+"payload_deletion.partial_failure.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichier(s) du disque.";
+"payload_deletion.unresolved.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu identifier correctement les fichiers associés sur le disque.";
+
+"add_torrent.loading_metadata" = "Récupération des métadonnées…";
+"add_torrent.title" = "Ajouter un téléchargement";
+"add_torrent.entry.empty_title" = "La liste des torrents est vide";
+"add_torrent.entry.subtitle" = "Collez un lien .magnet ci-dessous ou choisissez un fichier .torrent sur votre Mac.";
+"add_torrent.entry.choose_file" = "Choisir un fichier .torrent…";
+"add_torrent.review.tab.files" = "Fichiers";
+"add_torrent.review.tab.settings" = "Réglages";
+"add_torrent.review.no_selection" = "Aucun torrent sélectionné pour le moment";
+"add_torrent.review.invalid_placeholder" = "Impossible de préparer le téléchargement.";
+"add_torrent.review.files_after_metadata" = "Les fichiers apparaîtront après la récupération des métadonnées.";
+"add_torrent.review.no_files" = "Aucun fichier à télécharger.";
+"add_torrent.review.no_draft" = "Le brouillon de téléchargement n’a pas encore été créé.";
+"add_torrent.review.alias_caption" = "L’alias sera affiché sur la carte du torrent à la place du nom original. Vous pouvez voir le nom original en développant la carte du torrent.";
+"add_torrent.review.download_to_folder" = "Télécharger dans « %@ »";
+"add_torrent.review.folder_not_selected" = "Aucun dossier choisi";
+"add_torrent.review.stop_after_download" = "Arrêter l’envoi une fois le téléchargement terminé";
+"add_torrent.review.use_alias" = "Utiliser un alias";
+"add_torrent.review.alias_placeholder" = "Saisir un alias";
+"add_torrent.review.confirm" = "Télécharger";
+"add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
+"add_torrent.review.summary.size" = "Taille";
+"add_torrent.review.summary.free_space" = "Disponible";
+"add_torrent.review.summary.unavailable" = "Indisponible";
+"add_torrent.review.summary.selected_count" = "%lld sur %lld";
+"add_torrent.review.folder.files.none" = "Aucun fichier sélectionné";
+"add_torrent.review.folder.files.count.one" = "%lld fichier";
+"add_torrent.review.folder.files.count.other" = "%lld fichiers";
+"add_torrent.review.folder.files.partial.one" = "%lld fichier sélectionné sur %lld";
+"add_torrent.review.folder.files.partial.other" = "%lld fichiers sélectionnés sur %lld";
+"add_torrent.error.empty_magnet.title" = "Ajoutez un lien magnet";
+"add_torrent.error.empty_magnet.message" = "Le champ est vide. Collez un lien magnet et réessayez.";
+"add_torrent.error.unrecognized_link.title" = "Impossible de reconnaître le lien";
+"add_torrent.error.unrecognized_link.message" = "Vérifiez qu’il commence par magnet:? et qu’il a été copié entièrement.";
+"add_torrent.error.invalid_magnet.title" = "Impossible de reconnaître le lien magnet";
+"add_torrent.error.invalid_magnet.message" = "Vérifiez que le lien a été copié entièrement, puis réessayez.";
+"add_torrent.error.invalid_torrent_file.title" = "Impossible d’ouvrir le fichier";
+"add_torrent.error.invalid_torrent_file.message" = "Le fichier est peut-être endommagé ou non pris en charge. Choisissez un autre fichier .torrent et réessayez.";
+"add_torrent.error.metadata_timeout.title" = "Impossible de récupérer les métadonnées";
+"add_torrent.error.metadata_timeout.message" = "Les sources n’ont pas envoyé les données à temps. Réessayez plus tard.";
+"add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue";
+"add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Cliquez sur Réessayer pour recommencer.";
+"add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà";
+"add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste.";
+"add_torrent.error.generic.title" = "Impossible de préparer le téléchargement";
+"add_torrent.error.generic.message" = "Réessayez. Si l’erreur se reproduit, vérifiez le fichier ou le lien.";
+
+"settings.tab.downloads" = "Téléchargements";
+"settings.tab.appearance" = "Apparence";
+"settings.tab.data" = "Données";
+"settings.tab.about" = "À propos";
+"settings.tab.localization" = "Langue";
+"settings.tab.debug" = "Débogage";
+
+"settings.notifications.section" = "Notifications";
+"settings.notifications.show" = "Afficher les notifications";
+"settings.notifications.play_sound_on_completion" = "Émettre un son à la fin d’un téléchargement";
+
+"settings.data.section" = "Statistiques d’utilisation";
+"settings.data.help_development" = "Aider à améliorer Shatl avec des statistiques anonymes";
+"settings.data.sent_data" = "Données envoyées";
+"settings.data.sent_data.description" = "Vous pouvez consulter les données qui seront envoyées";
+"settings.data.sent_data.show" = "Afficher";
+"settings.data.status.never_sent.enabled" = "Les statistiques d’utilisation n’ont pas encore été envoyées.";
+"settings.data.status.never_sent.disabled" = "Aucune donnée n’est envoyée, car les statistiques sont désactivées.";
+"settings.data.status.sent_today.enabled" = "Les statistiques d’utilisation ont été envoyées aujourd’hui.";
+"settings.data.status.sent_today.disabled" = "Les statistiques d’utilisation ont été envoyées aujourd’hui. Aucune nouvelle donnée n’est envoyée.";
+"settings.data.status.sent_yesterday.enabled" = "Les statistiques d’utilisation ont été envoyées hier.";
+"settings.data.status.sent_yesterday.disabled" = "Les statistiques d’utilisation ont été envoyées hier. Aucune nouvelle donnée n’est envoyée.";
+"settings.data.status.sent_two_days_ago.enabled" = "Les statistiques d’utilisation ont été envoyées avant-hier.";
+"settings.data.status.sent_two_days_ago.disabled" = "Les statistiques d’utilisation ont été envoyées avant-hier. Aucune nouvelle donnée n’est envoyée.";
+"settings.data.status.sent_earlier.enabled" = "Les statistiques d’utilisation ont été envoyées %@ (%@).";
+"settings.data.status.sent_earlier.disabled" = "Les statistiques d’utilisation ont été envoyées %@ (%@). Aucune nouvelle donnée n’est envoyée.";
+"settings.data.collects.title" = "Envoyé :";
+"settings.data.collects.launch_count" = "Nombre de lancements";
+"settings.data.collects.app_version" = "Version de l’app";
+"settings.data.collects.interface_language" = "Langue de l’interface";
+"settings.data.does_not_collect.title" = "Non envoyé :";
+"settings.data.does_not_collect.torrent_data" = "Données des torrents";
+"settings.data.does_not_collect.link_data" = "Données des liens";
+"settings.data.does_not_collect.file_data" = "Données des fichiers";
+"settings.data.caption" = "Ces statistiques aident à estimer l’utilité de Shatl pour les utilisateurs et à orienter les décisions de maintenance.";
+
+"settings.downloads.performance.section" = "Performances";
+"settings.downloads.performance.profile.economical" = "Économie";
+"settings.downloads.performance.profile.balanced" = "Équilibre";
+"settings.downloads.performance.profile.maximum" = "Maximum";
+"settings.downloads.performance.caption.main" = "Shatl peut fonctionner plus lentement ou plus rapidement selon le mode choisi. Les modes plus élevés rendent le téléchargement et l’envoi plus actifs et augmentent la charge du Mac.";
+"settings.downloads.performance.caption.economical" = "Le mode Économie réduit aussi les vitesses de téléchargement et d’envoi afin d’économiser la batterie.";
+"settings.downloads.folder.section" = "Dossier de téléchargement";
+
+"settings.appearance.theme.section" = "Thème";
+"settings.appearance.theme.system" = "Comme le système";
+"settings.appearance.theme.light" = "Clair";
+"settings.appearance.theme.dark" = "Sombre";
+"settings.appearance.theme.caption" = "Shatl peut suivre l’apparence de macOS ou utiliser le thème que vous choisissez.";
+"settings.appearance.metrics.section" = "Affichage des données";
+"settings.appearance.metrics.simplified" = "Simplifié";
+"settings.appearance.metrics.detailed" = "Détaillé";
+"settings.appearance.metrics.toggle" = "Afficher les données en mode simplifié";
+"settings.appearance.metrics.caption" = "Masque les détails peu importants, arrondit les valeurs et rend les données plus faciles à comprendre. Mode recommandé.";
+"settings.appearance.metrics.info.help" = "En savoir plus sur la précision des valeurs";
+"settings.appearance.metrics.popover.title" = "Précision des valeurs";
+"settings.appearance.metrics.popover.precision" = "Lorsque le mode simplifié est désactivé, les vitesses et les volumes de données sont affichés avec davantage de précision, avec une décimale si nécessaire. Par exemple, 10 Mo/s peut devenir 10,5 Mo/s et 8 Go peut devenir 7,7 Go.";
+"settings.appearance.metrics.popover.eta" = "Le temps restant inférieur à une heure est affiché sans arrondi par paliers de cinq secondes ou minutes : par exemple, 35 min peut devenir 38 min. À partir d’une heure, le format reste inchangé.";
+"settings.appearance.metrics.popover.unchanged" = "La progression, le nombre de seeds et de peers ainsi que le fonctionnement du torrent restent inchangés.";
+"settings.appearance.preview" = "Aperçu";
+
+"settings.about.application_version" = "Version de l’app";
+"settings.about.check_updates" = "Rechercher les mises à jour";
+"settings.about.check_for_updates_automatically" = "Rechercher les mises à jour";
+"settings.about.install_updates_automatically" = "Installer les mises à jour automatiquement";
+"settings.about.contact_section" = "Contacter le développeur";
+"settings.about.contact_row" = "Envoyer un avis ou signaler un problème";
+"settings.about.write" = "Écrire";
+"settings.about.logo.caption" = "Créé avec amour pour votre Mac";
+
+"settings.localization.section" = "Langue de l’interface";
+"settings.localization.app_language" = "Langue de Shatl";
+"settings.localization.caption" = "Sélecteur temporaire pour vérifier les localisations. La version finale utilisera la langue de macOS.";
+"settings.localization.language.system" = "Comme le système";
+"settings.localization.language.english" = "Anglais";
+"settings.localization.language.russian" = "Russe";
+"settings.localization.language.german" = "Allemand";
+"settings.localization.language.spanish" = "Espagnol";
+"settings.localization.language.french" = "Français";
+"settings.localization.language.japanese" = "Japonais";
+"settings.localization.language.simplified_chinese" = "Chinois simplifié";
+
+"settings.debug.logging.section" = "Systèmes de journalisation";
+"settings.debug.logging.app" = "Journalisation de Shatl";
+"settings.debug.logging.disk_diagnostics" = "Diagnostic des fichiers et chemins";
+"settings.debug.logging.metric_animation_diagnostics" = "Diagnostic des animations de métriques";
+"settings.debug.logging.snapshot_diagnostics" = "Diagnostic des mises à jour snapshot";
+"settings.debug.logging.add_torrent_review_diagnostics" = "Diagnostic de la fenêtre « Ajouter un torrent »";
+
+"notification.download_completed.title" = "Téléchargement terminé";
+"notification.download_completed.body" = "%@ a terminé son téléchargement.";
