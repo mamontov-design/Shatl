@@ -78,7 +78,7 @@ struct ShatlApp: App {
                 }
                 .frame(minWidth:440, minHeight: 440)
         }
-        .defaultSize(width: 496, height: 440)
+        .defaultSize(width: 440, height: 440)
         .windowToolbarStyle(.unified(showsTitle: true))
         .commands {
             ShatlCommands(store: store)
