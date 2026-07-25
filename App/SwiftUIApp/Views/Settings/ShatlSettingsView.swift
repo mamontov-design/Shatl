@@ -578,6 +578,7 @@ private enum DataCollectionItem: CaseIterable, Identifiable {
 
 private struct AboutSettingsTab: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var updaterController: ShatlUpdaterController
 
     var body: some View {
         VStack(spacing: 8) {
@@ -598,22 +599,34 @@ private struct AboutSettingsTab: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    ShatlButton(localizedTitle: "settings.about.check_updates", role: .borderedNeutral) {}
+                    ShatlButton(
+                        localizedTitle: "settings.about.check_updates",
+                        role: .borderedNeutral,
+                        isDisabled: !updaterController.canCheckForUpdates
+                    ) {
+                        updaterController.checkForUpdates()
+                    }
                 }
 
                 ShatlSettingsParameterDivider()
 
                 ShatlSettingsToggleRow(
                     localizedTitle: "settings.about.check_for_updates_automatically",
-                    isOn: binding(for: \.checkForUpdates)
+                    isOn: Binding(
+                        get: { updaterController.automaticallyChecksForUpdates },
+                        set: { updaterController.setAutomaticallyChecksForUpdates($0) }
+                    )
                 )
 
                 ShatlSettingsParameterDivider()
 
                 ShatlSettingsToggleRow(
                     localizedTitle: "settings.about.install_updates_automatically",
-                    isOn: binding(for: \.automaticallyInstallUpdates),
-                    isEnabled: store.preferences.checkForUpdates
+                    isOn: Binding(
+                        get: { updaterController.automaticallyInstallsUpdates },
+                        set: { updaterController.setAutomaticallyInstallsUpdates($0) }
+                    ),
+                    isEnabled: updaterController.allowsAutomaticUpdates
                 )
             }
 
@@ -637,7 +650,10 @@ private struct AboutSettingsTab: View {
         .padding(.horizontal, 16)
         .padding(.top, 0)
         .padding(.bottom, 16)
-        .animation(ShatlMotion.cardState, value: store.preferences.checkForUpdates)
+        .animation(
+            ShatlMotion.cardState,
+            value: updaterController.automaticallyChecksForUpdates
+        )
     }
 
     private var aboutWordmarkContainer: some View {
@@ -665,13 +681,6 @@ private struct AboutSettingsTab: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-    }
-
-    private func binding<Value>(for keyPath: WritableKeyPath<AppPreferences, Value>) -> Binding<Value> {
-        Binding(
-            get: { store.preferences[keyPath: keyPath] },
-            set: { store.preferences[keyPath: keyPath] = $0 }
-        )
     }
 
     private func composeFeedbackEmail() {

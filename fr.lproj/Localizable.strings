@@ -218,7 +218,7 @@
 
 "settings.about.application_version" = "Version de l’app";
 "settings.about.check_updates" = "Rechercher les mises à jour";
-"settings.about.check_for_updates_automatically" = "Rechercher les mises à jour";
+"settings.about.check_for_updates_automatically" = "Rechercher automatiquement les mises à jour";
 "settings.about.install_updates_automatically" = "Installer les mises à jour automatiquement";
 "settings.about.contact_section" = "Contacter le développeur";
 "settings.about.contact_row" = "Envoyer un avis ou signaler un problème";

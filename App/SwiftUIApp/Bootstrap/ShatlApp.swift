@@ -9,10 +9,23 @@ struct ShatlApp: App {
     @NSApplicationDelegateAdaptor(ShatlAppDelegate.self) private var appDelegate
     @StateObject private var store: AppStore
     @StateObject private var accentState = ShatlAccentState()
+    @StateObject private var updaterController: ShatlUpdaterController
 
     init() {
         #if DEBUG
-        if Self.isRunningInsideXcodePreview {
+        let isRunningInsideXcodePreview = Self.isRunningInsideXcodePreview
+        #else
+        let isRunningInsideXcodePreview = false
+        #endif
+
+        _updaterController = StateObject(
+            wrappedValue: ShatlUpdaterController(
+                startingUpdater: !isRunningInsideXcodePreview
+            )
+        )
+
+        #if DEBUG
+        if isRunningInsideXcodePreview {
             _store = StateObject(wrappedValue: AppEnvironment.previewStore())
             return
         }
@@ -75,6 +88,7 @@ struct ShatlApp: App {
             ShatlSettingsView()
                 .environmentObject(store)
                 .environmentObject(accentState)
+                .environmentObject(updaterController)
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))

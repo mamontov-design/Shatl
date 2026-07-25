@@ -8,6 +8,10 @@ Main directories:
 - `Licenses/` contains the corresponding third-party license texts.
 - `Sources/` is local and ignored by Git; build scripts download pinned source archives there.
 
+Sparkle is resolved through Swift Package Manager rather than stored in
+`Artifacts/`. Its complete license text is retained in `Licenses/` for release
+notices.
+
 Current pipeline:
 
 - OpenSSL is built into `Vendor/Artifacts/openssl/macos-arm64/`.

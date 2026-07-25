@@ -216,7 +216,7 @@
 
 "settings.about.application_version" = "アプリのバージョン";
 "settings.about.check_updates" = "アップデートを確認";
-"settings.about.check_for_updates_automatically" = "アップデートを確認";
+"settings.about.check_for_updates_automatically" = "アップデートを自動的に確認";
 "settings.about.install_updates_automatically" = "アップデートを自動的にインストール";
 "settings.about.contact_section" = "開発者に連絡";
 "settings.about.contact_row" = "フィードバックを送信、または問題を報告";

@@ -67,6 +67,16 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertTrue(preferences.canSendAnonymousUsageStatistics)
     }
 
+    func testUpdaterSettingsAreNotEncodedInAppPreferences() throws {
+        let data = try JSONEncoder().encode(AppPreferences.defaultValue)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+
+        XCTAssertNil(object["checkForUpdates"])
+        XCTAssertNil(object["automaticallyInstallUpdates"])
+    }
+
     func testLoadMigratesPreferencesWithoutDiskDiagnosticsFlag() throws {
         let suiteName = "AppPreferencesStoreTests-\(UUID().uuidString)"
         guard let defaults = UserDefaults(suiteName: suiteName) else {

@@ -153,8 +153,6 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var metricsMode: MetricsPresentationMode
     var animationMode: AppAnimationMode
     var localeOverride: AppLocaleOverride
-    var checkForUpdates: Bool
-    var automaticallyInstallUpdates: Bool
     var sendsAnonymousUsageStatistics: Bool
     var hasAnsweredUsageStatisticsOnboarding: Bool
     var lastUsageStatisticsSentAt: Date?
@@ -180,8 +178,6 @@ extension AppPreferences {
         case metricsMode
         case animationMode
         case localeOverride
-        case checkForUpdates
-        case automaticallyInstallUpdates
         case sendsAnonymousUsageStatistics
         case hasAnsweredUsageStatisticsOnboarding
         case lastUsageStatisticsSentAt
@@ -233,8 +229,6 @@ extension AppPreferences {
             AppLocaleOverride.self,
             forKey: .localeOverride
         ) ?? .system
-        checkForUpdates = try container.decode(Bool.self, forKey: .checkForUpdates)
-        automaticallyInstallUpdates = try container.decode(Bool.self, forKey: .automaticallyInstallUpdates)
         sendsAnonymousUsageStatistics = try container.decodeIfPresent(
             Bool.self,
             forKey: .sendsAnonymousUsageStatistics
@@ -313,8 +307,6 @@ extension AppPreferences {
         metricsMode: .simplified,
         animationMode: .lively,
         localeOverride: .system,
-        checkForUpdates: true,
-        automaticallyInstallUpdates: false,
         sendsAnonymousUsageStatistics: false,
         hasAnsweredUsageStatisticsOnboarding: false,
         lastUsageStatisticsSentAt: nil,

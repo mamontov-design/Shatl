@@ -36,6 +36,22 @@
 			</array>
 		</dict>
 	</array>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://mamontov-design.github.io/shatl-updates/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>R3ZCY3y+bd6xPJCiZLNqNPUSuJ98bTg7ukLRyrTnvYc=</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
