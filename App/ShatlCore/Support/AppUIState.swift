@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Mamontov Design
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// Keeps window UI state in the core so the store does not depend on SwiftUI.

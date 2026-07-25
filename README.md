@@ -25,6 +25,16 @@ and libtorrent, run `Scripts/build-openssl.sh` followed by
 Anonymous usage statistics are opt-in. Diagnostic file logging is disabled by
 default and cannot be activated in release builds.
 
+## License
+
+Shatl's first-party source code is licensed under
+[GNU GPL version 3 only](LICENSE). Third-party components remain under their
+respective licenses.
+
+The Shatl name, wordmark, logomark, and application icon are governed by the
+separate [brand and trademark policy](TRADEMARKS.md). The GPL license does not
+grant permission to present modified software as an official Shatl release.
+
 ## Third-party software
 
 See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

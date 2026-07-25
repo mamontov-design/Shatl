@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Mamontov Design
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// Stores persistent card issues separately from transient runtime errors.

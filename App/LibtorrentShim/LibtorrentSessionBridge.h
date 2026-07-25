@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Mamontov Design
+// SPDX-License-Identifier: GPL-3.0-only
+
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN

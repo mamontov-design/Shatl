@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Mamontov Design
+// SPDX-License-Identifier: GPL-3.0-only
+
 import Foundation
 
 /// Assembles the application's live dependencies in one place.

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2026 Mamontov Design
+# SPDX-License-Identifier: GPL-3.0-only
+
 set -euo pipefail
 
 # Builds static libtorrent libraries into local vendored artifacts.
