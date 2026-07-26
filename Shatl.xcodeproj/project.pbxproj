@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		4F997BFF2FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */; };
 		4F997C002FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */; };
+		4FAF09453016745D001EB98E /* ShatlAppIconConcept.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4FAF09443016745D001EB98E /* ShatlAppIconConcept.icon */; };
+		4FAF09463016745D001EB98E /* ShatlAppIconConcept.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4FAF09443016745D001EB98E /* ShatlAppIconConcept.icon */; };
 		4FF6C5BE2F72FAAA0008033E /* Localizable.strings in Sources */ = {isa = PBXBuildFile; fileRef = 4FF6C5BD2F72FAAA0008033E /* Localizable.strings */; };
 		50B000012FF0000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 50B000032FF0000000000003 /* Sparkle */; };
 /* End PBXBuildFile section */
@@ -26,6 +28,7 @@
 /* Begin PBXFileReference section */
 		4F1F71AB2F79837E00EB7B05 /* Shatl-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Shatl-Info.plist"; sourceTree = "<group>"; };
 		4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ShatlAppIcon.icon; sourceTree = "<group>"; };
+		4FAF09443016745D001EB98E /* ShatlAppIconConcept.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ShatlAppIconConcept.icon; sourceTree = "<group>"; };
 		4FBD3B742F5EA8CF000486BA /* Shatl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shatl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FF6C5BC2F72FAAA0008033E /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		4FF6C5BF2F72FAB30008033E /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -73,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */,
+				4FAF09443016745D001EB98E /* ShatlAppIconConcept.icon */,
 				4F1F71AB2F79837E00EB7B05 /* Shatl-Info.plist */,
 				4FF6C5BD2F72FAAA0008033E /* Localizable.strings */,
 				4FBD3B822F5EA94B000486BA /* App */,
@@ -200,6 +204,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF09453016745D001EB98E /* ShatlAppIconConcept.icon in Resources */,
 				4F997C002FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -208,6 +213,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4FAF09463016745D001EB98E /* ShatlAppIconConcept.icon in Resources */,
 				4F997BFF2FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
