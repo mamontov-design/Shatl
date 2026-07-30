@@ -15,8 +15,12 @@ struct ShatlWordmark: View {
 
     private let selection: Binding<ShatlBrandMark>?
 
-    @StateObject private var wordmarkAnimationState = ShatlBrandAnimationState(initialPhase: 0.5)
-    @StateObject private var logomarkAnimationState = ShatlBrandAnimationState()
+    @StateObject private var wordmarkAnimationState = ShatlBrandAnimationState(
+        originalStrokeWidth: ShatlBrandAnimation.wordmarkOriginalStrokeWidth
+    )
+    @StateObject private var logomarkAnimationState = ShatlBrandAnimationState(
+        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth
+    )
     @State private var interactionScale: CGFloat = 1
     @State private var localSelection: ShatlBrandMark
     @State private var logomarkProgress: CGFloat
@@ -116,9 +120,9 @@ struct ShatlWordmark: View {
     private func resetAnimation(for brandMark: ShatlBrandMark) {
         switch brandMark {
         case .wordmark:
-            wordmarkAnimationState.reset(to: 0.5)
+            wordmarkAnimationState.resetToOriginal()
         case .logomark:
-            logomarkAnimationState.resetToMaximum()
+            logomarkAnimationState.resetToOriginal()
         }
     }
 
@@ -273,23 +277,28 @@ private struct ShatlWordmarkArtwork: View {
 private final class ShatlBrandAnimationState: ObservableObject {
     @Published private(set) var phase: CGFloat
 
-    init(initialPhase: CGFloat = 1) {
-        phase = initialPhase
+    private let originalPhase: CGFloat
+
+    init(originalStrokeWidth: CGFloat) {
+        let originalPhase = ShatlBrandAnimation.phase(
+            forStrokeWidth: originalStrokeWidth
+        )
+        self.originalPhase = originalPhase
+        phase = originalPhase
     }
 
-    func resetToMaximum() {
-        reset(to: 1)
-    }
-
-    func reset(to phase: CGFloat) {
+    func resetToOriginal() {
         withAnimation(nil) {
-            self.phase = phase
+            phase = originalPhase
         }
     }
 
     func run() async {
         while !Task.isCancelled {
-            let nextPhase = ShatlBrandAnimation.randomPhase(excluding: phase)
+            let nextPhase = ShatlBrandAnimation.randomPhase(
+                excluding: phase,
+                originalPhase: originalPhase
+            )
 
             guard await sleep(for: ShatlBrandAnimation.pauseDuration) else { return }
 
@@ -316,17 +325,47 @@ private final class ShatlBrandAnimationState: ObservableObject {
 private enum ShatlBrandAnimation {
     static let fullDuration: TimeInterval = 2.2
     static let pauseDuration: TimeInterval = 2.0
+    static let wordmarkOriginalStrokeWidth: CGFloat = 8
+    static let logomarkOriginalStrokeWidth: CGFloat = 10
 
     private static let phases: [CGFloat] = [0, 0.25, 0.5, 0.75, 1.0]
+    private static let minimumStrokeWidth: CGFloat = 4
+    private static let maximumStrokeWidth: CGFloat = 12
+    private static let commonRangeProbability = 0.9
+    private static let phaseComparisonTolerance: CGFloat = 0.001
 
-    static func randomPhase(excluding currentPhase: CGFloat) -> CGFloat {
-        phases
-            .filter { abs($0 - currentPhase) > 0.001 }
-            .randomElement() ?? 0
+    static func randomPhase(
+        excluding currentPhase: CGFloat,
+        originalPhase: CGFloat
+    ) -> CGFloat {
+        let availablePhases = phases.filter {
+            abs($0 - currentPhase) > phaseComparisonTolerance
+        }
+        let usesCommonRange = Double.random(in: 0..<1) < commonRangeProbability
+        let preferredPhases = availablePhases.filter { phase in
+            if usesCommonRange {
+                return phase <= originalPhase + phaseComparisonTolerance
+            }
+
+            return phase > originalPhase + phaseComparisonTolerance
+        }
+
+        return preferredPhases.randomElement()
+            ?? availablePhases.randomElement()
+            ?? originalPhase
     }
 
     static func strokeWidth(for phase: CGFloat) -> CGFloat {
-        4 + phase * 8
+        minimumStrokeWidth + phase * (maximumStrokeWidth - minimumStrokeWidth)
+    }
+
+    static func phase(forStrokeWidth strokeWidth: CGFloat) -> CGFloat {
+        let clampedStrokeWidth = min(
+            max(strokeWidth, minimumStrokeWidth),
+            maximumStrokeWidth
+        )
+        return (clampedStrokeWidth - minimumStrokeWidth)
+            / (maximumStrokeWidth - minimumStrokeWidth)
     }
 
     static func interpolatedOpacity(
@@ -546,7 +585,9 @@ private struct ShatlWordmarkStarMorphShape: Shape {
 struct ShatlLogomarkLarge: View {
     let renderingMode: ShatlBrandRenderingMode
 
-    @StateObject private var animationState = ShatlBrandAnimationState()
+    @StateObject private var animationState = ShatlBrandAnimationState(
+        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth
+    )
 
     var body: some View {
         ShatlLogomarkArtwork(
@@ -555,7 +596,7 @@ struct ShatlLogomarkLarge: View {
         )
             .frame(width: 84, height: 84)
             .task {
-                animationState.resetToMaximum()
+                animationState.resetToOriginal()
                 await animationState.run()
             }
     }

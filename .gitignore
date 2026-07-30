@@ -9,6 +9,11 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 
+# Landing website
+Website/node_modules/
+Website/.next/
+Website/out/
+
 # SwiftPM / tooling scratch data
 .swiftpm/
 

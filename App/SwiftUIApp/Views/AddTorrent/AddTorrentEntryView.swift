@@ -330,7 +330,7 @@ struct AddTorrentEntryView: View {
                 },
                 localeOverride: store.preferences.localeOverride
             )
-            .padding(.bottom, 8)
+            .padding(.bottom, 24)
             .transition(ShatlMotion.messageToastTransition)
         }
     }
