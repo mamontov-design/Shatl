@@ -57,11 +57,19 @@ struct ShatlWordmark: View {
         selection?.wrappedValue ?? localSelection
     }
 
+    private var effectiveRenderingMode: ShatlBrandRenderingMode {
+        if #available(macOS 27.0, *) {
+            renderingMode
+        } else {
+            .flat
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             ShatlWordmarkArtwork(
                 animationPhase: wordmarkAnimationState.phase,
-                renderingMode: renderingMode
+                renderingMode: effectiveRenderingMode
             )
                 .compositingGroup()
                 .opacity(Double(1 - logomarkProgress))
@@ -70,7 +78,7 @@ struct ShatlWordmark: View {
 
             ShatlLogomarkArtwork(
                 animationPhase: logomarkAnimationState.phase,
-                renderingMode: renderingMode
+                renderingMode: effectiveRenderingMode
             )
                 .frame(width: 84, height: 84)
                 .compositingGroup()

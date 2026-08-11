@@ -7,6 +7,16 @@ private enum OnboardingThemeLayout {
     static let manualCardsExpandedHeight: CGFloat = 70
 }
 
+private enum OnboardingWindowLayout {
+    static var closeButtonPadding: CGFloat {
+        if #available(macOS 27.0, *) {
+            8
+        } else {
+            16
+        }
+    }
+}
+
 struct OnboardingFlowView: View {
     var localeOverride: AppLocaleOverride = .russian
     var defaultDownloadPath: String = AppPreferences.defaultValue.defaultDownloadPath
@@ -483,7 +493,7 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
                 iconSize: 17,
                 hoverForegroundColor: ShatlColor.typographyTertiary
             )
-            .padding(8)
+            .padding(OnboardingWindowLayout.closeButtonPadding)
         }
     }
 

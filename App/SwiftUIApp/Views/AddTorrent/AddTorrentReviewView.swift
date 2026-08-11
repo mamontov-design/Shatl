@@ -224,6 +224,14 @@ private func addTorrentDiagnosticsNumber(_ value: CGFloat) -> String {
 }
 
 enum AddTorrentReviewLayout {
+    static var windowEdgePadding: CGFloat {
+        if #available(macOS 27.0, *) {
+            12
+        } else {
+            18
+        }
+    }
+
     static let filesContainerCornerRadius: CGFloat = 12
     static let filesContainerHeight: CGFloat = 360
     static let standardListItemHeight: CGFloat = 32
@@ -812,7 +820,7 @@ struct AddTorrentReviewView: View {
             reviewContentArea
             buttonContainer
         }
-        .padding(12)
+        .padding(AddTorrentReviewLayout.windowEdgePadding)
     }
 
     private var invalidReviewLayout: some View {
@@ -835,14 +843,14 @@ struct AddTorrentReviewView: View {
                 heroHeaderGroup
                 tabsContainer
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
 
             filesAndSummaryContainer(for: draft)
 
             buttonContainer
-                .padding(.horizontal, 12)
+                .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, AddTorrentReviewLayout.windowEdgePadding)
     }
 
     private var draft: AddTorrentDraft? {
@@ -1374,7 +1382,7 @@ struct AddTorrentReviewView: View {
 
     private func torrentSummaryContainer(for draft: AddTorrentDraft) -> some View {
         torrentSummary(for: draft)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
     }
 
     private func torrentSummary(for draft: AddTorrentDraft) -> some View {
