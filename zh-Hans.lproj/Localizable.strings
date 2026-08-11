@@ -159,6 +159,8 @@
 "settings.tab.about" = "关于";
 "settings.tab.localization" = "语言";
 "settings.tab.debug" = "调试";
+"menu.debug.show_onboarding" = "启动新手引导";
+"menu.debug.show_restore_indicator" = "显示会话恢复指示器";
 
 "settings.notifications.section" = "通知";
 "settings.notifications.show" = "显示通知";

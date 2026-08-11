@@ -13,6 +13,22 @@ struct ShatlCommands: Commands {
                 .disabled(true)
         }
 
+        CommandMenu("settings.tab.debug") {
+            Button("menu.debug.show_onboarding") {
+                NotificationCenter.default.post(
+                    name: .shatlPresentDebugOnboarding,
+                    object: nil
+                )
+            }
+
+            Button("menu.debug.show_restore_indicator") {
+                NotificationCenter.default.post(
+                    name: .shatlPresentRestoreIndicatorPreview,
+                    object: nil
+                )
+            }
+        }
+
         CommandMenu("menu.torrent") {
             Button {
                 store.presentAddTorrentEntry()
@@ -138,4 +154,11 @@ struct ShatlCommands: Commands {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let shatlPresentDebugOnboarding = Notification.Name("ShatlPresentDebugOnboarding")
+    static let shatlPresentRestoreIndicatorPreview = Notification.Name(
+        "ShatlPresentRestoreIndicatorPreview"
+    )
 }

@@ -165,6 +165,8 @@
 "settings.tab.about" = "О программе";
 "settings.tab.localization" = "Язык";
 "settings.tab.debug" = "Отладка";
+"menu.debug.show_onboarding" = "Запустить онбординг";
+"menu.debug.show_restore_indicator" = "Показать индикатор восстановления сессии";
 
 "settings.notifications.section" = "Уведомления";
 "settings.notifications.show" = "Показывать уведомления";

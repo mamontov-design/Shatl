@@ -9,6 +9,8 @@ struct MainWindowView: View {
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
     @State private var isOnboardingPresented = false
+    @State private var isRestoreIndicatorPreviewPresented = false
+    @State private var restoreIndicatorPreviewTask: Task<Void, Never>?
     @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
 
@@ -116,6 +118,14 @@ struct MainWindowView: View {
             if isEmpty {
                 searchText = ""
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
+            isOnboardingPresented = true
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .shatlPresentRestoreIndicatorPreview)
+        ) { _ in
+            presentRestoreIndicatorPreview()
         }
         .environment(\.shatlAnimationMode, store.preferences.animationMode)
         .animation(ShatlMotion.mainContentMode, value: contentMode)
@@ -246,7 +256,23 @@ struct MainWindowView: View {
     }
 
     private var showsRestoreChip: Bool {
-        store.isRestoringSession
+        store.isRestoringSession || isRestoreIndicatorPreviewPresented
+    }
+
+    private func presentRestoreIndicatorPreview() {
+        restoreIndicatorPreviewTask?.cancel()
+        isRestoreIndicatorPreviewPresented = true
+
+        restoreIndicatorPreviewTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            isRestoreIndicatorPreviewPresented = false
+        }
     }
 
     private func presentAddTorrentEntryAlert(_ errorState: TorrentErrorState) {

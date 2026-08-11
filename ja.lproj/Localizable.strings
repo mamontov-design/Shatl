@@ -159,6 +159,8 @@
 "settings.tab.about" = "Shatlについて";
 "settings.tab.localization" = "言語";
 "settings.tab.debug" = "デバッグ";
+"menu.debug.show_onboarding" = "オンボーディングを開始";
+"menu.debug.show_restore_indicator" = "セッション復元インジケータを表示";
 
 "settings.notifications.section" = "通知";
 "settings.notifications.show" = "通知を表示";

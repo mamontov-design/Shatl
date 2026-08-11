@@ -161,6 +161,8 @@
 "settings.tab.about" = "About";
 "settings.tab.localization" = "Language";
 "settings.tab.debug" = "Debug";
+"menu.debug.show_onboarding" = "Start Onboarding";
+"menu.debug.show_restore_indicator" = "Show Session Restore Indicator";
 
 "settings.notifications.section" = "Notifications";
 "settings.notifications.show" = "Show notifications";
