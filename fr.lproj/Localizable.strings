@@ -32,6 +32,9 @@
 "toolbar.delete" = "Supprimer";
 "toolbar.search" = "Rechercher";
 
+"search.empty.title" = "Aucun résultat pour « %@ »";
+"search.empty.description" = "Essayez un autre nom ou alias.";
+
 "session.restore.in_progress" = "Restauration de la session…";
 
 "onboarding.action.next" = "Suivant";
@@ -169,7 +172,7 @@
 "settings.notifications.play_sound_on_completion" = "Émettre un son à la fin d’un téléchargement";
 
 "settings.data.section" = "Statistiques d’utilisation";
-"settings.data.help_development" = "Aider à améliorer Shatl avec des statistiques anonymes";
+"settings.data.help_development" = "Contribuer au développement avec des statistiques anonymes";
 "settings.data.sent_data" = "Données envoyées";
 "settings.data.sent_data.description" = "Vous pouvez consulter les données qui seront envoyées";
 "settings.data.sent_data.show" = "Afficher";
@@ -192,13 +195,14 @@
 "settings.data.does_not_collect.link_data" = "Données des liens";
 "settings.data.does_not_collect.file_data" = "Données des fichiers";
 "settings.data.caption" = "Ces statistiques aident à estimer l’utilité de Shatl pour les utilisateurs et à orienter les décisions de maintenance.";
+"settings.data.caption.technical" = "Pour des raisons techniques, le rapport contient également un identifiant d’installation aléatoire et la semaine de référence. Ces données servent à regrouper les statistiques hebdomadaires et ne contiennent aucun nom, aucune adresse e-mail ni aucune autre information personnelle.";
 
-"settings.downloads.performance.section" = "Performances";
-"settings.downloads.performance.profile.economical" = "Économie";
-"settings.downloads.performance.profile.balanced" = "Équilibre";
-"settings.downloads.performance.profile.maximum" = "Maximum";
+"settings.downloads.performance.section" = "Mode de performance";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatl peut fonctionner plus lentement ou plus rapidement selon le mode choisi. Les modes plus élevés rendent le téléchargement et l’envoi plus actifs et augmentent la charge du Mac.";
-"settings.downloads.performance.caption.economical" = "Le mode Économie réduit aussi les vitesses de téléchargement et d’envoi afin d’économiser la batterie.";
+"settings.downloads.performance.caption.economical" = "Le mode Halo réduit aussi les vitesses de téléchargement et d’envoi afin d’économiser la batterie.";
 "settings.downloads.folder.section" = "Dossier de téléchargement";
 
 "settings.appearance.theme.section" = "Thème";

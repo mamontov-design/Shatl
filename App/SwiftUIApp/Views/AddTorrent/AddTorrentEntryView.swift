@@ -116,7 +116,7 @@ struct AddTorrentEntryView: View {
                 .padding(12)
                 .frame(width: 250)
                 .glassEffect(
-                    .regular.tint(.accent.opacity(addTorrentBoxTintOpacity)),
+                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
                     in: addTorrentBoxShape
                 )
         case .modal:
@@ -143,14 +143,6 @@ struct AddTorrentEntryView: View {
             topTrailingRadius: 25,
             style: .continuous
         )
-    }
-
-    private var addTorrentBoxTintOpacity: Double {
-        if #available(macOS 27.0, *) {
-            0.02
-        } else {
-            0.08
-        }
     }
 
     @ViewBuilder

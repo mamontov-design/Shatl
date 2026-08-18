@@ -32,6 +32,9 @@
 "toolbar.delete" = "Delete";
 "toolbar.search" = "Search";
 
+"search.empty.title" = "No results for “%@”";
+"search.empty.description" = "Try a different name or alias.";
+
 "session.restore.in_progress" = "Restoring session…";
 
 "onboarding.action.next" = "Next";
@@ -169,7 +172,7 @@
 "settings.notifications.play_sound_on_completion" = "Play a sound when a download finishes";
 
 "settings.data.section" = "Usage statistics";
-"settings.data.help_development" = "Help improve Shatl with anonymous statistics";
+"settings.data.help_development" = "Contribute anonymous statistics to help development";
 "settings.data.sent_data" = "Data to be sent";
 "settings.data.sent_data.description" = "You can review which data will be sent";
 "settings.data.sent_data.show" = "Show";
@@ -192,13 +195,14 @@
 "settings.data.does_not_collect.link_data" = "Link data";
 "settings.data.does_not_collect.file_data" = "File data";
 "settings.data.caption" = "These statistics help estimate whether Shatl is useful to people and guide support decisions.";
+"settings.data.caption.technical" = "For technical purposes, the report also includes a random installation identifier and the reporting week. These fields are used to combine weekly statistics and contain no name, email address, or other personal information.";
 
-"settings.downloads.performance.section" = "Performance";
-"settings.downloads.performance.profile.economical" = "Economy";
-"settings.downloads.performance.profile.balanced" = "Balanced";
-"settings.downloads.performance.profile.maximum" = "Maximum";
+"settings.downloads.performance.section" = "Performance Mode";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatl can work slower or faster depending on the selected mode. Higher modes make downloading and seeding more active and increase the load on your Mac.";
-"settings.downloads.performance.caption.economical" = "Economy mode also lowers download and upload speeds to save battery power.";
+"settings.downloads.performance.caption.economical" = "Halo mode also lowers download and upload speeds to save battery power.";
 "settings.downloads.folder.section" = "Downloads folder";
 
 "settings.appearance.theme.section" = "Theme";

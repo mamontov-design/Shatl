@@ -37,6 +37,8 @@ struct TorrentCardView: View, Equatable {
     var isExpansionToggleEnabled = true
     var showsExpansionToggle = true
     var progressBarFillColorOverride: Color? = nil
+    var progressGroupBackgroundColorOverride: Color? = nil
+    var progressGroupForegroundColorOverride: Color? = nil
     var usesProductionProgressColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
@@ -512,6 +514,10 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressGroupColor: Color {
+        if let progressGroupBackgroundColorOverride {
+            return progressGroupBackgroundColorOverride
+        }
+
         if presentationMode == .onboardingDemo, !usesProductionProgressColors {
             return ShatlColor.backgroundPrimary
         }
@@ -541,6 +547,10 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressGroupForegroundColor: Color {
+        if let progressGroupForegroundColorOverride {
+            return progressGroupForegroundColorOverride
+        }
+
         if presentationMode == .onboardingDemo, !usesProductionProgressColors {
             return ShatlColor.typographyPrimary
         }

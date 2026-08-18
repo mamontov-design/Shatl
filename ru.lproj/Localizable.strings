@@ -32,6 +32,9 @@
 "toolbar.delete" = "Удалить";
 "toolbar.search" = "Поиск";
 
+"search.empty.title" = "Нет результатов для «%@»";
+"search.empty.description" = "Попробуйте другое название или псевдоним.";
+
 "session.restore.in_progress" = "Восстановление сессии…";
 
 "onboarding.action.next" = "Далее";
@@ -173,7 +176,7 @@
 "settings.notifications.play_sound_on_completion" = "Воспроизводить звук при завершении загрузки";
 
 "settings.data.section" = "Статистика использования";
-"settings.data.help_development" = "Помогать развитию Shatl анонимной статистикой";
+"settings.data.help_development" = "Помогать развитию анонимной статистикой";
 "settings.data.sent_data" = "Отправляемые данные";
 "settings.data.sent_data.description" = "Вы можете просмотреть, какие данные будут отправлены";
 "settings.data.sent_data.show" = "Показать";
@@ -196,13 +199,14 @@
 "settings.data.does_not_collect.link_data" = "Данные о ссылках";
 "settings.data.does_not_collect.file_data" = "Данные о файлах";
 "settings.data.caption" = "Эта статистика помогает оценивать востребованность Shatl и принимать решения о поддержке приложения.";
+"settings.data.caption.technical" = "Технически отчёт также содержит случайный идентификатор установки и отчётную неделю. Они нужны для объединения еженедельной статистики и не содержат имени, email или других сведений о личности.";
 
-"settings.downloads.performance.section" = "Производительность";
-"settings.downloads.performance.profile.economical" = "Экономный";
-"settings.downloads.performance.profile.balanced" = "Баланс";
-"settings.downloads.performance.profile.maximum" = "Максимум";
+"settings.downloads.performance.section" = "Режим производительности";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatl может работать медленнее или быстрее в зависимости от выбранного режима. Чем выше режим, тем активнее загрузка и раздача, и тем больше нагрузка на Mac.";
-"settings.downloads.performance.caption.economical" = "Экономный режим дополнительно снижает скорость загрузки и раздачи для экономии заряда батареи.";
+"settings.downloads.performance.caption.economical" = "Режим Halo дополнительно снижает скорость загрузки и раздачи для экономии заряда батареи.";
 "settings.downloads.folder.section" = "Папка загрузки";
 
 "settings.appearance.theme.section" = "Тема";

@@ -83,26 +83,6 @@ enum ShatlColor {
         return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
     }
 
-    /// Shared gauge color scale for performance modes.
-    static let performanceSpeedometerGradient = AngularGradient(
-        gradient: Gradient(stops: [
-            Gradient.Stop(
-                color: Color(red: 56.0 / 255.0, green: 189.0 / 255.0, blue: 248.0 / 255.0),
-                location: 0.08
-            ),
-            Gradient.Stop(
-                color: Color(red: 251.0 / 255.0, green: 191.0 / 255.0, blue: 36.0 / 255.0),
-                location: 0.50
-            ),
-            Gradient.Stop(
-                color: Color(red: 248.0 / 255.0, green: 113.0 / 255.0, blue: 113.0 / 255.0),
-                location: 0.92
-            ),
-        ]),
-        center: .center,
-        startAngle: .degrees(135),
-        endAngle: .degrees(405)
-    )
 }
 
 enum ShatlCornerRadius {
@@ -111,6 +91,16 @@ enum ShatlCornerRadius {
     static let tabsContainer: CGFloat = 8
     static let container: CGFloat = 20
     static let expandButton: CGFloat = 5.5
+}
+
+enum ShatlGlassTint {
+    static var subtleOpacity: Double {
+        if #available(macOS 27.0, *) {
+            return 0.02
+        }
+
+        return 0.08
+    }
 }
 
 struct ShatlShadowLayer: Sendable {

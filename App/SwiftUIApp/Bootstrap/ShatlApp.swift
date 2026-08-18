@@ -77,6 +77,7 @@ struct ShatlApp: App {
                     store.setApplicationUserAttentionActive(NSApp.isActive)
                 }
                 .frame(minWidth:440, minHeight: 440)
+                .windowFullScreenBehavior(.disabled)
         }
         .defaultSize(width: 440, height: 440)
         .windowToolbarStyle(.unified(showsTitle: true))
@@ -94,6 +95,7 @@ struct ShatlApp: App {
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
                 // Release width: 440.
                 .frame(width: 440)
+                .windowFullScreenBehavior(.disabled)
         }
         .windowResizability(.contentSize)
     }

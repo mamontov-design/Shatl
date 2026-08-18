@@ -32,6 +32,9 @@
 "toolbar.delete" = "削除";
 "toolbar.search" = "検索";
 
+"search.empty.title" = "「%@」の検索結果はありません";
+"search.empty.description" = "別の名前またはエイリアスをお試しください。";
+
 "session.restore.in_progress" = "セッションを復元中…";
 
 "onboarding.action.next" = "次へ";
@@ -167,7 +170,7 @@
 "settings.notifications.play_sound_on_completion" = "ダウンロード完了時にサウンドを再生";
 
 "settings.data.section" = "使用統計";
-"settings.data.help_development" = "匿名の統計でShatlの改善に協力する";
+"settings.data.help_development" = "匿名の統計で改善に協力する";
 "settings.data.sent_data" = "送信されるデータ";
 "settings.data.sent_data.description" = "送信されるデータを確認できます";
 "settings.data.sent_data.show" = "表示";
@@ -190,13 +193,14 @@
 "settings.data.does_not_collect.link_data" = "リンクのデータ";
 "settings.data.does_not_collect.file_data" = "ファイルのデータ";
 "settings.data.caption" = "この統計は、Shatlがどれだけ必要とされているかを把握し、サポート方針を決めるために役立ちます。";
+"settings.data.caption.technical" = "技術上、レポートにはランダムなインストール識別子と集計対象の週も含まれます。これらは週ごとの統計をまとめるために使用され、氏名、メールアドレス、その他の個人情報は含まれません。";
 
-"settings.downloads.performance.section" = "パフォーマンス";
-"settings.downloads.performance.profile.economical" = "省エネ";
-"settings.downloads.performance.profile.balanced" = "バランス";
-"settings.downloads.performance.profile.maximum" = "最大";
+"settings.downloads.performance.section" = "パフォーマンスモード";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatlは、選択したモードに応じて低速にも高速にも動作できます。高いモードほどダウンロードとシードが活発になり、Macへの負荷も増えます。";
-"settings.downloads.performance.caption.economical" = "省エネモードでは、バッテリーを節約するためにダウンロードとアップロードの速度も抑えます。";
+"settings.downloads.performance.caption.economical" = "Haloモードでは、バッテリーを節約するためにダウンロードとアップロードの速度も抑えます。";
 "settings.downloads.folder.section" = "ダウンロードフォルダ";
 
 "settings.appearance.theme.section" = "テーマ";

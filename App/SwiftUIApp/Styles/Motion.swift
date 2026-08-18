@@ -129,6 +129,18 @@ private struct ShatlMetricSetOutlineFlashTriggerKey: EnvironmentKey {
     static let defaultValue = 0
 }
 
+private struct ShatlMetricSetBounceEnabledKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+private struct ShatlMetricSetOutlinePulseColorKey: EnvironmentKey {
+    static let defaultValue = ShatlColor.metricPulseHighlight
+}
+
+private struct ShatlMetricSetOutlineFlashColorKey: EnvironmentKey {
+    static let defaultValue = ShatlColor.metricPulseHighlight
+}
+
 extension EnvironmentValues {
     var shatlAnimationMode: AppAnimationMode {
         get { self[ShatlAnimationModeKey.self] }
@@ -143,5 +155,20 @@ extension EnvironmentValues {
     var shatlMetricSetOutlineFlashTrigger: Int {
         get { self[ShatlMetricSetOutlineFlashTriggerKey.self] }
         set { self[ShatlMetricSetOutlineFlashTriggerKey.self] = newValue }
+    }
+
+    var shatlMetricSetBounceEnabled: Bool {
+        get { self[ShatlMetricSetBounceEnabledKey.self] }
+        set { self[ShatlMetricSetBounceEnabledKey.self] = newValue }
+    }
+
+    var shatlMetricSetOutlinePulseColor: Color {
+        get { self[ShatlMetricSetOutlinePulseColorKey.self] }
+        set { self[ShatlMetricSetOutlinePulseColorKey.self] = newValue }
+    }
+
+    var shatlMetricSetOutlineFlashColor: Color {
+        get { self[ShatlMetricSetOutlineFlashColorKey.self] }
+        set { self[ShatlMetricSetOutlineFlashColorKey.self] = newValue }
     }
 }

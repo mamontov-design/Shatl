@@ -39,11 +39,11 @@ nonisolated enum AppPerformanceProfile: String, CaseIterable, Codable, Sendable,
     var title: String {
         switch self {
         case .economical:
-            "Экономный"
+            "Halo"
         case .balanced:
-            "Сбалансированный"
+            "Orbit"
         case .maximum:
-            "Максимальный"
+            "Nova"
         }
     }
 

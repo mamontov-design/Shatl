@@ -5,6 +5,16 @@ import XCTest
 @testable import Shatl
 
 final class TorrentPresentationTests: XCTestCase {
+    func testModernBottomChipLayoutReservesChipHeightAndSixPointGaps() {
+        XCTAssertEqual(ShatlMetricLayout.containerHeight, 27)
+        XCTAssertEqual(ShatlBottomChipLayout.modernEdgePadding, 6)
+        XCTAssertEqual(ShatlBottomChipLayout.modernCornerRadius, 10)
+        XCTAssertEqual(ShatlBottomChipLayout.cardGap, 6)
+        XCTAssertEqual(ShatlBottomChipLayout.modernListBottomPadding, 39)
+        XCTAssertEqual(ShatlBottomChipLayout.legacyEdgePadding, 12)
+        XCTAssertEqual(ShatlBottomChipLayout.standardListBottomPadding, 8)
+    }
+
     func testExpandedMetricsHideConnectivityMetricsForSleepingStatuses() {
         let record = makeTestRecord(status: .stopped, progress: 0.23)
         var mutatedRecord = record
@@ -139,6 +149,36 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertNil(metricSet?.items.last?.iconName)
         XCTAssertEqual(metricSet?.items.last?.number, "1")
         XCTAssertEqual(metricSet?.items.last?.unit, "мин")
+    }
+
+    func testDownloadAndUploadSpeedMetricsUseDistinctSymbolStylesAtEveryThreshold() {
+        let cases: [(speed: Int64, downloadIcon: String, uploadIcon: String)] = [
+            (1, "tortoise.fill", "tortoise"),
+            (250 * 1_024, "figure.walk", "figure.walk"),
+            (2 * 1_024 * 1_024, "figure.run", "figure.run"),
+            (8 * 1_024 * 1_024, "hare.fill", "hare"),
+            (25 * 1_024 * 1_024, "bolt.fill", "bolt"),
+        ]
+
+        for testCase in cases {
+            var record = makeTestRecord(status: .downloading, progress: 0.5)
+            record.metrics.downloadSpeedBytesPerSecond = testCase.speed
+            record.metrics.uploadSpeedBytesPerSecond = testCase.speed
+
+            let downloadMetric = TorrentPresentation
+                .compactTransferMetricSet(for: record, mode: .simplified)?
+                .items
+                .first { $0.id == "download-speed" }
+            let uploadMetric = TorrentPresentation
+                .expandedMetricGroups(for: record, mode: .simplified)
+                .dynamicGroups
+                .first { $0.id == "upload-speed" }?
+                .items
+                .first
+
+            XCTAssertEqual(downloadMetric?.iconName, testCase.downloadIcon)
+            XCTAssertEqual(uploadMetric?.iconName, testCase.uploadIcon)
+        }
     }
 
     func testSimplifiedETARoundsSecondsByProductBuckets() {

@@ -32,6 +32,9 @@
 "toolbar.delete" = "Löschen";
 "toolbar.search" = "Suchen";
 
+"search.empty.title" = "Keine Ergebnisse für „%@“";
+"search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
+
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
 
 "onboarding.action.next" = "Weiter";
@@ -169,7 +172,7 @@
 "settings.notifications.play_sound_on_completion" = "Ton abspielen, wenn ein Download fertig ist";
 
 "settings.data.section" = "Nutzungsstatistik";
-"settings.data.help_development" = "Shatl mit anonymen Statistiken verbessern helfen";
+"settings.data.help_development" = "Mit anonymen Statistiken zur Weiterentwicklung beitragen";
 "settings.data.sent_data" = "Gesendete Daten";
 "settings.data.sent_data.description" = "Sie können ansehen, welche Daten gesendet werden";
 "settings.data.sent_data.show" = "Anzeigen";
@@ -192,13 +195,14 @@
 "settings.data.does_not_collect.link_data" = "Link-Daten";
 "settings.data.does_not_collect.file_data" = "Dateidaten";
 "settings.data.caption" = "Diese Statistik hilft einzuschätzen, wie gefragt Shatl ist, und Entscheidungen zur Unterstützung der App zu treffen.";
+"settings.data.caption.technical" = "Aus technischen Gründen enthält der Bericht außerdem eine zufällige Installationskennung und die Berichtswoche. Diese Angaben dienen der Zusammenführung wöchentlicher Statistiken und enthalten weder einen Namen noch eine E-Mail-Adresse oder andere personenbezogene Informationen.";
 
-"settings.downloads.performance.section" = "Leistung";
-"settings.downloads.performance.profile.economical" = "Sparsam";
-"settings.downloads.performance.profile.balanced" = "Balance";
-"settings.downloads.performance.profile.maximum" = "Maximum";
+"settings.downloads.performance.section" = "Leistungsmodus";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatl kann je nach ausgewähltem Modus langsamer oder schneller arbeiten. Höhere Modi machen Download und Seeding aktiver und erhöhen die Last auf dem Mac.";
-"settings.downloads.performance.caption.economical" = "Der sparsame Modus senkt zusätzlich die Download- und Upload-Geschwindigkeit, um Batterielaufzeit zu sparen.";
+"settings.downloads.performance.caption.economical" = "Der Modus Halo senkt zusätzlich die Download- und Upload-Geschwindigkeit, um Batterielaufzeit zu sparen.";
 "settings.downloads.folder.section" = "Download-Ordner";
 
 "settings.appearance.theme.section" = "Design";

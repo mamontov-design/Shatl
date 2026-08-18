@@ -7,9 +7,32 @@ import SwiftUI
 struct TorrentListView: View {
     @EnvironmentObject private var store: AppStore
     let searchText: String
+    let bottomContentPadding: CGFloat
+
+    private static let maximumDisplayedSearchQueryLength = 32
 
     private var visibleTorrentIDs: [UUID] {
         store.torrentRowIDs(matching: searchText)
+    }
+
+    private var normalizedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var showsSearchEmptyState: Bool {
+        !normalizedSearchText.isEmpty && visibleTorrentIDs.isEmpty
+    }
+
+    private var displayedSearchText: String {
+        guard normalizedSearchText.count > Self.maximumDisplayedSearchQueryLength else {
+            return normalizedSearchText
+        }
+
+        let prefixLength = Self.maximumDisplayedSearchQueryLength - 1
+        let prefix = normalizedSearchText
+            .prefix(prefixLength)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return prefix + "…"
     }
 
     var body: some View {
@@ -79,7 +102,8 @@ struct TorrentListView: View {
             }
             .padding(.top, 8)
             .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+            .padding(.bottom, bottomContentPadding)
+            .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
             .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
             .background {
                 Color.clear
@@ -92,6 +116,7 @@ struct TorrentListView: View {
                     }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             Color.clear
                 .contentShape(Rectangle())
@@ -101,6 +126,17 @@ struct TorrentListView: View {
                         store.collapseExpandedTorrent()
                     }
                 }
+        }
+        .overlay {
+            if showsSearchEmptyState {
+                TorrentSearchEmptyStateView(
+                    query: displayedSearchText,
+                    localeOverride: store.preferences.localeOverride
+                )
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, bottomContentPadding)
+                    .allowsHitTesting(false)
+            }
         }
         .onAppear {
             store.clearHiddenSelection(visibleTorrentIDs: visibleTorrentIDs)
@@ -130,5 +166,49 @@ struct TorrentListView: View {
         )
 
         store.redownloadTorrent(id: torrentID, toSaveLocation: url, bookmarkData: bookmarkData)
+    }
+}
+
+private struct TorrentSearchEmptyStateView: View {
+    let query: String
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.magnifyingglass")
+                .font(.system(size: 36, weight: .regular))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(ShatlColor.typographyTertiary)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 6) {
+                Text(
+                    L10n.format(
+                        "search.empty.title",
+                        localeOverride: localeOverride,
+                        defaultValue: "Нет результатов для «%@»",
+                        query
+                    )
+                )
+                    .shatlTypography(ShatlTypography.headlineSemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(
+                    L10n.string(
+                        "search.empty.description",
+                        localeOverride: localeOverride,
+                        defaultValue: "Попробуйте другое название или псевдоним."
+                    )
+                )
+                    .shatlTypography(ShatlTypography.captionRegular)
+                    .foregroundStyle(ShatlColor.typographyTertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: 300)
+        }
+        .accessibilityElement(children: .combine)
     }
 }

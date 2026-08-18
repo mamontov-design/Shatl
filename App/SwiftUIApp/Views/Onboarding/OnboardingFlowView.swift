@@ -358,7 +358,7 @@ struct OnboardingFlowView: View {
 
     private var expandedDescriptionIcon: Text {
         Text(Image(systemName: "arrow.down.left.and.arrow.up.right"))
-            .foregroundColor(ShatlColor.metricPulseHighlight)
+            .foregroundColor(ShatlColor.neonBlue)
     }
 
     private var expandedDescriptionSuffix: Text {

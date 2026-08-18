@@ -32,6 +32,9 @@
 "toolbar.delete" = "删除";
 "toolbar.search" = "搜索";
 
+"search.empty.title" = "未找到“%@”的结果";
+"search.empty.description" = "请尝试其他名称或别名。";
+
 "session.restore.in_progress" = "正在恢复会话…";
 
 "onboarding.action.next" = "下一步";
@@ -167,7 +170,7 @@
 "settings.notifications.play_sound_on_completion" = "下载完成时播放声音";
 
 "settings.data.section" = "使用统计";
-"settings.data.help_development" = "通过匿名统计帮助改进 Shatl";
+"settings.data.help_development" = "通过匿名统计协助改进";
 "settings.data.sent_data" = "将发送的数据";
 "settings.data.sent_data.description" = "你可以查看将要发送的数据";
 "settings.data.sent_data.show" = "显示";
@@ -190,13 +193,14 @@
 "settings.data.does_not_collect.link_data" = "链接数据";
 "settings.data.does_not_collect.file_data" = "文件数据";
 "settings.data.caption" = "这些统计有助于评估 Shatl 是否被用户需要，并指导后续维护决策。";
+"settings.data.caption.technical" = "从技术上讲，报告还包含随机安装标识符和报告周。这些信息用于汇总每周统计数据，不包含姓名、电子邮件地址或其他个人信息。";
 
-"settings.downloads.performance.section" = "性能";
-"settings.downloads.performance.profile.economical" = "节能";
-"settings.downloads.performance.profile.balanced" = "平衡";
-"settings.downloads.performance.profile.maximum" = "最大";
+"settings.downloads.performance.section" = "性能模式";
+"settings.downloads.performance.profile.economical" = "Halo";
+"settings.downloads.performance.profile.balanced" = "Orbit";
+"settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Shatl 可根据所选模式更慢或更快地工作。模式越高，下载和做种越活跃，对 Mac 的负载也越大。";
-"settings.downloads.performance.caption.economical" = "节能模式还会降低下载和上传速度，以节省电池电量。";
+"settings.downloads.performance.caption.economical" = "Halo 模式还会降低下载和上传速度，以节省电池电量。";
 "settings.downloads.folder.section" = "下载文件夹";
 
 "settings.appearance.theme.section" = "主题";

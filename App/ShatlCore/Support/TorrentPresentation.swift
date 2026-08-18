@@ -347,7 +347,7 @@ nonisolated enum TorrentPresentation {
         let components = splitMetricValue(Metrics.formatSpeed(speed, mode: mode, localeOverride: localeOverride))
         return MetricItemPresentation(
             id: "upload-speed",
-            iconName: downloadSpeedIconName(for: speed),
+            iconName: uploadSpeedIconName(for: speed),
             number: components.number,
             unit: components.unit,
             usesAccentIcon: false
@@ -393,6 +393,19 @@ nonisolated enum TorrentPresentation {
             return "hare.fill"
         default:
             return "bolt.fill"
+        }
+    }
+
+    private nonisolated static func uploadSpeedIconName(for bytesPerSecond: Int64) -> String {
+        switch downloadSpeedIconName(for: bytesPerSecond) {
+        case "tortoise.fill":
+            return "tortoise"
+        case "hare.fill":
+            return "hare"
+        case "bolt.fill":
+            return "bolt"
+        case let iconName:
+            return iconName
         }
     }
 

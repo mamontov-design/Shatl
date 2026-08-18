@@ -34,6 +34,13 @@ struct ShatlSettingsView: View {
                 }
                 .tag(SettingsTab.about)
 
+            #if DEBUG
+            debugTab
+                .tabItem {
+                    Label("settings.tab.debug", systemImage: "ladybug")
+                }
+                .tag(SettingsTab.debug)
+            #endif
         }
         .onAppear {
             selectedTab = .downloads
@@ -112,6 +119,79 @@ struct ShatlSettingsView: View {
         DataSettingsTab()
     }
 
+    #if DEBUG
+    private var debugTab: some View {
+        VStack(spacing: 8) {
+            ShatlSettingsParameterHeader(localizedTitle: "settings.localization.section")
+
+            ShatlSettingsParameter {
+                Picker(
+                    selection: binding(for: \.localeOverride)
+                ) {
+                    ForEach(AppLocaleOverride.allCases) { localeOverride in
+                        Text(LocalizedStringKey(localeOverride.settingsTitleKey))
+                            .tag(localeOverride)
+                    }
+                } label: {
+                    Text("settings.localization.app_language")
+                        .shatlTypography(ShatlTypography.bodyRegular)
+                        .foregroundStyle(ShatlColor.typographyPrimary)
+                }
+                .pickerStyle(.radioGroup)
+            }
+
+            ShatlSettingsParameterCaption(localizedText: "settings.localization.caption")
+
+            ShatlSettingsParameterHeader(localizedTitle: "settings.debug.logging.section")
+
+            ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.app",
+                    isOn: binding(for: \.isLoggingEnabled)
+                )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.disk_diagnostics",
+                    isOn: binding(for: \.isDiskDiagnosticsLoggingEnabled)
+                )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.metric_animation_diagnostics",
+                    isOn: binding(for: \.isMetricAnimationDiagnosticsLoggingEnabled)
+                )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.snapshot_diagnostics",
+                    isOn: binding(for: \.isSnapshotDiagnosticsLoggingEnabled)
+                )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.add_torrent_review_diagnostics",
+                    isOn: binding(for: \.isAddTorrentReviewDiagnosticsLoggingEnabled)
+                )
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 0)
+        .padding(.bottom, 16)
+    }
+
+    private func binding<Value>(for keyPath: WritableKeyPath<AppPreferences, Value>) -> Binding<Value> {
+        Binding(
+            get: { store.preferences[keyPath: keyPath] },
+            set: { store.preferences[keyPath: keyPath] = $0 }
+        )
+    }
+    #endif
+
     private var performanceProfileBinding: Binding<AppPerformanceProfile> {
         Binding(
             get: { store.preferences.performanceProfile },
@@ -152,6 +232,9 @@ private enum SettingsTab {
     case appearance
     case data
     case about
+    #if DEBUG
+    case debug
+    #endif
 }
 
 private struct DataSettingsTab: View {
@@ -172,13 +255,16 @@ private struct DataSettingsTab: View {
 
                 ShatlSettingsParameterDivider()
 
-                DataCollectionInfo(
-                    isAnimationEnabled: store.preferences.sendsAnonymousUsageStatistics
-                )
+                DataCollectionInfo()
                     .opacity(store.preferences.sendsAnonymousUsageStatistics ? 1 : 0.25)
             }
 
-            ShatlSettingsParameterCaption(localizedText: "settings.data.caption")
+            ShatlSettingsParameterCaption(
+                localizedLines: [
+                    "settings.data.caption",
+                    "settings.data.caption.technical",
+                ]
+            )
                 .padding(.bottom, 8)
 
             ShatlSettingsParameter {
@@ -315,22 +401,11 @@ enum DataCollectionInfoStyle {
 }
 
 struct DataCollectionInfo: View {
-    let isAnimationEnabled: Bool
     let style: DataCollectionInfoStyle
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var accentState: ShatlAccentState
-    @State private var highlightedItem: DataCollectionItem?
-    @State private var nextHighlightGroup = DataCollectionGroup.collects
-    @State private var highlightTask: Task<Void, Never>?
 
-    private let highlightAnimation = Animation.easeInOut(duration: 0.6)
-
-    init(
-        isAnimationEnabled: Bool = true,
-        style: DataCollectionInfoStyle = .settings
-    ) {
-        self.isAnimationEnabled = isAnimationEnabled
+    init(style: DataCollectionInfoStyle = .settings) {
         self.style = style
     }
 
@@ -338,99 +413,29 @@ struct DataCollectionInfo: View {
         HStack(alignment: .top, spacing: style == .onboarding ? 0 : 10) {
             DataCollectionCard(
                 group: .collects,
-                highlightedItem: highlightedItem,
-                usesStaticSemanticColors: usesStaticSemanticColors
+                iconColor: collectsIconColor
             )
             .padding(.horizontal, style == .onboarding ? 16 : 0)
 
             DataCollectionCard(
                 group: .doesNotCollect,
-                highlightedItem: highlightedItem,
-                usesStaticSemanticColors: usesStaticSemanticColors
+                iconColor: ShatlColor.slate
             )
             .padding(.horizontal, style == .onboarding ? 16 : 0)
         }
         .frame(width: style == .onboarding ? 376 : nil)
-        .onAppear {
-            startHighlighting()
-        }
-        .onDisappear {
-            stopHighlighting()
-        }
-        .onChange(of: reduceMotion) { _, reduceMotion in
-            if reduceMotion {
-                stopHighlighting()
-            } else {
-                startHighlighting()
-            }
-        }
-        .onChange(of: isAnimationEnabled) { _, isAnimationEnabled in
-            if isAnimationEnabled {
-                startHighlighting()
-            } else {
-                stopHighlighting()
-            }
-        }
-        .onChange(of: accentState.isUsingAppAccent) { _, isUsingAppAccent in
-            if isUsingAppAccent {
-                stopHighlighting()
-            } else {
-                startHighlighting()
-            }
-        }
     }
 
-    private var usesStaticSemanticColors: Bool {
-        style == .onboarding || accentState.isUsingAppAccent
-    }
-
-    private func startHighlighting() {
-        guard style == .settings,
-              !accentState.isUsingAppAccent,
-              isAnimationEnabled,
-              !reduceMotion,
-              highlightTask == nil else {
-            return
-        }
-
-        highlightTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3))
-                guard !Task.isCancelled else { return }
-
-                let group = nextHighlightGroup
-                let item = group.items.randomElement()
-
-                await MainActor.run {
-                    withAnimation(highlightAnimation) {
-                        highlightedItem = item
-                    }
-                    nextHighlightGroup = group.opposite
-                }
-
-                try? await Task.sleep(for: .seconds(1.4))
-                guard !Task.isCancelled else { return }
-
-                await MainActor.run {
-                    withAnimation(highlightAnimation) {
-                        highlightedItem = nil
-                    }
-                }
-            }
-        }
-    }
-
-    private func stopHighlighting() {
-        highlightTask?.cancel()
-        highlightTask = nil
-        highlightedItem = nil
+    private var collectsIconColor: Color {
+        accentState.isUsingAppAccent
+            ? ShatlColor.neonBlue
+            : accentState.systemAccentColor
     }
 }
 
 private struct DataCollectionCard: View {
     let group: DataCollectionGroup
-    let highlightedItem: DataCollectionItem?
-    let usesStaticSemanticColors: Bool
+    let iconColor: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -443,8 +448,7 @@ private struct DataCollectionCard: View {
                 ForEach(group.items) { item in
                     DataCollectionChecklistItem(
                         item: item,
-                        isHighlighted: highlightedItem == item,
-                        usesStaticSemanticColors: usesStaticSemanticColors
+                        iconColor: iconColor
                     )
                 }
             }
@@ -455,14 +459,7 @@ private struct DataCollectionCard: View {
 
 private struct DataCollectionChecklistItem: View {
     let item: DataCollectionItem
-    let isHighlighted: Bool
-    let usesStaticSemanticColors: Bool
-
-    private var iconColor: Color {
-        usesStaticSemanticColors
-            ? item.group.semanticIconColor
-            : item.group.animatedIconColor(isHighlighted: isHighlighted)
-    }
+    let iconColor: Color
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
@@ -502,41 +499,15 @@ private enum DataCollectionGroup: CaseIterable {
         }
     }
 
-    var opposite: DataCollectionGroup {
-        switch self {
-        case .collects:
-            .doesNotCollect
-        case .doesNotCollect:
-            .collects
-        }
-    }
-
     var symbolName: String {
         switch self {
         case .collects:
-            "checkmark.circle"
+            "checkmark.circle.fill"
         case .doesNotCollect:
             "xmark.circle"
         }
     }
 
-    var semanticIconColor: Color {
-        switch self {
-        case .collects:
-            Color(red: 34 / 255, green: 197 / 255, blue: 94 / 255)
-        case .doesNotCollect:
-            Color(red: 239 / 255, green: 68 / 255, blue: 68 / 255)
-        }
-    }
-
-    func animatedIconColor(isHighlighted: Bool) -> Color {
-        switch self {
-        case .collects:
-            isHighlighted ? Color(hex: 0x22C55E) : ShatlColor.typographyTertiary
-        case .doesNotCollect:
-            isHighlighted ? Color(hex: 0xF97316) : ShatlColor.typographyTertiary
-        }
-    }
 }
 
 private enum DataCollectionItem: CaseIterable, Identifiable {
@@ -775,14 +746,8 @@ private struct PerformanceProfileDemo: View {
 
     private var progressFillStyle: AnyShapeStyle {
         accentState.isUsingAppAccent
-            ? AnyShapeStyle(ShatlColor.performanceSpeedometerGradient)
-            : AnyShapeStyle(neutralProgressColor)
-    }
-
-    private var neutralProgressColor: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.24)
-            : Color(red: 55.0 / 255.0, green: 65.0 / 255.0, blue: 81.0 / 255.0).opacity(0.26)
+            ? AnyShapeStyle(ShatlColor.neonBlue)
+            : AnyShapeStyle(accentState.systemAccentColor)
     }
 
     private var arrowRotation: Double {
@@ -801,13 +766,8 @@ private struct AppearanceSettingsTab: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
-    @State private var activeDance: ThemeButtonDance?
-    @State private var lastDance: ThemeButtonDance?
-    @State private var themeDanceTask: Task<Void, Never>?
     @State private var metricPreviewPulseTrigger = 0
     @State private var isMetricsInfoPresented = false
-
-    private let themeDanceColorAnimation: Animation = .easeInOut(duration: 0.6)
 
     var body: some View {
         VStack(spacing: 8) {
@@ -821,19 +781,6 @@ private struct AppearanceSettingsTab: View {
             .padding(.bottom, 16)
         }
         .padding(.top, 0)
-        .onAppear {
-            startThemeDance()
-        }
-        .onChange(of: accentState.isUsingAppAccent) { _, isUsingAppAccent in
-            if isUsingAppAccent {
-                stopThemeDance()
-            } else {
-                startThemeDance()
-            }
-        }
-        .onDisappear {
-            stopThemeDance()
-        }
     }
 
     private var previewCardContainer: some View {
@@ -847,7 +794,10 @@ private struct AppearanceSettingsTab: View {
                 showsExpansionToggle: false,
                 pulsesMetricSetOutlines: false,
                 metricSetOutlineFlashTrigger: metricPreviewPulseTrigger,
+                metricSetOutlineFlashColor: metricPreviewOutlineHighlightColor,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
+                progressGroupBackgroundColorOverride: metricPreviewAccentColor.opacity(0.12),
+                progressGroupForegroundColorOverride: metricPreviewAccentColor,
                 usesProductionProgressColors: accentState.isUsingAppAccent,
                 cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
                 cardOutlineColorOverride: colorScheme == .light ? ShatlColor.outlinePrimary : nil,
@@ -922,8 +872,7 @@ private struct AppearanceSettingsTab: View {
                         store.preferences.theme = theme
                     } content: {
                         ThemeAppearanceDemo(
-                            theme: theme,
-                            activeDance: activeDance
+                            theme: theme
                         )
                     }
                 }
@@ -943,38 +892,14 @@ private struct AppearanceSettingsTab: View {
         )
     }
 
-    private func startThemeDance() {
-        guard !accentState.isUsingAppAccent, themeDanceTask == nil else { return }
-
-        themeDanceTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3))
-                guard !Task.isCancelled else { return }
-
-                let nextDance = ThemeButtonDance.random(excluding: lastDance)
-                await MainActor.run {
-                    withAnimation(themeDanceColorAnimation) {
-                        activeDance = nextDance
-                    }
-                    lastDance = nextDance
-                }
-
-                try? await Task.sleep(for: .seconds(2))
-                guard !Task.isCancelled else { return }
-
-                await MainActor.run {
-                    withAnimation(themeDanceColorAnimation) {
-                        activeDance = nil
-                    }
-                }
-            }
-        }
+    private var metricPreviewOutlineHighlightColor: Color {
+        metricPreviewAccentColor
     }
 
-    private func stopThemeDance() {
-        themeDanceTask?.cancel()
-        themeDanceTask = nil
-        activeDance = nil
+    private var metricPreviewAccentColor: Color {
+        accentState.isUsingAppAccent
+            ? ShatlColor.neonBlue
+            : accentState.systemAccentColor
     }
 
 }
@@ -983,8 +908,7 @@ private struct ShatlSettingsControlVerticalDivider: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
             .fill(ShatlColor.outlineTertiary)
-            .frame(width: 2)
-            .frame(maxHeight: .infinity)
+            .frame(width: 2, height: 16)
     }
 }
 
@@ -1015,10 +939,8 @@ private struct MetricsPresentationInfoPopover: View {
 
 private struct ThemeAppearanceDemo: View {
     let theme: AppTheme
-    let activeDance: ThemeButtonDance?
 
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var accentState: ShatlAccentState
 
     var body: some View {
         ZStack {
@@ -1031,13 +953,13 @@ private struct ThemeAppearanceDemo: View {
                     .frame(width: 76, height: 76)
 
                 ShatlWindowButtonCloseShape()
-                    .fill(buttonColor(.close))
+                    .fill(buttonColor)
 
                 ShatlWindowButtonMinimizeShape()
-                    .fill(buttonColor(.minimize))
+                    .fill(buttonColor)
 
                 ShatlWindowButtonExpandShape()
-                    .fill(buttonColor(.expand))
+                    .fill(buttonColor)
             }
             .frame(width: 76, height: 76)
         }
@@ -1062,84 +984,21 @@ private struct ThemeAppearanceDemo: View {
         }
     }
 
-    private func buttonColor(_ button: ThemeWindowButton) -> Color {
-        if accentState.isUsingAppAccent {
-            return button.signalColor
+    private var buttonColor: Color {
+        if theme == .dark {
+            return Color(
+                red: 133.0 / 255.0,
+                green: 139.0 / 255.0,
+                blue: 149.0 / 255.0
+            )
         }
 
-        guard activeDance == ThemeButtonDance(theme: theme, button: button) else {
-            return button.baseColor(theme: theme, colorScheme: colorScheme)
-        }
-
-        return button.signalColor
+        return Color(
+            red: 209.0 / 255.0,
+            green: 213.0 / 255.0,
+            blue: 219.0 / 255.0
+        )
     }
-}
-
-private struct ThemeButtonDance: Equatable {
-    let theme: AppTheme
-    let button: ThemeWindowButton
-
-    static func random(excluding excludedDance: ThemeButtonDance?) -> ThemeButtonDance {
-        let availableDances = allCases.filter { dance in
-            guard let excludedDance else { return true }
-            return dance.theme != excludedDance.theme && dance.colorKind != excludedDance.colorKind
-        }
-        return availableDances.randomElement() ?? allCases[0]
-    }
-
-    private var colorKind: ThemeButtonDanceColorKind {
-        button.danceColorKind
-    }
-
-    private static var allCases: [ThemeButtonDance] {
-        AppTheme.allCases.flatMap { theme in
-            ThemeWindowButton.allCases.map { button in
-                ThemeButtonDance(theme: theme, button: button)
-            }
-        }
-    }
-}
-
-private enum ThemeWindowButton: CaseIterable {
-    case close
-    case minimize
-    case expand
-
-    var danceColorKind: ThemeButtonDanceColorKind {
-        switch self {
-        case .close:
-            .red
-        case .minimize:
-            .yellow
-        case .expand:
-            .green
-        }
-    }
-
-    func baseColor(theme: AppTheme, colorScheme: ColorScheme) -> Color {
-        if colorScheme == .dark || theme == .dark {
-            return Color(hex: 0x9CA3AF)
-        }
-
-        return Color(hex: 0xD1D5DB)
-    }
-
-    var signalColor: Color {
-        switch self {
-        case .close:
-            Color(red: 255.0 / 255.0, green: 92.0 / 255.0, blue: 96.0 / 255.0)
-        case .minimize:
-            Color(red: 250.0 / 255.0, green: 200.0 / 255.0, blue: 0.0 / 255.0)
-        case .expand:
-            Color(red: 53.0 / 255.0, green: 199.0 / 255.0, blue: 89.0 / 255.0)
-        }
-    }
-}
-
-private enum ThemeButtonDanceColorKind {
-    case red
-    case yellow
-    case green
 }
 
 private extension AppTheme {
@@ -1188,16 +1047,6 @@ private extension AppTheme {
         case .dark:
             "settingsCardImageThemeDark"
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt32) {
-        self.init(
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255
-        )
     }
 }
 

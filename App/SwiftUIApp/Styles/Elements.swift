@@ -19,6 +19,17 @@ enum ShatlMetricLayout {
     static let containerHeight: CGFloat = 27
 }
 
+enum ShatlBottomChipLayout {
+    static let legacyEdgePadding: CGFloat = 12
+    static let modernEdgePadding: CGFloat = 6
+    static let modernCornerRadius: CGFloat = 10
+    static let cardGap: CGFloat = 6
+    static let standardListBottomPadding: CGFloat = 8
+    static let modernListBottomPadding = modernEdgePadding
+        + ShatlMetricLayout.containerHeight
+        + cardGap
+}
+
 struct MetricSetDiagnosticsContext: Equatable {
     var source: String
     var torrentID: UUID?
@@ -763,7 +774,10 @@ struct TorrentCardPreviewView: View {
     var showsExpansionToggle = true
     var pulsesMetricSetOutlines = false
     var metricSetOutlineFlashTrigger = 0
+    var metricSetOutlineFlashColor = ShatlColor.neonBlue
     var progressBarFillColorOverride: Color? = nil
+    var progressGroupBackgroundColorOverride: Color? = nil
+    var progressGroupForegroundColorOverride: Color? = nil
     var usesProductionProgressColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
@@ -785,7 +799,10 @@ struct TorrentCardPreviewView: View {
         showsExpansionToggle: Bool = true,
         pulsesMetricSetOutlines: Bool = false,
         metricSetOutlineFlashTrigger: Int = 0,
+        metricSetOutlineFlashColor: Color = ShatlColor.neonBlue,
         progressBarFillColorOverride: Color? = nil,
+        progressGroupBackgroundColorOverride: Color? = nil,
+        progressGroupForegroundColorOverride: Color? = nil,
         usesProductionProgressColors: Bool = false,
         cardBackgroundColorOverride: Color? = nil,
         cardOutlineColorOverride: Color? = nil,
@@ -800,7 +817,10 @@ struct TorrentCardPreviewView: View {
         self.showsExpansionToggle = showsExpansionToggle
         self.pulsesMetricSetOutlines = pulsesMetricSetOutlines
         self.metricSetOutlineFlashTrigger = metricSetOutlineFlashTrigger
+        self.metricSetOutlineFlashColor = metricSetOutlineFlashColor
         self.progressBarFillColorOverride = progressBarFillColorOverride
+        self.progressGroupBackgroundColorOverride = progressGroupBackgroundColorOverride
+        self.progressGroupForegroundColorOverride = progressGroupForegroundColorOverride
         self.usesProductionProgressColors = usesProductionProgressColors
         self.cardBackgroundColorOverride = cardBackgroundColorOverride
         self.cardOutlineColorOverride = cardOutlineColorOverride
@@ -853,6 +873,9 @@ struct TorrentCardPreviewView: View {
                 .modifier(TorrentCardPreviewShadowModifier(style: shadowStyle))
                 .environment(\.shatlMetricSetOutlinePulseEnabled, pulsesMetricSetOutlines)
                 .environment(\.shatlMetricSetOutlineFlashTrigger, metricSetOutlineFlashTrigger)
+                .environment(\.shatlMetricSetBounceEnabled, false)
+                .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
+                .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
 
             if !centersExpandedCard, showsExpansionToggle {
                 expandHint
@@ -887,6 +910,8 @@ struct TorrentCardPreviewView: View {
             isExpansionToggleEnabled: allowsExpansionToggle,
             showsExpansionToggle: showsExpansionToggle,
             progressBarFillColorOverride: progressBarFillColorOverride,
+            progressGroupBackgroundColorOverride: progressGroupBackgroundColorOverride,
+            progressGroupForegroundColorOverride: progressGroupForegroundColorOverride,
             usesProductionProgressColors: usesProductionProgressColors,
             cardBackgroundColorOverride: cardBackgroundColorOverride,
             cardOutlineColorOverride: cardOutlineColorOverride
@@ -902,7 +927,7 @@ struct TorrentCardPreviewView: View {
     }
 
     private var expandHintColor: Color {
-        ShatlColor.metricPulseHighlight.opacity(0.5)
+        ShatlColor.neonBlue.opacity(0.5)
     }
 
     private var expandHintBlendMode: BlendMode {
@@ -1157,6 +1182,8 @@ private extension EnvironmentValues {
 
 private struct MetricSetOutlineView: View {
     let baseColor: Color
+    let pulseColor: Color
+    let flashColor: Color
     let pulseEnabled: Bool
     let flashOpacity: CGFloat
 
@@ -1170,7 +1197,7 @@ private struct MetricSetOutlineView: View {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(
                             isHighlighted
-                                ? ShatlColor.metricPulseHighlight
+                                ? pulseColor
                                 : baseColor,
                             lineWidth: 1
                         )
@@ -1187,7 +1214,7 @@ private struct MetricSetOutlineView: View {
                 .opacity(bounceHighlightOpacity)
 
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(ShatlColor.metricPulseHighlight, lineWidth: 1)
+                .strokeBorder(flashColor, lineWidth: 1)
                 .opacity(flashOpacity)
         }
     }
@@ -1205,6 +1232,9 @@ struct ShatlMetricSet: View {
     @Environment(\.shatlAnimationMode) private var animationMode
     @Environment(\.shatlMetricSetOutlinePulseEnabled) private var metricSetOutlinePulseEnabled
     @Environment(\.shatlMetricSetOutlineFlashTrigger) private var metricSetOutlineFlashTrigger
+    @Environment(\.shatlMetricSetBounceEnabled) private var metricSetBounceEnabled
+    @Environment(\.shatlMetricSetOutlinePulseColor) private var metricSetOutlinePulseColor
+    @Environment(\.shatlMetricSetOutlineFlashColor) private var metricSetOutlineFlashColor
     @Namespace private var metricSetNamespace
     @State private var bounceToken = 0
     @State private var bounceTrigger = 0
@@ -1233,6 +1263,8 @@ struct ShatlMetricSet: View {
         .overlay {
             MetricSetOutlineView(
                 baseColor: metricOutlineColor,
+                pulseColor: metricSetOutlinePulseColor,
+                flashColor: metricSetOutlineFlashColor,
                 pulseEnabled: metricSetOutlinePulseEnabled,
                 flashOpacity: outlineFlashOpacity
             )
@@ -1319,6 +1351,7 @@ struct ShatlMetricSet: View {
             logItemsChanged(from: oldItems, to: newItems)
         }
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
+            guard metricSetBounceEnabled else { return }
             guard hasIconReplacement(from: oldIconSignature, to: newIconSignature) else {
                 return
             }
@@ -1624,21 +1657,46 @@ struct ShatlInfoBottomSpeedChip: View {
     @Environment(\.shatlAnimationMode) private var animationMode
     @State private var isHovered = false
 
+    @ViewBuilder
     var body: some View {
+        if #available(macOS 27.0, *) {
+            chipContent
+                .glassEffect(
+                    .regular
+                        .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
+                        .interactive(false),
+                    in: RoundedRectangle(
+                        cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
+                        style: .continuous
+                    )
+                )
+                .fixedSize()
+                .animation(ShatlMotion.metricResize, value: item)
+        } else {
+            chipContent
+                .glassEffect(
+                    .regular
+                        .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
+                        .interactive(false),
+                    in: Capsule()
+                )
+                .fixedSize()
+                .scaleEffect(usesScaledHoverTransition && isHovered ? 0.85 : 1)
+                .opacity(isHovered ? 0 : 1)
+                .overlay {
+                    Capsule()
+                        .fill(Color.clear)
+                }
+                .contentShape(Capsule())
+                .onHover { isHovered = $0 }
+                .animation(ShatlMotion.mainContentMode, value: isHovered)
+                .animation(ShatlMotion.metricResize, value: item)
+        }
+    }
+
+    private var chipContent: some View {
         ShatlInfoBottomMetricItem(item: item)
             .padding(6)
-            .glassEffect(.regular.interactive(false), in: Capsule())
-            .fixedSize()
-            .scaleEffect(usesScaledHoverTransition && isHovered ? 0.85 : 1)
-            .opacity(isHovered ? 0 : 1)
-            .overlay {
-                Capsule()
-                    .fill(Color.clear)
-            }
-            .contentShape(Capsule())
-            .onHover { isHovered = $0 }
-            .animation(ShatlMotion.mainContentMode, value: isHovered)
-            .animation(ShatlMotion.metricResize, value: item)
     }
 
     private var usesScaledHoverTransition: Bool {
@@ -1709,7 +1767,26 @@ private struct ShatlInfoBottomMetricItem: View {
 struct ShatlInfoBottomRestoreChip: View {
     let title: String
 
+    @ViewBuilder
     var body: some View {
+        if #available(macOS 27.0, *) {
+            chipContent
+                .glassEffect(
+                    .regular.tint(ShatlColor.accent).interactive(false),
+                    in: RoundedRectangle(
+                        cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
+                        style: .continuous
+                    )
+                )
+                .fixedSize()
+        } else {
+            chipContent
+                .glassEffect(.regular.tint(ShatlColor.accent).interactive(false), in: Capsule())
+                .fixedSize()
+        }
+    }
+
+    private var chipContent: some View {
         HStack(spacing: 4) {
             Image(systemName: "progress.indicator")
                 .shatlTypography(ShatlTypography.metricSemibold)
@@ -1726,8 +1803,6 @@ struct ShatlInfoBottomRestoreChip: View {
         .padding(.leading, 6)
         .padding(.vertical, 6)
         .padding(.trailing, 8)
-        .glassEffect(.regular.tint(ShatlColor.accent).interactive(false), in: Capsule())
-        .fixedSize()
     }
 }
 

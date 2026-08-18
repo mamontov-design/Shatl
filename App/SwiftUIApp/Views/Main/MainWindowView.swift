@@ -48,7 +48,9 @@ struct MainWindowView: View {
         let bottomTransferChips = store.bottomTransferChips
 
         ZStack(alignment: .bottom) {
-            contentView
+            contentView(
+                bottomListPadding: bottomListPadding(chips: bottomTransferChips)
+            )
 
             bottomInfoChipLayer(chips: bottomTransferChips)
         }
@@ -200,7 +202,7 @@ struct MainWindowView: View {
     }
 
     @ViewBuilder
-    private var contentView: some View {
+    private func contentView(bottomListPadding: CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
             switch contentMode {
             case .loadingInitialSession:
@@ -212,7 +214,10 @@ struct MainWindowView: View {
                     .transition(ShatlMotion.mainContent)
                     .zIndex(1)
             case .list:
-                TorrentListView(searchText: searchText)
+                TorrentListView(
+                    searchText: searchText,
+                    bottomContentPadding: bottomListPadding
+                )
                     .transition(ShatlMotion.mainContent)
                     .zIndex(0)
             }
@@ -248,8 +253,8 @@ struct MainWindowView: View {
                     .allowsHitTesting(false)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 12)
+        .padding(.horizontal, bottomChipEdgePadding)
+        .padding(.bottom, bottomChipEdgePadding)
         .frame(maxWidth: .infinity, alignment: .bottom)
         .animation(ShatlMotion.mainContentMode, value: chips)
         .animation(ShatlMotion.mainContentMode, value: showsRestoreChip)
@@ -257,6 +262,22 @@ struct MainWindowView: View {
 
     private var showsRestoreChip: Bool {
         store.isRestoringSession || isRestoreIndicatorPreviewPresented
+    }
+
+    private var bottomChipEdgePadding: CGFloat {
+        if #available(macOS 27.0, *) {
+            return ShatlBottomChipLayout.modernEdgePadding
+        }
+
+        return ShatlBottomChipLayout.legacyEdgePadding
+    }
+
+    private func bottomListPadding(chips: [BottomTransferChipPresentation]) -> CGFloat {
+        if #available(macOS 27.0, *), (!chips.isEmpty || showsRestoreChip) {
+            return ShatlBottomChipLayout.modernListBottomPadding
+        }
+
+        return ShatlBottomChipLayout.standardListBottomPadding
     }
 
     private func presentRestoreIndicatorPreview() {
