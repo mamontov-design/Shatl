@@ -60,7 +60,18 @@ nonisolated enum Metrics {
         MetricsDisplayRules.rules(for: mode, localeOverride: localeOverride).formatETA(seconds)
     }
 
-    nonisolated static func formatPeerCount(_ count: Int) -> String {
-        count > 999 ? ">999" : "\(max(0, count))"
+    nonisolated static func formatPeerCount(
+        _ count: Int,
+        mode: MetricsPresentationMode
+    ) -> String {
+        let normalizedCount = max(0, count)
+        guard normalizedCount <= 999 else { return ">999" }
+
+        switch mode {
+        case .simplified:
+            return "\(MetricsDisplayRules.roundedDownSimplifiedValue(normalizedCount))"
+        case .detailed:
+            return "\(normalizedCount)"
+        }
     }
 }

@@ -122,10 +122,23 @@ nonisolated struct MetricsDisplayRules: Sendable {
 
             return formatDecimalByteCount(bytes, maximumFractionDigits: 0)
         case .size:
-            return formatDecimalByteCount(bytes, maximumFractionDigits: 0)
+            return formatSimplifiedSize(bytes)
         case .general:
             return formatDecimalByteCount(bytes, maximumFractionDigits: 1)
         }
+    }
+
+    private nonisolated func formatSimplifiedSize(_ bytes: Int64) -> String {
+        let value = Double(max(bytes, 0))
+        let units = byteUnits(allowedUnits: [.useKB, .useMB, .useGB, .useTB])
+
+        guard let unit = units.first(where: { value >= $0.threshold }) else {
+            return metricValue(max(bytes, 0), unitKey: "unit.byte", fallback: "Б")
+        }
+
+        let wholeUnits = Int((value / unit.threshold).rounded(.down))
+        let visibleUnits = Self.roundedDownSimplifiedValue(wholeUnits)
+        return "\(visibleUnits) \(unit.unit)"
     }
 
     private nonisolated func formatSimplifiedETA(_ seconds: Int) -> String {
@@ -231,6 +244,24 @@ nonisolated struct MetricsDisplayRules: Sendable {
 
     private nonisolated func steppedKilobytes(_ value: Double, step: Int) -> Int {
         (Int(value.rounded(.down)) / step) * step
+    }
+
+    nonisolated static func roundedDownSimplifiedValue(_ value: Int) -> Int {
+        let normalizedValue = max(0, value)
+        let step: Int
+
+        switch normalizedValue {
+        case ..<10:
+            step = 1
+        case ..<100:
+            step = 5
+        case ..<500:
+            step = 10
+        default:
+            step = 50
+        }
+
+        return (normalizedValue / step) * step
     }
 
     private nonisolated func metricValue<T>(_ value: T, unitKey: String, fallback: String) -> String {

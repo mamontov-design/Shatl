@@ -99,7 +99,7 @@ enum ShatlGlassTint {
             return 0.02
         }
 
-        return 0.08
+        return 0.00
     }
 }
 

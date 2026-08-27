@@ -112,13 +112,19 @@ struct AddTorrentEntryView: View {
     private var addTorrentBox: some View {
         switch placement {
         case .emptyState:
-            addTorrentBoxContent
-                .padding(12)
-                .frame(width: 250)
-                .glassEffect(
-                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
-                    in: addTorrentBoxShape
-                )
+            if #available(macOS 27.0, *) {
+                addTorrentBoxContent
+                    .padding(12)
+                    .frame(width: 250)
+                    .glassEffect(
+                        .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                        in: addTorrentBoxShape
+                    )
+            } else {
+                addTorrentBoxContent
+                    .padding(12)
+                    .frame(width: 250)
+            }
         case .modal:
             addTorrentBoxContent
                 .padding(8)

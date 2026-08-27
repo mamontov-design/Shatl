@@ -1674,12 +1674,6 @@ struct ShatlInfoBottomSpeedChip: View {
                 .animation(ShatlMotion.metricResize, value: item)
         } else {
             chipContent
-                .glassEffect(
-                    .regular
-                        .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
-                        .interactive(false),
-                    in: Capsule()
-                )
                 .fixedSize()
                 .scaleEffect(usesScaledHoverTransition && isHovered ? 0.85 : 1)
                 .opacity(isHovered ? 0 : 1)

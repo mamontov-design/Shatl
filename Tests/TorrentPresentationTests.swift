@@ -97,10 +97,21 @@ final class TorrentPresentationTests: XCTestCase {
     }
 
     func testPeerCountFormatterCapsOnlyFourDigitValues() {
-        XCTAssertEqual(Metrics.formatPeerCount(-1), "0")
-        XCTAssertEqual(Metrics.formatPeerCount(999), "999")
-        XCTAssertEqual(Metrics.formatPeerCount(1_000), ">999")
-        XCTAssertEqual(Metrics.formatPeerCount(15_000), ">999")
+        XCTAssertEqual(Metrics.formatPeerCount(-1, mode: .detailed), "0")
+        XCTAssertEqual(Metrics.formatPeerCount(999, mode: .detailed), "999")
+        XCTAssertEqual(Metrics.formatPeerCount(1_000, mode: .detailed), ">999")
+        XCTAssertEqual(Metrics.formatPeerCount(15_000, mode: .detailed), ">999")
+    }
+
+    func testSimplifiedPeerCountsRoundDownByProductBuckets() {
+        XCTAssertEqual(Metrics.formatPeerCount(9, mode: .simplified), "9")
+        XCTAssertEqual(Metrics.formatPeerCount(14, mode: .simplified), "10")
+        XCTAssertEqual(Metrics.formatPeerCount(99, mode: .simplified), "95")
+        XCTAssertEqual(Metrics.formatPeerCount(109, mode: .simplified), "100")
+        XCTAssertEqual(Metrics.formatPeerCount(499, mode: .simplified), "490")
+        XCTAssertEqual(Metrics.formatPeerCount(549, mode: .simplified), "500")
+        XCTAssertEqual(Metrics.formatPeerCount(999, mode: .simplified), "950")
+        XCTAssertEqual(Metrics.formatPeerCount(1_000, mode: .simplified), ">999")
     }
 
     func testDetailedETAUsesSingleUnitAndCapsLargeValues() {
@@ -226,7 +237,15 @@ final class TorrentPresentationTests: XCTestCase {
         )
         XCTAssertEqual(
             Metrics.formatBytes(391_900_000, purpose: .size, mode: .simplified),
-            "392 МБ"
+            "390 МБ"
+        )
+        XCTAssertEqual(
+            Metrics.formatBytes(192_400_000, purpose: .size, mode: .simplified),
+            "190 МБ"
+        )
+        XCTAssertEqual(
+            Metrics.formatBytes(192_400_000, purpose: .size, mode: .detailed),
+            "192,4 МБ"
         )
         XCTAssertEqual(
             Metrics.formatBytes(1_234_567_890, purpose: .uploaded, mode: .simplified),

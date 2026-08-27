@@ -127,7 +127,7 @@ nonisolated enum TorrentPresentation {
         var dynamicGroups: [MetricGroupPresentation] = []
         let showsConnectivityMetrics = record.status == .downloading || record.status == .seeding
 
-        let peerItems = peerMetricItems(for: record)
+        let peerItems = peerMetricItems(for: record, mode: mode)
         if !peerItems.isEmpty {
             dynamicGroups.append(
                 MetricGroupPresentation(
@@ -248,7 +248,7 @@ nonisolated enum TorrentPresentation {
                 VisibleMetric(
                     id: "peers",
                     title: L10n.string("torrent.metric.seeds_and_peers", localeOverride: localeOverride, defaultValue: "Сиды и Пиры"),
-                    value: "\(Metrics.formatPeerCount(record.metrics.seeds ?? 0)) ↑  \(Metrics.formatPeerCount(record.metrics.peers ?? 0)) ↓"
+                    value: "\(Metrics.formatPeerCount(record.metrics.seeds ?? 0, mode: mode)) ↑  \(Metrics.formatPeerCount(record.metrics.peers ?? 0, mode: mode)) ↓"
                 )
             )
         }
@@ -306,7 +306,10 @@ nonisolated enum TorrentPresentation {
         )
     }
 
-    private nonisolated static func peerMetricItems(for record: TorrentRecord) -> [MetricItemPresentation] {
+    private nonisolated static func peerMetricItems(
+        for record: TorrentRecord,
+        mode: MetricsPresentationMode
+    ) -> [MetricItemPresentation] {
         var items: [MetricItemPresentation] = []
         let seeds = record.metrics.seeds ?? 0
         let peers = record.metrics.peers ?? 0
@@ -316,7 +319,7 @@ nonisolated enum TorrentPresentation {
                 MetricItemPresentation(
                     id: "seeds",
                     iconName: "arrow.up",
-                    number: Metrics.formatPeerCount(seeds),
+                    number: Metrics.formatPeerCount(seeds, mode: mode),
                     unit: nil,
                     usesAccentIcon: false
                 )
@@ -328,7 +331,7 @@ nonisolated enum TorrentPresentation {
                 MetricItemPresentation(
                     id: "peers",
                     iconName: "arrow.up.arrow.down",
-                    number: Metrics.formatPeerCount(peers),
+                    number: Metrics.formatPeerCount(peers, mode: mode),
                     unit: nil,
                     usesAccentIcon: false
                 )
