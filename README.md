@@ -20,6 +20,8 @@ settings, and follow progress without unnecessary visual noise.
 
 <img src=".github/assets/shatl-hero.png" alt="Shatl showing active downloads on macOS" width="760">
 
+<img src=".github/assets/shatl-capabilities.png" alt="Shatl capabilities: Liquid Glass, macOS 26 and 27 support, performance modes, metrics, and accent colors" width="760">
+
 </div>
 
 ## Made for clear, intentional downloads
