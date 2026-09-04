@@ -213,6 +213,7 @@
 "settings.appearance.metrics.section" = "Affichage des données";
 "settings.appearance.metrics.simplified" = "Simplifié";
 "settings.appearance.metrics.detailed" = "Détaillé";
+"settings.appearance.speed_colors.toggle" = "Indiquer la vitesse de téléchargement en couleur";
 "settings.appearance.metrics.toggle" = "Afficher les données en mode simplifié";
 "settings.appearance.metrics.caption" = "Masque les détails peu importants, arrondit les valeurs et rend les données plus faciles à comprendre. Mode recommandé.";
 "settings.appearance.metrics.info.help" = "En savoir plus sur la précision des valeurs";

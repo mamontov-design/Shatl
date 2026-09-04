@@ -282,6 +282,7 @@ struct TorrentCardView: View, Equatable {
             }
         }
         .animation(ShatlMotion.metricResize, value: row.compactTransferMetricSet)
+        .animation(ShatlMotion.metricResize, value: row.colorizesDownloadSpeed)
     }
 
     private var statusBadge: some View {
@@ -304,6 +305,7 @@ struct TorrentCardView: View, Equatable {
             items: metricSet.items,
             backgroundColorOverride: metricSetBackgroundColorOverride,
             outlineColorOverride: metricSetOutlineColorOverride,
+            colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             diagnosticsContext: metricDiagnosticsContext(source: "compactTransfer")
         )
     }
@@ -326,7 +328,6 @@ struct TorrentCardView: View, Equatable {
                     groups: compactedDynamicMetricGroups(metricGroups.dynamicGroups),
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    metricSetHorizontalPadding: expandedMetricSetHorizontalPadding,
                     diagnosticsContext: metricDiagnosticsContext(source: "expandedDynamic")
                 )
                     .layoutPriority(2)
@@ -340,7 +341,6 @@ struct TorrentCardView: View, Equatable {
                 group: compactedMetricGroup(metricGroups.sizeGroup),
                 metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                 metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                metricSetHorizontalPadding: expandedMetricSetHorizontalPadding,
                 diagnosticsContext: metricDiagnosticsContext(source: "expandedSize")
             )
                 .layoutPriority(1)
@@ -577,10 +577,6 @@ struct TorrentCardView: View, Equatable {
                 ? ShatlColor.statusTextErrorHover
                 : ShatlColor.statusTextErrorDefault
         }
-    }
-
-    private var expandedMetricSetHorizontalPadding: CGFloat? {
-        presentationMode == .onboardingDemo ? 8 : nil
     }
 
     private var metricSetBackgroundColorOverride: Color? {

@@ -217,6 +217,7 @@
 "settings.appearance.metrics.section" = "Отображение данных";
 "settings.appearance.metrics.simplified" = "Упрощённо";
 "settings.appearance.metrics.detailed" = "Подробно";
+"settings.appearance.speed_colors.toggle" = "Цветовая индикация скорости загрузки";
 "settings.appearance.metrics.toggle" = "Отображать данные в упрощённом режиме";
 "settings.appearance.metrics.caption" = "Скрывает малозначимые детали, округляет значения и делает данные легче для восприятия. Рекомендуемый режим.";
 "settings.appearance.metrics.info.help" = "Подробнее о точности значений";

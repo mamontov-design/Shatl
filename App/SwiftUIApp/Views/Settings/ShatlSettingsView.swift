@@ -767,6 +767,7 @@ private struct AppearanceSettingsTab: View {
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
     @State private var metricPreviewPulseTrigger = 0
+    @State private var downloadSpeedPreviewPulseTrigger = 0
     @State private var isMetricsInfoPresented = false
 
     var body: some View {
@@ -788,6 +789,8 @@ private struct AppearanceSettingsTab: View {
             TorrentCardPreviewView(
                 localeOverride: store.preferences.localeOverride,
                 metricsMode: store.preferences.metricsMode,
+                colorizesDownloadSpeed: store.preferences.colorizesDownloadSpeed,
+                downloadSpeedOutlineFlashTrigger: downloadSpeedPreviewPulseTrigger,
                 initiallyExpanded: true,
                 centersExpandedCard: true,
                 allowsExpansionToggle: false,
@@ -819,6 +822,19 @@ private struct AppearanceSettingsTab: View {
     private var metricsModeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.appearance.speed_colors.toggle",
+                    isOn: Binding(
+                        get: { store.preferences.colorizesDownloadSpeed },
+                        set: {
+                            store.preferences.colorizesDownloadSpeed = $0
+                            downloadSpeedPreviewPulseTrigger += 1
+                        }
+                    )
+                )
+
+                ShatlSettingsParameterDivider()
+
                 HStack(spacing: 16) {
                     Text("settings.appearance.metrics.toggle")
                         .shatlTypography(ShatlTypography.bodyRegular)

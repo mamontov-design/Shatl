@@ -213,6 +213,7 @@
 "settings.appearance.metrics.section" = "Data display";
 "settings.appearance.metrics.simplified" = "Simplified";
 "settings.appearance.metrics.detailed" = "Detailed";
+"settings.appearance.speed_colors.toggle" = "Color-code download speed";
 "settings.appearance.metrics.toggle" = "Display data in simplified mode";
 "settings.appearance.metrics.caption" = "Hides less important details, rounds values, and makes data easier to understand. Recommended mode.";
 "settings.appearance.metrics.info.help" = "Learn about value precision";

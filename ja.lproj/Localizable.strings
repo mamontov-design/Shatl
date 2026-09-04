@@ -211,6 +211,7 @@
 "settings.appearance.metrics.section" = "データ表示";
 "settings.appearance.metrics.simplified" = "シンプル";
 "settings.appearance.metrics.detailed" = "詳細";
+"settings.appearance.speed_colors.toggle" = "ダウンロード速度を色分けして表示";
 "settings.appearance.metrics.toggle" = "データをシンプルモードで表示";
 "settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。推奨モードです。";
 "settings.appearance.metrics.info.help" = "値の精度について";

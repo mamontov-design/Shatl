@@ -768,6 +768,8 @@ struct TorrentCardPreviewView: View {
 
     var localeOverride: AppLocaleOverride = .russian
     var metricsMode: MetricsPresentationMode = .simplified
+    var colorizesDownloadSpeed = false
+    var downloadSpeedOutlineFlashTrigger = 0
     var initiallyExpanded = false
     var centersExpandedCard = false
     var allowsExpansionToggle = true
@@ -793,6 +795,8 @@ struct TorrentCardPreviewView: View {
     init(
         localeOverride: AppLocaleOverride = .russian,
         metricsMode: MetricsPresentationMode = .simplified,
+        colorizesDownloadSpeed: Bool = false,
+        downloadSpeedOutlineFlashTrigger: Int = 0,
         initiallyExpanded: Bool = false,
         centersExpandedCard: Bool = false,
         allowsExpansionToggle: Bool = true,
@@ -811,6 +815,8 @@ struct TorrentCardPreviewView: View {
     ) {
         self.localeOverride = localeOverride
         self.metricsMode = metricsMode
+        self.colorizesDownloadSpeed = colorizesDownloadSpeed
+        self.downloadSpeedOutlineFlashTrigger = downloadSpeedOutlineFlashTrigger
         self.initiallyExpanded = initiallyExpanded
         self.centersExpandedCard = centersExpandedCard
         self.allowsExpansionToggle = allowsExpansionToggle
@@ -873,6 +879,7 @@ struct TorrentCardPreviewView: View {
                 .modifier(TorrentCardPreviewShadowModifier(style: shadowStyle))
                 .environment(\.shatlMetricSetOutlinePulseEnabled, pulsesMetricSetOutlines)
                 .environment(\.shatlMetricSetOutlineFlashTrigger, metricSetOutlineFlashTrigger)
+                .environment(\.shatlDownloadSpeedOutlineFlashTrigger, downloadSpeedOutlineFlashTrigger)
                 .environment(\.shatlMetricSetBounceEnabled, false)
                 .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
                 .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
@@ -894,6 +901,7 @@ struct TorrentCardPreviewView: View {
                 tick: demoTick,
                 isExpanded: isExpanded,
                 metricsMode: metricsMode,
+                colorizesDownloadSpeed: colorizesDownloadSpeed,
                 localeOverride: localeOverride
             ),
             resolvePrimaryLocation: { nil },
@@ -983,6 +991,7 @@ private extension TorrentRowState {
         tick: Int,
         isExpanded: Bool,
         metricsMode: MetricsPresentationMode,
+        colorizesDownloadSpeed: Bool = false,
         localeOverride: AppLocaleOverride
     ) -> TorrentRowState {
         let record = TorrentRecord.previewDemo(progress: progress, tick: tick)
@@ -1030,6 +1039,7 @@ private extension TorrentRowState {
                 : [],
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: metricsMode,
+            colorizesDownloadSpeed: colorizesDownloadSpeed,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,
@@ -1096,6 +1106,8 @@ private struct TorrentCardPreviewHeightPreferenceKey: PreferenceKey {
 struct ShatlMetricItem: View {
     let item: MetricItemPresentation
     var iconColorOverride: Color? = nil
+    var speedPalette: ShatlSpeedMetricPalette? = nil
+    var showsSpeedBadge = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlAnimationMode) private var animationMode
 
@@ -1115,7 +1127,7 @@ struct ShatlMetricItem: View {
                     if let unit = item.unit {
                         Text(unit)
                             .shatlTypography(ShatlTypography.metricSemibold)
-                            .foregroundStyle(ShatlColor.typographyTertiary)
+                            .foregroundStyle(speedPalette?.label ?? ShatlColor.typographyTertiary)
                             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -1126,9 +1138,21 @@ struct ShatlMetricItem: View {
         }
         .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
         .fixedSize(horizontal: true, vertical: false)
+        .padding(.leading, item.iconName == nil ? 5 : 3)
+        .padding(.trailing, 5)
+        .padding(.vertical, 3)
+        .background {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(speedPalette?.badge ?? .clear)
+                .opacity(showsSpeedBadge ? 1 : 0)
+        }
+        .animation(ShatlMotion.speedMetricColor, value: speedPalette)
+        .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
     }
 
     private var iconColor: Color {
+        if let speedPalette { return speedPalette.icon }
+
         if let iconColorOverride {
             return iconColorOverride
         }
@@ -1140,7 +1164,7 @@ struct ShatlMetricItem: View {
     private func metricNumber(_ number: String) -> some View {
         let text = Text(number)
             .shatlTypography(ShatlTypography.metricSemibold)
-            .foregroundStyle(ShatlColor.typographyPrimary)
+            .foregroundStyle(speedPalette?.label ?? ShatlColor.typographyPrimary)
             .monospacedDigit()
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
@@ -1165,8 +1189,7 @@ struct ShatlMetricItem: View {
 private struct MetricSetBounceValues {
     var scale: CGFloat = 1
     var outlineOpacity: CGFloat = 0
-    var shadowOpacity: Double = 0
-    var shadowRadius: CGFloat = 0
+    var shadowProgress: Double = 0
 }
 
 private nonisolated struct MetricSetBounceOutlineOpacityKey: EnvironmentKey {
@@ -1225,13 +1248,14 @@ struct ShatlMetricSet: View {
     var metricIconColorOverride: Color? = nil
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
-    var horizontalPadding: CGFloat? = nil
+    var colorizesDownloadSpeed = false
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shatlAnimationMode) private var animationMode
     @Environment(\.shatlMetricSetOutlinePulseEnabled) private var metricSetOutlinePulseEnabled
     @Environment(\.shatlMetricSetOutlineFlashTrigger) private var metricSetOutlineFlashTrigger
+    @Environment(\.shatlDownloadSpeedOutlineFlashTrigger) private var downloadSpeedOutlineFlashTrigger
     @Environment(\.shatlMetricSetBounceEnabled) private var metricSetBounceEnabled
     @Environment(\.shatlMetricSetOutlinePulseColor) private var metricSetOutlinePulseColor
     @Environment(\.shatlMetricSetOutlineFlashColor) private var metricSetOutlineFlashColor
@@ -1246,19 +1270,27 @@ struct ShatlMetricSet: View {
         let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
             ?? ShatlShadowLayer(opacity: 0, radius: 0)
         let metricBounceColor = ShatlColor.shadowKeyColor
+        let restShadow = ShatlShadow.metricRest.appearance(for: colorScheme)?.primary
+            ?? ShatlShadowLayer(opacity: 0, radius: 0)
+        let restOpacity = usesColoredDownloadSpeed ? 0 : restShadow.opacity
 
-        HStack(spacing: 10) {
+        HStack(spacing: 5) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                if index > 0 {
+                if index > 0, !usesColoredDownloadSpeed {
                     metricDivider
+                        .transition(metricContentTransition)
                 }
 
-                ShatlMetricItem(item: item, iconColorOverride: metricIconColorOverride)
+                ShatlMetricItem(
+                    item: item,
+                    iconColorOverride: metricIconColorOverride,
+                    speedPalette: item.id == "download-speed" ? speedPalette : nil,
+                    showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" }
+                )
+                .transition(metricContentTransition)
             }
         }
-        .padding(.leading, horizontalPadding ?? 6)
-        .padding(.trailing, horizontalPadding ?? 8)
-        .padding(.vertical, 6)
+        .padding(3)
         .background(metricBackgroundColor)
         .overlay {
             MetricSetOutlineView(
@@ -1280,10 +1312,12 @@ struct ShatlMetricSet: View {
                 .environment(\.metricSetBounceOutlineOpacity, value.outlineOpacity)
                 .scaleEffect(value.scale, anchor: .center)
                 .shadow(
-                    color: metricBounceColor.opacity(value.shadowOpacity),
-                    radius: value.shadowRadius,
-                    x: metricBounceShadow.x,
-                    y: metricBounceShadow.y
+                    color: metricBounceColor.opacity(
+                        restOpacity + (metricBounceShadow.opacity - restOpacity) * value.shadowProgress
+                    ),
+                    radius: restShadow.radius + (metricBounceShadow.radius - restShadow.radius) * value.shadowProgress,
+                    x: restShadow.x + (metricBounceShadow.x - restShadow.x) * value.shadowProgress,
+                    y: restShadow.y + (metricBounceShadow.y - restShadow.y) * value.shadowProgress
                 )
         } keyframes: { _ in
             KeyframeTrack(\.scale) {
@@ -1317,27 +1351,13 @@ struct ShatlMetricSet: View {
                 )
             }
 
-            KeyframeTrack(\.shadowOpacity) {
+            KeyframeTrack(\.shadowProgress) {
                 SpringKeyframe(
-                    metricBounceShadow.opacity,
+                    1,
                     duration: ShatlMotion.metricSetBounceUpDuration,
                     spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
                 )
-                LinearKeyframe(metricBounceShadow.opacity, duration: ShatlMotion.metricSetBounceHoldDuration)
-                SpringKeyframe(
-                    0,
-                    duration: ShatlMotion.metricSetBounceDownDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceDownDuration)
-                )
-            }
-
-            KeyframeTrack(\.shadowRadius) {
-                SpringKeyframe(
-                    metricBounceShadow.radius,
-                    duration: ShatlMotion.metricSetBounceUpDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
-                )
-                LinearKeyframe(metricBounceShadow.radius, duration: ShatlMotion.metricSetBounceHoldDuration)
+                LinearKeyframe(1, duration: ShatlMotion.metricSetBounceHoldDuration)
                 SpringKeyframe(
                     0,
                     duration: ShatlMotion.metricSetBounceDownDuration,
@@ -1347,6 +1367,7 @@ struct ShatlMetricSet: View {
         }
         .background(metricSetDiagnosticsSizeReader)
         .animation(ShatlMotion.metricResize, value: items)
+        .animation(ShatlMotion.metricResize, value: usesColoredDownloadSpeed)
         .onChange(of: items) { oldItems, newItems in
             logItemsChanged(from: oldItems, to: newItems)
         }
@@ -1362,6 +1383,22 @@ struct ShatlMetricSet: View {
             guard newTrigger > 0 else { return }
             flashMetricSetOutline()
         }
+        .onChange(of: downloadSpeedOutlineFlashTrigger) { _, newTrigger in
+            guard newTrigger > 0, items.contains(where: { $0.id == "download-speed" }) else { return }
+            flashMetricSetOutline()
+        }
+    }
+
+    private var speedPalette: ShatlSpeedMetricPalette? {
+        guard colorizesDownloadSpeed,
+              let speed = items.first(where: { $0.id == "download-speed" }) else { return nil }
+        return ShatlSpeedMetricPalette.downloadSymbol(speed.iconName)
+    }
+
+    private var usesColoredDownloadSpeed: Bool { speedPalette != nil }
+
+    private var metricContentTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.appearFromTop
     }
 
     private var metricBackgroundColor: Color {
@@ -1805,7 +1842,6 @@ struct ShatlMetricGroup: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
-    var metricSetHorizontalPadding: CGFloat? = nil
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
 
     var body: some View {
@@ -1821,7 +1857,6 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
-                horizontalPadding: metricSetHorizontalPadding,
                 diagnosticsContext: diagnosticsContext?.withGroupID(group.id)
             )
         }
@@ -1835,7 +1870,6 @@ struct ShatlMetricGroupSet: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
-    var metricSetHorizontalPadding: CGFloat? = nil
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
 
     var body: some View {
@@ -1846,7 +1880,6 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    metricSetHorizontalPadding: metricSetHorizontalPadding,
                     diagnosticsContext: diagnosticsContext
                 )
                     .layoutPriority(1)

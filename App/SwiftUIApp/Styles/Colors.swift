@@ -17,6 +17,22 @@ enum ShatlColor {
     static let cardHover = Color("cardHover")
     static let cardSelectedError = Color("cardSelectedError")
 
+    static let speedBadgeTortoise = Color("speedBadgeTortoise")
+    static let speedIconTortoise = Color("speedIconTortoise")
+    static let speedLabelTortoise = Color("speedLabelTortoise")
+    static let speedBadgeWalk = Color("speedBadgeWalk")
+    static let speedIconWalk = Color("speedIconWalk")
+    static let speedLabelWalk = Color("speedLabelWalk")
+    static let speedBadgeRun = Color("speedBadgeRun")
+    static let speedIconRun = Color("speedIconRun")
+    static let speedLabelRun = Color("speedLabelRun")
+    static let speedBadgeHare = Color("speedBadgeHare")
+    static let speedIconHare = Color("speedIconHare")
+    static let speedLabelHare = Color("speedLabelHare")
+    static let speedBadgeBolt = Color("speedBadgeBolt")
+    static let speedIconBolt = Color("speedIconBolt")
+    static let speedLabelBolt = Color("speedLabelBolt")
+
     static let metricBackground = Color("metricBackground")
     static let metricDivider = Color("metricDivider")
     static let metricOutline = Color("metricOutline")
@@ -100,6 +116,29 @@ enum ShatlGlassTint {
         }
 
         return 0.00
+    }
+}
+
+struct ShatlSpeedMetricPalette: Equatable {
+    let badge: Color
+    let icon: Color
+    let label: Color
+
+    static func downloadSymbol(_ symbol: String?) -> Self? {
+        switch symbol {
+        case "tortoise.fill":
+            Self(badge: ShatlColor.speedBadgeTortoise, icon: ShatlColor.speedIconTortoise, label: ShatlColor.speedLabelTortoise)
+        case "figure.walk":
+            Self(badge: ShatlColor.speedBadgeWalk, icon: ShatlColor.speedIconWalk, label: ShatlColor.speedLabelWalk)
+        case "figure.run":
+            Self(badge: ShatlColor.speedBadgeRun, icon: ShatlColor.speedIconRun, label: ShatlColor.speedLabelRun)
+        case "hare.fill":
+            Self(badge: ShatlColor.speedBadgeHare, icon: ShatlColor.speedIconHare, label: ShatlColor.speedLabelHare)
+        case "bolt.fill":
+            Self(badge: ShatlColor.speedBadgeBolt, icon: ShatlColor.speedIconBolt, label: ShatlColor.speedLabelBolt)
+        default:
+            nil
+        }
     }
 }
 
@@ -205,6 +244,16 @@ enum ShatlShadow {
         dark: ShatlShadowAppearance(
             primary: ShatlShadowLayer(opacity: 0.16, radius: 6, y: 2),
             secondary: ShatlShadowLayer(opacity: 0.40, radius: 14, y: 4)
+        )
+    )
+
+    /// Resting shadow for metrics that do not have a colored speed badge.
+    static let metricRest = ShatlShadowToken(
+        light: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.06, radius: 1.5, y: 1)
+        ),
+        dark: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.06, radius: 1.5, y: 1)
         )
     )
 

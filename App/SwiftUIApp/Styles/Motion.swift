@@ -16,6 +16,11 @@ enum ShatlMotion {
     static let metricSetBounceHoldDuration: TimeInterval = 0.14
     static let metricSetBounceDownDuration: TimeInterval = 0.24
 
+    /// Color changes stay in sync with the complete bounce, including in previews.
+    static let speedMetricColor = Animation.easeInOut(
+        duration: metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
+    )
+
     /// Peak scale of the metric-set bounce animation.
     static let metricSetBounceScale: CGFloat = 1.1
 
@@ -129,6 +134,10 @@ private struct ShatlMetricSetOutlineFlashTriggerKey: EnvironmentKey {
     static let defaultValue = 0
 }
 
+private struct ShatlDownloadSpeedOutlineFlashTriggerKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
 private struct ShatlMetricSetBounceEnabledKey: EnvironmentKey {
     static let defaultValue = true
 }
@@ -155,6 +164,11 @@ extension EnvironmentValues {
     var shatlMetricSetOutlineFlashTrigger: Int {
         get { self[ShatlMetricSetOutlineFlashTriggerKey.self] }
         set { self[ShatlMetricSetOutlineFlashTriggerKey.self] = newValue }
+    }
+
+    var shatlDownloadSpeedOutlineFlashTrigger: Int {
+        get { self[ShatlDownloadSpeedOutlineFlashTriggerKey.self] }
+        set { self[ShatlDownloadSpeedOutlineFlashTriggerKey.self] = newValue }
     }
 
     var shatlMetricSetBounceEnabled: Bool {

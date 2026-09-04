@@ -151,6 +151,7 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var usesUnrestrictedPerformanceMode: Bool
     var theme: AppTheme
     var metricsMode: MetricsPresentationMode
+    var colorizesDownloadSpeed: Bool = false
     var animationMode: AppAnimationMode
     var localeOverride: AppLocaleOverride
     var sendsAnonymousUsageStatistics: Bool
@@ -176,6 +177,7 @@ extension AppPreferences {
         case usesUnrestrictedPerformanceMode
         case theme
         case metricsMode
+        case colorizesDownloadSpeed
         case animationMode
         case localeOverride
         case sendsAnonymousUsageStatistics
@@ -221,6 +223,7 @@ extension AppPreferences {
         usesUnrestrictedPerformanceMode = false
         theme = try container.decode(AppTheme.self, forKey: .theme)
         metricsMode = try container.decode(MetricsPresentationMode.self, forKey: .metricsMode)
+        colorizesDownloadSpeed = try container.decodeIfPresent(Bool.self, forKey: .colorizesDownloadSpeed) ?? false
         animationMode = try container.decodeIfPresent(
             AppAnimationMode.self,
             forKey: .animationMode

@@ -71,6 +71,7 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var expandedMetrics: [VisibleMetric]
     var expandedMetricGroups: ExpandedMetricGroupsPresentation?
     var metricsMode: MetricsPresentationMode
+    var colorizesDownloadSpeed: Bool = false
     var errorState: TorrentRowErrorState?
     var isSelected: Bool
     var isExpanded: Bool

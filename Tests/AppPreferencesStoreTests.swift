@@ -42,6 +42,7 @@ final class AppPreferencesStoreTests: XCTestCase {
         preferences.alwaysStopAfterDownload = true
         preferences.performanceProfile = .maximum
         preferences.metricsMode = .detailed
+        preferences.colorizesDownloadSpeed = true
         preferences.animationMode = .calm
         preferences.sendsAnonymousUsageStatistics = true
         preferences.hasAnsweredUsageStatisticsOnboarding = true

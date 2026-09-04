@@ -18,6 +18,18 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertEqual(AppPreferences.defaultValue.animationMode, .lively)
     }
 
+    func testSpeedColorsDefaultToOffForNewAndExistingPreferences() throws {
+        XCTAssertFalse(AppPreferences.defaultValue.colorizesDownloadSpeed)
+        let data = try JSONEncoder().encode(AppPreferences.defaultValue)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "colorizesDownloadSpeed")
+        let decoded = try JSONDecoder().decode(
+            AppPreferences.self,
+            from: JSONSerialization.data(withJSONObject: legacy)
+        )
+        XCTAssertEqual(decoded, .defaultValue)
+    }
+
     func testDefaultBrandMarkUsesWordmark() {
         XCTAssertEqual(AppPreferences.defaultValue.preferredBrandMark, .wordmark)
     }

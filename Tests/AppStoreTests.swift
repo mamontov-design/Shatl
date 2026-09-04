@@ -683,6 +683,21 @@ final class AppStoreTests: XCTestCase {
         XCTAssertNotNil(secondRow?.expandedMetricGroups)
     }
 
+    func testSpeedColorPreferenceInvalidatesRowWithoutChangingMetrics() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.5)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+        let before = try XCTUnwrap(bundle.store.rowState(for: record.id))
+        bundle.store.preferences.colorizesDownloadSpeed = true
+        let after = try XCTUnwrap(bundle.store.rowState(for: record.id))
+        XCTAssertFalse(before.colorizesDownloadSpeed)
+        XCTAssertTrue(after.colorizesDownloadSpeed)
+        XCTAssertNotEqual(before, after)
+        XCTAssertEqual(before.compactTransferMetricSet, after.compactTransferMetricSet)
+        bundle.store.preferences.colorizesDownloadSpeed = false
+        XCTAssertEqual(bundle.store.rowState(for: record.id), before)
+    }
+
     func testRowStateCarriesMetricsModePreference() async {
         let record = makeTestRecord(status: .downloading, progress: 0.5)
         let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])

@@ -294,6 +294,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetrics: expandedMetrics,
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: preferences.metricsMode,
+            colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             errorState: errorState,
             isSelected: isSelected,
             isExpanded: isExpanded,

@@ -211,6 +211,7 @@
 "settings.appearance.metrics.section" = "数据显示";
 "settings.appearance.metrics.simplified" = "简洁";
 "settings.appearance.metrics.detailed" = "详细";
+"settings.appearance.speed_colors.toggle" = "以颜色区分下载速度";
 "settings.appearance.metrics.toggle" = "以简洁模式显示数据";
 "settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。推荐模式。";
 "settings.appearance.metrics.info.help" = "了解数值精度";
