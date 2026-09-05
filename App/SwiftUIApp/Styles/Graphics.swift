@@ -659,14 +659,26 @@ private struct ShatlLogomarkArtwork: View {
 
     var body: some View {
         ZStack {
-            appShape
-                .opacity(ShatlLogomarkOpacity.appShape)
-
-            specularHighlightsLayer
+            backgroundLayer
             aLayer
             starLayer
         }
         .frame(width: 84, height: 84)
+    }
+
+    @ViewBuilder
+    private var backgroundLayer: some View {
+        if #available(macOS 27.0, *), renderingMode == .glass {
+            Color.clear
+                .glassEffect(
+                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                    in: ShatlLogomarkAppShape()
+                )
+        } else {
+            appShape
+                .opacity(ShatlLogomarkOpacity.appShape)
+            specularHighlightsLayer
+        }
     }
 
     @ViewBuilder
@@ -756,12 +768,12 @@ private struct ShatlLogomarkArtwork: View {
     private var appShapeGradient: LinearGradient {
         let colors: [Color] = colorScheme == .dark
             ? [
-                Color(red: 75 / 255, green: 85 / 255, blue: 99 / 255),
-                Color(red: 55 / 255, green: 65 / 255, blue: 81 / 255),
+                Color(red: 82 / 255, green: 82 / 255, blue: 91 / 255),
+                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255),
             ]
             : [
-                Color(red: 243 / 255, green: 244 / 255, blue: 246 / 255),
-                Color(red: 229 / 255, green: 231 / 255, blue: 235 / 255),
+                Color(red: 244 / 255, green: 244 / 255, blue: 245 / 255),
+                Color(red: 228 / 255, green: 228 / 255, blue: 231 / 255),
             ]
 
         return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
@@ -795,15 +807,15 @@ private struct ShatlLogomarkArtwork: View {
     private var flatAGradient: LinearGradient {
         let colors: [Color] = colorScheme == .dark
             ? [
-                Color(red: 249 / 255, green: 250 / 255, blue: 251 / 255)
+                Color(red: 250 / 255, green: 250 / 255, blue: 250 / 255)
                     .opacity(strokeOpacity),
-                Color(red: 229 / 255, green: 231 / 255, blue: 235 / 255)
+                Color(red: 228 / 255, green: 228 / 255, blue: 231 / 255)
                     .opacity(strokeOpacity),
             ]
             : [
-                Color(red: 31 / 255, green: 41 / 255, blue: 55 / 255)
+                Color(red: 39 / 255, green: 39 / 255, blue: 42 / 255)
                     .opacity(strokeOpacity),
-                Color(red: 55 / 255, green: 65 / 255, blue: 81 / 255)
+                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255)
                     .opacity(strokeOpacity),
             ]
 

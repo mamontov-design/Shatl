@@ -730,7 +730,7 @@ private struct PerformanceProfileDemo: View {
     private var trackColor: Color {
         colorScheme == .dark
             ? Color.white.opacity(0.16)
-            : Color(red: 55 / 255, green: 65 / 255, blue: 81 / 255).opacity(0.08)
+            : Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255).opacity(0.08)
     }
 
     private var progressLayer: some View {
@@ -799,9 +799,7 @@ private struct AppearanceSettingsTab: View {
                 metricSetOutlineFlashTrigger: metricPreviewPulseTrigger,
                 metricSetOutlineFlashColor: metricPreviewOutlineHighlightColor,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
-                progressGroupBackgroundColorOverride: metricPreviewAccentColor.opacity(0.12),
-                progressGroupForegroundColorOverride: metricPreviewAccentColor,
-                usesProductionProgressColors: accentState.isUsingAppAccent,
+                usesProductionProgressColors: true,
                 cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
                 cardOutlineColorOverride: colorScheme == .light ? ShatlColor.outlinePrimary : nil,
                 shadowStyle: .settings,
@@ -883,7 +881,7 @@ private struct AppearanceSettingsTab: View {
                     ShatlSettingsInputCard(
                         localizedTitle: theme.settingsTitleKey,
                         isSelected: store.preferences.theme == theme,
-                        imageContainerHeight: 84
+                        imageContainerHeight: 74
                     ) {
                         store.preferences.theme = theme
                     } content: {
@@ -956,6 +954,7 @@ private struct MetricsPresentationInfoPopover: View {
 private struct ThemeAppearanceDemo: View {
     let theme: AppTheme
 
+    @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -969,13 +968,19 @@ private struct ThemeAppearanceDemo: View {
                     .frame(width: 76, height: 76)
 
                 ShatlWindowButtonCloseShape()
-                    .fill(buttonColor)
+                    .fill(accentState.isUsingAppAccent
+                        ? Color(red: 244.0 / 255.0, green: 63.0 / 255.0, blue: 94.0 / 255.0)
+                        : buttonColor)
 
                 ShatlWindowButtonMinimizeShape()
-                    .fill(buttonColor)
+                    .fill(accentState.isUsingAppAccent
+                        ? Color(red: 234.0 / 255.0, green: 179.0 / 255.0, blue: 8.0 / 255.0)
+                        : buttonColor)
 
                 ShatlWindowButtonExpandShape()
-                    .fill(buttonColor)
+                    .fill(accentState.isUsingAppAccent
+                        ? Color(red: 34.0 / 255.0, green: 197.0 / 255.0, blue: 94.0 / 255.0)
+                        : buttonColor)
             }
             .frame(width: 76, height: 76)
         }
@@ -1003,16 +1008,16 @@ private struct ThemeAppearanceDemo: View {
     private var buttonColor: Color {
         if theme == .dark {
             return Color(
-                red: 133.0 / 255.0,
-                green: 139.0 / 255.0,
-                blue: 149.0 / 255.0
+                red: 113.0 / 255.0,
+                green: 113.0 / 255.0,
+                blue: 122.0 / 255.0
             )
         }
 
         return Color(
-            red: 209.0 / 255.0,
-            green: 213.0 / 255.0,
-            blue: 219.0 / 255.0
+            red: 212.0 / 255.0,
+            green: 212.0 / 255.0,
+            blue: 216.0 / 255.0
         )
     }
 }

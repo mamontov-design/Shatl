@@ -570,9 +570,11 @@ struct ShatlSettingsInputCard<Content: View>: View {
                     content
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else if usesCompactImageContainer {
-                    content
-                        .padding(.top, 45)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    Color.clear
+                        .overlay(alignment: .top) {
+                            content
+                                .padding(.top, 25)
+                        }
                 } else {
                     HStack {
                         Spacer(minLength: 0)

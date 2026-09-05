@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Mode=System, Dark=Off.png",
+      "filename" : "Mode=System, Dark=Off, User Tint=Off.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
@@ -12,7 +12,7 @@
           "value" : "light"
         }
       ],
-      "filename" : "Mode=System, Dark=Off 1.png",
+      "filename" : "Mode=System, Dark=Off, User Tint=Off 1.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
@@ -23,12 +23,12 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Mode=System, Dark=On.png",
+      "filename" : "Mode=System, Dark=On, User Tint=Off.png",
       "idiom" : "mac",
       "scale" : "1x"
     },
     {
-      "filename" : "Mode=System, Dark=Off2x.png",
+      "filename" : "Mode=System, Dark=Off, User Tint=Off2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     },
@@ -39,7 +39,7 @@
           "value" : "light"
         }
       ],
-      "filename" : "Mode=System, Dark=Off2x 1.png",
+      "filename" : "Mode=System, Dark=Off, User Tint=Off2x 1.png",
       "idiom" : "mac",
       "scale" : "2x"
     },
@@ -50,7 +50,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Mode=System, Dark=On2x.png",
+      "filename" : "Mode=System, Dark=On, User Tint=Off2x.png",
       "idiom" : "mac",
       "scale" : "2x"
     }
