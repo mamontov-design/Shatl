@@ -36,7 +36,7 @@
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
 
 "session.restore.in_progress" = "Восстановление сессии…";
-"session.load.in_progress.title" = "Подготовка сессии…";
+"session.load.in_progress.title" = "Выполняется восстановление сессии.\nПожалуйста, подождите.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок";
 "session.load.unreadable.message" = "Shatl не смог прочитать сохранённую сессию. Загруженные с прошлого запуска файлы остались на диске.";
 "session.load.missing.message" = "Shatl не нашёл сохранённый список. Загруженные с прошлого запуска файлы остались на диске.";

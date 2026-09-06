@@ -36,7 +36,7 @@
 "search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
 
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
-"session.load.in_progress.title" = "Sitzung wird vorbereitet…";
+"session.load.in_progress.title" = "Die Sitzung wird wiederhergestellt.\nBitte warten Sie.";
 "session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden";
 "session.load.unreadable.message" = "Shatl konnte die gespeicherte Sitzung nicht lesen. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 "session.load.missing.message" = "Shatl konnte die gespeicherte Downloadliste nicht finden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";

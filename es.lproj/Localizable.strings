@@ -36,7 +36,7 @@
 "search.empty.description" = "Prueba con otro nombre o alias.";
 
 "session.restore.in_progress" = "Restaurando sesión…";
-"session.load.in_progress.title" = "Preparando la sesión…";
+"session.load.in_progress.title" = "Se está restaurando la sesión.\nEspera, por favor.";
 "session.load.failure.title" = "No se pudo restaurar la lista de descargas";
 "session.load.unreadable.message" = "Shatl no pudo leer la sesión guardada. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
 "session.load.missing.message" = "Shatl no encontró la lista de descargas guardada. Los archivos descargados en ejecuciones anteriores siguen en el disco.";

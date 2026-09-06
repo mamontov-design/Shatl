@@ -393,14 +393,13 @@ private struct SessionLoadBlockingView: View {
             Rectangle()
                 .fill(ShatlColor.backgroundSecondary)
 
-            VStack(spacing: 10) {
-                Image(systemName: issue == nil ? "progress.indicator" : "exclamationmark.triangle")
+            VStack(spacing: issue == nil ? 12 : 10) {
+                Image(systemName: issue == nil ? "tray.and.arrow.up" : "exclamationmark.triangle")
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(issue == nil ? ShatlColor.accent : ShatlColor.neonBlue)
-                    .symbolEffect(.rotate.byLayer, options: .repeat(.continuous), isActive: issue == nil)
+                    .foregroundStyle(issue == nil ? ShatlColor.typographySecondary : ShatlColor.neonBlue)
 
                 Text(title)
-                    .shatlTypography(ShatlTypography.bodySemibold)
+                    .shatlTypography(issue == nil ? ShatlTypography.bodyMedium : ShatlTypography.bodySemibold)
                     .foregroundStyle(ShatlColor.typographyPrimary)
                     .multilineTextAlignment(.center)
 
@@ -422,7 +421,7 @@ private struct SessionLoadBlockingView: View {
             return L10n.string(
                 "session.load.in_progress.title",
                 localeOverride: localeOverride,
-                defaultValue: "Подготовка сессии…"
+                defaultValue: "Выполняется восстановление сессии.\nПожалуйста, подождите."
             )
         }
 
