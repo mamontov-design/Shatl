@@ -399,7 +399,7 @@ private struct SessionLoadBlockingView: View {
                     .foregroundStyle(issue == nil ? ShatlColor.typographySecondary : ShatlColor.neonBlue)
 
                 Text(title)
-                    .shatlTypography(issue == nil ? ShatlTypography.bodyMedium : ShatlTypography.bodySemibold)
+                    .shatlTypography(ShatlTypography.bodySemibold)
                     .foregroundStyle(ShatlColor.typographyPrimary)
                     .multilineTextAlignment(.center)
 
