@@ -172,7 +172,6 @@
 "settings.tab.localization" = "Langue";
 "settings.tab.debug" = "Débogage";
 "menu.debug.show_onboarding" = "Lancer la configuration initiale";
-"menu.debug.show_restore_status_bar" = "Afficher la barre de restauration de session";
 
 "settings.notifications.section" = "Notifications";
 "settings.notifications.show" = "Afficher les notifications";

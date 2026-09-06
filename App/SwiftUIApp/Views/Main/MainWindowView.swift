@@ -184,11 +184,6 @@ struct MainWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
             isOnboardingPresented = true
         }
-        .onReceive(
-            NotificationCenter.default.publisher(for: .shatlPresentRestoreStatusBarPreview)
-        ) { _ in
-            presentRestoreStatusBarPreview()
-        }
         .environment(\.shatlAnimationMode, store.preferences.animationMode)
         .animation(ShatlMotion.mainContentMode, value: contentMode)
         .sheet(
@@ -324,23 +319,6 @@ struct MainWindowView: View {
         }
 
         return ShatlBottomChipLayout.standardListBottomPadding
-    }
-
-    private func presentRestoreStatusBarPreview() {
-        restoreStatusTask?.cancel()
-        restoreStatusShownAt = Date()
-        setRestoreStatusPhase(.restoring)
-
-        restoreStatusTask = Task {
-            do {
-                try await Task.sleep(for: .seconds(3))
-            } catch {
-                return
-            }
-
-            guard !Task.isCancelled else { return }
-            completeVisibleRestoreStatus()
-        }
     }
 
     private var restoreStatusTransition: AnyTransition {

@@ -172,7 +172,6 @@
 "settings.tab.localization" = "Sprache";
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Onboarding starten";
-"menu.debug.show_restore_status_bar" = "Leiste zur Sitzungswiederherstellung anzeigen";
 
 "settings.notifications.section" = "Mitteilungen";
 "settings.notifications.show" = "Mitteilungen anzeigen";

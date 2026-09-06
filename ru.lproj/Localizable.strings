@@ -176,7 +176,6 @@
 "settings.tab.localization" = "Язык";
 "settings.tab.debug" = "Отладка";
 "menu.debug.show_onboarding" = "Запустить онбординг";
-"menu.debug.show_restore_status_bar" = "Показать строку восстановления сессии";
 
 "settings.notifications.section" = "Уведомления";
 "settings.notifications.show" = "Показывать уведомления";
