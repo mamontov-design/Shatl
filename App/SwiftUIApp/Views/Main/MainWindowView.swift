@@ -391,7 +391,7 @@ private struct SessionLoadBlockingView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(ShatlColor.backgroundSecondary)
 
             VStack(spacing: 10) {
                 Image(systemName: issue == nil ? "progress.indicator" : "exclamationmark.triangle")
