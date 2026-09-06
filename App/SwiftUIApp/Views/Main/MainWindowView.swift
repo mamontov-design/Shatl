@@ -639,6 +639,7 @@ private struct SessionRestoreStatusBar: View {
 
             statusText
         }
+        .geometryGroup()
         .foregroundStyle(statusColor)
         .padding(.vertical, 6)
         .padding(.horizontal, 8)
