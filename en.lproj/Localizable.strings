@@ -36,6 +36,12 @@
 "search.empty.description" = "Try a different name or alias.";
 
 "session.restore.in_progress" = "Restoring session…";
+"session.load.in_progress.title" = "Preparing session…";
+"session.load.failure.title" = "Couldn’t restore the download list";
+"session.load.unreadable.message" = "Shatl couldn’t read the saved session. Files downloaded during previous launches remain on disk.";
+"session.load.missing.message" = "Shatl couldn’t find the saved download list. Files downloaded during previous launches remain on disk.";
+"session.load.unsupported.title" = "Couldn’t open the saved session";
+"session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
 
 "onboarding.action.next" = "Next";
 "onboarding.action.not_now" = "Not now";

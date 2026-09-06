@@ -10,6 +10,7 @@ struct RemovedTorrentCall: Sendable, Equatable {
 }
 
 actor FakeTorrentEngine: TorrentEngine {
+    private var bootCallCountValue = 0
     private var addCallCountValue = 0
     private var addError: TorrentEngineError?
     private var prepareSources: [AddTorrentSource] = []
@@ -31,7 +32,9 @@ actor FakeTorrentEngine: TorrentEngine {
     private var checkpointedTorrentIDsValue: [UUID] = []
     private var checkpointResultsByTorrentID: [UUID: EngineResumeCheckpointStatus] = [:]
 
-    func boot() async throws {}
+    func boot() async throws {
+        bootCallCountValue += 1
+    }
 
     func applyPerformanceSettings(_ settings: EnginePerformanceSettings) async throws {
         appliedPerformanceSettingsValue.append(settings)
@@ -196,6 +199,10 @@ actor FakeTorrentEngine: TorrentEngine {
         addCallCountValue
     }
 
+    func bootCallCount() async -> Int {
+        bootCallCountValue
+    }
+
     func recordedPrepareSources() async -> [AddTorrentSource] {
         prepareSources
     }
@@ -269,6 +276,32 @@ actor FakeTorrentEngine: TorrentEngine {
     }
 }
 
+actor SuspendedSessionReader {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var didStartValue = false
+    private var isReleased = false
+
+    func read(_ url: URL) async throws -> Data {
+        didStartValue = true
+        if !isReleased {
+            await withCheckedContinuation { continuation in
+                self.continuation = continuation
+            }
+        }
+        return try Data(contentsOf: url)
+    }
+
+    func didStart() -> Bool {
+        didStartValue
+    }
+
+    func release() {
+        isReleased = true
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
 @MainActor
 final class SpyTorrentUserEventNotifier: TorrentUserEventNotifying {
     private(set) var notifications: [TorrentUserNotification] = []
@@ -296,6 +329,7 @@ struct TestStoreBundle {
     var sessionStore: SessionStore
     var archiveStore: TorrentArchiveStore
     var bookmarkStore: BookmarkStore
+    var resumeDataStore: ResumeDataStore
     var payloadLocator: TorrentPayloadLocator
     var payloadDeletionService: TorrentPayloadDeletionService
     var router: ExternalOpenRouter
@@ -310,7 +344,11 @@ func makeTestStoreBundle(
     userEventNotifier: (any TorrentUserEventNotifying)? = nil,
     userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)? = nil,
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
-    usageTelemetrySender: (any UsageTelemetrySending)? = nil
+    usageTelemetrySender: (any UsageTelemetrySending)? = nil,
+    sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
+    sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
+        try Data(contentsOf: url)
+    }
 ) -> TestStoreBundle {
     let rootURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("ShatlTests-\(UUID().uuidString)", isDirectory: true)
@@ -320,10 +358,14 @@ func makeTestStoreBundle(
     )
     let archiveStore = TorrentArchiveStore(directories: directories)
     let bookmarkStore = BookmarkStore(directories: directories)
+    let resumeDataStore = ResumeDataStore(directories: directories)
     let sessionStore = SessionStore(
         directories: directories,
         archiveStore: archiveStore,
-        bookmarkStore: bookmarkStore
+        bookmarkStore: bookmarkStore,
+        resumeDataStore: resumeDataStore,
+        startupMode: sessionStoreStartupMode,
+        readSessionData: sessionReadData
     )
     let coordinator = SessionRestoreCoordinator(
         engine: engine,
@@ -358,7 +400,8 @@ func makeTestStoreBundle(
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
         torrents: torrents,
-        preferences: preferences
+        preferences: preferences,
+        hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized
     )
 
     return TestStoreBundle(
@@ -368,6 +411,7 @@ func makeTestStoreBundle(
         sessionStore: sessionStore,
         archiveStore: archiveStore,
         bookmarkStore: bookmarkStore,
+        resumeDataStore: resumeDataStore,
         payloadLocator: payloadLocator,
         payloadDeletionService: payloadDeletionService,
         router: router
@@ -382,7 +426,11 @@ func makeTestStoreBundle(
     userEventNotifier: (any TorrentUserEventNotifying)? = nil,
     userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)? = nil,
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
-    usageTelemetrySender: (any UsageTelemetrySending)? = nil
+    usageTelemetrySender: (any UsageTelemetrySending)? = nil,
+    sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
+    sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
+        try Data(contentsOf: url)
+    }
 ) -> TestStoreBundle {
     makeTestStoreBundle(
         engine: engine,
@@ -392,7 +440,9 @@ func makeTestStoreBundle(
         userEventNotifier: userEventNotifier,
         userEventBadgeDisplay: userEventBadgeDisplay,
         usageTelemetryCoordinator: usageTelemetryCoordinator,
-        usageTelemetrySender: usageTelemetrySender
+        usageTelemetrySender: usageTelemetrySender,
+        sessionStoreStartupMode: sessionStoreStartupMode,
+        sessionReadData: sessionReadData
     )
 }
 

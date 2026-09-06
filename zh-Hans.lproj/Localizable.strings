@@ -36,6 +36,12 @@
 "search.empty.description" = "请尝试其他名称或别名。";
 
 "session.restore.in_progress" = "正在恢复会话…";
+"session.load.in_progress.title" = "正在准备会话…";
+"session.load.failure.title" = "无法恢复下载列表";
+"session.load.unreadable.message" = "Shatl 无法读取已保存的会话。此前运行时下载的文件仍保留在磁盘上。";
+"session.load.missing.message" = "Shatl 未找到已保存的下载列表。此前运行时下载的文件仍保留在磁盘上。";
+"session.load.unsupported.title" = "无法打开已保存的会话";
+"session.load.unsupported.message" = "该会话由其他版本的 Shatl 创建，暂时无法打开。此前运行时下载的文件仍保留在磁盘上。";
 
 "onboarding.action.next" = "下一步";
 "onboarding.action.not_now" = "暂不";

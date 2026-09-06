@@ -35,6 +35,7 @@ struct ShatlCommands: Commands {
             } label: {
                 Label("menu.torrent.add", systemImage: "plus")
             }
+            .disabled(!store.canAddTorrent)
 
             Divider()
 

@@ -64,6 +64,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var currentAddTorrentDraft: AddTorrentDraft?
     @Published var isRestoringSession = false
     @Published private(set) var hasLoadedInitialSession: Bool
+    @Published private(set) var sessionLoadIssue: SessionLoadIssue?
     @Published private(set) var transitioningTorrentIDs: Set<UUID> = []
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
 
@@ -84,11 +85,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private let launchID = UUID().uuidString
 
     private var runtimeTask: Task<Void, Never>?
+    private var initialSessionLoadTask: Task<SessionLoadResult, Never>?
+    private var bootstrapTask: Task<Void, Never>?
     private var draftPreparationTask: Task<Void, Never>?
     private var performanceApplyTask: Task<Void, Never>?
     private var usageTelemetrySendTask: Task<Void, Never>?
     private var lastRequestedPerformanceSettings: EnginePerformanceSettings?
     private var didBootstrap = false
+    private var didResolveInitialSessionLoad = false
+    private var didCompleteRuntimeBootstrap = false
+    private var isEngineReady = false
     private var activeRefreshTick = 0
     private var isPreparingForTermination = false
     private var pendingConfirmedTorrent: TorrentRecord?
@@ -158,6 +164,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.torrents = torrents
         let resolvedHasLoadedInitialSession = hasLoadedInitialSession || !torrents.isEmpty
         self.hasLoadedInitialSession = resolvedHasLoadedInitialSession
+        self.sessionLoadIssue = nil
         self.allowsUserFacingNotifications = resolvedHasLoadedInitialSession
         let resolvedPreferences = preferences ?? preferencesStore?.load() ?? .defaultValue
         self.preferences = resolvedPreferences
@@ -180,6 +187,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     deinit {
         runtimeTask?.cancel()
+        initialSessionLoadTask?.cancel()
+        bootstrapTask?.cancel()
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         usageTelemetrySendTask?.cancel()
@@ -451,12 +460,30 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
 
+        if let initialSessionLoadTask {
+            let result = await initialSessionLoadTask.value
+            _ = await resolveInitialSessionLoad(result)
+        }
+
+        guard !didBootstrap || (didCompleteRuntimeBootstrap && sessionLoadIssue == nil) else {
+            return
+        }
+
         await refreshActiveSnapshots()
         await checkpointActiveTorrentsForTermination()
         await persistCriticalState()
     }
 
     /// The toolbar must not offer removal actions for cards with persistent issues.
+    var canAddTorrent: Bool {
+        guard hasLoadedInitialSession,
+              sessionLoadIssue == nil,
+              !isPreparingForTermination else {
+            return false
+        }
+        return !didBootstrap || isEngineReady
+    }
+
     var isToolbarRemoveEnabled: Bool {
         guard let selectedTorrent else { return false }
         return selectedTorrent.persistentIssue == nil
@@ -500,6 +527,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func presentAddTorrentEntry() {
+        guard canAddTorrent else { return }
         draftPreparationTask?.cancel()
         currentAddTorrentDraft = nil
         presentedModal = .addTorrentEntry
@@ -512,6 +540,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func commitPendingConfirmedTorrent() {
+        guard canAddTorrent else { return }
         guard let record = pendingConfirmedTorrent else { return }
 
         pendingConfirmedTorrent = nil
@@ -1155,6 +1184,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func continueFromEntry(with magnet: String) {
+        guard canAddTorrent else { return }
         let trimmed = magnet.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ShatlErrorCatalog.inlineMagnetValidation(
             for: trimmed,
@@ -1173,6 +1203,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func continueFromTorrentFile(at path: String) {
+        guard canAddTorrent else { return }
         let source = AddTorrentSource(kind: .torrentFile, rawValue: path)
         startDraftPreparation(
             for: source,
@@ -1192,7 +1223,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private var isReadyToProcessIncomingURLs: Bool {
-        didBootstrap && !isRestoringSession
+        didBootstrap && canAddTorrent
     }
 
     private func processIncomingURL(_ url: URL) {
@@ -1280,6 +1311,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func confirmDraft() {
+        guard canAddTorrent else { return }
         guard let draft = currentAddTorrentDraft else { return }
         guard draft.canConfirmDownload else { return }
 
@@ -1418,22 +1450,27 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func bootstrapRuntimeState() {
         guard !didBootstrap else { return }
         didBootstrap = true
+        isRestoringSession = !torrents.isEmpty
 
-        Task { [weak self] in
+        let loadTask = Task { [sessionStore] in
+            await sessionStore.load()
+        }
+        initialSessionLoadTask = loadTask
+
+        bootstrapTask = Task { [weak self] in
             guard let self else { return }
 
-            let loadedSnapshot = await self.sessionStore.load()
-            if let loadedSnapshot {
-                self.restoreSnapshot(loadedSnapshot)
-                self.isRestoringSession = !loadedSnapshot.torrents.isEmpty
+            let loadResult = await loadTask.value
+            guard await self.resolveInitialSessionLoad(loadResult), !self.isPreparingForTermination else {
+                return
             }
-            self.hasLoadedInitialSession = true
 
             do {
                 let performanceSettings = self.preferences.enginePerformanceSettings
                 self.lastRequestedPerformanceSettings = performanceSettings
                 try await self.engine.applyPerformanceSettings(performanceSettings)
                 try await self.engine.boot()
+                self.isEngineReady = true
             } catch {
                 self.isRestoringSession = false
                 return
@@ -1444,7 +1481,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             _ = self.applyDiskIssueEvaluation(startupEvaluation)
             await self.persistCriticalState()
 
-            if loadedSnapshot != nil, !self.torrents.isEmpty {
+            if loadResult.snapshot != nil, !self.torrents.isEmpty {
                 let restoreCandidates = self.torrents.filter { $0.persistentIssue == nil }
                 self.restoreProgressFloorByID = Dictionary(
                     uniqueKeysWithValues: restoreCandidates
@@ -1467,8 +1504,32 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await self.reconcileSleepingTorrents()
             self.isRestoringSession = false
             self.allowsUserFacingNotifications = true
+            self.didCompleteRuntimeBootstrap = true
             self.flushPendingIncomingURLs()
         }
+    }
+
+    private func resolveInitialSessionLoad(_ result: SessionLoadResult) async -> Bool {
+        if didResolveInitialSessionLoad {
+            return sessionLoadIssue == nil
+        }
+        didResolveInitialSessionLoad = true
+
+        switch result {
+        case .missing:
+            break
+        case .loaded(let snapshot):
+            restoreSnapshot(snapshot)
+            isRestoringSession = !snapshot.torrents.isEmpty
+        case .failure(let issue):
+            sessionLoadIssue = issue
+            isRestoringSession = false
+        }
+        hasLoadedInitialSession = true
+
+        guard sessionLoadIssue == nil else { return false }
+        await sessionStore.acceptInitialLoad()
+        return true
     }
 
     private func schedulePerformanceSettingsApply() {
@@ -1888,6 +1949,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         alias: String = "",
         savePathBookmarkData: Data? = nil
     ) {
+        guard canAddTorrent else { return }
         draftPreparationTask?.cancel()
         currentAddTorrentDraft = makeLoadingDraft(
             for: source,

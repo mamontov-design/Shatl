@@ -21,11 +21,11 @@ struct AppEnvironment {
     var usageTelemetrySender: (any UsageTelemetrySending)?
 
     static func live() -> AppEnvironment {
-        let directories = ShatlDirectories()
+        let directories = liveDirectories
         let archiveStore = TorrentArchiveStore(directories: directories)
         let bookmarkStore = BookmarkStore(directories: directories)
         let resumeDataStore = ResumeDataStore(directories: directories)
-        let preferencesStore = AppPreferencesStore()
+        let preferencesStore = livePreferencesStore
         let engine = LibtorrentEngine()
         let payloadLocator = TorrentPayloadLocator(
             engine: engine,
@@ -70,6 +70,31 @@ struct AppEnvironment {
             usageTelemetrySender: usageTelemetrySender
         )
     }
+
+    private static var liveDirectories: ShatlDirectories {
+        #if DEBUG
+        if let rootPath = ProcessInfo.processInfo.environment["SHATL_TEST_STORAGE_ROOT"],
+           !rootPath.isEmpty {
+            let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
+            return ShatlDirectories(
+                applicationSupportURL: rootURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+                cachesURL: rootURL.appendingPathComponent("Caches", isDirectory: true)
+            )
+        }
+        #endif
+        return ShatlDirectories()
+    }
+
+    private static var livePreferencesStore: AppPreferencesStore {
+        #if DEBUG
+        if let suiteName = ProcessInfo.processInfo.environment["SHATL_TEST_USER_DEFAULTS_SUITE"],
+           !suiteName.isEmpty,
+           let userDefaults = UserDefaults(suiteName: suiteName) {
+            return AppPreferencesStore(userDefaults: userDefaults)
+        }
+        #endif
+        return AppPreferencesStore()
+    }
 }
 
 #if DEBUG
@@ -96,7 +121,8 @@ extension AppEnvironment {
                 directories: directories,
                 archiveStore: archiveStore,
                 bookmarkStore: bookmarkStore,
-                resumeDataStore: resumeDataStore
+                resumeDataStore: resumeDataStore,
+                startupMode: .alreadyInitialized
             ),
             torrentArchiveStore: archiveStore,
             bookmarkStore: bookmarkStore,

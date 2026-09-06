@@ -26,6 +26,9 @@ nonisolated struct SessionTorrentRecord: Codable, Sendable {
 
 /// Versions the session format from the start to support future migrations.
 nonisolated struct SessionSnapshot: Codable, Sendable {
+    static let oldestSupportedSchemaVersion = 3
+    static let currentSchemaVersion = 5
+
     var schemaVersion: Int
     var savedAt: Date
     var torrents: [SessionTorrentRecord]

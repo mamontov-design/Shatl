@@ -16,13 +16,26 @@ struct MainWindowView: View {
 
     private enum ContentMode: Equatable {
         case loadingInitialSession
+        case sessionLoadFailure(SessionLoadIssue)
         case empty
         case list
     }
 
     private var contentMode: ContentMode {
         guard store.hasLoadedInitialSession else { return .loadingInitialSession }
+        if let issue = store.sessionLoadIssue {
+            return .sessionLoadFailure(issue)
+        }
         return store.torrents.isEmpty ? .empty : .list
+    }
+
+    private var showsBlockedToolbarControls: Bool {
+        switch contentMode {
+        case .loadingInitialSession, .sessionLoadFailure:
+            true
+        case .empty, .list:
+            false
+        }
     }
 
     private var activeAlert: Binding<MainWindowAlert?> {
@@ -65,13 +78,13 @@ struct MainWindowView: View {
                             defaultValue: "Добавить"
                         ),
                         systemImage: "plus",
-                        isDisabled: false
+                        isDisabled: !store.canAddTorrent
                     ) {
                         store.presentAddTorrentEntry()
                     }
                 }
 
-                if contentMode == .list {
+                if contentMode == .list || showsBlockedToolbarControls {
                     let selectedTorrentIsSleeping = store.selectedTorrent?.status.isSleeping == true
 
                     ShatlToolbarButton(
@@ -81,7 +94,7 @@ struct MainWindowView: View {
                             defaultValue: selectedTorrentIsSleeping ? "Пуск" : "Стоп"
                         ),
                         systemImage: selectedTorrentIsSleeping ? "play" : "stop",
-                        isDisabled: !store.isToolbarStartStopEnabled
+                        isDisabled: contentMode != .list || !store.isToolbarStartStopEnabled
                     ) {
                         if selectedTorrentIsSleeping {
                             store.startSelectedTorrent()
@@ -98,7 +111,7 @@ struct MainWindowView: View {
                         ),
                         systemImage: "trash",
                         role: .destructive,
-                        isDisabled: !store.isToolbarRemoveEnabled
+                        isDisabled: contentMode != .list || !store.isToolbarRemoveEnabled
                     ) {
                         presentToolbarRemovalDialog()
                     }
@@ -120,6 +133,10 @@ struct MainWindowView: View {
             if isEmpty {
                 searchText = ""
             }
+        }
+        .onChange(of: store.hasLoadedInitialSession) { _, hasLoadedInitialSession in
+            guard hasLoadedInitialSession else { return }
+            presentInitialOnboardingIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
             isOnboardingPresented = true
@@ -206,8 +223,10 @@ struct MainWindowView: View {
         ZStack(alignment: .topLeading) {
             switch contentMode {
             case .loadingInitialSession:
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SessionLoadBlockingView(issue: nil, localeOverride: store.preferences.localeOverride)
+                    .transition(.opacity)
+            case .sessionLoadFailure(let issue):
+                SessionLoadBlockingView(issue: issue, localeOverride: store.preferences.localeOverride)
                     .transition(.opacity)
             case .empty:
                 EmptyStateView(onEntryValidationError: presentAddTorrentEntryAlert)
@@ -317,6 +336,7 @@ struct MainWindowView: View {
     }
 
     private func presentInitialOnboardingIfNeeded() {
+        guard store.hasLoadedInitialSession, store.sessionLoadIssue == nil else { return }
         guard !didEvaluateInitialOnboardingPresentation else { return }
 
         didEvaluateInitialOnboardingPresentation = true
@@ -362,6 +382,90 @@ struct MainWindowView: View {
         store.setDefaultDownloadLocation(url, bookmarkData: bookmarkData)
     }
 
+}
+
+private struct SessionLoadBlockingView: View {
+    let issue: SessionLoadIssue?
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+
+            VStack(spacing: 10) {
+                Image(systemName: issue == nil ? "progress.indicator" : "exclamationmark.triangle")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(issue == nil ? ShatlColor.accent : ShatlColor.neonBlue)
+                    .symbolEffect(.rotate.byLayer, options: .repeat(.continuous), isActive: issue == nil)
+
+                Text(title)
+                    .shatlTypography(ShatlTypography.bodySemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .multilineTextAlignment(.center)
+
+                if let message {
+                    Text(message)
+                        .shatlTypography(ShatlTypography.bodyRegular)
+                        .foregroundStyle(ShatlColor.typographySecondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: 320)
+            .padding(24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var title: String {
+        guard let issue else {
+            return L10n.string(
+                "session.load.in_progress.title",
+                localeOverride: localeOverride,
+                defaultValue: "Подготовка сессии…"
+            )
+        }
+
+        switch issue {
+        case .unreadable, .missingWithRecoveryArtifacts:
+            return L10n.string(
+                "session.load.failure.title",
+                localeOverride: localeOverride,
+                defaultValue: "Не удалось восстановить список загрузок"
+            )
+        case .unsupportedVersion:
+            return L10n.string(
+                "session.load.unsupported.title",
+                localeOverride: localeOverride,
+                defaultValue: "Не удалось открыть сохранённую сессию"
+            )
+        }
+    }
+
+    private var message: String? {
+        guard let issue else { return nil }
+
+        switch issue {
+        case .unreadable:
+            return L10n.string(
+                "session.load.unreadable.message",
+                localeOverride: localeOverride,
+                defaultValue: "Shatl не смог прочитать сохранённую сессию. Загруженные с прошлого запуска файлы остались на диске."
+            )
+        case .missingWithRecoveryArtifacts:
+            return L10n.string(
+                "session.load.missing.message",
+                localeOverride: localeOverride,
+                defaultValue: "Shatl не нашёл сохранённый список. Загруженные с прошлого запуска файлы остались на диске."
+            )
+        case .unsupportedVersion:
+            return L10n.string(
+                "session.load.unsupported.message",
+                localeOverride: localeOverride,
+                defaultValue: "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске."
+            )
+        }
+    }
 }
 
 private struct ShatlToolbarButton: View {

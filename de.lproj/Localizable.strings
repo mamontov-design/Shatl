@@ -36,6 +36,12 @@
 "search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
 
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
+"session.load.in_progress.title" = "Sitzung wird vorbereitet…";
+"session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden";
+"session.load.unreadable.message" = "Shatl konnte die gespeicherte Sitzung nicht lesen. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
+"session.load.missing.message" = "Shatl konnte die gespeicherte Downloadliste nicht finden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
+"session.load.unsupported.title" = "Gespeicherte Sitzung konnte nicht geöffnet werden";
+"session.load.unsupported.message" = "Die Sitzung wurde mit einer anderen Version von Shatl erstellt und kann noch nicht geöffnet werden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 
 "onboarding.action.next" = "Weiter";
 "onboarding.action.not_now" = "Nicht jetzt";

@@ -774,7 +774,7 @@ final class AppStoreTests: XCTestCase {
         let checkpointedIDs = await engine.recordedCheckpointedTorrentIDs()
         XCTAssertEqual(checkpointedIDs, [activeRecord.id])
 
-        let snapshot = await bundle.sessionStore.load()
+        let snapshot = await bundle.sessionStore.load().snapshot
         let persistedActiveRecord = snapshot?.torrents.first { $0.torrentID == activeRecord.id }
         let persistedSleepingRecord = snapshot?.torrents.first { $0.torrentID == sleepingRecord.id }
 
@@ -813,8 +813,9 @@ final class AppStoreTests: XCTestCase {
 
         await bundle.store.removeTorrent(id: record.id, policy: .removeFromListOnly)
 
-        let snapshot = await bundle.sessionStore.load()
-        XCTAssertTrue(snapshot?.torrents.isEmpty ?? true)
+        let snapshot = await bundle.sessionStore.load().snapshot
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bundle.directories.sessionSnapshotURL.path))
+        XCTAssertTrue(try XCTUnwrap(snapshot).torrents.isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
         let removeCalls = await engine.recordedRemoveCalls()
@@ -856,7 +857,7 @@ final class AppStoreTests: XCTestCase {
 
         await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
 
-        let snapshot = await bundle.sessionStore.load()
+        let snapshot = await bundle.sessionStore.load().snapshot
         XCTAssertTrue(snapshot?.torrents.isEmpty ?? true)
         XCTAssertFalse(FileManager.default.fileExists(atPath: payloadFileURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
@@ -907,7 +908,7 @@ final class AppStoreTests: XCTestCase {
 
         await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
 
-        let snapshot = await bundle.sessionStore.load()
+        let snapshot = await bundle.sessionStore.load().snapshot
         XCTAssertTrue(snapshot?.torrents.isEmpty ?? true)
         XCTAssertTrue(FileManager.default.fileExists(atPath: payloadFileURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
@@ -2360,6 +2361,162 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(didApplyError)
         let restoreCallCount = await engine.restoreSessionCallCount()
         XCTAssertEqual(restoreCallCount, 0)
+    }
+
+    func testCorruptSessionBlocksBootstrapAddingAndAllPersistencePathsWithoutChangingFiles() async throws {
+        let engine = FakeTorrentEngine()
+        let router = ExternalOpenRouter()
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            router: router,
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        try bundle.directories.ensureSessionDirectories()
+        let corruptSessionData = Data(#"{"schemaVersion":5,"torrents":["# .utf8)
+        try corruptSessionData.write(to: bundle.directories.sessionSnapshotURL, options: .atomic)
+        let artifactURLs = try writeSafetyTestArtifacts(in: bundle.directories)
+        let originalArtifactData = try artifactURLs.map { try Data(contentsOf: $0) }
+
+        let bufferedMagnet = try XCTUnwrap(URL(string: "magnet:?xt=urn:btih:buffered-before-load"))
+        router.receive(urls: [bufferedMagnet])
+        bundle.store.bootstrapRuntimeState()
+
+        let didReportFailure = await waitForCondition {
+            bundle.store.sessionLoadIssue == .unreadable
+        }
+        XCTAssertTrue(didReportFailure)
+        XCTAssertTrue(bundle.store.hasLoadedInitialSession)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+        let bootCallCount = await engine.bootCallCount()
+        XCTAssertEqual(bootCallCount, 0)
+
+        bundle.store.presentAddTorrentEntry()
+        bundle.store.continueFromEntry(with: "magnet:?xt=urn:btih:direct-after-load")
+        bundle.store.continueFromTorrentFile(at: "/tmp/blocked.torrent")
+        bundle.store.handleIncomingURL(try XCTUnwrap(URL(string: "magnet:?xt=urn:btih:external-after-load")))
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        XCTAssertNil(bundle.store.presentedModal)
+        XCTAssertNil(bundle.store.currentAddTorrentDraft)
+        let preparedSources = await engine.recordedPrepareSources()
+        let progressSaveOutcome = await bundle.sessionStore.saveProgressBatch(from: [makeTestRecord()])
+        XCTAssertTrue(preparedSources.isEmpty)
+        XCTAssertEqual(progressSaveOutcome, .blocked)
+
+        await bundle.store.prepareForTermination()
+
+        XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), corruptSessionData)
+        for (url, originalData) in zip(artifactURLs, originalArtifactData) {
+            XCTAssertEqual(try Data(contentsOf: url), originalData)
+        }
+    }
+
+    func testMissingSnapshotWithRecoveryArtifactsShowsFailureAndDoesNotCreateNewSnapshot() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        try bundle.directories.ensureSessionDirectories()
+        let artifactURL = bundle.directories.resumeDataDirectoryURL
+            .appendingPathComponent("orphan.fastresume", isDirectory: false)
+        let artifactData = Data("resume must survive".utf8)
+        try artifactData.write(to: artifactURL, options: .atomic)
+
+        bundle.store.bootstrapRuntimeState()
+
+        let didReportFailure = await waitForCondition {
+            bundle.store.sessionLoadIssue == .missingWithRecoveryArtifacts
+        }
+        XCTAssertTrue(didReportFailure)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.sessionSnapshotURL.path))
+        XCTAssertEqual(try Data(contentsOf: artifactURL), artifactData)
+    }
+
+    func testCleanFirstLaunchCompletesBootstrapAndCreatesValidEmptySession() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        XCTAssertFalse(bundle.store.canAddTorrent)
+        bundle.store.bootstrapRuntimeState()
+
+        let didBecomeReady = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            bundle.store.canAddTorrent
+        }
+        XCTAssertTrue(didBecomeReady)
+        XCTAssertNil(bundle.store.sessionLoadIssue)
+        let bootCallCount = await engine.bootCallCount()
+        XCTAssertEqual(bootCallCount, 1)
+
+        let data = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let snapshot = try JSONDecoder().decode(SessionSnapshot.self, from: data)
+        XCTAssertEqual(snapshot.schemaVersion, SessionSnapshot.currentSchemaVersion)
+        XCTAssertTrue(snapshot.torrents.isEmpty)
+    }
+
+    func testTerminationDuringInitialReadWaitsForResultAndNeverOverwritesSession() async throws {
+        let reader = SuspendedSessionReader()
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            sessionStoreStartupMode: .requiresInitialLoad,
+            sessionReadData: { url in try await reader.read(url) }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        try bundle.directories.ensureSessionDirectories()
+        let corruptSessionData = Data("truncated during launch".utf8)
+        try corruptSessionData.write(to: bundle.directories.sessionSnapshotURL, options: .atomic)
+
+        bundle.store.bootstrapRuntimeState()
+        let didStartReading = await waitForAsyncCondition { await reader.didStart() }
+        XCTAssertTrue(didStartReading)
+        XCTAssertFalse(bundle.store.hasLoadedInitialSession)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+
+        let terminationTask = Task { @MainActor in
+            await bundle.store.prepareForTermination()
+        }
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertFalse(bundle.store.hasLoadedInitialSession)
+        XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), corruptSessionData)
+
+        await reader.release()
+        await terminationTask.value
+
+        XCTAssertEqual(bundle.store.sessionLoadIssue, .unreadable)
+        let bootCallCount = await engine.bootCallCount()
+        XCTAssertEqual(bootCallCount, 0)
+        XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), corruptSessionData)
+    }
+
+    private func writeSafetyTestArtifacts(in directories: ShatlDirectories) throws -> [URL] {
+        let urls = [
+            directories.archivedTorrentsDirectoryURL.appendingPathComponent("orphan.torrent"),
+            directories.bookmarksDirectoryURL.appendingPathComponent("orphan.bookmark"),
+            directories.resumeDataDirectoryURL.appendingPathComponent("orphan.fastresume"),
+        ]
+        for (index, url) in urls.enumerated() {
+            try Data("artifact-\(index)".utf8).write(to: url, options: .atomic)
+        }
+        return urls
     }
 
     private var duplicateDraftReviewState: AddTorrentReviewState {

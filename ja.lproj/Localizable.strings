@@ -36,6 +36,12 @@
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 
 "session.restore.in_progress" = "セッションを復元中…";
+"session.load.in_progress.title" = "セッションを準備中…";
+"session.load.failure.title" = "ダウンロードリストを復元できませんでした";
+"session.load.unreadable.message" = "保存されたセッションを読み込めませんでした。以前の起動時にダウンロードしたファイルはディスクに残っています。";
+"session.load.missing.message" = "保存されたダウンロードリストが見つかりませんでした。以前の起動時にダウンロードしたファイルはディスクに残っています。";
+"session.load.unsupported.title" = "保存されたセッションを開けませんでした";
+"session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";
