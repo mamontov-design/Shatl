@@ -9,6 +9,11 @@ final class SessionRestoreStatusTests: XCTestCase {
         XCTAssertEqual(SessionRestoreStatusTiming.revealDelay, 1)
     }
 
+    func testCompletionSequenceStopsSpinnerBeforeReplacingIconAndText() {
+        XCTAssertEqual(SessionRestoreStatusTiming.spinnerStopDuration, 0.25)
+        XCTAssertEqual(SessionRestoreStatusTiming.iconReplacementDuration, 0.36)
+    }
+
     func testEarlyCompletionExtendsSuccessToMinimumTotalVisibility() {
         XCTAssertEqual(
             SessionRestoreStatusTiming.completionVisibilityDuration(visibleFor: 0.25),

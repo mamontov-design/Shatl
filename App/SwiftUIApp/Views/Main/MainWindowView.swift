@@ -18,6 +18,8 @@ nonisolated enum SessionRestoreStatusTiming {
     static let revealDelay: TimeInterval = 1
     static let minimumVisibleDuration: TimeInterval = 2
     static let completionHoldDuration: TimeInterval = 1
+    static let spinnerStopDuration: TimeInterval = 0.25
+    static let iconReplacementDuration: TimeInterval = 0.36
 
     static func completionVisibilityDuration(visibleFor elapsed: TimeInterval) -> TimeInterval {
         max(completionHoldDuration, minimumVisibleDuration - max(0, elapsed))
@@ -31,6 +33,9 @@ struct MainWindowView: View {
     @State private var addTorrentEntryAlert: TorrentErrorState?
     @State private var isOnboardingPresented = false
     @State private var restoreStatusPhase = SessionRestoreStatusPhase.hidden
+    @State private var isRestoreStatusSpinnerActive = false
+    @State private var showsRestoreCompletionIcon = false
+    @State private var showsRestoreCompletionText = false
     @State private var restoreStatusShownAt: Date?
     @State private var restoreStatusTask: Task<Void, Never>?
     @State private var didEvaluateInitialOnboardingPresentation = false
@@ -86,7 +91,9 @@ struct MainWindowView: View {
             VStack(spacing: 0) {
                 if restoreStatusPhase.isVisible {
                     SessionRestoreStatusBar(
-                        phase: restoreStatusPhase,
+                        isSpinnerActive: isRestoreStatusSpinnerActive,
+                        showsCompletionIcon: showsRestoreCompletionIcon,
+                        showsCompletionText: showsRestoreCompletionText,
                         localeOverride: store.preferences.localeOverride
                     )
                     .transition(restoreStatusTransition)
@@ -383,13 +390,39 @@ struct MainWindowView: View {
             return
         }
 
-        let visibleFor = restoreStatusShownAt.map { Date().timeIntervalSince($0) } ?? 0
-        let completionDuration = SessionRestoreStatusTiming.completionVisibilityDuration(
-            visibleFor: visibleFor
-        )
-        setRestoreStatusPhase(.restored)
+        stopRestoreStatusSpinner()
 
         restoreStatusTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(SessionRestoreStatusTiming.spinnerStopDuration))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled, restoreStatusPhase == .restoring else { return }
+            withAnimation(ShatlMotion.sessionRestoreStatusContent) {
+                showsRestoreCompletionIcon = true
+            }
+
+            do {
+                try await Task.sleep(
+                    for: .seconds(SessionRestoreStatusTiming.iconReplacementDuration)
+                )
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled, restoreStatusPhase == .restoring else { return }
+            withAnimation(ShatlMotion.sessionRestoreStatusContent) {
+                showsRestoreCompletionText = true
+                restoreStatusPhase = .restored
+            }
+
+            let visibleFor = restoreStatusShownAt.map { Date().timeIntervalSince($0) } ?? 0
+            let completionDuration = SessionRestoreStatusTiming.completionVisibilityDuration(
+                visibleFor: visibleFor
+            )
+
             do {
                 try await Task.sleep(for: .seconds(completionDuration))
             } catch {
@@ -403,8 +436,28 @@ struct MainWindowView: View {
     }
 
     private func setRestoreStatusPhase(_ phase: SessionRestoreStatusPhase) {
+        if phase == .restoring {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isRestoreStatusSpinnerActive = true
+                showsRestoreCompletionIcon = false
+                showsRestoreCompletionText = false
+            }
+        } else if phase == .hidden {
+            isRestoreStatusSpinnerActive = false
+        }
+
         withAnimation(ShatlMotion.sessionRestoreStatusBar) {
             restoreStatusPhase = phase
+        }
+    }
+
+    private func stopRestoreStatusSpinner() {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isRestoreStatusSpinnerActive = false
         }
     }
 
@@ -564,12 +617,25 @@ private struct SessionRestoreStatusBar: View {
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    let phase: SessionRestoreStatusPhase
+    let isSpinnerActive: Bool
+    let showsCompletionIcon: Bool
+    let showsCompletionText: Bool
     let localeOverride: AppLocaleOverride
 
     var body: some View {
         HStack(spacing: 4) {
-            statusIcon
+            Image(
+                systemName: showsCompletionIcon ? "checkmark.circle" : "progress.indicator"
+            )
+            .shatlTypography(ShatlTypography.metricSemibold)
+            .symbolEffect(
+                .rotate.byLayer,
+                options: .repeat(.continuous),
+                isActive: isSpinnerActive
+            )
+            .symbolEffectsRemoved(!isSpinnerActive)
+            .contentTransition(.symbolEffect(.replace))
+            .frame(width: 14, height: ShatlMetricLayout.contentHeight, alignment: .center)
 
             statusText
         }
@@ -578,37 +644,13 @@ private struct SessionRestoreStatusBar: View {
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, alignment: .center)
         .background(statusColor.opacity(0.16))
-        .animation(ShatlMotion.sessionRestoreStatusContent, value: phase)
+        .animation(ShatlMotion.sessionRestoreStatusContent, value: showsCompletionText)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
-    private var statusIcon: some View {
-        if phase == .restoring {
-            let spinner = Image(systemName: "progress.indicator")
-                .shatlTypography(ShatlTypography.metricSemibold)
-                .symbolEffect(.rotate.byLayer, options: .repeat(.continuous))
-
-            if reduceMotion {
-                spinner.transition(.opacity)
-            } else {
-                spinner.transition(.symbolEffect(.disappear))
-            }
-        } else {
-            let checkmark = Image(systemName: "checkmark.circle")
-                .shatlTypography(ShatlTypography.metricSemibold)
-
-            if reduceMotion {
-                checkmark.transition(.opacity)
-            } else {
-                checkmark.transition(.symbolEffect(.appear))
-            }
-        }
-    }
-
     private var title: String {
-        if phase == .restored {
+        if showsCompletionText {
             return L10n.string(
                 "session.restore.completed",
                 localeOverride: localeOverride,
@@ -630,7 +672,7 @@ private struct SessionRestoreStatusBar: View {
     @ViewBuilder
     private var statusText: some View {
         let text = Text(title)
-            .id(phase)
+            .id(showsCompletionText)
             .shatlTypography(ShatlTypography.metricSemibold)
             .multilineTextAlignment(.center)
 
