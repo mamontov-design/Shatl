@@ -569,14 +569,7 @@ private struct SessionRestoreStatusBar: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: iconName)
-                .shatlTypography(ShatlTypography.metricSemibold)
-                .contentTransition(.symbolEffect(.replace))
-                .symbolEffect(
-                    .rotate.byLayer,
-                    options: .repeat(.continuous),
-                    isActive: phase == .restoring
-                )
+            statusIcon
 
             statusText
         }
@@ -590,8 +583,28 @@ private struct SessionRestoreStatusBar: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var iconName: String {
-        phase == .restored ? "checkmark.circle" : "progress.indicator"
+    @ViewBuilder
+    private var statusIcon: some View {
+        if phase == .restoring {
+            let spinner = Image(systemName: "progress.indicator")
+                .shatlTypography(ShatlTypography.metricSemibold)
+                .symbolEffect(.rotate.byLayer, options: .repeat(.continuous))
+
+            if reduceMotion {
+                spinner.transition(.opacity)
+            } else {
+                spinner.transition(.symbolEffect(.disappear))
+            }
+        } else {
+            let checkmark = Image(systemName: "checkmark.circle")
+                .shatlTypography(ShatlTypography.metricSemibold)
+
+            if reduceMotion {
+                checkmark.transition(.opacity)
+            } else {
+                checkmark.transition(.symbolEffect(.appear))
+            }
+        }
     }
 
     private var title: String {
