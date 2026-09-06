@@ -36,6 +36,7 @@
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 
 "session.restore.in_progress" = "セッションを復元中…";
+"session.restore.completed" = "セッションを復元しました";
 "session.load.in_progress.title" = "セッションを復元しています。\nしばらくお待ちください。";
 "session.load.failure.title" = "ダウンロードリストを復元できませんでした";
 "session.load.unreadable.message" = "保存されたセッションを読み込めませんでした。以前の起動時にダウンロードしたファイルはディスクに残っています。";
@@ -169,7 +170,7 @@
 "settings.tab.localization" = "言語";
 "settings.tab.debug" = "デバッグ";
 "menu.debug.show_onboarding" = "オンボーディングを開始";
-"menu.debug.show_restore_indicator" = "セッション復元インジケータを表示";
+"menu.debug.show_restore_status_bar" = "セッション復元バーを表示";
 
 "settings.notifications.section" = "通知";
 "settings.notifications.show" = "通知を表示";

@@ -36,6 +36,7 @@
 "search.empty.description" = "Try a different name or alias.";
 
 "session.restore.in_progress" = "Restoring session…";
+"session.restore.completed" = "Session restored";
 "session.load.in_progress.title" = "Session recovery is in progress.\nPlease wait.";
 "session.load.failure.title" = "Couldn’t restore the download list";
 "session.load.unreadable.message" = "Shatl couldn’t read the saved session. Files downloaded during previous launches remain on disk.";
@@ -171,7 +172,7 @@
 "settings.tab.localization" = "Language";
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Start Onboarding";
-"menu.debug.show_restore_indicator" = "Show Session Restore Indicator";
+"menu.debug.show_restore_status_bar" = "Show Session Restore Bar";
 
 "settings.notifications.section" = "Notifications";
 "settings.notifications.show" = "Show notifications";

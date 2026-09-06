@@ -21,9 +21,9 @@ struct ShatlCommands: Commands {
                 )
             }
 
-            Button("menu.debug.show_restore_indicator") {
+            Button("menu.debug.show_restore_status_bar") {
                 NotificationCenter.default.post(
-                    name: .shatlPresentRestoreIndicatorPreview,
+                    name: .shatlPresentRestoreStatusBarPreview,
                     object: nil
                 )
             }
@@ -159,7 +159,7 @@ struct ShatlCommands: Commands {
 
 extension Notification.Name {
     static let shatlPresentDebugOnboarding = Notification.Name("ShatlPresentDebugOnboarding")
-    static let shatlPresentRestoreIndicatorPreview = Notification.Name(
-        "ShatlPresentRestoreIndicatorPreview"
+    static let shatlPresentRestoreStatusBarPreview = Notification.Name(
+        "ShatlPresentRestoreStatusBarPreview"
     )
 }

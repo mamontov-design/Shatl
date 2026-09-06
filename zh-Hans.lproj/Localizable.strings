@@ -36,6 +36,7 @@
 "search.empty.description" = "请尝试其他名称或别名。";
 
 "session.restore.in_progress" = "正在恢复会话…";
+"session.restore.completed" = "会话已恢复";
 "session.load.in_progress.title" = "正在恢复会话。\n请稍候。";
 "session.load.failure.title" = "无法恢复下载列表";
 "session.load.unreadable.message" = "Shatl 无法读取已保存的会话。此前运行时下载的文件仍保留在磁盘上。";
@@ -169,7 +170,7 @@
 "settings.tab.localization" = "语言";
 "settings.tab.debug" = "调试";
 "menu.debug.show_onboarding" = "启动新手引导";
-"menu.debug.show_restore_indicator" = "显示会话恢复指示器";
+"menu.debug.show_restore_status_bar" = "显示会话恢复栏";
 
 "settings.notifications.section" = "通知";
 "settings.notifications.show" = "显示通知";

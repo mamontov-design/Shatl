@@ -36,6 +36,7 @@
 "search.empty.description" = "Prueba con otro nombre o alias.";
 
 "session.restore.in_progress" = "Restaurando sesión…";
+"session.restore.completed" = "Sesión restaurada";
 "session.load.in_progress.title" = "Se está restaurando la sesión.\nEspera, por favor.";
 "session.load.failure.title" = "No se pudo restaurar la lista de descargas";
 "session.load.unreadable.message" = "Shatl no pudo leer la sesión guardada. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
@@ -171,7 +172,7 @@
 "settings.tab.localization" = "Idioma";
 "settings.tab.debug" = "Depuración";
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
-"menu.debug.show_restore_indicator" = "Mostrar indicador de restauración de sesión";
+"menu.debug.show_restore_status_bar" = "Mostrar barra de restauración de la sesión";
 
 "settings.notifications.section" = "Notificaciones";
 "settings.notifications.show" = "Mostrar notificaciones";

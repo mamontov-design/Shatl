@@ -59,6 +59,10 @@ enum ShatlMotion {
     /// Local animation for changing the main window mode.
     static let mainContentMode = Animation.smooth(duration: 0.24)
 
+    /// Reveals the session-restore status below the toolbar and replaces its completion content.
+    static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)
+    static let sessionRestoreStatusContent = Animation.smooth(duration: 0.36)
+
     /// Smooth presentation and caption change between onboarding steps.
     static let onboardingStepChange = Animation.smooth(duration: 0.48)
 

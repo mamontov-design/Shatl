@@ -4,13 +4,35 @@
 import AppKit
 import SwiftUI
 
+nonisolated enum SessionRestoreStatusPhase: Equatable, Sendable {
+    case hidden
+    case restoring
+    case restored
+
+    var isVisible: Bool {
+        self != .hidden
+    }
+}
+
+nonisolated enum SessionRestoreStatusTiming {
+    static let revealDelay: TimeInterval = 1
+    static let minimumVisibleDuration: TimeInterval = 2
+    static let completionHoldDuration: TimeInterval = 1
+
+    static func completionVisibilityDuration(visibleFor elapsed: TimeInterval) -> TimeInterval {
+        max(completionHoldDuration, minimumVisibleDuration - max(0, elapsed))
+    }
+}
+
 struct MainWindowView: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
     @State private var isOnboardingPresented = false
-    @State private var isRestoreIndicatorPreviewPresented = false
-    @State private var restoreIndicatorPreviewTask: Task<Void, Never>?
+    @State private var restoreStatusPhase = SessionRestoreStatusPhase.hidden
+    @State private var restoreStatusShownAt: Date?
+    @State private var restoreStatusTask: Task<Void, Never>?
     @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
 
@@ -61,9 +83,20 @@ struct MainWindowView: View {
         let bottomTransferChips = store.bottomTransferChips
 
         ZStack(alignment: .bottom) {
-            contentView(
-                bottomListPadding: bottomListPadding(chips: bottomTransferChips)
-            )
+            VStack(spacing: 0) {
+                if restoreStatusPhase.isVisible {
+                    SessionRestoreStatusBar(
+                        phase: restoreStatusPhase,
+                        localeOverride: store.preferences.localeOverride
+                    )
+                    .transition(restoreStatusTransition)
+                    .zIndex(1)
+                }
+
+                contentView(
+                    bottomListPadding: bottomListPadding(chips: bottomTransferChips)
+                )
+            }
 
             bottomInfoChipLayer(chips: bottomTransferChips)
         }
@@ -138,13 +171,16 @@ struct MainWindowView: View {
             guard hasLoadedInitialSession else { return }
             presentInitialOnboardingIfNeeded()
         }
+        .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
+            updateRestoreStatus(isRestoringSession: isRestoringSession)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
             isOnboardingPresented = true
         }
         .onReceive(
-            NotificationCenter.default.publisher(for: .shatlPresentRestoreIndicatorPreview)
+            NotificationCenter.default.publisher(for: .shatlPresentRestoreStatusBarPreview)
         ) { _ in
-            presentRestoreIndicatorPreview()
+            presentRestoreStatusBarPreview()
         }
         .environment(\.shatlAnimationMode, store.preferences.animationMode)
         .animation(ShatlMotion.mainContentMode, value: contentMode)
@@ -216,6 +252,9 @@ struct MainWindowView: View {
             requestNativeNotificationAuthorizationIfNeeded()
             presentInitialOnboardingIfNeeded()
         }
+        .onDisappear {
+            restoreStatusTask?.cancel()
+        }
     }
 
     @ViewBuilder
@@ -245,42 +284,23 @@ struct MainWindowView: View {
     }
 
     private func bottomInfoChipLayer(chips: [BottomTransferChipPresentation]) -> some View {
-        ZStack(alignment: .bottom) {
-            HStack(alignment: .bottom) {
-                if let downloadChip = chips.first(where: { $0.kind == .download }) {
-                    ShatlInfoBottomSpeedChip(item: downloadChip.item)
-                        .transition(ShatlMotion.appearFromTop)
-                }
-
-                Spacer(minLength: 0)
-
-                if let uploadChip = chips.first(where: { $0.kind == .upload }) {
-                    ShatlInfoBottomSpeedChip(item: uploadChip.item)
-                        .transition(ShatlMotion.appearFromTop)
-                }
+        HStack(alignment: .bottom) {
+            if let downloadChip = chips.first(where: { $0.kind == .download }) {
+                ShatlInfoBottomSpeedChip(item: downloadChip.item)
+                    .transition(ShatlMotion.appearFromTop)
             }
 
-            if showsRestoreChip {
-                ShatlInfoBottomRestoreChip(
-                    title: L10n.string(
-                        "session.restore.in_progress",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "Восстановление сессии…"
-                    )
-                )
+            Spacer(minLength: 0)
+
+            if let uploadChip = chips.first(where: { $0.kind == .upload }) {
+                ShatlInfoBottomSpeedChip(item: uploadChip.item)
                     .transition(ShatlMotion.appearFromTop)
-                    .allowsHitTesting(false)
             }
         }
         .padding(.horizontal, bottomChipEdgePadding)
         .padding(.bottom, bottomChipEdgePadding)
         .frame(maxWidth: .infinity, alignment: .bottom)
         .animation(ShatlMotion.mainContentMode, value: chips)
-        .animation(ShatlMotion.mainContentMode, value: showsRestoreChip)
-    }
-
-    private var showsRestoreChip: Bool {
-        store.isRestoringSession || isRestoreIndicatorPreviewPresented
     }
 
     private var bottomChipEdgePadding: CGFloat {
@@ -292,26 +312,99 @@ struct MainWindowView: View {
     }
 
     private func bottomListPadding(chips: [BottomTransferChipPresentation]) -> CGFloat {
-        if #available(macOS 27.0, *), (!chips.isEmpty || showsRestoreChip) {
+        if #available(macOS 27.0, *), !chips.isEmpty {
             return ShatlBottomChipLayout.modernListBottomPadding
         }
 
         return ShatlBottomChipLayout.standardListBottomPadding
     }
 
-    private func presentRestoreIndicatorPreview() {
-        restoreIndicatorPreviewTask?.cancel()
-        isRestoreIndicatorPreviewPresented = true
+    private func presentRestoreStatusBarPreview() {
+        restoreStatusTask?.cancel()
+        restoreStatusShownAt = Date()
+        setRestoreStatusPhase(.restoring)
 
-        restoreIndicatorPreviewTask = Task {
+        restoreStatusTask = Task {
             do {
-                try await Task.sleep(for: .seconds(5))
+                try await Task.sleep(for: .seconds(3))
             } catch {
                 return
             }
 
             guard !Task.isCancelled else { return }
-            isRestoreIndicatorPreviewPresented = false
+            completeVisibleRestoreStatus()
+        }
+    }
+
+    private var restoreStatusTransition: AnyTransition {
+        if reduceMotion {
+            return .opacity
+        }
+        return .move(edge: .top).combined(with: .opacity)
+    }
+
+    private func updateRestoreStatus(isRestoringSession: Bool) {
+        if isRestoringSession {
+            beginRestoreStatusDelay()
+        } else {
+            completeVisibleRestoreStatus()
+        }
+    }
+
+    private func beginRestoreStatusDelay() {
+        restoreStatusTask?.cancel()
+        restoreStatusShownAt = nil
+        setRestoreStatusPhase(.hidden)
+
+        restoreStatusTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(SessionRestoreStatusTiming.revealDelay))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled,
+                  store.isRestoringSession,
+                  store.hasLoadedInitialSession,
+                  store.sessionLoadIssue == nil else {
+                return
+            }
+
+            restoreStatusShownAt = Date()
+            setRestoreStatusPhase(.restoring)
+        }
+    }
+
+    private func completeVisibleRestoreStatus() {
+        restoreStatusTask?.cancel()
+        guard restoreStatusPhase == .restoring else {
+            restoreStatusShownAt = nil
+            setRestoreStatusPhase(.hidden)
+            return
+        }
+
+        let visibleFor = restoreStatusShownAt.map { Date().timeIntervalSince($0) } ?? 0
+        let completionDuration = SessionRestoreStatusTiming.completionVisibilityDuration(
+            visibleFor: visibleFor
+        )
+        setRestoreStatusPhase(.restored)
+
+        restoreStatusTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(completionDuration))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            restoreStatusShownAt = nil
+            setRestoreStatusPhase(.hidden)
+        }
+    }
+
+    private func setRestoreStatusPhase(_ phase: SessionRestoreStatusPhase) {
+        withAnimation(ShatlMotion.sessionRestoreStatusBar) {
+            restoreStatusPhase = phase
         }
     }
 
@@ -463,6 +556,75 @@ private struct SessionLoadBlockingView: View {
                 localeOverride: localeOverride,
                 defaultValue: "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске."
             )
+        }
+    }
+}
+
+private struct SessionRestoreStatusBar: View {
+    @EnvironmentObject private var accentState: ShatlAccentState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let phase: SessionRestoreStatusPhase
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: iconName)
+                .shatlTypography(ShatlTypography.metricSemibold)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(
+                    .rotate.byLayer,
+                    options: .repeat(.continuous),
+                    isActive: phase == .restoring
+                )
+
+            statusText
+        }
+        .foregroundStyle(statusColor)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(statusColor.opacity(0.16))
+        .animation(ShatlMotion.sessionRestoreStatusContent, value: phase)
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var iconName: String {
+        phase == .restored ? "checkmark.circle" : "progress.indicator"
+    }
+
+    private var title: String {
+        if phase == .restored {
+            return L10n.string(
+                "session.restore.completed",
+                localeOverride: localeOverride,
+                defaultValue: "Сессия восстановлена"
+            )
+        }
+
+        return L10n.string(
+            "session.restore.in_progress",
+            localeOverride: localeOverride,
+            defaultValue: "Восстановление сессии…"
+        )
+    }
+
+    private var statusColor: Color {
+        accentState.isUsingAppAccent ? ShatlColor.neonBlue : accentState.systemAccentColor
+    }
+
+    @ViewBuilder
+    private var statusText: some View {
+        let text = Text(title)
+            .id(phase)
+            .shatlTypography(ShatlTypography.metricSemibold)
+            .multilineTextAlignment(.center)
+
+        if reduceMotion {
+            text.transition(.opacity)
+        } else {
+            text.transition(.blurReplace)
         }
     }
 }

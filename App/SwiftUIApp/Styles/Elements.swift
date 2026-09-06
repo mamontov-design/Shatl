@@ -1797,48 +1797,6 @@ private struct ShatlInfoBottomMetricItem: View {
     }
 }
 
-struct ShatlInfoBottomRestoreChip: View {
-    let title: String
-
-    @ViewBuilder
-    var body: some View {
-        if #available(macOS 27.0, *) {
-            chipContent
-                .glassEffect(
-                    .regular.tint(ShatlColor.accent).interactive(false),
-                    in: RoundedRectangle(
-                        cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
-                        style: .continuous
-                    )
-                )
-                .fixedSize()
-        } else {
-            chipContent
-                .glassEffect(.regular.tint(ShatlColor.accent).interactive(false), in: Capsule())
-                .fixedSize()
-        }
-    }
-
-    private var chipContent: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "progress.indicator")
-                .shatlTypography(ShatlTypography.metricSemibold)
-                .foregroundStyle(ShatlColor.typographyPrimaryInverted)
-                .symbolEffect(.rotate.byLayer, options: .repeat(.continuous))
-                .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
-
-            Text(title)
-                .shatlTypography(ShatlTypography.metricSemibold)
-                .foregroundStyle(ShatlColor.typographyPrimaryInverted)
-                .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
-                .fixedSize(horizontal: true, vertical: false)
-        }
-        .padding(.leading, 6)
-        .padding(.vertical, 6)
-        .padding(.trailing, 8)
-    }
-}
-
 struct ShatlMetricGroup: View {
     let group: MetricGroupPresentation
     var metricIconColorOverride: Color? = nil

@@ -36,6 +36,7 @@
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
 
 "session.restore.in_progress" = "Восстановление сессии…";
+"session.restore.completed" = "Сессия восстановлена";
 "session.load.in_progress.title" = "Выполняется восстановление сессии.\nПожалуйста, подождите.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок";
 "session.load.unreadable.message" = "Shatl не смог прочитать сохранённую сессию. Загруженные с прошлого запуска файлы остались на диске.";
@@ -175,7 +176,7 @@
 "settings.tab.localization" = "Язык";
 "settings.tab.debug" = "Отладка";
 "menu.debug.show_onboarding" = "Запустить онбординг";
-"menu.debug.show_restore_indicator" = "Показать индикатор восстановления сессии";
+"menu.debug.show_restore_status_bar" = "Показать строку восстановления сессии";
 
 "settings.notifications.section" = "Уведомления";
 "settings.notifications.show" = "Показывать уведомления";

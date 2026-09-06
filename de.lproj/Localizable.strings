@@ -36,6 +36,7 @@
 "search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
 
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
+"session.restore.completed" = "Sitzung wiederhergestellt";
 "session.load.in_progress.title" = "Die Sitzung wird wiederhergestellt.\nBitte warten Sie.";
 "session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden";
 "session.load.unreadable.message" = "Shatl konnte die gespeicherte Sitzung nicht lesen. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
@@ -171,7 +172,7 @@
 "settings.tab.localization" = "Sprache";
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Onboarding starten";
-"menu.debug.show_restore_indicator" = "Indikator für Sitzungswiederherstellung anzeigen";
+"menu.debug.show_restore_status_bar" = "Leiste zur Sitzungswiederherstellung anzeigen";
 
 "settings.notifications.section" = "Mitteilungen";
 "settings.notifications.show" = "Mitteilungen anzeigen";
