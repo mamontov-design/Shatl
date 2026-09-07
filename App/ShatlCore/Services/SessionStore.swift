@@ -44,6 +44,7 @@ actor SessionStore {
     private let archiveStore: TorrentArchiveStore
     private let bookmarkStore: BookmarkStore
     private let resumeDataStore: ResumeDataStore?
+    private let backupStore: SessionBackupStore?
     private let fileManager: FileManager
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -55,6 +56,7 @@ actor SessionStore {
         archiveStore: TorrentArchiveStore,
         bookmarkStore: BookmarkStore,
         resumeDataStore: ResumeDataStore? = nil,
+        backupStore: SessionBackupStore? = nil,
         fileManager: FileManager = .default,
         startupMode: SessionStoreStartupMode = .requiresInitialLoad,
         readSessionData: @escaping @Sendable (URL) async throws -> Data = { url in
@@ -65,6 +67,7 @@ actor SessionStore {
         self.archiveStore = archiveStore
         self.bookmarkStore = bookmarkStore
         self.resumeDataStore = resumeDataStore
+        self.backupStore = backupStore
         self.fileManager = fileManager
         self.readSessionData = readSessionData
         self.persistenceState = startupMode == .alreadyInitialized ? .writable : .awaitingInitialLoad
@@ -113,6 +116,40 @@ actor SessionStore {
         persistenceState = .writable
     }
 
+    func sessionBackupStatus() async -> SessionBackupStatus {
+        guard let backupStore else { return .disabled }
+        return await backupStore.status()
+    }
+
+    func configureSessionBackup(_ configuration: SessionBackupConfiguration) async -> SessionBackupStatus {
+        guard let backupStore else { return .disabled }
+        return await backupStore.configure(configuration)
+    }
+
+    func createSessionBackup() async -> SessionBackupStatus {
+        guard let backupStore else { return .disabled }
+        return await backupStore.createBackup()
+    }
+
+    func restoreSessionBackup() async -> SessionBackupRestoreOutcome {
+        guard let backupStore else { return .unavailable(.folderUnavailable) }
+        let outcome = await backupStore.restoreBackup()
+        if case .restored = outcome {
+            persistenceState = .awaitingAcceptance
+        }
+        return outcome
+    }
+
+    func discardFailedSessionAndCreateEmpty() async -> SessionSaveOutcome {
+        guard persistenceState == .blocked else { return .blocked }
+        persistenceState = .writable
+        let outcome = await save(records: [], pruneRestoreArtifacts: true)
+        if outcome != .saved {
+            persistenceState = .blocked
+        }
+        return outcome
+    }
+
     @discardableResult
     func saveCriticalState(
         from records: [TorrentRecord],
@@ -155,6 +192,7 @@ actor SessionStore {
                 await bookmarkStore.cleanupOrphanedBookmarks(validTorrentIDs: validIDs)
                 await resumeDataStore?.cleanupOrphanedResumeData(validTorrentIDs: validIDs)
             }
+            _ = await backupStore?.createBackup()
             return .saved
         } catch {
             return .failed

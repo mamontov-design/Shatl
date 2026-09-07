@@ -136,6 +136,7 @@ struct ShatlButton: View {
     let role: ShatlButtonRole
     var isDisabled = false
     var fillsWidth = false
+    var lineLimit: Int? = 1
     let action: () -> Void
 
     init(
@@ -143,6 +144,7 @@ struct ShatlButton: View {
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
+        lineLimit: Int? = 1,
         action: @escaping () -> Void
     ) {
         self.title = .verbatim(title)
@@ -150,6 +152,7 @@ struct ShatlButton: View {
         self.role = role
         self.isDisabled = isDisabled
         self.fillsWidth = fillsWidth
+        self.lineLimit = lineLimit
         self.action = action
     }
 
@@ -158,6 +161,7 @@ struct ShatlButton: View {
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
+        lineLimit: Int? = 1,
         action: @escaping () -> Void
     ) {
         self.title = .localized(key)
@@ -165,6 +169,7 @@ struct ShatlButton: View {
         self.role = role
         self.isDisabled = isDisabled
         self.fillsWidth = fillsWidth
+        self.lineLimit = lineLimit
         self.action = action
     }
 
@@ -173,6 +178,7 @@ struct ShatlButton: View {
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
+        lineLimit: Int? = 1,
         action: @escaping () -> Void
     ) {
         self.title = nil
@@ -180,6 +186,7 @@ struct ShatlButton: View {
         self.role = role
         self.isDisabled = isDisabled
         self.fillsWidth = fillsWidth
+        self.lineLimit = lineLimit
         self.action = action
     }
 
@@ -196,8 +203,9 @@ struct ShatlButton: View {
                 if let title {
                     title.text
                         .shatlTypography(ShatlTypography.bodyMedium)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .lineLimit(lineLimit)
+                        .fixedSize(horizontal: lineLimit == 1, vertical: false)
+                        .multilineTextAlignment(.center)
                 }
             }
             .foregroundStyle(foregroundColor)

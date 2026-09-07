@@ -42,6 +42,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
                 preferences.isAddTorrentReviewDiagnosticsLoggingEnabled
             )
+            if oldValue.createsSessionBackup != preferences.createsSessionBackup
+                || oldValue.sessionBackupParentPath != preferences.sessionBackupParentPath
+                || oldValue.sessionBackupParentBookmarkData != preferences.sessionBackupParentBookmarkData {
+                configureSessionBackup()
+            }
         }
     }
 
@@ -65,6 +70,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var isRestoringSession = false
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
+    @Published private(set) var sessionBackupStatus: SessionBackupStatus = .notCreated {
+        didSet {
+            guard case .stale(_, let newIssue) = sessionBackupStatus else { return }
+            if case .stale(_, let oldIssue) = oldValue, oldIssue == newIssue { return }
+            isSessionBackupWarningDismissed = false
+        }
+    }
+    @Published private(set) var isCreatingSessionBackup = false
+    @Published private(set) var isSessionBackupWarningDismissed = false
+    @Published private(set) var isResolvingSessionRecovery = false
+    @Published private(set) var sessionRecoveryBackupIssue: SessionBackupIssue?
     @Published private(set) var transitioningTorrentIDs: Set<UUID> = []
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
 
@@ -82,6 +98,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private let userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     private let usageTelemetryCoordinator: UsageTelemetryLocalCoordinator?
     private let usageTelemetrySender: (any UsageTelemetrySending)?
+    private let sessionBackupParentOverride: URL?
     private let launchID = UUID().uuidString
 
     private var runtimeTask: Task<Void, Never>?
@@ -89,6 +106,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var bootstrapTask: Task<Void, Never>?
     private var draftPreparationTask: Task<Void, Never>?
     private var performanceApplyTask: Task<Void, Never>?
+    private var sessionBackupConfigurationTask: Task<Void, Never>?
     private var usageTelemetrySendTask: Task<Void, Never>?
     private var lastRequestedPerformanceSettings: EnginePerformanceSettings?
     private var didBootstrap = false
@@ -145,7 +163,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         usageTelemetrySender: (any UsageTelemetrySending)? = nil,
         torrents: [TorrentRecord] = [],
         preferences: AppPreferences? = nil,
-        hasLoadedInitialSession: Bool = false
+        hasLoadedInitialSession: Bool = false,
+        sessionBackupParentOverride: URL? = nil
     ) {
         self.preferencesStore = preferencesStore
         self.engine = engine
@@ -161,6 +180,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.userEventBadgeDisplay = userEventBadgeDisplay
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
+        self.sessionBackupParentOverride = sessionBackupParentOverride
         self.torrents = torrents
         let resolvedHasLoadedInitialSession = hasLoadedInitialSession || !torrents.isEmpty
         self.hasLoadedInitialSession = resolvedHasLoadedInitialSession
@@ -178,6 +198,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             resolvedPreferences.isAddTorrentReviewDiagnosticsLoggingEnabled
         )
 
+        Task { [weak self] in
+            await self?.refreshSessionBackupStatus()
+        }
+
         externalOpenRouter.attach { [weak self] url in
             self?.handleIncomingURL(url)
         }
@@ -191,6 +215,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         bootstrapTask?.cancel()
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
+        sessionBackupConfigurationTask?.cancel()
         usageTelemetrySendTask?.cancel()
         for context in transitionTracesByTorrentID.values {
             context.slowTask?.cancel()
@@ -329,6 +354,51 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         preferences.defaultDownloadPath = normalizedPath
         preferences.defaultDownloadBookmarkData = bookmarkData
+    }
+
+    func setCreatesSessionBackup(_ isEnabled: Bool) {
+        guard preferences.createsSessionBackup != isEnabled else { return }
+        preferences.createsSessionBackup = isEnabled
+        isSessionBackupWarningDismissed = false
+    }
+
+    func setSessionBackupLocation(_ url: URL, bookmarkData: Data?) {
+        let normalizedPath = url.standardizedFileURL.path
+        guard preferences.sessionBackupParentPath != normalizedPath
+                || preferences.sessionBackupParentBookmarkData != bookmarkData else { return }
+        var updatedPreferences = preferences
+        updatedPreferences.sessionBackupParentPath = normalizedPath
+        updatedPreferences.sessionBackupParentBookmarkData = bookmarkData
+        preferences = updatedPreferences
+        isSessionBackupWarningDismissed = false
+    }
+
+    func resetSessionBackupLocation() {
+        setSessionBackupLocation(
+            AppPreferences.systemDownloadsDirectoryURL(),
+            bookmarkData: nil
+        )
+    }
+
+    func createSessionBackupNow() {
+        guard preferences.createsSessionBackup, !isCreatingSessionBackup else { return }
+        isCreatingSessionBackup = true
+        isSessionBackupWarningDismissed = false
+        Task { [weak self] in
+            guard let self else { return }
+            self.sessionBackupStatus = await self.sessionStore.createSessionBackup()
+            self.isCreatingSessionBackup = false
+        }
+    }
+
+    func dismissSessionBackupWarning() {
+        isSessionBackupWarningDismissed = true
+    }
+
+    var showsSessionBackupWarning: Bool {
+        guard !isSessionBackupWarningDismissed else { return false }
+        if case .stale = sessionBackupStatus { return true }
+        return false
     }
 
     func setSendsAnonymousUsageStatistics(_ isEnabled: Bool) {
@@ -545,7 +615,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         pendingConfirmedTorrent = nil
         insertConfirmedTorrent(record)
-        saveCriticalState()
 
         Task { [weak self] in
             await self?.refreshActiveSnapshots()
@@ -1347,12 +1416,39 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     return
                 }
 
+                let saveOutcome = await self.sessionStore.saveCriticalState(
+                    from: [record] + self.torrents,
+                    pruneRestoreArtifacts: false
+                )
+                await self.refreshSessionBackupStatus()
+                guard saveOutcome == .saved else {
+                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
+                    await self.torrentArchiveStore.removeArchive(for: record.id)
+                    await self.bookmarkStore.removeBookmark(for: record.id)
+                    let persistenceError = TorrentEngineError(
+                        kind: .engineFailure,
+                        debugReason: "Не удалось сохранить новую загрузку в сессии."
+                    )
+                    self.presentInvalidDraft(
+                        for: draft.source,
+                        errorState: ShatlErrorCatalog.reviewError(
+                            for: persistenceError,
+                            source: draft.source,
+                            localeOverride: self.preferences.localeOverride
+                        ),
+                        suggestedSavePath: draft.suggestedSavePath,
+                        stopAfterDownload: draft.stopAfterDownload,
+                        alias: draft.alias,
+                        savePathBookmarkData: draft.savePathBookmarkData
+                    )
+                    return
+                }
+
                 if self.presentedModal != nil {
                     self.pendingConfirmedTorrent = record
                     self.dismissModal()
                 } else {
                     self.insertConfirmedTorrent(record)
-                    self.saveCriticalState()
                     await self.refreshActiveSnapshots()
                 }
             } catch {
@@ -1465,48 +1561,54 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 return
             }
 
-            do {
-                let performanceSettings = self.preferences.enginePerformanceSettings
-                self.lastRequestedPerformanceSettings = performanceSettings
-                try await self.engine.applyPerformanceSettings(performanceSettings)
-                try await self.engine.boot()
-                self.isEngineReady = true
-            } catch {
-                self.isRestoringSession = false
-                return
-            }
-
-            let startupCheckCandidates = self.torrents.filter { $0.persistentIssue == nil }
-            let startupEvaluation = await self.diskIssueDetector.startupCheck(for: startupCheckCandidates)
-            _ = self.applyDiskIssueEvaluation(startupEvaluation)
-            await self.persistCriticalState()
-
-            if loadResult.snapshot != nil, !self.torrents.isEmpty {
-                let restoreCandidates = self.torrents.filter { $0.persistentIssue == nil }
-                self.restoreProgressFloorByID = Dictionary(
-                    uniqueKeysWithValues: restoreCandidates
-                        .filter { $0.status.isActive && max($0.progress, $0.lastKnownProgress) > 0 }
-                        .map { ($0.id, max($0.progress, $0.lastKnownProgress)) }
-                )
-                let restoreResult = await self.sessionRestoreCoordinator.restore(records: restoreCandidates)
-                self.applyRestoredPersistentIssues(restoreResult.persistentIssues)
-                self.applySnapshots(restoreResult.snapshots)
-                let didApplyFallbackStatuses = self.applyRestoreFallbackStatuses(
-                    restoreResult.fallbackStatusesByID,
-                    restoredSnapshotIDs: Set(restoreResult.snapshots.map(\.id))
-                )
-                if didApplyFallbackStatuses {
-                    await self.persistCriticalState()
-                }
-            }
-
-            self.startRuntimeLoop()
-            await self.reconcileSleepingTorrents()
-            self.isRestoringSession = false
-            self.allowsUserFacingNotifications = true
-            self.didCompleteRuntimeBootstrap = true
-            self.flushPendingIncomingURLs()
+            await self.completeRuntimeBootstrap(shouldRestoreSession: loadResult.snapshot != nil)
         }
+    }
+
+    private func completeRuntimeBootstrap(shouldRestoreSession: Bool) async {
+        guard !isPreparingForTermination else { return }
+
+        do {
+            let performanceSettings = preferences.enginePerformanceSettings
+            lastRequestedPerformanceSettings = performanceSettings
+            try await engine.applyPerformanceSettings(performanceSettings)
+            try await engine.boot()
+            isEngineReady = true
+        } catch {
+            isRestoringSession = false
+            return
+        }
+
+        let startupCheckCandidates = torrents.filter { $0.persistentIssue == nil }
+        let startupEvaluation = await diskIssueDetector.startupCheck(for: startupCheckCandidates)
+        _ = applyDiskIssueEvaluation(startupEvaluation)
+        await persistCriticalState()
+
+        if shouldRestoreSession, !torrents.isEmpty {
+            let restoreCandidates = torrents.filter { $0.persistentIssue == nil }
+            restoreProgressFloorByID = Dictionary(
+                uniqueKeysWithValues: restoreCandidates
+                    .filter { $0.status.isActive && max($0.progress, $0.lastKnownProgress) > 0 }
+                    .map { ($0.id, max($0.progress, $0.lastKnownProgress)) }
+            )
+            let restoreResult = await sessionRestoreCoordinator.restore(records: restoreCandidates)
+            applyRestoredPersistentIssues(restoreResult.persistentIssues)
+            applySnapshots(restoreResult.snapshots)
+            let didApplyFallbackStatuses = applyRestoreFallbackStatuses(
+                restoreResult.fallbackStatusesByID,
+                restoredSnapshotIDs: Set(restoreResult.snapshots.map(\.id))
+            )
+            if didApplyFallbackStatuses {
+                await persistCriticalState()
+            }
+        }
+
+        startRuntimeLoop()
+        await reconcileSleepingTorrents()
+        isRestoringSession = false
+        allowsUserFacingNotifications = true
+        didCompleteRuntimeBootstrap = true
+        flushPendingIncomingURLs()
     }
 
     private func resolveInitialSessionLoad(_ result: SessionLoadResult) async -> Bool {
@@ -1524,12 +1626,63 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         case .failure(let issue):
             sessionLoadIssue = issue
             isRestoringSession = false
+            sessionBackupStatus = await sessionStore.configureSessionBackup(sessionBackupConfiguration)
         }
         hasLoadedInitialSession = true
 
         guard sessionLoadIssue == nil else { return false }
         await sessionStore.acceptInitialLoad()
         return true
+    }
+
+    func restoreDownloadListFromBackup() {
+        guard sessionLoadIssue != nil, !isResolvingSessionRecovery else { return }
+        isResolvingSessionRecovery = true
+        sessionRecoveryBackupIssue = nil
+
+        Task { [weak self] in
+            guard let self else { return }
+            switch await self.sessionStore.restoreSessionBackup() {
+            case .restored(let snapshot):
+                self.restoreSnapshot(snapshot)
+                self.sessionLoadIssue = nil
+                self.isRestoringSession = !snapshot.torrents.isEmpty
+                await self.sessionStore.acceptInitialLoad()
+                self.isResolvingSessionRecovery = false
+                await self.completeRuntimeBootstrap(shouldRestoreSession: true)
+            case .unavailable(let issue):
+                self.sessionRecoveryBackupIssue = issue
+                self.sessionBackupStatus = .stale(
+                    lastSuccessful: self.sessionBackupStatus.details,
+                    issue: issue
+                )
+                self.isResolvingSessionRecovery = false
+            }
+        }
+    }
+
+    func openWithEmptyDownloadList() {
+        guard sessionLoadIssue != nil, !isResolvingSessionRecovery else { return }
+        isResolvingSessionRecovery = true
+        sessionRecoveryBackupIssue = nil
+
+        Task { [weak self] in
+            guard let self else { return }
+            let outcome = await self.sessionStore.discardFailedSessionAndCreateEmpty()
+            guard outcome == .saved else {
+                self.sessionRecoveryBackupIssue = .unknown
+                self.isResolvingSessionRecovery = false
+                return
+            }
+
+            self.torrents = []
+            self.sessionLoadIssue = nil
+            self.selectedTorrentID = nil
+            self.expandedTorrentID = nil
+            self.isResolvingSessionRecovery = false
+            await self.refreshSessionBackupStatus()
+            await self.completeRuntimeBootstrap(shouldRestoreSession: false)
+        }
     }
 
     private func schedulePerformanceSettingsApply() {
@@ -1608,7 +1761,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             activeRefreshTick += 1
             if activeRefreshTick >= 5 {
                 activeRefreshTick = 0
-                await sessionStore.saveProgressBatch(from: torrents)
+                _ = await sessionStore.saveProgressBatch(from: torrents)
+                await refreshSessionBackupStatus()
             }
         } catch {
             // Do not surface a separate alert for a background polling failure.
@@ -1905,9 +2059,38 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func persistCriticalState(pruneRestoreArtifacts: Bool = true) async {
-        await sessionStore.saveCriticalState(
+        _ = await sessionStore.saveCriticalState(
             from: torrents,
             pruneRestoreArtifacts: pruneRestoreArtifacts
+        )
+        await refreshSessionBackupStatus()
+    }
+
+    private func configureSessionBackup() {
+        let configuration = sessionBackupConfiguration
+        sessionBackupConfigurationTask?.cancel()
+        sessionBackupConfigurationTask = Task { [weak self, configuration] in
+            guard let self else { return }
+            self.sessionBackupStatus = await self.sessionStore.configureSessionBackup(configuration)
+            guard !Task.isCancelled else { return }
+            if configuration.isEnabled {
+                self.sessionBackupStatus = await self.sessionStore.createSessionBackup()
+            }
+        }
+    }
+
+    private func refreshSessionBackupStatus() async {
+        sessionBackupStatus = await sessionStore.sessionBackupStatus()
+    }
+
+    private var sessionBackupConfiguration: SessionBackupConfiguration {
+        SessionBackupConfiguration(
+            isEnabled: preferences.createsSessionBackup,
+            parentDirectoryPath: sessionBackupParentOverride?.path
+                ?? preferences.sessionBackupParentPath,
+            parentDirectoryBookmarkData: sessionBackupParentOverride == nil
+                ? preferences.sessionBackupParentBookmarkData
+                : nil
         )
     }
 

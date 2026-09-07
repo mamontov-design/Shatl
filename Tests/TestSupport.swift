@@ -330,6 +330,7 @@ struct TestStoreBundle {
     var archiveStore: TorrentArchiveStore
     var bookmarkStore: BookmarkStore
     var resumeDataStore: ResumeDataStore
+    var backupStore: SessionBackupStore?
     var payloadLocator: TorrentPayloadLocator
     var payloadDeletionService: TorrentPayloadDeletionService
     var router: ExternalOpenRouter
@@ -346,6 +347,7 @@ func makeTestStoreBundle(
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
     usageTelemetrySender: (any UsageTelemetrySending)? = nil,
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
+    sessionBackupParentURL: URL? = nil,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
     }
@@ -359,11 +361,22 @@ func makeTestStoreBundle(
     let archiveStore = TorrentArchiveStore(directories: directories)
     let bookmarkStore = BookmarkStore(directories: directories)
     let resumeDataStore = ResumeDataStore(directories: directories)
+    let backupStore = sessionBackupParentURL.map {
+        SessionBackupStore(
+            sourceDirectories: directories,
+            configuration: SessionBackupConfiguration(
+                isEnabled: true,
+                parentDirectoryPath: $0.path,
+                parentDirectoryBookmarkData: nil
+            )
+        )
+    }
     let sessionStore = SessionStore(
         directories: directories,
         archiveStore: archiveStore,
         bookmarkStore: bookmarkStore,
         resumeDataStore: resumeDataStore,
+        backupStore: backupStore,
         startupMode: sessionStoreStartupMode,
         readSessionData: sessionReadData
     )
@@ -401,7 +414,8 @@ func makeTestStoreBundle(
         usageTelemetrySender: usageTelemetrySender,
         torrents: torrents,
         preferences: preferences,
-        hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized
+        hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
+        sessionBackupParentOverride: sessionBackupParentURL
     )
 
     return TestStoreBundle(
@@ -412,6 +426,7 @@ func makeTestStoreBundle(
         archiveStore: archiveStore,
         bookmarkStore: bookmarkStore,
         resumeDataStore: resumeDataStore,
+        backupStore: backupStore,
         payloadLocator: payloadLocator,
         payloadDeletionService: payloadDeletionService,
         router: router

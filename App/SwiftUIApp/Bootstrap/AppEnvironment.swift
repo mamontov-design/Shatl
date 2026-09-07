@@ -19,6 +19,8 @@ struct AppEnvironment {
     var userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     var usageTelemetryCoordinator: UsageTelemetryLocalCoordinator
     var usageTelemetrySender: (any UsageTelemetrySending)?
+    var preferences: AppPreferences
+    var sessionBackupParentOverride: URL?
 
     static func live() -> AppEnvironment {
         let directories = liveDirectories
@@ -26,6 +28,26 @@ struct AppEnvironment {
         let bookmarkStore = BookmarkStore(directories: directories)
         let resumeDataStore = ResumeDataStore(directories: directories)
         let preferencesStore = livePreferencesStore
+        let preferences = preferencesStore.load()
+        let backupParentOverride = liveBackupParentOverride
+        if let backupParentOverride {
+            try? FileManager.default.createDirectory(
+                at: backupParentOverride,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+        }
+        let backupConfiguration = SessionBackupConfiguration(
+            isEnabled: preferences.createsSessionBackup,
+            parentDirectoryPath: backupParentOverride?.path ?? preferences.sessionBackupParentPath,
+            parentDirectoryBookmarkData: backupParentOverride == nil
+                ? preferences.sessionBackupParentBookmarkData
+                : nil
+        )
+        let backupStore = SessionBackupStore(
+            sourceDirectories: directories,
+            configuration: backupConfiguration
+        )
         let engine = LibtorrentEngine()
         let payloadLocator = TorrentPayloadLocator(
             engine: engine,
@@ -45,7 +67,8 @@ struct AppEnvironment {
                 directories: directories,
                 archiveStore: archiveStore,
                 bookmarkStore: bookmarkStore,
-                resumeDataStore: resumeDataStore
+                resumeDataStore: resumeDataStore,
+                backupStore: backupStore
             ),
             torrentArchiveStore: archiveStore,
             bookmarkStore: bookmarkStore,
@@ -67,7 +90,9 @@ struct AppEnvironment {
             userEventNotifier: MacTorrentUserEventNotifier(),
             userEventBadgeDisplay: MacTorrentUserEventBadgeDisplay(),
             usageTelemetryCoordinator: usageTelemetryCoordinator,
-            usageTelemetrySender: usageTelemetrySender
+            usageTelemetrySender: usageTelemetrySender,
+            preferences: preferences,
+            sessionBackupParentOverride: backupParentOverride
         )
     }
 
@@ -94,6 +119,17 @@ struct AppEnvironment {
         }
         #endif
         return AppPreferencesStore()
+    }
+
+    private static var liveBackupParentOverride: URL? {
+        #if DEBUG
+        if let rootPath = ProcessInfo.processInfo.environment["SHATL_TEST_STORAGE_ROOT"],
+           !rootPath.isEmpty {
+            return URL(fileURLWithPath: rootPath, isDirectory: true)
+                .appendingPathComponent("Downloads", isDirectory: true)
+        }
+        #endif
+        return nil
     }
 }
 

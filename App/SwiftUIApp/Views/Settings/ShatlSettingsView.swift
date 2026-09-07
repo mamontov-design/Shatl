@@ -16,6 +16,12 @@ struct ShatlSettingsView: View {
                 }
                 .tag(SettingsTab.downloads)
 
+            sessionTab
+                .tabItem {
+                    Label("settings.tab.session", systemImage: "externaldrive.badge.timemachine")
+                }
+                .tag(SettingsTab.session)
+
             appearanceTab
                 .tabItem {
                     Label("settings.tab.appearance", systemImage: "bubbles.and.sparkles")
@@ -44,6 +50,9 @@ struct ShatlSettingsView: View {
         }
         .onAppear {
             selectedTab = .downloads
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shatlOpenSessionSettings)) { _ in
+            selectedTab = .session
         }
     }
 
@@ -109,6 +118,10 @@ struct ShatlSettingsView: View {
 
     private var appearanceTab: some View {
         AppearanceSettingsTab()
+    }
+
+    private var sessionTab: some View {
+        SessionSettingsTab()
     }
 
     private var aboutTab: some View {
@@ -229,12 +242,222 @@ struct ShatlSettingsView: View {
 
 private enum SettingsTab {
     case downloads
+    case session
     case appearance
     case data
     case about
     #if DEBUG
     case debug
     #endif
+}
+
+private struct SessionSettingsTab: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ShatlSettingsParameterHeader(localizedTitle: "settings.session.backup.section")
+
+            ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.session.backup.enabled",
+                    isOn: Binding(
+                        get: { store.preferences.createsSessionBackup },
+                        set: { store.setCreatesSessionBackup($0) }
+                    )
+                )
+            }
+
+            ShatlSettingsParameterCaption(localizedText: "settings.session.backup.caption")
+
+            ShatlSettingsParameterHeader(localizedTitle: "settings.session.status.section")
+
+            ShatlSettingsParameter {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(statusTitle)
+                        .shatlTypography(ShatlTypography.bodySemibold)
+                        .foregroundStyle(statusColor)
+
+                    Text(statusDetail)
+                        .shatlTypography(ShatlTypography.bodyRegular)
+                        .foregroundStyle(ShatlColor.typographySecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            ShatlSettingsParameterHeader(localizedTitle: "settings.session.folder.section")
+
+            ShatlSettingsParameter {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(backupDirectoryURL.lastPathComponent)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.typographyPrimary)
+                            .lineLimit(1)
+
+                        Text(backupDirectoryURL.path)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.typographySecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ShatlButton(localizedTitle: "common.change", role: .borderedNeutral) {
+                        presentBackupFolderPicker()
+                    }
+                }
+
+                ShatlSettingsParameterDivider()
+
+                HStack(spacing: 8) {
+                    ShatlButton(
+                        localizedTitle: "settings.session.backup.create_now",
+                        role: .borderedColored,
+                        isDisabled: !store.preferences.createsSessionBackup || store.isCreatingSessionBackup,
+                        fillsWidth: true
+                    ) {
+                        store.createSessionBackupNow()
+                    }
+
+                    ShatlButton(
+                        localizedTitle: "settings.session.backup.show_in_finder",
+                        role: .borderedNeutral,
+                        fillsWidth: true
+                    ) {
+                        revealBackupLocation()
+                    }
+                }
+
+                ShatlSettingsParameterDivider()
+
+                ShatlButton(
+                    localizedTitle: "settings.session.folder.reset",
+                    role: .borderedNeutral,
+                    fillsWidth: true
+                ) {
+                    store.resetSessionBackupLocation()
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 0)
+        .padding(.bottom, 16)
+        .animation(ShatlMotion.cardState, value: store.sessionBackupStatus)
+    }
+
+    private var backupDirectoryURL: URL {
+        URL(
+            fileURLWithPath: store.preferences.sessionBackupParentPath,
+            isDirectory: true
+        )
+        .appendingPathComponent(SessionBackupStore.directoryName, isDirectory: true)
+    }
+
+    private var statusTitle: String {
+        switch store.sessionBackupStatus {
+        case .disabled:
+            L10n.string("settings.session.status.disabled", localeOverride: store.preferences.localeOverride)
+        case .notCreated:
+            L10n.string("settings.session.status.not_created", localeOverride: store.preferences.localeOverride)
+        case .current:
+            L10n.string("settings.session.status.current", localeOverride: store.preferences.localeOverride)
+        case .stale:
+            L10n.string("settings.session.status.stale", localeOverride: store.preferences.localeOverride)
+        }
+    }
+
+    private var statusDetail: String {
+        switch store.sessionBackupStatus {
+        case .disabled:
+            return L10n.string("settings.session.status.disabled.detail", localeOverride: store.preferences.localeOverride)
+        case .notCreated:
+            return L10n.string("settings.session.status.not_created.detail", localeOverride: store.preferences.localeOverride)
+        case .current(let details):
+            return backupDetailsText(details)
+        case .stale(let details, let issue):
+            let reason = L10n.string(issue.localizationKey, localeOverride: store.preferences.localeOverride)
+            guard let details else { return reason }
+            return "\(reason)\n\(backupDetailsText(details))"
+        }
+    }
+
+    private var statusColor: Color {
+        if case .stale = store.sessionBackupStatus {
+            return ShatlColor.neonBlue
+        }
+        return ShatlColor.typographyPrimary
+    }
+
+    private func backupDetailsText(_ details: SessionBackupDetails) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = L10n.locale(for: store.preferences.localeOverride)
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return L10n.format(
+            "settings.session.status.details",
+            localeOverride: store.preferences.localeOverride,
+            defaultValue: "%@ · %lld загрузок",
+            formatter.string(from: details.createdAt),
+            details.torrentCount
+        )
+    }
+
+    private func presentBackupFolderPicker() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.prompt = L10n.string("common.choose", localeOverride: store.preferences.localeOverride)
+
+        if FileManager.default.fileExists(atPath: store.preferences.sessionBackupParentPath) {
+            panel.directoryURL = URL(
+                fileURLWithPath: store.preferences.sessionBackupParentPath,
+                isDirectory: true
+            )
+        }
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let bookmarkData = try? url.bookmarkData(
+            options: [.withSecurityScope],
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+        store.setSessionBackupLocation(url, bookmarkData: bookmarkData)
+    }
+
+    private func revealBackupLocation() {
+        let parentURL = backupDirectoryURL.deletingLastPathComponent()
+        let targetURL = FileManager.default.fileExists(atPath: backupDirectoryURL.path)
+            ? backupDirectoryURL
+            : parentURL
+        NSWorkspace.shared.open(targetURL)
+    }
+}
+
+private extension SessionBackupIssue {
+    var localizationKey: String {
+        switch self {
+        case .outOfDate:
+            "settings.session.issue.out_of_date"
+        case .folderUnavailable:
+            "settings.session.issue.folder_unavailable"
+        case .permissionDenied:
+            "settings.session.issue.permission_denied"
+        case .insufficientSpace:
+            "settings.session.issue.insufficient_space"
+        case .invalidBackup:
+            "settings.session.issue.invalid_backup"
+        case .unknown:
+            "settings.session.issue.unknown"
+        }
+    }
+}
+
+extension Notification.Name {
+    static let shatlOpenSessionSettings = Notification.Name("ShatlOpenSessionSettings")
 }
 
 private struct DataSettingsTab: View {

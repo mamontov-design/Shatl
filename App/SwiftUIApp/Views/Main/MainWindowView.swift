@@ -29,6 +29,7 @@ nonisolated enum SessionRestoreStatusTiming {
 struct MainWindowView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettings
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
     @State private var isOnboardingPresented = false
@@ -40,6 +41,7 @@ struct MainWindowView: View {
     @State private var restoreStatusTask: Task<Void, Never>?
     @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
+    @State private var showsEmptySessionConfirmation = false
 
     private enum ContentMode: Equatable {
         case loadingInitialSession
@@ -95,6 +97,19 @@ struct MainWindowView: View {
                         showsCompletionIcon: showsRestoreCompletionIcon,
                         showsCompletionText: showsRestoreCompletionText,
                         localeOverride: store.preferences.localeOverride
+                    )
+                    .transition(restoreStatusTransition)
+                    .zIndex(1)
+                }
+
+                if store.showsSessionBackupWarning,
+                   store.hasLoadedInitialSession,
+                   store.sessionLoadIssue == nil {
+                    SessionBackupWarningBar(
+                        status: store.sessionBackupStatus,
+                        localeOverride: store.preferences.localeOverride,
+                        openSettings: openSessionSettings,
+                        dismiss: store.dismissSessionBackupWarning
                     )
                     .transition(restoreStatusTransition)
                     .zIndex(1)
@@ -249,6 +264,18 @@ struct MainWindowView: View {
                 )
             )
         }
+        .confirmationDialog(
+            Text("session.recovery.empty.confirm.title"),
+            isPresented: $showsEmptySessionConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("session.recovery.empty.confirm.action", role: .destructive) {
+                store.openWithEmptyDownloadList()
+            }
+            Button("common.cancel", role: .cancel) { }
+        } message: {
+            Text("session.recovery.empty.confirm.message")
+        }
         .onAppear {
             store.bootstrapRuntimeState()
             requestNativeNotificationAuthorizationIfNeeded()
@@ -267,7 +294,11 @@ struct MainWindowView: View {
                 SessionLoadBlockingView(issue: nil, localeOverride: store.preferences.localeOverride)
                     .transition(.opacity)
             case .sessionLoadFailure(let issue):
-                SessionLoadBlockingView(issue: issue, localeOverride: store.preferences.localeOverride)
+                SessionLoadBlockingView(
+                    issue: issue,
+                    localeOverride: store.preferences.localeOverride,
+                    openEmptyList: { showsEmptySessionConfirmation = true }
+                )
                     .transition(.opacity)
             case .empty:
                 EmptyStateView(onEntryValidationError: presentAddTorrentEntryAlert)
@@ -506,11 +537,79 @@ struct MainWindowView: View {
         store.setDefaultDownloadLocation(url, bookmarkData: bookmarkData)
     }
 
+    private func openSessionSettings() {
+        openSettings()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            NotificationCenter.default.post(name: .shatlOpenSessionSettings, object: nil)
+        }
+    }
+}
+
+private struct SessionBackupWarningBar: View {
+    let status: SessionBackupStatus
+    let localeOverride: AppLocaleOverride
+    let openSettings: () -> Void
+    let dismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(message)
+                .shatlTypography(ShatlTypography.bodyRegular)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                ShatlButton(
+                    localizedTitle: "session.backup.warning.open_settings",
+                    role: .borderedColored,
+                    fillsWidth: true,
+                    action: openSettings
+                )
+
+                ShatlButton(
+                    localizedTitle: "common.close",
+                    role: .borderedNeutral,
+                    fillsWidth: true,
+                    action: dismiss
+                )
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ShatlColor.neonBlue.opacity(0.16))
+        .animation(ShatlMotion.cardState, value: status)
+    }
+
+    private var message: String {
+        let key: String
+        if case .stale(_, let issue) = status {
+            switch issue {
+            case .outOfDate:
+                key = "session.backup.warning.out_of_date"
+            case .folderUnavailable:
+                key = "session.backup.warning.folder_unavailable"
+            case .permissionDenied:
+                key = "session.backup.warning.permission_denied"
+            case .insufficientSpace:
+                key = "session.backup.warning.insufficient_space"
+            case .invalidBackup:
+                key = "session.backup.warning.invalid_backup"
+            case .unknown:
+                key = "session.backup.warning.unknown"
+            }
+        } else {
+            key = "session.backup.warning.unknown"
+        }
+        return L10n.string(key, localeOverride: localeOverride)
+    }
 }
 
 private struct SessionLoadBlockingView: View {
+    @EnvironmentObject private var store: AppStore
+
     let issue: SessionLoadIssue?
     let localeOverride: AppLocaleOverride
+    var openEmptyList: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -533,11 +632,128 @@ private struct SessionLoadBlockingView: View {
                         .foregroundStyle(ShatlColor.typographySecondary)
                         .multilineTextAlignment(.center)
                 }
+
+                if issue != nil {
+                    if let backupDetails {
+                        Text(backupDetailsText(backupDetails))
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.typographySecondary)
+                            .multilineTextAlignment(.center)
+
+                        ShatlButton(
+                            localizedTitle: "session.recovery.restore_backup",
+                            role: .borderedColored,
+                            isDisabled: store.isResolvingSessionRecovery,
+                            fillsWidth: true,
+                            lineLimit: 2
+                        ) {
+                            store.restoreDownloadListFromBackup()
+                        }
+                    }
+
+                    ShatlButton(
+                        localizedTitle: "session.recovery.open_empty",
+                        role: backupDetails == nil ? .borderedColored : .borderedNeutral,
+                        isDisabled: store.isResolvingSessionRecovery,
+                        fillsWidth: true
+                    ) {
+                        openEmptyList?()
+                    }
+
+                    if let backupAvailabilityMessage {
+                        Text(backupAvailabilityMessage)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.neonBlue)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let recoveryIssueMessage {
+                        Text(recoveryIssueMessage)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.neonBlue)
+                            .multilineTextAlignment(.center)
+                    }
+                }
             }
             .frame(maxWidth: 320)
             .padding(24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var backupDetails: SessionBackupDetails? {
+        switch store.sessionBackupStatus {
+        case .current(let details):
+            return details
+        case .stale(let details, .outOfDate):
+            return details
+        case .disabled, .notCreated, .stale:
+            return nil
+        }
+    }
+
+    private func backupDetailsText(_ details: SessionBackupDetails) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = L10n.locale(for: localeOverride)
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return L10n.format(
+            "session.recovery.backup_details",
+            localeOverride: localeOverride,
+            defaultValue: "Резервная копия: %@ · загрузок: %lld",
+            formatter.string(from: details.createdAt),
+            details.torrentCount
+        )
+    }
+
+    private var recoveryIssueMessage: String? {
+        guard let issue = store.sessionRecoveryBackupIssue else { return nil }
+        let key: String
+        switch issue {
+        case .outOfDate:
+            key = "session.recovery.backup.out_of_date"
+        case .folderUnavailable:
+            key = "session.recovery.backup.folder_unavailable"
+        case .permissionDenied:
+            key = "session.recovery.backup.permission_denied"
+        case .insufficientSpace:
+            key = "session.recovery.backup.insufficient_space"
+        case .invalidBackup:
+            key = "session.recovery.backup.invalid"
+        case .unknown:
+            key = "session.recovery.backup.unknown"
+        }
+        return L10n.string(key, localeOverride: localeOverride)
+    }
+
+    private var backupAvailabilityMessage: String? {
+        guard backupDetails == nil, store.sessionRecoveryBackupIssue == nil else { return nil }
+
+        let key: String
+        switch store.sessionBackupStatus {
+        case .disabled:
+            key = "session.recovery.backup.disabled"
+        case .notCreated:
+            key = "session.recovery.backup.not_created"
+        case .stale(_, let issue):
+            switch issue {
+            case .outOfDate:
+                return nil
+            case .folderUnavailable:
+                key = "session.recovery.backup.folder_unavailable"
+            case .permissionDenied:
+                key = "session.recovery.backup.permission_denied"
+            case .insufficientSpace:
+                key = "session.recovery.backup.insufficient_space"
+            case .invalidBackup:
+                key = "session.recovery.backup.invalid"
+            case .unknown:
+                key = "session.recovery.backup.unknown"
+            }
+        case .current:
+            return nil
+        }
+        return L10n.string(key, localeOverride: localeOverride)
     }
 
     private var title: String {

@@ -146,6 +146,9 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var isAddTorrentReviewDiagnosticsLoggingEnabled: Bool
     var defaultDownloadPath: String
     var defaultDownloadBookmarkData: Data?
+    var createsSessionBackup: Bool = true
+    var sessionBackupParentPath: String = AppPreferences.systemDownloadsDirectoryURL().path
+    var sessionBackupParentBookmarkData: Data? = nil
     var alwaysStopAfterDownload: Bool
     var performanceProfile: AppPerformanceProfile
     var usesUnrestrictedPerformanceMode: Bool
@@ -172,6 +175,9 @@ extension AppPreferences {
         case isAddTorrentReviewDiagnosticsLoggingEnabled
         case defaultDownloadPath
         case defaultDownloadBookmarkData
+        case createsSessionBackup
+        case sessionBackupParentPath
+        case sessionBackupParentBookmarkData
         case alwaysStopAfterDownload
         case performanceProfile
         case usesUnrestrictedPerformanceMode
@@ -210,6 +216,18 @@ extension AppPreferences {
         ) ?? false
         defaultDownloadPath = try container.decode(String.self, forKey: .defaultDownloadPath)
         defaultDownloadBookmarkData = try container.decodeIfPresent(Data.self, forKey: .defaultDownloadBookmarkData)
+        createsSessionBackup = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .createsSessionBackup
+        ) ?? true
+        sessionBackupParentPath = try container.decodeIfPresent(
+            String.self,
+            forKey: .sessionBackupParentPath
+        ) ?? Self.systemDownloadsDirectoryURL().path
+        sessionBackupParentBookmarkData = try container.decodeIfPresent(
+            Data.self,
+            forKey: .sessionBackupParentBookmarkData
+        )
         alwaysStopAfterDownload = try container.decode(Bool.self, forKey: .alwaysStopAfterDownload)
         let decodedPerformanceProfile = try container.decodeIfPresent(
             AppPerformanceProfile.self,
@@ -303,6 +321,9 @@ extension AppPreferences {
         isAddTorrentReviewDiagnosticsLoggingEnabled: false,
         defaultDownloadPath: resolvedDefaultDownloadsPath(),
         defaultDownloadBookmarkData: nil,
+        createsSessionBackup: true,
+        sessionBackupParentPath: resolvedDefaultDownloadsPath(),
+        sessionBackupParentBookmarkData: nil,
         alwaysStopAfterDownload: false,
         performanceProfile: .balanced,
         usesUnrestrictedPerformanceMode: false,
