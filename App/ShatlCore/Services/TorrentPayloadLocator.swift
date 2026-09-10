@@ -8,6 +8,7 @@ nonisolated enum ManagedTorrentPayloadUnresolvedReason: String, Sendable, Equata
     case archiveMissing = "archive-missing"
     case archiveInspectFailed = "archive-inspect-failed"
     case selectedFilesUnresolved = "selected-files-unresolved"
+    case unsafeManifest = "unsafe-manifest"
 }
 
 nonisolated struct ManagedTorrentPayloadResolutionFailure: Sendable, Equatable {
@@ -41,6 +42,7 @@ nonisolated struct ManagedTorrentPayload: Sendable, Equatable {
 
 nonisolated struct ManagedTorrentFile: Sendable, Equatable {
     var relativePath: String
+    var relativePathComponents: [String]
     var fileURL: URL
 }
 
@@ -90,7 +92,19 @@ actor TorrentPayloadLocator {
             relativePath: archiveStore.relativeArchivePath(for: record.id)
         )
         guard fileManager.fileExists(atPath: archiveURL.path) else {
-            if let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) {
+            if !record.selectedFileRelativePaths.isEmpty {
+                guard let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) else {
+                    return .unresolved(
+                        resolutionFailure(
+                            reason: .unsafeManifest,
+                            record: record,
+                            saveURL: saveURL,
+                            archivePath: archiveURL.path,
+                            inspectedFileCount: nil
+                        )
+                    )
+                }
+
                 Self.logger.notice(
                     "Managed payload resolved from stored manifest for torrent id=\(record.id.uuidString) reason=archive-missing fileCount=\(payload.managedFiles.count)"
                 )
@@ -116,11 +130,24 @@ actor TorrentPayloadLocator {
             Self.logger.notice(
                 "Managed payload inspect failed for torrent id=\(record.id.uuidString) archivePath=\(archiveURL.path) reason=\((error as NSError).localizedDescription)"
             )
-            if let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) {
+            if !record.selectedFileRelativePaths.isEmpty,
+               let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) {
                 Self.logger.notice(
                     "Managed payload resolved from stored manifest for torrent id=\(record.id.uuidString) reason=archive-inspect-failed fileCount=\(payload.managedFiles.count)"
                 )
                 return .resolved(payload)
+            }
+
+            if !record.selectedFileRelativePaths.isEmpty {
+                return .unresolved(
+                    resolutionFailure(
+                        reason: .unsafeManifest,
+                        record: record,
+                        saveURL: saveURL,
+                        archivePath: archiveURL.path,
+                        inspectedFileCount: nil
+                    )
+                )
             }
 
             return .unresolved(
@@ -136,31 +163,52 @@ actor TorrentPayloadLocator {
         }
 
         let selectedIndices = Set(record.selectedFileIndices)
-        let managedFiles = contentFiles
-            .filter { selectedIndices.contains($0.fileIndex) }
-            .compactMap { TorrentPathSafety.normalizedRelativePath($0.relativePath) }
-            .map {
-                ManagedTorrentFile(
-                    relativePath: $0,
-                    fileURL: saveURL.appendingPathComponent($0, isDirectory: false)
-                )
-            }
+        let selectedContentFiles = contentFiles.filter { selectedIndices.contains($0.fileIndex) }
 
-        guard !managedFiles.isEmpty else {
-            if let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) {
+        guard selectedIndices.count == record.selectedFileIndices.count,
+              selectedIndices.count == record.selectedFileCount,
+              selectedContentFiles.count == selectedIndices.count else {
+            if !record.selectedFileRelativePaths.isEmpty,
+               let payload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL) {
                 Self.logger.notice(
                     "Managed payload resolved from stored manifest for torrent id=\(record.id.uuidString) reason=selected-files-unresolved fileCount=\(payload.managedFiles.count)"
                 )
                 return .resolved(payload)
             }
 
+            if !record.selectedFileRelativePaths.isEmpty {
+                return .unresolved(
+                    resolutionFailure(
+                        reason: .unsafeManifest,
+                        record: record,
+                        saveURL: saveURL,
+                        archivePath: archiveURL.path,
+                        inspectedFileCount: contentFiles.count
+                    )
+                )
+            }
+
             return .unresolved(
-                ManagedTorrentPayloadResolutionFailure(
+                resolutionFailure(
                     reason: .selectedFilesUnresolved,
-                    savePath: saveURL.path,
+                    record: record,
+                    saveURL: saveURL,
                     archivePath: archiveURL.path,
-                    selectedFileCount: record.selectedFileCount,
-                    totalFileCount: record.totalFileCount,
+                    inspectedFileCount: contentFiles.count
+                )
+            )
+        }
+
+        guard let managedFiles = makeManagedFiles(
+            relativePaths: selectedContentFiles.map(\.relativePath),
+            saveURL: saveURL
+        ) else {
+            return .unresolved(
+                resolutionFailure(
+                    reason: .unsafeManifest,
+                    record: record,
+                    saveURL: saveURL,
+                    archivePath: archiveURL.path,
                     inspectedFileCount: contentFiles.count
                 )
             )
@@ -297,16 +345,13 @@ actor TorrentPayloadLocator {
         for record: TorrentRecord,
         saveURL: URL
     ) -> ManagedTorrentPayload? {
-        let managedFiles = TorrentPathSafety.normalizedRelativePaths(record.selectedFileRelativePaths)
-            .map {
-                ManagedTorrentFile(
-                    relativePath: $0,
-                    fileURL: saveURL.appendingPathComponent($0, isDirectory: false)
-                )
-            }
-            .filter { isDescendant($0.fileURL, of: saveURL) }
-
-        guard !managedFiles.isEmpty else { return nil }
+        guard record.selectedFileRelativePaths.count == record.selectedFileCount,
+              let managedFiles = makeManagedFiles(
+                relativePaths: record.selectedFileRelativePaths,
+                saveURL: saveURL
+              ) else {
+            return nil
+        }
 
         return ManagedTorrentPayload(
             saveURL: saveURL,
@@ -315,14 +360,54 @@ actor TorrentPayloadLocator {
         )
     }
 
-    private func isDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
-        let candidateComponents = candidate.standardizedFileURL.pathComponents
-        let ancestorComponents = ancestor.standardizedFileURL.pathComponents
+    private func makeManagedFiles(relativePaths: [String], saveURL: URL) -> [ManagedTorrentFile]? {
+        guard !relativePaths.isEmpty else { return nil }
 
-        guard candidateComponents.count > ancestorComponents.count else {
-            return false
+        var normalizedPaths = Set<String>()
+        var componentPaths: [[String]] = []
+
+        for relativePath in relativePaths {
+            guard let components = TorrentPathSafety.normalizedRelativePathComponents(relativePath) else {
+                return nil
+            }
+
+            let normalizedPath = components.joined(separator: "/")
+            guard normalizedPaths.insert(normalizedPath).inserted else { return nil }
+            componentPaths.append(components)
         }
 
-        return Array(candidateComponents.prefix(ancestorComponents.count)) == ancestorComponents
+        let pathSets = Set(componentPaths.map { $0.joined(separator: "/") })
+        for components in componentPaths where components.count > 1 {
+            for prefixLength in 1..<components.count {
+                let prefix = components.prefix(prefixLength).joined(separator: "/")
+                guard !pathSets.contains(prefix) else { return nil }
+            }
+        }
+
+        return componentPaths.map { components in
+            let relativePath = components.joined(separator: "/")
+            return ManagedTorrentFile(
+                relativePath: relativePath,
+                relativePathComponents: components,
+                fileURL: saveURL.appendingPathComponent(relativePath, isDirectory: false)
+            )
+        }
+    }
+
+    private func resolutionFailure(
+        reason: ManagedTorrentPayloadUnresolvedReason,
+        record: TorrentRecord,
+        saveURL: URL,
+        archivePath: String,
+        inspectedFileCount: Int?
+    ) -> ManagedTorrentPayloadResolutionFailure {
+        ManagedTorrentPayloadResolutionFailure(
+            reason: reason,
+            savePath: saveURL.path,
+            archivePath: archivePath,
+            selectedFileCount: record.selectedFileCount,
+            totalFileCount: record.totalFileCount,
+            inspectedFileCount: inspectedFileCount
+        )
     }
 }

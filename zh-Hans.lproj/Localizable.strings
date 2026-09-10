@@ -118,6 +118,8 @@
 "payload_deletion.engine_stop_failed.message" = "Shatl 已将 Torrent 从列表中移除，但在删除文件前无法安全停止引擎中的 Torrent。";
 "payload_deletion.partial_failure.message" = "Shatl 已将 Torrent 从列表中移除，但无法删除磁盘上的 %lld 个文件。";
 "payload_deletion.unresolved.message" = "Shatl 已将 Torrent 从列表中移除，但无法安全识别磁盘上的相关文件。";
+"payload_deletion.safety_refused.message" = "Shatl 已将 Torrent 从列表中移除，但由于路径或对象类型不再与 Torrent 数据匹配，因此保留了文件。";
+"payload_deletion.cleanup_failure.message" = "Torrent 文件已删除，但 Shatl 保留了部分文件夹或系统文件，因为无法安全清理它们。";
 
 "add_torrent.loading_metadata" = "正在获取元数据…";
 "add_torrent.title" = "添加下载";

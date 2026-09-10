@@ -231,4 +231,100 @@ final class TorrentPayloadLocatorTests: XCTestCase {
         XCTAssertEqual(failure.totalFileCount, 1)
         XCTAssertEqual(failure.inspectedFileCount, 1)
     }
+
+    func testManagedPayloadResolutionRejectsUnsafeArchivePathWithoutUsingStoredFallback() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "../personal.bin", sizeBytes: 4_096, fileIndex: 0),
+        ])
+        let bundle = makeTestStoreBundle(engine: engine)
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Locator-UnsafeArchive-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileRelativePaths: ["safe-looking-fallback.bin"]
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let resolution = await bundle.payloadLocator.managedPayloadResolution(for: record)
+
+        guard case .unresolved(let failure) = resolution else {
+            return XCTFail("Expected unsafe manifest failure")
+        }
+        XCTAssertEqual(failure.reason, .unsafeManifest)
+    }
+
+    func testManagedPayloadResolutionRejectsDuplicateArchivePaths() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "movie.bin", sizeBytes: 4_096, fileIndex: 0),
+            TorrentContentFileDescriptor(relativePath: "movie.bin", sizeBytes: 4_096, fileIndex: 1),
+        ])
+        let bundle = makeTestStoreBundle(engine: engine)
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Locator-DuplicateArchive-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0, 1],
+            selectedFileCount: 2,
+            totalFileCount: 2
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let resolution = await bundle.payloadLocator.managedPayloadResolution(for: record)
+
+        guard case .unresolved(let failure) = resolution else {
+            return XCTFail("Expected unsafe manifest failure")
+        }
+        XCTAssertEqual(failure.reason, .unsafeManifest)
+    }
+
+    func testManagedPayloadResolutionRejectsFileDirectoryPrefixConflict() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "Show", sizeBytes: 4_096, fileIndex: 0),
+            TorrentContentFileDescriptor(relativePath: "Show/movie.bin", sizeBytes: 4_096, fileIndex: 1),
+        ])
+        let bundle = makeTestStoreBundle(engine: engine)
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Locator-PrefixConflict-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0, 1],
+            selectedFileCount: 2,
+            totalFileCount: 2
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let resolution = await bundle.payloadLocator.managedPayloadResolution(for: record)
+
+        guard case .unresolved(let failure) = resolution else {
+            return XCTFail("Expected unsafe manifest failure")
+        }
+        XCTAssertEqual(failure.reason, .unsafeManifest)
+    }
 }

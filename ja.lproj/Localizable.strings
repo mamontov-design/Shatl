@@ -118,6 +118,8 @@
 "payload_deletion.engine_stop_failed.message" = "ShatlはTorrentをリストから削除しましたが、ファイル削除前にエンジン内で安全に停止できませんでした。";
 "payload_deletion.partial_failure.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の%lld個のファイルを削除できませんでした。";
 "payload_deletion.unresolved.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の関連ファイルを安全に特定できませんでした。";
+"payload_deletion.safety_refused.message" = "ShatlはTorrentをリストから削除しましたが、パスまたはオブジェクトの種類がTorrentデータと一致しなくなったため、ファイルは残しました。";
+"payload_deletion.cleanup_failure.message" = "Torrentファイルは削除されましたが、安全にクリーンアップできなかった一部のフォルダまたはシステムファイルは残されました。";
 
 "add_torrent.loading_metadata" = "メタデータを取得中…";
 "add_torrent.title" = "ダウンロードを追加";

@@ -4,7 +4,27 @@
 import Foundation
 
 nonisolated enum TorrentPathSafety {
+    static func normalizedRelativePathComponents(_ path: String) -> [String]? {
+        guard !path.contains("\0") else { return nil }
+
+        let normalizedSeparators = path.replacingOccurrences(of: "\\", with: "/")
+        guard !normalizedSeparators.hasPrefix("/") else { return nil }
+
+        let rawComponents = normalizedSeparators.split(
+            separator: "/",
+            omittingEmptySubsequences: false
+        )
+        guard !rawComponents.isEmpty else { return nil }
+        guard rawComponents.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else {
+            return nil
+        }
+
+        return rawComponents.map(String.init)
+    }
+
     static func normalizedRelativePath(_ path: String) -> String? {
+        guard !path.contains("\0") else { return nil }
+
         let normalizedSeparators = path.replacingOccurrences(of: "\\", with: "/")
         guard !normalizedSeparators.hasPrefix("/") else { return nil }
 

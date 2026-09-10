@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Darwin
 import Foundation
 import XCTest
 @testable import Shatl
@@ -229,5 +230,174 @@ final class TorrentPayloadDeletionServiceTests: XCTestCase {
         XCTAssertEqual(deletionResult.deletedManagedFileCount, 1)
         XCTAssertEqual(deletionResult.failedManagedFileCount, 0)
         XCTAssertFalse(FileManager.default.fileExists(atPath: payloadFileURL.path))
+    }
+
+    func testDeletionMustNotTraverseSymlinkParent() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        let outsideRoot = bundle.rootURL.appendingPathComponent("Personal", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outsideRoot, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let victimURL = outsideRoot.appendingPathComponent("movie.bin", isDirectory: false)
+        let symlinkURL = saveRoot.appendingPathComponent("Show", isDirectory: true)
+        try Data("unrelated personal data".utf8).write(to: victimURL)
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: outsideRoot)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileRelativePaths: ["Show/movie.bin"]
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unsafe(let failure) = outcome else {
+            return XCTFail("Expected deletion to be refused")
+        }
+        XCTAssertEqual(failure.issues.map(\.reason), [.symlinkComponent])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: victimURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: symlinkURL.path))
+    }
+
+    func testDeletionMustNotRecursivelyDeleteReplacementDirectory() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        let replacementURL = saveRoot.appendingPathComponent("movie.bin", isDirectory: true)
+        try FileManager.default.createDirectory(at: replacementURL, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let victimURL = replacementURL.appendingPathComponent("personal.txt", isDirectory: false)
+        try Data("unrelated personal data".utf8).write(to: victimURL)
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileRelativePaths: ["movie.bin"]
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unsafe(let failure) = outcome else {
+            return XCTFail("Expected deletion to be refused")
+        }
+        XCTAssertEqual(failure.issues.first?.reason, .objectTypeMismatch)
+        XCTAssertEqual(failure.issues.first?.actualType, .directory)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: victimURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: replacementURL.path))
+    }
+
+    func testDeletePayloadRefusesLeafSymlinkWithoutDeletingItsTarget() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        let outsideRoot = bundle.rootURL.appendingPathComponent("Personal", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outsideRoot, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let victimURL = outsideRoot.appendingPathComponent("movie.bin", isDirectory: false)
+        let symlinkURL = saveRoot.appendingPathComponent("movie.bin", isDirectory: false)
+        try Data("unrelated personal data".utf8).write(to: victimURL)
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: victimURL)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileRelativePaths: ["movie.bin"]
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unsafe(let failure) = outcome else {
+            return XCTFail("Expected deletion to be refused")
+        }
+        XCTAssertEqual(failure.issues.first?.reason, .objectTypeMismatch)
+        XCTAssertEqual(failure.issues.first?.actualType, .symbolicLink)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: victimURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: symlinkURL.path))
+    }
+
+    func testUnsafeEntryAbortsEntireManifestBeforeAnyFileIsDeleted() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let safeFileURL = saveRoot.appendingPathComponent("safe.bin", isDirectory: false)
+        let unsafeDirectoryURL = saveRoot.appendingPathComponent("unsafe.bin", isDirectory: true)
+        try Data("payload".utf8).write(to: safeFileURL)
+        try FileManager.default.createDirectory(at: unsafeDirectoryURL, withIntermediateDirectories: true)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0, 1],
+            selectedFileRelativePaths: ["safe.bin", "unsafe.bin"],
+            selectedFileCount: 2,
+            totalFileCount: 2
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unsafe = outcome else {
+            return XCTFail("Expected deletion to be refused")
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: safeFileURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: unsafeDirectoryURL.path))
+    }
+
+    func testDeletePayloadRefusesSpecialFileType() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let fifoURL = saveRoot.appendingPathComponent("movie.bin", isDirectory: false)
+        let created = fifoURL.withUnsafeFileSystemRepresentation { path in
+            guard let path else { return Int32(-1) }
+            return Darwin.mkfifo(path, S_IRUSR | S_IWUSR)
+        }
+        XCTAssertEqual(created, 0)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileRelativePaths: ["movie.bin"]
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unsafe(let failure) = outcome else {
+            return XCTFail("Expected deletion to be refused")
+        }
+        XCTAssertEqual(failure.issues.first?.actualType, .other)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fifoURL.path))
+    }
+
+    func testInvalidStoredManifestRefusesDeletionWithoutDeletingValidSibling() async throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        let saveRoot = bundle.rootURL.appendingPathComponent("Downloads", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        let validFileURL = saveRoot.appendingPathComponent("movie.bin", isDirectory: false)
+        try Data("payload".utf8).write(to: validFileURL)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0, 1],
+            selectedFileRelativePaths: ["movie.bin", "../personal.bin"],
+            selectedFileCount: 2,
+            totalFileCount: 2
+        )
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let outcome = await bundle.payloadDeletionService.deletePayload(for: record)
+
+        guard case .unresolved(let failure) = outcome else {
+            return XCTFail("Expected unsafe manifest resolution failure")
+        }
+        XCTAssertEqual(failure.reason, .unsafeManifest)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: validFileURL.path))
     }
 }

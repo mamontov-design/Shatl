@@ -118,6 +118,8 @@
 "payload_deletion.engine_stop_failed.message" = "Shatl удалил торрент из списка, но не смог безопасно остановить его в движке перед удалением файлов.";
 "payload_deletion.partial_failure.message" = "Shatl удалил торрент из списка, но не смог удалить %lld файл(ов) с диска.";
 "payload_deletion.unresolved.message" = "Shatl удалил торрент из списка, но не смог безопасно определить связанные файлы на диске.";
+"payload_deletion.safety_refused.message" = "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента.";
+"payload_deletion.cleanup_failure.message" = "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить.";
 
 "add_torrent.loading_metadata" = "Получение метаданных…";
 "add_torrent.title" = "Добавление загрузки";

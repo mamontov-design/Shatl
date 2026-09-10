@@ -974,6 +974,103 @@ final class AppStoreTests: XCTestCase {
         )
     }
 
+    func testRemoveTorrentWithFilesShowsSafetyAlertAndPreservesReplacementDirectory() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "Movie.mkv", sizeBytes: 4_096, fileIndex: 0),
+        ])
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RemovePayloadUnsafe-\(UUID().uuidString)", isDirectory: true)
+        let replacementURL = saveRoot.appendingPathComponent("Movie.mkv", isDirectory: true)
+        try FileManager.default.createDirectory(at: replacementURL, withIntermediateDirectories: true)
+        let victimURL = replacementURL.appendingPathComponent("personal.txt")
+        try Data("personal data".utf8).write(to: victimURL)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            status: .completed,
+            progress: 1.0
+        )
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        await bundle.sessionStore.saveCriticalState(from: [record])
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: victimURL.path))
+        XCTAssertEqual(
+            bundle.store.payloadDeletionAlert?.message,
+            L10n.string(
+                "payload_deletion.safety_refused.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента."
+            )
+        )
+    }
+
+    func testRemoveTorrentWithFilesShowsCleanupAlertAndPreservesUnsafeSidecar() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "Show/Movie.mkv", sizeBytes: 4_096, fileIndex: 0),
+        ])
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RemovePayloadUnsafeCleanup-\(UUID().uuidString)", isDirectory: true)
+        let showURL = saveRoot.appendingPathComponent("Show", isDirectory: true)
+        let outsideURL = saveRoot.appendingPathComponent("Personal", isDirectory: true)
+        try FileManager.default.createDirectory(at: showURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outsideURL, withIntermediateDirectories: true)
+        let payloadURL = showURL.appendingPathComponent("Movie.mkv")
+        let victimURL = outsideURL.appendingPathComponent("metadata.bin")
+        let sidecarURL = showURL.appendingPathComponent(".DS_Store")
+        try Data("payload".utf8).write(to: payloadURL)
+        try Data("personal data".utf8).write(to: victimURL)
+        try FileManager.default.createSymbolicLink(at: sidecarURL, withDestinationURL: victimURL)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            status: .completed,
+            progress: 1.0
+        )
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        await bundle.sessionStore.saveCriticalState(from: [record])
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: payloadURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sidecarURL.path))
+        XCTAssertEqual(try Data(contentsOf: victimURL), Data("personal data".utf8))
+        XCTAssertEqual(
+            bundle.store.payloadDeletionAlert?.message,
+            L10n.string(
+                "payload_deletion.cleanup_failure.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить."
+            )
+        )
+    }
+
     func testStartSelectedCompletedTorrentWithMissingContentAppliesPersistentIssue() async throws {
         let engine = FakeTorrentEngine()
         await engine.setInspectContents([

@@ -118,6 +118,8 @@
 "payload_deletion.engine_stop_failed.message" = "Shatl removed the torrent from the list, but could not safely stop it in the engine before deleting files.";
 "payload_deletion.partial_failure.message" = "Shatl removed the torrent from the list, but could not delete %lld file(s) from disk.";
 "payload_deletion.unresolved.message" = "Shatl removed the torrent from the list, but could not safely identify the related files on disk.";
+"payload_deletion.safety_refused.message" = "Shatl removed the torrent from the list but left the files in place because a path or object type no longer matches the torrent data.";
+"payload_deletion.cleanup_failure.message" = "The torrent files were deleted, but Shatl left some folders or system files in place because they could not be cleaned up safely.";
 
 "add_torrent.loading_metadata" = "Fetching metadata…";
 "add_torrent.title" = "Add Download";

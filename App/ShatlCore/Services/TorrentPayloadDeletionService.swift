@@ -6,6 +6,7 @@ import Foundation
 nonisolated enum TorrentPayloadDeletionOutcome: Sendable, Equatable {
     case deleted(TorrentPayloadDeletionResult)
     case unresolved(ManagedTorrentPayloadResolutionFailure)
+    case unsafe(TorrentPayloadDeletionSafetyFailure)
 }
 
 nonisolated struct TorrentPayloadDeletionResult: Sendable, Equatable {
@@ -13,22 +14,25 @@ nonisolated struct TorrentPayloadDeletionResult: Sendable, Equatable {
     var deletedManagedFileCount: Int = 0
     var missingManagedFileCount: Int = 0
     var failedManagedFileCount: Int = 0
+    var unsafeManagedFileCount: Int = 0
     var deletedDirectoryCount: Int = 0
     var deletedSystemSidecarCount: Int = 0
+    var failedDirectoryCleanupCount: Int = 0
+    var unsafeCleanupItemCount: Int = 0
 }
 
 /// Keeps payload deletion separate from the engine so Shatl controls
 /// partial selections, nested folders, and safe cleanup of empty directories.
 actor TorrentPayloadDeletionService {
     private let payloadLocator: TorrentPayloadLocator
-    private let fileManager: FileManager
+    private let secureFileSystem: SecureTorrentPayloadFileSystem
 
     init(
         payloadLocator: TorrentPayloadLocator,
-        fileManager: FileManager = .default
+        secureFileSystem: SecureTorrentPayloadFileSystem = SecureTorrentPayloadFileSystem()
     ) {
         self.payloadLocator = payloadLocator
-        self.fileManager = fileManager
+        self.secureFileSystem = secureFileSystem
     }
 
     func deletePayload(for record: TorrentRecord) async -> TorrentPayloadDeletionOutcome {
@@ -40,70 +44,24 @@ actor TorrentPayloadDeletionService {
             return .unresolved(failure)
         }
 
-        let saveURL = payload.saveURL.standardizedFileURL
-        var result = TorrentPayloadDeletionResult(payloadSource: payload.source)
-        var candidateDirectoryPaths: Set<String> = []
+        switch secureFileSystem.delete(saveURL: payload.saveURL, managedFiles: payload.managedFiles) {
+        case .refused(let failure):
+            logSafetyIssues(failure.issues, record: record, payload: payload, phase: "preflight")
+            return .unsafe(failure)
+        case .completed(let report):
+            var result = TorrentPayloadDeletionResult(payloadSource: payload.source)
+            result.deletedManagedFileCount = report.deletedFilePaths.count
+            result.missingManagedFileCount = report.missingFilePaths.count
+            result.failedManagedFileCount = report.failedFileIssues.count
+            result.unsafeManagedFileCount = report.unsafeFileIssues.count
+            result.deletedDirectoryCount = report.deletedDirectoryCount
+            result.deletedSystemSidecarCount = report.deletedSidecarCount
+            result.failedDirectoryCleanupCount = report.failedDirectoryCleanupCount
+            result.unsafeCleanupItemCount = report.unsafeCleanupIssues.count
 
-        let managedFiles = payload.managedFiles
-            .map {
-                ManagedTorrentFile(
-                    relativePath: $0.relativePath,
-                    fileURL: $0.fileURL.standardizedFileURL
-                )
-            }
-            .sorted { deeperPathComesFirst(lhs: $0.fileURL, rhs: $1.fileURL) }
-
-        for managedFile in managedFiles {
-            let fileURL = managedFile.fileURL
-            if fileManager.fileExists(atPath: fileURL.path) {
-                do {
-                    try fileManager.removeItem(at: fileURL)
-                    result.deletedManagedFileCount += 1
-                    logFileDeletionEvent(
-                        "payload.delete.file.deleted",
-                        record: record,
-                        payload: payload,
-                        managedFile: managedFile
-                    )
-                } catch {
-                    result.failedManagedFileCount += 1
-                    logFileDeletionEvent(
-                        "payload.delete.file.failed",
-                        record: record,
-                        payload: payload,
-                        managedFile: managedFile,
-                        error: error
-                    )
-                }
-            } else {
-                result.missingManagedFileCount += 1
-                logFileDeletionEvent(
-                    "payload.delete.file.missing",
-                    record: record,
-                    payload: payload,
-                    managedFile: managedFile
-                )
-            }
-
-            for directoryURL in candidateDirectories(
-                for: fileURL,
-                stopAt: saveURL
-            ) {
-                candidateDirectoryPaths.insert(directoryURL.path)
-            }
+            logCompletedReport(report, record: record, payload: payload)
+            return .deleted(result)
         }
-
-        let candidateDirectories = candidateDirectoryPaths
-            .map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
-            .sorted(by: deeperPathComesFirst(lhs:rhs:))
-
-        for directoryURL in candidateDirectories {
-            let cleanupResult = cleanupDirectoryIfEffectivelyEmpty(directoryURL)
-            result.deletedDirectoryCount += cleanupResult.deletedDirectoryCount
-            result.deletedSystemSidecarCount += cleanupResult.deletedSystemSidecarCount
-        }
-
-        return .deleted(result)
     }
 
     private func logFileDeletionEvent(
@@ -111,7 +69,7 @@ actor TorrentPayloadDeletionService {
         record: TorrentRecord,
         payload: ManagedTorrentPayload,
         managedFile: ManagedTorrentFile,
-        error: Error? = nil
+        reason: String? = nil
     ) {
         guard ShatlDiskDiagnosticsLog.isEnabled else { return }
 
@@ -122,89 +80,76 @@ actor TorrentPayloadDeletionService {
             "path": managedFile.fileURL.path
         ]
 
-        if let error {
-            fields["reason"] = (error as NSError).localizedDescription
+        if let reason {
+            fields["reason"] = reason
         }
 
         ShatlDiskDiagnosticsLog.event(event, fields: fields)
     }
 
-    private func candidateDirectories(for fileURL: URL, stopAt boundaryURL: URL) -> [URL] {
-        let normalizedBoundary = boundaryURL.standardizedFileURL
-        var currentDirectory = fileURL.deletingLastPathComponent().standardizedFileURL
-        var directories: [URL] = []
+    private func logCompletedReport(
+        _ report: SecureTorrentPayloadFileSystemReport,
+        record: TorrentRecord,
+        payload: ManagedTorrentPayload
+    ) {
+        let managedFilesByPath = Dictionary(
+            uniqueKeysWithValues: payload.managedFiles.map { ($0.relativePath, $0) }
+        )
 
-        while isDescendant(currentDirectory, of: normalizedBoundary) {
-            directories.append(currentDirectory)
-            currentDirectory = currentDirectory.deletingLastPathComponent().standardizedFileURL
+        for relativePath in report.deletedFilePaths {
+            if let managedFile = managedFilesByPath[relativePath] {
+                logFileDeletionEvent(
+                    "payload.delete.file.deleted",
+                    record: record,
+                    payload: payload,
+                    managedFile: managedFile
+                )
+            }
         }
-
-        return directories
-    }
-
-    private func cleanupDirectoryIfEffectivelyEmpty(
-        _ directoryURL: URL
-    ) -> (deletedDirectoryCount: Int, deletedSystemSidecarCount: Int) {
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return (0, 0)
-        }
-
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: directoryURL,
-            includingPropertiesForKeys: nil,
-            options: []
-        ) else {
-            return (0, 0)
-        }
-
-        let ignorableItems = contents.filter { isIgnorableSystemSidecar($0.lastPathComponent) }
-        guard contents.count == ignorableItems.count else {
-            return (0, 0)
-        }
-
-        var deletedSidecars = 0
-        for ignorableItem in ignorableItems {
-            do {
-                try fileManager.removeItem(at: ignorableItem)
-                deletedSidecars += 1
-            } catch {
-                // Preserve the directory when an auxiliary file could not be removed.
-                return (0, 0)
+        for relativePath in report.missingFilePaths {
+            if let managedFile = managedFilesByPath[relativePath] {
+                logFileDeletionEvent(
+                    "payload.delete.file.missing",
+                    record: record,
+                    payload: payload,
+                    managedFile: managedFile
+                )
             }
         }
 
-        do {
-            try fileManager.removeItem(at: directoryURL)
-            return (1, deletedSidecars)
-        } catch {
-            return (0, 0)
+        for issue in report.failedFileIssues {
+            logSafetyIssues([issue], record: record, payload: payload, phase: "delete-failed")
+        }
+        for issue in report.unsafeFileIssues {
+            logSafetyIssues([issue], record: record, payload: payload, phase: "delete-unsafe")
+        }
+        for issue in report.unsafeCleanupIssues {
+            logSafetyIssues([issue], record: record, payload: payload, phase: "cleanup-unsafe")
         }
     }
 
-    private func isIgnorableSystemSidecar(_ name: String) -> Bool {
-        name == ".DS_Store" || name.hasPrefix("._")
-    }
-
-    private func isDescendant(_ candidate: URL, of ancestor: URL) -> Bool {
-        let candidateComponents = candidate.standardizedFileURL.pathComponents
-        let ancestorComponents = ancestor.standardizedFileURL.pathComponents
-
-        guard candidateComponents.count > ancestorComponents.count else {
-            return false
+    private func logSafetyIssues(
+        _ issues: [TorrentPayloadDeletionSafetyIssue],
+        record: TorrentRecord,
+        payload: ManagedTorrentPayload,
+        phase: String
+    ) {
+        for issue in issues {
+            let actualType = issue.actualType?.rawValue ?? "-"
+            let errorCode = issue.errorCode.map(String.init) ?? "-"
+            ShatlDiskDiagnosticsLog.event(
+                "payload.delete.safety-refused",
+                fields: [
+                    "torrentID": record.id.uuidString,
+                    "source": payload.source.rawValue,
+                    "phase": phase,
+                    "savePath": payload.saveURL.path,
+                    "relativePath": issue.relativePath,
+                    "reason": issue.reason.rawValue,
+                    "actualType": actualType,
+                    "errno": errorCode
+                ]
+            )
         }
-
-        return Array(candidateComponents.prefix(ancestorComponents.count)) == ancestorComponents
-    }
-
-    private func deeperPathComesFirst(lhs: URL, rhs: URL) -> Bool {
-        let lhsDepth = lhs.standardizedFileURL.pathComponents.count
-        let rhsDepth = rhs.standardizedFileURL.pathComponents.count
-
-        if lhsDepth != rhsDepth {
-            return lhsDepth > rhsDepth
-        }
-
-        return lhs.path > rhs.path
     }
 }
