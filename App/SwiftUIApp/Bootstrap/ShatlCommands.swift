@@ -13,6 +13,7 @@ struct ShatlCommands: Commands {
                 .disabled(true)
         }
 
+        #if DEBUG
         CommandMenu("settings.tab.debug") {
             Button("menu.debug.show_onboarding") {
                 NotificationCenter.default.post(
@@ -20,8 +21,8 @@ struct ShatlCommands: Commands {
                     object: nil
                 )
             }
-
         }
+        #endif
 
         CommandMenu("menu.torrent") {
             Button {

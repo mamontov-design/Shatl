@@ -44,19 +44,18 @@ actor SessionStore {
     private let archiveStore: TorrentArchiveStore
     private let bookmarkStore: BookmarkStore
     private let resumeDataStore: ResumeDataStore?
-    private let backupStore: SessionBackupStore?
     private let fileManager: FileManager
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let readSessionData: @Sendable (URL) async throws -> Data
     private var persistenceState: PersistenceState
+    private var lastPersistedTorrentRecords: [SessionTorrentRecord]?
 
     init(
         directories: ShatlDirectories,
         archiveStore: TorrentArchiveStore,
         bookmarkStore: BookmarkStore,
         resumeDataStore: ResumeDataStore? = nil,
-        backupStore: SessionBackupStore? = nil,
         fileManager: FileManager = .default,
         startupMode: SessionStoreStartupMode = .requiresInitialLoad,
         readSessionData: @escaping @Sendable (URL) async throws -> Data = { url in
@@ -67,7 +66,6 @@ actor SessionStore {
         self.archiveStore = archiveStore
         self.bookmarkStore = bookmarkStore
         self.resumeDataStore = resumeDataStore
-        self.backupStore = backupStore
         self.fileManager = fileManager
         self.readSessionData = readSessionData
         self.persistenceState = startupMode == .alreadyInitialized ? .writable : .awaitingInitialLoad
@@ -78,22 +76,62 @@ actor SessionStore {
         self.decoder = JSONDecoder()
     }
 
-    func load() async -> SessionLoadResult {
+    func load(expectsExistingSession: Bool = false) async -> SessionLoadResult {
+        let applicationSupportDirectoryExists = fileManager.fileExists(
+            atPath: directories.applicationSupportURL.path
+        )
+        let sessionDirectoryExists = fileManager.fileExists(
+            atPath: directories.sessionDirectoryURL.path
+        )
+        let sessionSnapshotExists = fileManager.fileExists(
+            atPath: directories.sessionSnapshotURL.path
+        )
+
+        if !sessionSnapshotExists, case .writable = persistenceState {
+            do {
+                try directories.ensureSessionDirectories()
+                return .missing
+            } catch {
+                return .failure(.unreadable)
+            }
+        }
+
+        if !sessionSnapshotExists {
+            do {
+                let hasPrimaryRecoveryArtifacts = try hasRecoveryArtifacts()
+                let knownSessionStorageIsMissing = expectsExistingSession
+                    && (!applicationSupportDirectoryExists
+                        || !sessionDirectoryExists
+                        || !sessionSnapshotExists)
+
+                if knownSessionStorageIsMissing
+                    || hasPrimaryRecoveryArtifacts {
+                    return register(.failure(.missingWithRecoveryArtifacts))
+                }
+            } catch {
+                return register(.failure(.unreadable))
+            }
+        }
+
+        // A persisted snapshot is only one part of the primary restore bundle.
+        // Detect deleted or replaced support directories before
+        // `ensureSessionDirectories()` can silently recreate them and erase the
+        // evidence that the primary session was damaged.
+        if sessionSnapshotExists, !hasCompletePrimarySessionStructure() {
+            return register(.failure(.missingWithRecoveryArtifacts))
+        }
+
         do {
             try directories.ensureSessionDirectories()
         } catch {
             return register(.failure(.unreadable))
         }
 
-        guard fileManager.fileExists(atPath: directories.sessionSnapshotURL.path) else {
+        guard sessionSnapshotExists else {
             if persistenceState == .writable {
                 return .missing
             }
-            do {
-                return register(try hasRecoveryArtifacts() ? .failure(.missingWithRecoveryArtifacts) : .missing)
-            } catch {
-                return register(.failure(.unreadable))
-            }
+            return register(.missing)
         }
 
         do {
@@ -104,7 +142,9 @@ actor SessionStore {
                 return register(.failure(.unsupportedVersion(found: header.schemaVersion)))
             }
 
-            return register(.loaded(try decoder.decode(SessionSnapshot.self, from: data)))
+            let snapshot = try decoder.decode(SessionSnapshot.self, from: data)
+            lastPersistedTorrentRecords = snapshot.torrents
+            return register(.loaded(snapshot))
         } catch {
             return register(.failure(.unreadable))
         }
@@ -114,30 +154,6 @@ actor SessionStore {
     func acceptInitialLoad() {
         guard persistenceState == .awaitingAcceptance else { return }
         persistenceState = .writable
-    }
-
-    func sessionBackupStatus() async -> SessionBackupStatus {
-        guard let backupStore else { return .disabled }
-        return await backupStore.status()
-    }
-
-    func configureSessionBackup(_ configuration: SessionBackupConfiguration) async -> SessionBackupStatus {
-        guard let backupStore else { return .disabled }
-        return await backupStore.configure(configuration)
-    }
-
-    func createSessionBackup() async -> SessionBackupStatus {
-        guard let backupStore else { return .disabled }
-        return await backupStore.createBackup()
-    }
-
-    func restoreSessionBackup() async -> SessionBackupRestoreOutcome {
-        guard let backupStore else { return .unavailable(.folderUnavailable) }
-        let outcome = await backupStore.restoreBackup()
-        if case .restored = outcome {
-            persistenceState = .awaitingAcceptance
-        }
-        return outcome
     }
 
     func discardFailedSessionAndCreateEmpty() async -> SessionSaveOutcome {
@@ -180,8 +196,11 @@ actor SessionStore {
             return .failed
         }
 
-        let validIDs = Set(records.map(\.id))
         let snapshot = makeSnapshot(from: records)
+        if snapshot.torrents == lastPersistedTorrentRecords {
+            return .saved
+        }
+        let validIDs = Set(records.map(\.id))
 
         do {
             let data = try encoder.encode(snapshot)
@@ -192,7 +211,7 @@ actor SessionStore {
                 await bookmarkStore.cleanupOrphanedBookmarks(validTorrentIDs: validIDs)
                 await resumeDataStore?.cleanupOrphanedResumeData(validTorrentIDs: validIDs)
             }
-            _ = await backupStore?.createBackup()
+            lastPersistedTorrentRecords = snapshot.torrents
             return .saved
         } catch {
             return .failed
@@ -263,6 +282,9 @@ actor SessionStore {
         ]
 
         for artifactDirectory in artifactDirectories {
+            guard fileManager.fileExists(atPath: artifactDirectory.url.path) else {
+                continue
+            }
             let items = try fileManager.contentsOfDirectory(
                 at: artifactDirectory.url,
                 includingPropertiesForKeys: nil
@@ -272,6 +294,21 @@ actor SessionStore {
             }
         }
         return false
+    }
+
+    private func hasCompletePrimarySessionStructure() -> Bool {
+        let requiredDirectories = [
+            directories.sessionDirectoryURL,
+            directories.archivedTorrentsDirectoryURL,
+            directories.bookmarksDirectoryURL,
+            directories.resumeDataDirectoryURL,
+        ]
+
+        return requiredDirectories.allSatisfy { url in
+            var isDirectory: ObjCBool = false
+            return fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory)
+                && isDirectory.boolValue
+        }
     }
 }
 

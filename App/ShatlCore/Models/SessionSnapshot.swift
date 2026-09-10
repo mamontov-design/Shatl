@@ -3,7 +3,7 @@
 
 import Foundation
 
-nonisolated struct SessionTorrentRecord: Codable, Sendable {
+nonisolated struct SessionTorrentRecord: Codable, Equatable, Sendable {
     var torrentID: UUID
     var attemptID: UUID
     var infoHash: String?

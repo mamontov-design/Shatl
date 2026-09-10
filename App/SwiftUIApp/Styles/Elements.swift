@@ -8,6 +8,7 @@ enum ShatlButtonRole {
     case borderedNeutral
     case borderedColored
     case borderedMonochrome
+    case lineMessage
 }
 
 enum ShatlIconSize {
@@ -209,11 +210,11 @@ struct ShatlButton: View {
                 }
             }
             .foregroundStyle(foregroundColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
             .frame(maxWidth: fillsWidth ? .infinity : nil)
             .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.button, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
         .buttonStyle(ShatlPressedButtonStyle())
         .disabled(isDisabled)
@@ -228,6 +229,8 @@ struct ShatlButton: View {
             ShatlColor.accent
         case .borderedMonochrome:
             ShatlColor.onboardingButtonBody
+        case .lineMessage:
+            ShatlColor.lineMessageButtonBackground
         }
     }
 
@@ -239,7 +242,21 @@ struct ShatlButton: View {
             ShatlColor.typographyPrimaryInverted
         case .borderedMonochrome:
             ShatlColor.onboardingButtonText
+        case .lineMessage:
+            ShatlColor.lineMessageButtonLabel
         }
+    }
+
+    private var horizontalPadding: CGFloat {
+        role == .lineMessage ? 6 : 12
+    }
+
+    private var verticalPadding: CGFloat {
+        role == .lineMessage ? 4 : 6
+    }
+
+    private var cornerRadius: CGFloat {
+        role == .lineMessage ? ShatlCornerRadius.tab : ShatlCornerRadius.button
     }
 }
 
@@ -483,11 +500,13 @@ struct ShatlSettingsToggleRow: View {
                 .foregroundStyle(ShatlColor.typographyPrimary)
                 .opacity(isEnabled ? 1 : 0.5)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
 
             Spacer(minLength: 0)
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .accessibilityLabel(title.text)
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .disabled(!isEnabled)
@@ -1859,7 +1878,7 @@ struct ShatlMetricGroupSet: View {
     }
 }
 
-private struct ShatlPressedButtonStyle: ButtonStyle {
+struct ShatlPressedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.78 : 1)

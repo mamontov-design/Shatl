@@ -64,6 +64,7 @@ final class AppStoreTests: XCTestCase {
             reviewState: .ready,
             errorState: nil
         )
+
         bundle.store.confirmDraft()
 
         let didAddTorrent = await waitForCondition {
@@ -95,6 +96,7 @@ final class AppStoreTests: XCTestCase {
             reviewState: .ready,
             errorState: nil
         )
+
         bundle.store.confirmDraft()
 
         let didDismissModal = await waitForCondition {
@@ -2424,82 +2426,6 @@ final class AppStoreTests: XCTestCase {
         }
     }
 
-    func testCorruptPrimarySessionCanResumeBootstrapFromVerifiedBackup() async throws {
-        let engine = FakeTorrentEngine()
-        let backupRootURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ShatlAppStoreBackup-\(UUID().uuidString)", isDirectory: true)
-        let backupParentURL = backupRootURL.appendingPathComponent("Downloads", isDirectory: true)
-        try FileManager.default.createDirectory(
-            at: backupParentURL,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-        let bundle = makeTestStoreBundle(
-            engine: engine,
-            router: ExternalOpenRouter(),
-            sessionStoreStartupMode: .requiresInitialLoad,
-            sessionBackupParentURL: backupParentURL
-        )
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: backupRootURL)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let record = makeTestRecord(
-            originalName: "Recovered Torrent",
-            savePath: bundle.rootURL.path,
-            status: .stopped
-        )
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("torrent".utf8).write(to: archiveURL, options: .atomic)
-        try Data("payload".utf8).write(
-            to: bundle.rootURL.appendingPathComponent("test-file.bin"),
-            options: .atomic
-        )
-        let setupSessionStore = SessionStore(
-            directories: bundle.directories,
-            archiveStore: bundle.archiveStore,
-            bookmarkStore: bundle.bookmarkStore,
-            resumeDataStore: bundle.resumeDataStore,
-            startupMode: .alreadyInitialized
-        )
-        let setupSaveOutcome = await setupSessionStore.saveCriticalState(from: [record])
-        XCTAssertEqual(setupSaveOutcome, .saved)
-        let backupStore = try XCTUnwrap(bundle.backupStore)
-        guard case .current = await backupStore.createBackup() else {
-            return XCTFail("Expected a verified backup before damaging the primary session")
-        }
-        try Data("damaged-primary".utf8).write(
-            to: bundle.directories.sessionSnapshotURL,
-            options: .atomic
-        )
-
-        bundle.store.bootstrapRuntimeState()
-        let didOfferRecovery = await waitForCondition {
-            bundle.store.sessionLoadIssue == .unreadable
-                && bundle.store.sessionBackupStatus.details?.torrentCount == 1
-        }
-        XCTAssertTrue(didOfferRecovery)
-        XCTAssertFalse(bundle.store.canAddTorrent)
-
-        bundle.store.restoreDownloadListFromBackup()
-        let didFinishRecovery = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
-            bundle.store.sessionLoadIssue == nil
-                && bundle.store.torrents.map(\.id) == [record.id]
-                && bundle.store.canAddTorrent
-        }
-        XCTAssertTrue(didFinishRecovery)
-        XCTAssertEqual(bundle.store.torrents.first?.status, .stopped)
-        let bootCallCount = await engine.bootCallCount()
-        XCTAssertEqual(bootCallCount, 1)
-        XCTAssertNoThrow(
-            try JSONDecoder().decode(
-                SessionSnapshot.self,
-                from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
-            )
-        )
-    }
-
     func testMissingSnapshotWithRecoveryArtifactsShowsFailureAndDoesNotCreateNewSnapshot() async throws {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(
@@ -2525,6 +2451,29 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(bundle.store.canAddTorrent)
         XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.sessionSnapshotURL.path))
         XCTAssertEqual(try Data(contentsOf: artifactURL), artifactData)
+    }
+
+    func testPreviouslyInitializedAppTreatsMissingApplicationSupportFolderAsSessionFailure() async throws {
+        var preferences = AppPreferences.defaultValue
+        preferences.hasCompletedOnboarding = true
+        let bundle = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: preferences,
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.applicationSupportURL.path))
+        bundle.store.bootstrapRuntimeState()
+
+        let didReportFailure = await waitForCondition {
+            bundle.store.sessionLoadIssue == .missingWithRecoveryArtifacts
+        }
+        XCTAssertTrue(didReportFailure)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.applicationSupportURL.path))
     }
 
     func testCleanFirstLaunchCompletesBootstrapAndCreatesValidEmptySession() async throws {

@@ -79,6 +79,12 @@ enum ShatlColor {
     static let typographySecondary = Color("typographySecondary")
     static let typographyTertiary = Color("typographyTertiary")
 
+    static let lineMessageBackground = Color("lineMessageBackground")
+    static let lineMessageButtonBackground = Color("lineMessageButtonBackground")
+    static let lineMessageButtonLabel = Color("lineMessageButtonLabel")
+    static let lineMessageCaption = Color("lineMessageCaption")
+    static let lineMessageHeadline = Color("lineMessageHeadline")
+
     static let onboardingForeground = Color("onboardingForeground")
     static let onboardingBackground = Color("onboardingBackground")
     static let onboardingOutline = Color("onboardingOutline")

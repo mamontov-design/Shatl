@@ -39,9 +39,6 @@ final class AppPreferencesStoreTests: XCTestCase {
         preferences.launchAtLogin = true
         preferences.defaultDownloadPath = "/tmp/Shatl Downloads"
         preferences.defaultDownloadBookmarkData = Data("selected-folder-bookmark".utf8)
-        preferences.createsSessionBackup = false
-        preferences.sessionBackupParentPath = "/tmp/Shatl Backup"
-        preferences.sessionBackupParentBookmarkData = Data("backup-folder-bookmark".utf8)
         preferences.alwaysStopAfterDownload = true
         preferences.performanceProfile = .maximum
         preferences.metricsMode = .detailed
@@ -116,12 +113,6 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertFalse(preferences.isSnapshotDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.isAddTorrentReviewDiagnosticsLoggingEnabled)
         XCTAssertNil(preferences.defaultDownloadBookmarkData)
-        XCTAssertTrue(preferences.createsSessionBackup)
-        XCTAssertEqual(
-            preferences.sessionBackupParentPath,
-            AppPreferences.systemDownloadsDirectoryURL().path
-        )
-        XCTAssertNil(preferences.sessionBackupParentBookmarkData)
         XCTAssertEqual(preferences.performanceProfile, .balanced)
         XCTAssertFalse(preferences.usesUnrestrictedPerformanceMode)
         XCTAssertEqual(preferences.animationMode, .lively)
