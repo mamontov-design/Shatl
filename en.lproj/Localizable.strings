@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "Restoring session…";
 "session.restore.completed" = "Session restored";
 "session.load.in_progress.title" = "Session recovery is in progress.\nPlease wait.";
-"session.load.failure.title" = "Couldn’t restore the download list";
-"session.load.unreadable.message" = "Shatl couldn’t read the saved session. Files downloaded during previous launches remain on disk.";
-"session.load.missing.message" = "Shatl couldn’t find the saved download list. Files downloaded during previous launches remain on disk.";
-"session.load.unsupported.title" = "Couldn’t open the saved session";
+"session.load.failure.title" = "Couldn’t Restore the Download List.";
+"session.load.unreadable.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
+"session.load.missing.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
+"session.load.unsupported.title" = "Couldn’t Open the Saved Session.";
 "session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
 
 "onboarding.action.next" = "Next";
@@ -259,3 +259,5 @@
 
 "notification.download_completed.title" = "Download complete";
 "notification.download_completed.body" = "%@ has finished downloading.";
+
+"session.recovery.open_empty" = "Start with an Empty List";

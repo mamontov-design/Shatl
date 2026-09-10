@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "セッションを復元中…";
 "session.restore.completed" = "セッションを復元しました";
 "session.load.in_progress.title" = "セッションを復元しています。\nしばらくお待ちください。";
-"session.load.failure.title" = "ダウンロードリストを復元できませんでした";
-"session.load.unreadable.message" = "保存されたセッションを読み込めませんでした。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.load.missing.message" = "保存されたダウンロードリストが見つかりませんでした。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.load.unsupported.title" = "保存されたセッションを開けませんでした";
+"session.load.failure.title" = "ダウンロードリストを復元できませんでした。";
+"session.load.unreadable.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
+"session.load.missing.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
+"session.load.unsupported.title" = "保存されたセッションを開けませんでした。";
 "session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 
 "onboarding.action.next" = "次へ";
@@ -257,3 +257,5 @@
 
 "notification.download_completed.title" = "ダウンロード完了";
 "notification.download_completed.body" = "%@のダウンロードが完了しました。";
+
+"session.recovery.open_empty" = "空のリストで起動";

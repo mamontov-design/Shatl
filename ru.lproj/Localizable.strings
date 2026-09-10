@@ -38,11 +38,11 @@
 "session.restore.in_progress" = "Восстановление сессии…";
 "session.restore.completed" = "Сессия восстановлена";
 "session.load.in_progress.title" = "Выполняется восстановление сессии.\nПожалуйста, подождите.";
-"session.load.failure.title" = "Не удалось восстановить список загрузок";
-"session.load.unreadable.message" = "Shatl не смог прочитать сохранённую сессию. Загруженные с прошлого запуска файлы остались на диске.";
-"session.load.missing.message" = "Shatl не нашёл сохранённый список. Загруженные с прошлого запуска файлы остались на диске.";
-"session.load.unsupported.title" = "Не удалось открыть сохранённую сессию";
-"session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
+"session.load.failure.title" = "Не удалось восстановить список загрузок.";
+"session.load.unreadable.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
+"session.load.missing.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
+"session.load.unsupported.title" = "Не удалось открыть сохранённую сессию.";
+"session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
 
 "onboarding.action.next" = "Далее";
 "onboarding.action.not_now" = "Не сейчас";
@@ -263,3 +263,5 @@
 
 "notification.download_completed.title" = "Загрузка завершена";
 "notification.download_completed.body" = "«%@» загружен.";
+
+"session.recovery.open_empty" = "Запуск с пустым списком";

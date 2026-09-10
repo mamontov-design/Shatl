@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "正在恢复会话…";
 "session.restore.completed" = "会话已恢复";
 "session.load.in_progress.title" = "正在恢复会话。\n请稍候。";
-"session.load.failure.title" = "无法恢复下载列表";
-"session.load.unreadable.message" = "Shatl 无法读取已保存的会话。此前运行时下载的文件仍保留在磁盘上。";
-"session.load.missing.message" = "Shatl 未找到已保存的下载列表。此前运行时下载的文件仍保留在磁盘上。";
-"session.load.unsupported.title" = "无法打开已保存的会话";
+"session.load.failure.title" = "无法恢复下载列表。";
+"session.load.unreadable.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
+"session.load.missing.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
+"session.load.unsupported.title" = "无法打开已保存的会话。";
 "session.load.unsupported.message" = "该会话由其他版本的 Shatl 创建，暂时无法打开。此前运行时下载的文件仍保留在磁盘上。";
 
 "onboarding.action.next" = "下一步";
@@ -257,3 +257,5 @@
 
 "notification.download_completed.title" = "下载完成";
 "notification.download_completed.body" = "%@ 已下载完成。";
+
+"session.recovery.open_empty" = "使用空列表启动";

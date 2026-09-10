@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
 "session.restore.completed" = "Sitzung wiederhergestellt";
 "session.load.in_progress.title" = "Die Sitzung wird wiederhergestellt.\nBitte warten Sie.";
-"session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden";
-"session.load.unreadable.message" = "Shatl konnte die gespeicherte Sitzung nicht lesen. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
-"session.load.missing.message" = "Shatl konnte die gespeicherte Downloadliste nicht finden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
-"session.load.unsupported.title" = "Gespeicherte Sitzung konnte nicht geöffnet werden";
+"session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden.";
+"session.load.unreadable.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
+"session.load.missing.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
+"session.load.unsupported.title" = "Gespeicherte Sitzung konnte nicht geöffnet werden.";
 "session.load.unsupported.message" = "Die Sitzung wurde mit einer anderen Version von Shatl erstellt und kann noch nicht geöffnet werden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 
 "onboarding.action.next" = "Weiter";
@@ -259,3 +259,5 @@
 
 "notification.download_completed.title" = "Download abgeschlossen";
 "notification.download_completed.body" = "%@ wurde fertig geladen.";
+
+"session.recovery.open_empty" = "Mit leerer Liste starten";

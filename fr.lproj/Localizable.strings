@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "Restauration de la session…";
 "session.restore.completed" = "Session restaurée";
 "session.load.in_progress.title" = "La session est en cours de restauration.\nVeuillez patienter.";
-"session.load.failure.title" = "Impossible de restaurer la liste des téléchargements";
-"session.load.unreadable.message" = "Shatl n’a pas pu lire la session enregistrée. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
-"session.load.missing.message" = "Shatl n’a pas trouvé la liste des téléchargements enregistrée. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
-"session.load.unsupported.title" = "Impossible d’ouvrir la session enregistrée";
+"session.load.failure.title" = "Impossible de restaurer la liste des téléchargements.";
+"session.load.unreadable.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
+"session.load.missing.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
+"session.load.unsupported.title" = "Impossible d’ouvrir la session enregistrée.";
 "session.load.unsupported.message" = "La session a été créée avec une autre version de Shatl et ne peut pas encore être ouverte. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
 
 "onboarding.action.next" = "Suivant";
@@ -259,3 +259,5 @@
 
 "notification.download_completed.title" = "Téléchargement terminé";
 "notification.download_completed.body" = "%@ a terminé son téléchargement.";
+
+"session.recovery.open_empty" = "Démarrer avec une liste vide";

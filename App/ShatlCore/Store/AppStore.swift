@@ -65,6 +65,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var isRestoringSession = false
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
+    @Published private(set) var isResolvingSessionRecovery = false
     @Published private(set) var transitioningTorrentIDs: Set<UUID> = []
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
 
@@ -95,7 +96,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var didResolveInitialSessionLoad = false
     private var didCompleteRuntimeBootstrap = false
     private var isEngineReady = false
-    private var activeRefreshTick = 0
+    private var lastPersistedProgressBucketByID: [UUID: Int] = [:]
     private var isPreparingForTermination = false
     private var pendingConfirmedTorrent: TorrentRecord?
     private var pendingIncomingURLs: [URL] = []
@@ -162,6 +163,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
         self.torrents = torrents
+        self.lastPersistedProgressBucketByID = Dictionary(
+            uniqueKeysWithValues: torrents.map {
+                ($0.id, Self.progressPersistenceBucket(for: max($0.progress, $0.lastKnownProgress)))
+            }
+        )
         let resolvedHasLoadedInitialSession = hasLoadedInitialSession || !torrents.isEmpty
         self.hasLoadedInitialSession = resolvedHasLoadedInitialSession
         self.sessionLoadIssue = nil
@@ -545,7 +551,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         pendingConfirmedTorrent = nil
         insertConfirmedTorrent(record)
-        saveCriticalState()
 
         Task { [weak self] in
             await self?.refreshActiveSnapshots()
@@ -1052,6 +1057,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         // Remove the torrent from durable state first so it cannot return after relaunch.
         torrents.removeAll { $0.id == id }
+        lastPersistedProgressBucketByID[id] = nil
         if selectedTorrentID == id {
             selectedTorrentID = nil
         }
@@ -1347,12 +1353,38 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     return
                 }
 
+                let saveOutcome = await self.sessionStore.saveCriticalState(
+                    from: [record] + self.torrents,
+                    pruneRestoreArtifacts: false
+                )
+                guard saveOutcome == .saved else {
+                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
+                    await self.torrentArchiveStore.removeArchive(for: record.id)
+                    await self.bookmarkStore.removeBookmark(for: record.id)
+                    let persistenceError = TorrentEngineError(
+                        kind: .engineFailure,
+                        debugReason: "Не удалось сохранить новую загрузку в сессии."
+                    )
+                    self.presentInvalidDraft(
+                        for: draft.source,
+                        errorState: ShatlErrorCatalog.reviewError(
+                            for: persistenceError,
+                            source: draft.source,
+                            localeOverride: self.preferences.localeOverride
+                        ),
+                        suggestedSavePath: draft.suggestedSavePath,
+                        stopAfterDownload: draft.stopAfterDownload,
+                        alias: draft.alias,
+                        savePathBookmarkData: draft.savePathBookmarkData
+                    )
+                    return
+                }
+
                 if self.presentedModal != nil {
                     self.pendingConfirmedTorrent = record
                     self.dismissModal()
                 } else {
                     self.insertConfirmedTorrent(record)
-                    self.saveCriticalState()
                     await self.refreshActiveSnapshots()
                 }
             } catch {
@@ -1452,8 +1484,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         didBootstrap = true
         isRestoringSession = !torrents.isEmpty
 
+        let expectsExistingSession = preferences.hasCompletedOnboarding
         let loadTask = Task { [sessionStore] in
-            await sessionStore.load()
+            await sessionStore.load(expectsExistingSession: expectsExistingSession)
         }
         initialSessionLoadTask = loadTask
 
@@ -1465,48 +1498,54 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 return
             }
 
-            do {
-                let performanceSettings = self.preferences.enginePerformanceSettings
-                self.lastRequestedPerformanceSettings = performanceSettings
-                try await self.engine.applyPerformanceSettings(performanceSettings)
-                try await self.engine.boot()
-                self.isEngineReady = true
-            } catch {
-                self.isRestoringSession = false
-                return
-            }
-
-            let startupCheckCandidates = self.torrents.filter { $0.persistentIssue == nil }
-            let startupEvaluation = await self.diskIssueDetector.startupCheck(for: startupCheckCandidates)
-            _ = self.applyDiskIssueEvaluation(startupEvaluation)
-            await self.persistCriticalState()
-
-            if loadResult.snapshot != nil, !self.torrents.isEmpty {
-                let restoreCandidates = self.torrents.filter { $0.persistentIssue == nil }
-                self.restoreProgressFloorByID = Dictionary(
-                    uniqueKeysWithValues: restoreCandidates
-                        .filter { $0.status.isActive && max($0.progress, $0.lastKnownProgress) > 0 }
-                        .map { ($0.id, max($0.progress, $0.lastKnownProgress)) }
-                )
-                let restoreResult = await self.sessionRestoreCoordinator.restore(records: restoreCandidates)
-                self.applyRestoredPersistentIssues(restoreResult.persistentIssues)
-                self.applySnapshots(restoreResult.snapshots)
-                let didApplyFallbackStatuses = self.applyRestoreFallbackStatuses(
-                    restoreResult.fallbackStatusesByID,
-                    restoredSnapshotIDs: Set(restoreResult.snapshots.map(\.id))
-                )
-                if didApplyFallbackStatuses {
-                    await self.persistCriticalState()
-                }
-            }
-
-            self.startRuntimeLoop()
-            await self.reconcileSleepingTorrents()
-            self.isRestoringSession = false
-            self.allowsUserFacingNotifications = true
-            self.didCompleteRuntimeBootstrap = true
-            self.flushPendingIncomingURLs()
+            await self.completeRuntimeBootstrap(shouldRestoreSession: loadResult.snapshot != nil)
         }
+    }
+
+    private func completeRuntimeBootstrap(shouldRestoreSession: Bool) async {
+        guard !isPreparingForTermination else { return }
+
+        do {
+            let performanceSettings = preferences.enginePerformanceSettings
+            lastRequestedPerformanceSettings = performanceSettings
+            try await engine.applyPerformanceSettings(performanceSettings)
+            try await engine.boot()
+            isEngineReady = true
+        } catch {
+            isRestoringSession = false
+            return
+        }
+
+        let startupCheckCandidates = torrents.filter { $0.persistentIssue == nil }
+        let startupEvaluation = await diskIssueDetector.startupCheck(for: startupCheckCandidates)
+        _ = applyDiskIssueEvaluation(startupEvaluation)
+        await persistCriticalState()
+
+        if shouldRestoreSession, !torrents.isEmpty {
+            let restoreCandidates = torrents.filter { $0.persistentIssue == nil }
+            restoreProgressFloorByID = Dictionary(
+                uniqueKeysWithValues: restoreCandidates
+                    .filter { $0.status.isActive && max($0.progress, $0.lastKnownProgress) > 0 }
+                    .map { ($0.id, max($0.progress, $0.lastKnownProgress)) }
+            )
+            let restoreResult = await sessionRestoreCoordinator.restore(records: restoreCandidates)
+            applyRestoredPersistentIssues(restoreResult.persistentIssues)
+            applySnapshots(restoreResult.snapshots)
+            let didApplyFallbackStatuses = applyRestoreFallbackStatuses(
+                restoreResult.fallbackStatusesByID,
+                restoredSnapshotIDs: Set(restoreResult.snapshots.map(\.id))
+            )
+            if didApplyFallbackStatuses {
+                await persistCriticalState()
+            }
+        }
+
+        startRuntimeLoop()
+        await reconcileSleepingTorrents()
+        isRestoringSession = false
+        allowsUserFacingNotifications = true
+        didCompleteRuntimeBootstrap = true
+        flushPendingIncomingURLs()
     }
 
     private func resolveInitialSessionLoad(_ result: SessionLoadResult) async -> Bool {
@@ -1530,6 +1569,28 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard sessionLoadIssue == nil else { return false }
         await sessionStore.acceptInitialLoad()
         return true
+    }
+
+    func openWithEmptyDownloadList() {
+        guard sessionLoadIssue != nil, !isResolvingSessionRecovery else { return }
+        isResolvingSessionRecovery = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            let outcome = await self.sessionStore.discardFailedSessionAndCreateEmpty()
+            guard outcome == .saved else {
+                self.isResolvingSessionRecovery = false
+                return
+            }
+
+            self.torrents = []
+            self.lastPersistedProgressBucketByID = [:]
+            self.sessionLoadIssue = nil
+            self.selectedTorrentID = nil
+            self.expandedTorrentID = nil
+            self.isResolvingSessionRecovery = false
+            await self.completeRuntimeBootstrap(shouldRestoreSession: false)
+        }
     }
 
     private func schedulePerformanceSettingsApply() {
@@ -1605,11 +1666,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await detachCompletedTemporaryRechecksIfNeeded()
             await detachCompletedTemporaryRechecks(from: snapshots)
 
-            activeRefreshTick += 1
-            if activeRefreshTick >= 5 {
-                activeRefreshTick = 0
-                await sessionStore.saveProgressBatch(from: torrents)
-            }
         } catch {
             // Do not surface a separate alert for a background polling failure.
             // A transient engine failure can wait for the next tick.
@@ -1633,6 +1689,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         let snapshotsByID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
         var shouldRefreshSelectedNavigationAvailability = false
+        var shouldPersistDurableState = false
 
         for index in torrents.indices {
             guard let snapshot = snapshotsByID[torrents[index].id] else { continue }
@@ -1721,6 +1778,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                    wasFinishedForOpening != torrents[index].isFinishedForOpening {
                     shouldRefreshSelectedNavigationAvailability = true
                 }
+                if registerDurableSnapshotChange(previousStatus: previousStatus, record: torrents[index]) {
+                    shouldPersistDurableState = true
+                }
                 continue
             }
 
@@ -1786,11 +1846,32 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                wasFinishedForOpening != torrents[index].isFinishedForOpening {
                 shouldRefreshSelectedNavigationAvailability = true
             }
+            if registerDurableSnapshotChange(previousStatus: previousStatus, record: torrents[index]) {
+                shouldPersistDurableState = true
+            }
         }
 
         if shouldRefreshSelectedNavigationAvailability {
             refreshSelectedTorrentNavigationAvailability()
         }
+        if shouldPersistDurableState {
+            saveCriticalState()
+        }
+    }
+
+    private func registerDurableSnapshotChange(
+        previousStatus: TorrentStatus,
+        record: TorrentRecord
+    ) -> Bool {
+        let bucket = Self.progressPersistenceBucket(for: max(record.progress, record.lastKnownProgress))
+        let previousBucket = lastPersistedProgressBucketByID[record.id]
+        guard previousStatus != record.status || previousBucket != bucket else { return false }
+        lastPersistedProgressBucketByID[record.id] = bucket
+        return true
+    }
+
+    private static func progressPersistenceBucket(for progress: Double) -> Int {
+        Int((min(max(progress, 0), 1) * 100).rounded(.down))
     }
 
     private func shouldProtectRestoreProgress(
@@ -1873,6 +1954,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 stopAfterDownload: $0.stopAfterDownload
             )
         }
+        lastPersistedProgressBucketByID = Dictionary(
+            uniqueKeysWithValues: torrents.map {
+                ($0.id, Self.progressPersistenceBucket(for: max($0.progress, $0.lastKnownProgress)))
+            }
+        )
 
         detachedTorrentIDs = Set(
             snapshot.torrents
@@ -1901,11 +1987,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard !torrents.contains(where: { $0.id == record.id }) else { return }
 
         torrents.insert(record, at: 0)
+        lastPersistedProgressBucketByID[record.id] = Self.progressPersistenceBucket(
+            for: max(record.progress, record.lastKnownProgress)
+        )
         detachedTorrentIDs.remove(record.id)
     }
 
     private func persistCriticalState(pruneRestoreArtifacts: Bool = true) async {
-        await sessionStore.saveCriticalState(
+        _ = await sessionStore.saveCriticalState(
             from: torrents,
             pruneRestoreArtifacts: pruneRestoreArtifacts
         )

@@ -106,9 +106,20 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(didDismissModal)
         XCTAssertTrue(bundle.store.torrents.isEmpty)
 
+        let persistedBeforeDismissCallback = try? Data(
+            contentsOf: bundle.directories.sessionSnapshotURL
+        )
+        let snapshotBeforeDismissCallback = persistedBeforeDismissCallback.flatMap {
+            try? JSONDecoder().decode(SessionSnapshot.self, from: $0)
+        }
+        XCTAssertEqual(snapshotBeforeDismissCallback?.torrents.count, 1)
+        XCTAssertEqual(snapshotBeforeDismissCallback?.torrents.first?.originalName, "New Torrent")
+        let persistedTorrentID = snapshotBeforeDismissCallback?.torrents.first?.torrentID
+
         bundle.store.commitPendingConfirmedTorrent()
 
         XCTAssertEqual(bundle.store.torrents.count, 1)
+        XCTAssertEqual(bundle.store.torrents.first?.id, persistedTorrentID)
         XCTAssertNil(bundle.store.selectedTorrentID)
     }
 
@@ -2440,6 +2451,29 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(bundle.store.canAddTorrent)
         XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.sessionSnapshotURL.path))
         XCTAssertEqual(try Data(contentsOf: artifactURL), artifactData)
+    }
+
+    func testPreviouslyInitializedAppTreatsMissingApplicationSupportFolderAsSessionFailure() async throws {
+        var preferences = AppPreferences.defaultValue
+        preferences.hasCompletedOnboarding = true
+        let bundle = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: preferences,
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.applicationSupportURL.path))
+        bundle.store.bootstrapRuntimeState()
+
+        let didReportFailure = await waitForCondition {
+            bundle.store.sessionLoadIssue == .missingWithRecoveryArtifacts
+        }
+        XCTAssertTrue(didReportFailure)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bundle.directories.applicationSupportURL.path))
     }
 
     func testCleanFirstLaunchCompletesBootstrapAndCreatesValidEmptySession() async throws {

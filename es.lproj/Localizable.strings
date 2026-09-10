@@ -38,10 +38,10 @@
 "session.restore.in_progress" = "Restaurando sesión…";
 "session.restore.completed" = "Sesión restaurada";
 "session.load.in_progress.title" = "Se está restaurando la sesión.\nEspera, por favor.";
-"session.load.failure.title" = "No se pudo restaurar la lista de descargas";
-"session.load.unreadable.message" = "Shatl no pudo leer la sesión guardada. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
-"session.load.missing.message" = "Shatl no encontró la lista de descargas guardada. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
-"session.load.unsupported.title" = "No se pudo abrir la sesión guardada";
+"session.load.failure.title" = "No se pudo restaurar la lista de descargas.";
+"session.load.unreadable.message" = "Se produjo un error al restaurar las descargas. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
+"session.load.missing.message" = "Se produjo un error al restaurar las descargas. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
+"session.load.unsupported.title" = "No se pudo abrir la sesión guardada.";
 "session.load.unsupported.message" = "La sesión se creó con otra versión de Shatl y todavía no se puede abrir. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
 
 "onboarding.action.next" = "Siguiente";
@@ -259,3 +259,5 @@
 
 "notification.download_completed.title" = "Descarga completada";
 "notification.download_completed.body" = "%@ ha terminado de descargarse.";
+
+"session.recovery.open_empty" = "Iniciar con una lista vacía";

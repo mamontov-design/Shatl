@@ -156,6 +156,37 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: orphanResumeURL.path))
     }
 
+    func testSavingUnchangedDurableStateDoesNotRewriteSessionFile() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SessionStoreTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+
+        let directories = ShatlDirectories(
+            applicationSupportURL: rootURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+            cachesURL: rootURL.appendingPathComponent("Caches", isDirectory: true)
+        )
+        let sessionStore = SessionStore(
+            directories: directories,
+            archiveStore: TorrentArchiveStore(directories: directories),
+            bookmarkStore: BookmarkStore(directories: directories),
+            resumeDataStore: ResumeDataStore(directories: directories),
+            startupMode: .alreadyInitialized
+        )
+        let record = makeTestRecord(status: .stopped, progress: 0.42)
+
+        let firstOutcome = await sessionStore.saveCriticalState(from: [record])
+        XCTAssertEqual(firstOutcome, .saved)
+        let firstData = try Data(contentsOf: directories.sessionSnapshotURL)
+
+        let secondOutcome = await sessionStore.saveCriticalState(from: [record])
+        XCTAssertEqual(secondOutcome, .saved)
+        let secondData = try Data(contentsOf: directories.sessionSnapshotURL)
+
+        XCTAssertEqual(secondData, firstData)
+    }
+
     func testCleanFirstLaunchUnlocksOnlyAfterLoadIsAcceptedAndPersistsEmptySnapshot() async throws {
         let fixture = try makeFixture()
 
@@ -269,6 +300,43 @@ final class SessionStoreTests: XCTestCase {
             XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.directories.sessionSnapshotURL.path))
             XCTAssertEqual(try Data(contentsOf: artifactURL), originalData)
         }
+    }
+
+    func testMissingApplicationSupportForExistingInstallationIsNotTreatedAsCleanLaunch() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MissingApplicationSupport-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+        let directories = ShatlDirectories(
+            applicationSupportURL: rootURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+            cachesURL: rootURL.appendingPathComponent("Caches", isDirectory: true)
+        )
+        let sessionStore = makeSessionStore(directories: directories)
+
+        let result = await sessionStore.load(expectsExistingSession: true)
+
+        XCTAssertEqual(loadIssue(from: result), .missingWithRecoveryArtifacts)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directories.applicationSupportURL.path))
+        let saveOutcome = await sessionStore.saveCriticalState(from: [])
+        XCTAssertEqual(saveOutcome, .blocked)
+    }
+
+    func testMissingRequiredSessionDirectoryBlocksLoadWithoutRecreatingIt() async throws {
+        let fixture = try makeFixture()
+        let snapshotData = makeSnapshotData(torrents: [])
+        try snapshotData.write(to: fixture.directories.sessionSnapshotURL, options: .atomic)
+        try FileManager.default.removeItem(at: fixture.directories.archivedTorrentsDirectoryURL)
+
+        let result = await fixture.sessionStore.load(expectsExistingSession: true)
+
+        XCTAssertEqual(loadIssue(from: result), .missingWithRecoveryArtifacts)
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: fixture.directories.archivedTorrentsDirectoryURL.path
+        ))
+        let saveOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        XCTAssertEqual(saveOutcome, .blocked)
+        XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), snapshotData)
     }
 
     func testRelaunchAfterLoadFailureRemainsBlocked() async throws {

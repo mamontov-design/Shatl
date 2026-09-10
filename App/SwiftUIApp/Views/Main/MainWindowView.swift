@@ -267,7 +267,10 @@ struct MainWindowView: View {
                 SessionLoadBlockingView(issue: nil, localeOverride: store.preferences.localeOverride)
                     .transition(.opacity)
             case .sessionLoadFailure(let issue):
-                SessionLoadBlockingView(issue: issue, localeOverride: store.preferences.localeOverride)
+                SessionLoadBlockingView(
+                    issue: issue,
+                    localeOverride: store.preferences.localeOverride
+                )
                     .transition(.opacity)
             case .empty:
                 EmptyStateView(onEntryValidationError: presentAddTorrentEntryAlert)
@@ -508,7 +511,56 @@ struct MainWindowView: View {
 
 }
 
+/// Reusable inline message shown above the main content. It intentionally has
+/// no live caller while the product scenario is being reconsidered.
+struct ShatlLineMessageBar: View {
+    let title: String
+    let message: String
+    let primaryButtonTitle: String
+    let closeButtonTitle: String
+    let primaryAction: () -> Void
+    let closeAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                .shatlTypography(ShatlTypography.bodySemibold)
+                .foregroundStyle(ShatlColor.lineMessageHeadline)
+
+                Text(message)
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.lineMessageCaption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 6)
+
+            HStack(spacing: 8) {
+                ShatlButton(
+                    title: primaryButtonTitle,
+                    role: .lineMessage,
+                    action: primaryAction
+                )
+
+                ShatlButton(
+                    title: closeButtonTitle,
+                    role: .lineMessage,
+                    action: closeAction
+                )
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ShatlColor.lineMessageBackground)
+        .accessibilityElement(children: .contain)
+    }
+
+}
+
 private struct SessionLoadBlockingView: View {
+    @EnvironmentObject private var store: AppStore
+
     let issue: SessionLoadIssue?
     let localeOverride: AppLocaleOverride
 
@@ -517,27 +569,72 @@ private struct SessionLoadBlockingView: View {
             Rectangle()
                 .fill(ShatlColor.backgroundSecondary)
 
-            VStack(spacing: issue == nil ? 12 : 10) {
-                Image(systemName: issue == nil ? "tray.and.arrow.up" : "exclamationmark.triangle")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(issue == nil ? ShatlColor.typographySecondary : ShatlColor.neonBlue)
-
-                Text(title)
-                    .shatlTypography(ShatlTypography.bodySemibold)
-                    .foregroundStyle(ShatlColor.typographyPrimary)
-                    .multilineTextAlignment(.center)
-
-                if let message {
-                    Text(message)
-                        .shatlTypography(ShatlTypography.bodyRegular)
+            if issue == nil {
+                VStack(spacing: 12) {
+                    Image(systemName: "tray.and.arrow.up")
+                        .font(.system(size: 24, weight: .medium))
                         .foregroundStyle(ShatlColor.typographySecondary)
+
+                    Text(title)
+                        .shatlTypography(ShatlTypography.bodySemibold)
+                        .foregroundStyle(ShatlColor.typographyPrimary)
                         .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: 320)
+                .padding(24)
+            } else {
+                recoveryCard
+                    .padding(24)
             }
-            .frame(maxWidth: 320)
-            .padding(24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var recoveryCard: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(ShatlColor.typographyTertiary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .shatlTypography(ShatlTypography.bodySemibold)
+                        .foregroundStyle(ShatlColor.typographyPrimary)
+
+                    if let message {
+                        Text(message)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.typographySecondary)
+                    }
+
+                }
+            }
+            .padding(8)
+
+            VStack(spacing: 6) {
+                HStack {
+                    ShatlButton(
+                        localizedTitle: "session.recovery.open_empty",
+                        role: .borderedColored,
+                        isDisabled: store.isResolvingSessionRecovery,
+                        lineLimit: nil
+                    ) {
+                        store.openWithEmptyDownloadList()
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(10)
+        .frame(width: 340, alignment: .leading)
+        .background(ShatlColor.backgroundTertiary)
+        .clipShape(shape)
+        .overlay {
+            shape.strokeBorder(ShatlColor.outlineTertiary, lineWidth: 0.5)
+        }
     }
 
     private var title: String {
@@ -554,13 +651,13 @@ private struct SessionLoadBlockingView: View {
             return L10n.string(
                 "session.load.failure.title",
                 localeOverride: localeOverride,
-                defaultValue: "Не удалось восстановить список загрузок"
+                defaultValue: "Не удалось восстановить список загрузок."
             )
         case .unsupportedVersion:
             return L10n.string(
                 "session.load.unsupported.title",
                 localeOverride: localeOverride,
-                defaultValue: "Не удалось открыть сохранённую сессию"
+                defaultValue: "Не удалось открыть сохранённую сессию."
             )
         }
     }
@@ -569,17 +666,11 @@ private struct SessionLoadBlockingView: View {
         guard let issue else { return nil }
 
         switch issue {
-        case .unreadable:
+        case .unreadable, .missingWithRecoveryArtifacts:
             return L10n.string(
                 "session.load.unreadable.message",
                 localeOverride: localeOverride,
-                defaultValue: "Shatl не смог прочитать сохранённую сессию. Загруженные с прошлого запуска файлы остались на диске."
-            )
-        case .missingWithRecoveryArtifacts:
-            return L10n.string(
-                "session.load.missing.message",
-                localeOverride: localeOverride,
-                defaultValue: "Shatl не нашёл сохранённый список. Загруженные с прошлого запуска файлы остались на диске."
+                defaultValue: "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске."
             )
         case .unsupportedVersion:
             return L10n.string(
