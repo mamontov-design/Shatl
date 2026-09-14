@@ -92,6 +92,7 @@ final class AppStoreTests: XCTestCase {
             bundle.store.currentAddTorrentDraft?.files.map(\.isSelected),
             [true, true, false, true]
         )
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.fileSelectionRevision, 1)
 
         bundle.store.setDraftFolderSelection(path: "Root", isSelected: false)
 
@@ -99,6 +100,7 @@ final class AppStoreTests: XCTestCase {
             bundle.store.currentAddTorrentDraft?.files.map(\.isSelected),
             [false, false, false, true]
         )
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.fileSelectionRevision, 2)
     }
 
     func testCompleteOnboardingPersistsPreferenceFlag() {

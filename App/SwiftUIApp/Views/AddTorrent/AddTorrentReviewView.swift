@@ -18,9 +18,92 @@ private struct AddTorrentFileTreeRow: Identifiable {
     var id: String { node.id }
 }
 
+private struct AddTorrentReviewDraftPresentationToken: Equatable {
+    let id: UUID
+    let fileSelectionRevision: UInt64
+    let reviewState: AddTorrentReviewState
+    let fileCount: Int
+}
+
+private struct AddTorrentReviewFilePresentation {
+    let tree: [AddTorrentFileTreeNode]
+    let searchProjection: AddTorrentFileSearchProjection?
+    let rows: [AddTorrentFileTreeRow]
+    let rowIndexByID: [String: Int]
+    let rowBottomOffsets: [CGFloat]
+    let selectedFileCount: Int
+    let selectedBytes: Int64
+    let totalFileCount: Int
+
+    static let empty = AddTorrentReviewFilePresentation(
+        tree: [],
+        searchProjection: nil,
+        rows: [],
+        rowIndexByID: [:],
+        rowBottomOffsets: [],
+        selectedFileCount: 0,
+        selectedBytes: 0,
+        totalFileCount: 0
+    )
+}
+
+private struct AddTorrentReviewSearchModifier: ViewModifier {
+    let prompt: String
+    let onDebouncedChange: (String) -> Void
+
+    @State private var searchText = ""
+
+    func body(content: Content) -> some View {
+        content
+            .searchable(
+                text: $searchText,
+                placement: .toolbar,
+                prompt: Text(prompt)
+            )
+            .searchToolbarBehavior(.automatic)
+            .task(id: searchText) {
+                let pendingSearchText = searchText
+                if !pendingSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    do {
+                        try await Task.sleep(for: .milliseconds(180))
+                    } catch {
+                        return
+                    }
+                }
+                guard !Task.isCancelled else { return }
+                onDebouncedChange(pendingSearchText)
+            }
+    }
+}
+
+enum AddTorrentReviewRowLookup {
+    static func index(
+        at scrollOffset: CGFloat,
+        contentTop: CGFloat,
+        rowBottomOffsets: [CGFloat]
+    ) -> Int? {
+        guard scrollOffset >= contentTop, !rowBottomOffsets.isEmpty else { return nil }
+
+        var lowerBound = 0
+        var upperBound = rowBottomOffsets.count
+
+        while lowerBound < upperBound {
+            let middle = lowerBound + (upperBound - lowerBound) / 2
+            if scrollOffset < rowBottomOffsets[middle] {
+                upperBound = middle
+            } else {
+                lowerBound = middle + 1
+            }
+        }
+
+        return lowerBound < rowBottomOffsets.count ? lowerBound : nil
+    }
+}
+
 struct AddTorrentFileSearchProjection: Equatable {
     let visibleNodeIDs: Set<String>
     let foldersWithVisibleDescendants: Set<String>
+    let matchingNodeIDs: Set<String>
 
     static func make(
         from nodes: [AddTorrentFileTreeNode],
@@ -31,6 +114,7 @@ struct AddTorrentFileSearchProjection: Equatable {
 
         var visibleNodeIDs: Set<String> = []
         var foldersWithVisibleDescendants: Set<String> = []
+        var matchingNodeIDs: Set<String> = []
 
         @discardableResult
         func visit(_ node: AddTorrentFileTreeNode) -> Bool {
@@ -40,6 +124,9 @@ struct AddTorrentFileSearchProjection: Equatable {
             let isMatch = node.name.localizedStandardContains(query)
             let isVisible = isMatch || hasVisibleDescendant
 
+            if isMatch {
+                matchingNodeIDs.insert(node.id)
+            }
             if isVisible {
                 visibleNodeIDs.insert(node.id)
             }
@@ -53,8 +140,25 @@ struct AddTorrentFileSearchProjection: Equatable {
         nodes.forEach { visit($0) }
         return AddTorrentFileSearchProjection(
             visibleNodeIDs: visibleNodeIDs,
-            foldersWithVisibleDescendants: foldersWithVisibleDescendants
+            foldersWithVisibleDescendants: foldersWithVisibleDescendants,
+            matchingNodeIDs: matchingNodeIDs
         )
+    }
+}
+
+enum AddTorrentSearchFolderExpansion {
+    static func isExpanded(
+        folderID: String,
+        projection: AddTorrentFileSearchProjection,
+        collapsedFolderIDs: Set<String>,
+        expandedFolderIDs: Set<String>
+    ) -> Bool {
+        if expandedFolderIDs.contains(folderID) {
+            return true
+        }
+
+        return projection.foldersWithVisibleDescendants.contains(folderID)
+            && !collapsedFolderIDs.contains(folderID)
     }
 }
 
@@ -604,7 +708,27 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         self.selectionControl = selectionControl()
     }
 
+    @ViewBuilder
     var body: some View {
+        if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
+            rowContent
+                .onAppear {
+                    logFolderLifecycleEvent("folder.row.appeared")
+                }
+                .onDisappear {
+                    logFolderLifecycleEvent("folder.row.disappeared")
+                }
+                .onGeometryChange(for: CGRect.self) { geometry in
+                    geometry.frame(in: .scrollView(axis: .vertical))
+                } action: { oldFrame, newFrame in
+                    logFolderFrameChange(from: oldFrame, to: newFrame)
+                }
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 0) {
             hierarchyGuides
 
@@ -636,17 +760,6 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovered = isPinned ? false : hovering
-        }
-        .onAppear {
-            logFolderLifecycleEvent("folder.row.appeared")
-        }
-        .onDisappear {
-            logFolderLifecycleEvent("folder.row.disappeared")
-        }
-        .onGeometryChange(for: CGRect.self) { geometry in
-            geometry.frame(in: .scrollView(axis: .vertical))
-        } action: { oldFrame, newFrame in
-            logFolderFrameChange(from: oldFrame, to: newFrame)
         }
     }
 
@@ -874,6 +987,7 @@ struct AddTorrentReviewView: View {
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @State private var expandedFolderIDs: Set<String> = []
     @State private var searchCollapsedFolderIDs: Set<String> = []
+    @State private var searchExpandedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
@@ -881,7 +995,8 @@ struct AddTorrentReviewView: View {
     @State private var pendingCollapsedFolderID: String?
     @State private var isAliasEnabled = false
     @State private var renderedDraft: AddTorrentDraft?
-    @State private var searchText = ""
+    @State private var appliedSearchText = ""
+    @State private var filePresentation = AddTorrentReviewFilePresentation.empty
     @FocusState private var isAliasFocused: Bool
 
     var body: some View {
@@ -894,18 +1009,16 @@ struct AddTorrentReviewView: View {
             minWidth: AddTorrentReviewLayout.minimumWindowWidth,
             minHeight: AddTorrentReviewLayout.minimumWindowHeight
         )
-        .searchable(
-            text: $searchText,
-            placement: .toolbar,
-            prompt: Text(
-                L10n.string(
+        .modifier(
+            AddTorrentReviewSearchModifier(
+                prompt: L10n.string(
                     "add_torrent.review.search_files",
                     localeOverride: store.preferences.localeOverride,
                     defaultValue: "Искать файлы…"
-                )
+                ),
+                onDebouncedChange: applySearchText
             )
         )
-        .searchToolbarBehavior(.automatic)
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
@@ -922,24 +1035,26 @@ struct AddTorrentReviewView: View {
         .onAppear {
             renderedDraft = store.currentAddTorrentDraft
             syncAliasToggleWithDraft()
+            if let draft {
+                rebuildFilePresentation(draft: draft)
+            }
         }
-        .onChange(of: store.currentAddTorrentDraft) { oldDraft, newDraft in
-            guard let newDraft else { return }
-            if oldDraft?.id != newDraft.id {
+        .onChange(of: draftPresentationToken) { oldToken, newToken in
+            guard let newToken, let newDraft = store.currentAddTorrentDraft else { return }
+            if oldToken?.id != newToken.id {
                 expandedFolderIDs.removeAll()
                 searchCollapsedFolderIDs.removeAll()
+                searchExpandedFolderIDs.removeAll()
                 pinnedFolderID = nil
                 pendingCollapsedFolderID = nil
                 filesScrollGeneration += 1
             }
             renderedDraft = newDraft
             syncAliasToggleWithDraft()
+            rebuildFilePresentation(draft: newDraft)
         }
-        .onChange(of: searchText) { _, _ in
-            searchCollapsedFolderIDs.removeAll()
-            pinnedFolderID = nil
-            pendingCollapsedFolderID = nil
-            filesScrollGeneration += 1
+        .onChange(of: typographyProfile) { _, _ in
+            rebuildFilePresentation()
         }
         .task(id: draft?.suggestedSavePath) {
             await refreshAvailableCapacity()
@@ -950,7 +1065,7 @@ struct AddTorrentReviewView: View {
         filesTabContent
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .bottom) {
-                torrentSummaryContainer(for: draft)
+                torrentSummaryContainer
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .trailing) {
@@ -976,6 +1091,87 @@ struct AddTorrentReviewView: View {
 
     private var draft: AddTorrentDraft? {
         store.currentAddTorrentDraft ?? renderedDraft
+    }
+
+    private var draftPresentationToken: AddTorrentReviewDraftPresentationToken? {
+        guard let draft = store.currentAddTorrentDraft else { return nil }
+
+        return AddTorrentReviewDraftPresentationToken(
+            id: draft.id,
+            fileSelectionRevision: draft.fileSelectionRevision,
+            reviewState: draft.reviewState,
+            fileCount: draft.files.count
+        )
+    }
+
+    private func applySearchText(_ newSearchText: String) {
+        guard appliedSearchText != newSearchText else { return }
+
+        appliedSearchText = newSearchText
+        searchCollapsedFolderIDs.removeAll()
+        searchExpandedFolderIDs.removeAll()
+        pinnedFolderID = nil
+        pendingCollapsedFolderID = nil
+        filesScrollGeneration += 1
+        rebuildFilePresentation()
+    }
+
+    private func rebuildFilePresentation(draft newDraft: AddTorrentDraft? = nil) {
+        let tree = newDraft?.fileTree ?? filePresentation.tree
+        let selectionMetrics = newDraft.map { draft in
+            draft.files.reduce(into: (count: 0, bytes: Int64(0))) { result, file in
+                guard file.isSelected else { return }
+                result.count += 1
+                result.bytes += file.sizeBytes
+            }
+        }
+        let searchProjection = AddTorrentFileSearchProjection.make(
+            from: tree,
+            query: appliedSearchText
+        )
+        let rows = flattenedFileRows(
+            tree,
+            level: 0,
+            ancestorFolderIDs: [],
+            searchProjection: searchProjection,
+            includesUnmatchedNodes: false
+        )
+
+        var rowIndexByID: [String: Int] = [:]
+        rowIndexByID.reserveCapacity(rows.count)
+
+        var rowBottomOffsets: [CGFloat] = []
+        rowBottomOffsets.reserveCapacity(rows.count)
+        var rowBottom = AddTorrentReviewLayout.filesVerticalPadding
+
+        for (index, row) in rows.enumerated() {
+            rowIndexByID[row.id] = index
+            rowBottom += AddTorrentReviewLayout.listItemHeight(
+                for: typographyProfile,
+                showsFolderSummary: row.node.isFolder && row.node.fileCount >= 3
+            )
+            rowBottomOffsets.append(rowBottom)
+        }
+
+        let oldRowCount = filePresentation.rows.count
+        filePresentation = AddTorrentReviewFilePresentation(
+            tree: tree,
+            searchProjection: searchProjection,
+            rows: rows,
+            rowIndexByID: rowIndexByID,
+            rowBottomOffsets: rowBottomOffsets,
+            selectedFileCount: selectionMetrics?.count ?? filePresentation.selectedFileCount,
+            selectedBytes: selectionMetrics?.bytes ?? filePresentation.selectedBytes,
+            totalFileCount: newDraft?.files.count ?? filePresentation.totalFileCount
+        )
+
+        if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
+            logRowsChange(
+                oldCount: oldRowCount,
+                newIDs: rows.map(\.id),
+                rows: rows
+            )
+        }
     }
 
     private func logWindowRootSizeChange(from oldSize: CGSize, to newSize: CGSize) {
@@ -1033,7 +1229,7 @@ struct AddTorrentReviewView: View {
 
         case .ready?:
             if let draft, !draft.files.isEmpty {
-                filesContainer(for: draft)
+                filesContainer()
             } else {
                 placeholderBlock(
                     localizedTitle: "add_torrent.review.no_files",
@@ -1063,17 +1259,8 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func filesContainer(for draft: AddTorrentDraft) -> some View {
-        let searchProjection = AddTorrentFileSearchProjection.make(
-            from: draft.fileTree,
-            query: searchText
-        )
-        let rows = flattenedFileRows(
-            draft.fileTree,
-            level: 0,
-            ancestorFolderIDs: [],
-            searchProjection: searchProjection
-        )
+    private func filesContainer() -> some View {
+        let rows = filePresentation.rows
 
         return ScrollViewReader { scrollProxy in
             ScrollView {
@@ -1119,13 +1306,6 @@ struct AddTorrentReviewView: View {
                 }
                 updatePinnedFolder(scrollOffset: newSnapshot.offsetY, rows: rows)
             }
-            .onChange(of: rows.map(\.id)) { oldIDs, newIDs in
-                logRowsChange(
-                    oldCount: oldIDs.count,
-                    newIDs: newIDs,
-                    rows: rows
-                )
-            }
             .onAppear {
                 logFilesContainerLifecycleEvent("files.container.appeared", rows: rows)
             }
@@ -1134,7 +1314,10 @@ struct AddTorrentReviewView: View {
             }
             .overlay(alignment: .top) {
                 Group {
-                    if let pinnedRow = rows.first(where: { $0.node.id == pinnedFolderID }) {
+                    if let pinnedFolderID,
+                       let pinnedRowIndex = filePresentation.rowIndexByID[pinnedFolderID],
+                       rows.indices.contains(pinnedRowIndex) {
+                        let pinnedRow = rows[pinnedRowIndex]
                         fileListItem(pinnedRow, isPinned: true)
                             .transition(ShatlMotion.stickyPinInsertion)
                     }
@@ -1271,10 +1454,12 @@ struct AddTorrentReviewView: View {
         _ nodes: [AddTorrentFileTreeNode],
         level: Int,
         ancestorFolderIDs: [String],
-        searchProjection: AddTorrentFileSearchProjection?
+        searchProjection: AddTorrentFileSearchProjection?,
+        includesUnmatchedNodes: Bool
     ) -> [AddTorrentFileTreeRow] {
         nodes.flatMap { node -> [AddTorrentFileTreeRow] in
             if let searchProjection,
+               !includesUnmatchedNodes,
                !searchProjection.visibleNodeIDs.contains(node.id) {
                 return []
             }
@@ -1295,12 +1480,15 @@ struct AddTorrentReviewView: View {
             if node.isFolder,
                isExpanded,
                let children = node.children {
+                let includesAllChildren = includesUnmatchedNodes
+                    || searchExpandedFolderIDs.contains(node.id)
                 rows.append(
                     contentsOf: flattenedFileRows(
                         children,
                         level: level + 1,
                         ancestorFolderIDs: ancestorFolderIDs + [node.id],
-                        searchProjection: searchProjection
+                        searchProjection: searchProjection,
+                        includesUnmatchedNodes: includesAllChildren
                     )
                 )
             }
@@ -1337,21 +1525,22 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func torrentSummaryContainer(for draft: AddTorrentDraft?) -> some View {
-        torrentSummary(for: draft)
+    private var torrentSummaryContainer: some View {
+        torrentSummary
             .padding(.horizontal, AddTorrentReviewLayout.summaryContainerHorizontalPadding)
             .padding(.bottom, AddTorrentReviewLayout.summaryContainerBottomPadding)
     }
 
     @ViewBuilder
-    private func torrentSummary(for draft: AddTorrentDraft?) -> some View {
-        let selectedFileCount = draft?.selectedFileCount ?? 0
+    private var torrentSummary: some View {
+        let selectedFileCount = filePresentation.selectedFileCount
+        let selectedBytes = filePresentation.selectedBytes
         let showsSelectedMetrics = AddTorrentSummaryPresentation.showsSelectionMetrics(
             selectedFileCount: selectedFileCount
         )
 
         let content = HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
-            if showsSelectedMetrics, let draft {
+            if showsSelectedMetrics {
                 torrentSummaryMetric(
                     label: L10n.string(
                         "add_torrent.review.summary.selected_files",
@@ -1362,8 +1551,8 @@ struct AddTorrentReviewView: View {
                         "add_torrent.review.summary.selected_count",
                         localeOverride: store.preferences.localeOverride,
                         defaultValue: "%lld of %lld",
-                        Int64(draft.selectedFileCount),
-                        Int64(draft.files.count)
+                        Int64(selectedFileCount),
+                        Int64(filePresentation.totalFileCount)
                     ),
                     expands: true
                 )
@@ -1379,7 +1568,7 @@ struct AddTorrentReviewView: View {
                         defaultValue: "Size"
                     ),
                     value: AddTorrentSummaryByteFormatter.format(
-                        draft.selectedBytes,
+                        selectedBytes,
                         mode: store.preferences.metricsMode,
                         rounding: .up,
                         localeOverride: store.preferences.localeOverride
@@ -1407,7 +1596,7 @@ struct AddTorrentReviewView: View {
         .frame(maxWidth: .infinity)
         .animation(
             ShatlMotion.metricResize,
-            value: "\(selectedFileCount)-\(draft?.selectedBytes ?? 0)-\(availableCapacityText)-\(store.preferences.metricsMode)"
+            value: "\(selectedFileCount)-\(selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
         )
 
         if #available(macOS 27.0, *) {
@@ -1708,28 +1897,20 @@ struct AddTorrentReviewView: View {
         at scrollOffset: CGFloat,
         rows: [AddTorrentFileTreeRow]
     ) -> String? {
-        var rowTop = AddTorrentReviewLayout.filesVerticalPadding
-        guard scrollOffset >= rowTop else { return nil }
-
-        for row in rows {
-            let rowHeight = AddTorrentReviewLayout.listItemHeight(
-                for: typographyProfile,
-                showsFolderSummary: row.node.isFolder && row.node.fileCount >= 3
-            )
-            let rowBottom = rowTop + rowHeight
-
-            if scrollOffset < rowBottom {
-                if row.node.isFolder, row.isExpanded {
-                    return row.node.id
-                }
-
-                return row.ancestorFolderIDs.last
-            }
-
-            rowTop = rowBottom
+        guard let rowIndex = AddTorrentReviewRowLookup.index(
+            at: scrollOffset,
+            contentTop: AddTorrentReviewLayout.filesVerticalPadding,
+            rowBottomOffsets: filePresentation.rowBottomOffsets
+        ), rows.indices.contains(rowIndex) else {
+            return nil
         }
 
-        return nil
+        let row = rows[rowIndex]
+        if row.node.isFolder, row.isExpanded {
+            return row.node.id
+        }
+
+        return row.ancestorFolderIDs.last
     }
 
     private func selectionToggle(for node: AddTorrentFileTreeNode) -> some View {
@@ -1778,8 +1959,12 @@ struct AddTorrentReviewView: View {
         searchProjection: AddTorrentFileSearchProjection?
     ) -> Bool {
         if let searchProjection {
-            return searchProjection.foldersWithVisibleDescendants.contains(node.id)
-                && !searchCollapsedFolderIDs.contains(node.id)
+            return AddTorrentSearchFolderExpansion.isExpanded(
+                folderID: node.id,
+                projection: searchProjection,
+                collapsedFolderIDs: searchCollapsedFolderIDs,
+                expandedFolderIDs: searchExpandedFolderIDs
+            )
         }
 
         return expandedFolderIDs.contains(node.id)
@@ -1805,13 +1990,17 @@ struct AddTorrentReviewView: View {
         }
 
         if searchProjection != nil {
-            if wasExpanded {
+            if searchExpandedFolderIDs.contains(node.id) {
+                searchExpandedFolderIDs.remove(node.id)
+            } else if wasExpanded {
                 searchCollapsedFolderIDs.insert(node.id)
                 if pinnedFolderID == node.id {
                     pinnedFolderID = nil
                 }
-            } else {
+            } else if searchCollapsedFolderIDs.contains(node.id) {
                 searchCollapsedFolderIDs.remove(node.id)
+            } else {
+                searchExpandedFolderIDs.insert(node.id)
             }
         } else if wasExpanded {
             let shouldRecreateScroll =
@@ -1830,6 +2019,8 @@ struct AddTorrentReviewView: View {
         } else {
             expandedFolderIDs.insert(node.id)
         }
+
+        rebuildFilePresentation()
 
         guard diagnosticsEnabled else { return }
 
@@ -1900,19 +2091,11 @@ struct AddTorrentReviewView: View {
     }
 
     private var currentFlattenedFileRows: [AddTorrentFileTreeRow] {
-        guard let draft else { return [] }
-
-        return flattenedFileRows(
-            draft.fileTree,
-            level: 0,
-            ancestorFolderIDs: [],
-            searchProjection: activeSearchProjection
-        )
+        filePresentation.rows
     }
 
     private var activeSearchProjection: AddTorrentFileSearchProjection? {
-        guard let draft else { return nil }
-        return AddTorrentFileSearchProjection.make(from: draft.fileTree, query: searchText)
+        filePresentation.searchProjection
     }
 
     private var settingsTabContent: some View {
@@ -2072,7 +2255,7 @@ struct AddTorrentReviewView: View {
                 defaultValue: "Скачать"
             ),
             role: .borderedColored,
-            isDisabled: !(draft?.canConfirmDownload ?? false)
+            isDisabled: draft?.reviewState != .ready || filePresentation.selectedFileCount == 0
         ) {
             store.confirmDraft()
         }

@@ -259,8 +259,97 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             projection.foldersWithVisibleDescendants,
             Set([root.id, seasonOne.id])
         )
+        XCTAssertEqual(projection.matchingNodeIDs, Set([episode.id]))
         XCTAssertFalse(projection.visibleNodeIDs.contains(seasonTwo.id))
         XCTAssertFalse(projection.visibleNodeIDs.contains(notes.id))
+    }
+
+    func testMatchingFolderCanBeExplicitlyExpandedWithoutMatchingDescendants() throws {
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/search-folder.torrent"),
+            originalName: "Search folder",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Root/Cute Rin/File.bin",
+                    sizeBytes: 100,
+                    fileIndex: 0,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        let root = try XCTUnwrap(draft.fileTree.first)
+        let matchingFolder = try XCTUnwrap(root.children?.first)
+        let projection = try XCTUnwrap(
+            AddTorrentFileSearchProjection.make(from: draft.fileTree, query: "cute rin")
+        )
+
+        XCTAssertTrue(projection.matchingNodeIDs.contains(matchingFolder.id))
+        XCTAssertFalse(projection.foldersWithVisibleDescendants.contains(matchingFolder.id))
+        XCTAssertFalse(
+            AddTorrentSearchFolderExpansion.isExpanded(
+                folderID: matchingFolder.id,
+                projection: projection,
+                collapsedFolderIDs: [],
+                expandedFolderIDs: []
+            )
+        )
+        XCTAssertTrue(
+            AddTorrentSearchFolderExpansion.isExpanded(
+                folderID: matchingFolder.id,
+                projection: projection,
+                collapsedFolderIDs: [],
+                expandedFolderIDs: [matchingFolder.id]
+            )
+        )
+    }
+
+    func testRowLookupUsesBoundariesOfCachedOffsets() {
+        let offsets: [CGFloat] = [36, 82, 114]
+
+        XCTAssertNil(
+            AddTorrentReviewRowLookup.index(
+                at: 3,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            )
+        )
+        XCTAssertEqual(
+            AddTorrentReviewRowLookup.index(
+                at: 4,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            0
+        )
+        XCTAssertEqual(
+            AddTorrentReviewRowLookup.index(
+                at: 36,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            1
+        )
+        XCTAssertEqual(
+            AddTorrentReviewRowLookup.index(
+                at: 113.5,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            2
+        )
+        XCTAssertNil(
+            AddTorrentReviewRowLookup.index(
+                at: 114,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            )
+        )
     }
 
     func testEmptySearchDoesNotCreateProjection() {

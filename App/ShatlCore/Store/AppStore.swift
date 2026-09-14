@@ -1483,6 +1483,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
               let index = draft.files.firstIndex(where: { $0.id == id }) else { return }
 
         draft.files[index].isSelected.toggle()
+        draft.fileSelectionRevision &+= 1
         currentAddTorrentDraft = draft
     }
 
@@ -1490,9 +1491,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// in the add-flow file tree.
     func setDraftFileSelection(id: UUID, isSelected: Bool) {
         guard var draft = currentAddTorrentDraft,
-              let index = draft.files.firstIndex(where: { $0.id == id }) else { return }
+              let index = draft.files.firstIndex(where: { $0.id == id }),
+              draft.files[index].isSelected != isSelected else { return }
 
         draft.files[index].isSelected = isSelected
+        draft.fileSelectionRevision &+= 1
         currentAddTorrentDraft = draft
     }
 
@@ -1518,6 +1521,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         if didChangeSelection {
+            draft.fileSelectionRevision &+= 1
             currentAddTorrentDraft = draft
         }
     }
