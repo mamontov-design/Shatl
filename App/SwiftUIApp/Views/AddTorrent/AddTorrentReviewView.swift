@@ -4,24 +4,8 @@
 import AppKit
 import SwiftUI
 
-private enum AddTorrentReviewTab: String, CaseIterable, Identifiable {
-    case files
-    case settings
-
-    var id: Self { self }
-
-    func title(localeOverride: AppLocaleOverride) -> String {
-        switch self {
-        case .files:
-            L10n.string("add_torrent.review.tab.files", localeOverride: localeOverride, defaultValue: "Файлы")
-        case .settings:
-            L10n.string("add_torrent.review.tab.settings", localeOverride: localeOverride, defaultValue: "Настройки")
-        }
-    }
-}
-
-private struct AddTorrentFileSelectionBinding: Identifiable {
-    let id: UUID
+private struct AddTorrentSelectionIndicatorSource: Identifiable {
+    let id: Bool
     let isSelected: Binding<Bool>
 }
 
@@ -29,11 +13,52 @@ private struct AddTorrentFileTreeRow: Identifiable {
     let node: AddTorrentFileTreeNode
     let level: Int
     let ancestorFolderIDs: [String]
+    let isExpanded: Bool
 
     var id: String { node.id }
 }
 
-private struct AddTorrentTextSegment: Identifiable, Equatable {
+struct AddTorrentFileSearchProjection: Equatable {
+    let visibleNodeIDs: Set<String>
+    let foldersWithVisibleDescendants: Set<String>
+
+    static func make(
+        from nodes: [AddTorrentFileTreeNode],
+        query rawQuery: String
+    ) -> AddTorrentFileSearchProjection? {
+        let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return nil }
+
+        var visibleNodeIDs: Set<String> = []
+        var foldersWithVisibleDescendants: Set<String> = []
+
+        @discardableResult
+        func visit(_ node: AddTorrentFileTreeNode) -> Bool {
+            let hasVisibleDescendant = node.children?.reduce(false) { result, child in
+                visit(child) || result
+            } ?? false
+            let isMatch = node.name.localizedStandardContains(query)
+            let isVisible = isMatch || hasVisibleDescendant
+
+            if isVisible {
+                visibleNodeIDs.insert(node.id)
+            }
+            if node.isFolder, hasVisibleDescendant {
+                foldersWithVisibleDescendants.insert(node.id)
+            }
+
+            return isVisible
+        }
+
+        nodes.forEach { visit($0) }
+        return AddTorrentFileSearchProjection(
+            visibleNodeIDs: visibleNodeIDs,
+            foldersWithVisibleDescendants: foldersWithVisibleDescendants
+        )
+    }
+}
+
+struct AddTorrentTextSegment: Identifiable, Equatable {
     enum Kind: Equatable {
         case text
         case number
@@ -43,6 +68,92 @@ private struct AddTorrentTextSegment: Identifiable, Equatable {
     let kind: Kind
     let value: String
     let animatesNumericChange: Bool
+}
+
+enum AddTorrentTextSegmentSpacing {
+    static func movingTrailingWhitespaceToFollowingNumber(
+        in segments: [AddTorrentTextSegment]
+    ) -> [AddTorrentTextSegment] {
+        guard segments.count > 1 else { return segments }
+
+        var result = segments
+
+        for index in result.indices.dropLast() {
+            let followingIndex = result.index(after: index)
+            let segment = result[index]
+            guard segment.kind == .text,
+                  result[followingIndex].kind == .number,
+                  let lastNonWhitespaceIndex = segment.value.lastIndex(where: { !$0.isWhitespace })
+            else {
+                continue
+            }
+
+            let trailingWhitespaceIndex = segment.value.index(after: lastNonWhitespaceIndex)
+            guard trailingWhitespaceIndex < segment.value.endIndex else { continue }
+
+            let trailingWhitespace = String(segment.value[trailingWhitespaceIndex...])
+            let followingSegment = result[followingIndex]
+
+            result[index] = AddTorrentTextSegment(
+                id: segment.id,
+                kind: segment.kind,
+                value: String(segment.value[..<trailingWhitespaceIndex]),
+                animatesNumericChange: segment.animatesNumericChange
+            )
+            result[followingIndex] = AddTorrentTextSegment(
+                id: followingSegment.id,
+                kind: followingSegment.kind,
+                value: trailingWhitespace + followingSegment.value,
+                animatesNumericChange: followingSegment.animatesNumericChange
+            )
+        }
+
+        return result
+    }
+}
+
+enum AddTorrentNumericTextSegmentation {
+    static func segments(in value: String) -> [AddTorrentTextSegment] {
+        var segments: [AddTorrentTextSegment] = []
+        var buffer = ""
+        var currentKind: AddTorrentTextSegment.Kind?
+        var textIndex = 0
+        var numberIndex = 0
+
+        func appendBuffer() {
+            guard let currentKind, !buffer.isEmpty else { return }
+            let isNumber = currentKind == .number
+            let index = isNumber ? numberIndex : textIndex
+            segments.append(
+                AddTorrentTextSegment(
+                    id: "\(isNumber ? "number" : "text")-\(index)",
+                    kind: currentKind,
+                    value: buffer,
+                    animatesNumericChange: isNumber
+                )
+            )
+            if isNumber {
+                numberIndex += 1
+            } else {
+                textIndex += 1
+            }
+            buffer = ""
+        }
+
+        for character in value {
+            let kind: AddTorrentTextSegment.Kind = character.isNumber ? .number : .text
+            if let currentKind, currentKind != kind {
+                appendBuffer()
+            }
+            currentKind = kind
+            buffer.append(character)
+        }
+        appendBuffer()
+
+        return AddTorrentTextSegmentSpacing.movingTrailingWhitespaceToFollowingNumber(
+            in: segments
+        )
+    }
 }
 
 private struct AddTorrentFolderSummary: Equatable {
@@ -224,16 +335,15 @@ private func addTorrentDiagnosticsNumber(_ value: CGFloat) -> String {
 }
 
 enum AddTorrentReviewLayout {
-    static var windowEdgePadding: CGFloat {
-        if #available(macOS 27.0, *) {
-            12
-        } else {
-            18
-        }
-    }
+    static let minimumWindowWidth: CGFloat = 780
+    static let minimumWindowHeight: CGFloat = 570
+    static let settingsColumnWidth: CGFloat = 380
+    static let settingsColumnPadding: CGFloat = 12
+    static let leftColumnOutlineWidth: CGFloat = 1
+    static let summaryContainerHorizontalPadding: CGFloat = 6
+    static let summaryContainerBottomPadding: CGFloat = 6
 
     static let filesContainerCornerRadius: CGFloat = 12
-    static let filesContainerHeight: CGFloat = 360
     static let standardListItemHeight: CGFloat = 32
     static let cjkListItemHeight: CGFloat = 34
     static let standardDetailedListItemHeight: CGFloat = 46
@@ -247,19 +357,18 @@ enum AddTorrentReviewLayout {
     static let hierarchyGuideWidth: CGFloat = 20
     static let nearestHierarchyGuideWidth: CGFloat = 10
     static let hierarchyGuideLineWidth: CGFloat = 1
+    static let stickyBackgroundTrailingInset: CGFloat = 0.5
     static let expandButtonContainerPadding: CGFloat = 2
     static let hoverAreaSpacing: CGFloat = 4
     static let hoverAreaPadding: CGFloat = 6
     static let hoverAreaCornerRadius: CGFloat = 8
-    static let summaryCornerRadius: CGFloat = 8
+    static let summaryCornerRadius: CGFloat = 12
     static let summaryHorizontalPadding: CGFloat = 6
-    static let summaryVerticalPadding: CGFloat = 8
-    static let summarySpacing: CGFloat = 16
+    static let summaryVerticalPadding: CGFloat = 12
+    static let summarySpacing: CGFloat = 24
     static let filesVerticalPadding: CGFloat = 4
     static let standardSummaryContentHeight: CGFloat = 29
     static let cjkSummaryContentHeight: CGFloat = 33
-    static let standardInvalidContentHeight: CGFloat = 491
-    static let cjkInvalidContentHeight: CGFloat = 499
 
     static func listItemHeight(
         for profile: ShatlTypographyProfile,
@@ -295,24 +404,10 @@ enum AddTorrentReviewLayout {
         }
     }
 
-    static func tabContentHeight(
-        for profile: ShatlTypographyProfile,
-        showsSummary: Bool
-    ) -> CGFloat {
-        guard showsSummary else { return filesContainerHeight }
-
-        return filesContainerHeight
-            + summaryContentHeight(for: profile)
+    static func summaryOverlayHeight(for profile: ShatlTypographyProfile) -> CGFloat {
+        summaryContentHeight(for: profile)
             + summaryVerticalPadding * 2
-    }
-
-    static func invalidContentHeight(for profile: ShatlTypographyProfile) -> CGFloat {
-        switch profile {
-        case .standard:
-            standardInvalidContentHeight
-        case .cjk:
-            cjkInvalidContentHeight
-        }
+            + summaryContainerBottomPadding
     }
 
     static func leadingPadding(isFolder: Bool, level: Int) -> CGFloat {
@@ -328,6 +423,25 @@ enum AddTorrentReviewLayout {
 
         return (0..<level).map { guideIndex in
             guideIndex == level - 1 ? nearestHierarchyGuideWidth : hierarchyGuideWidth
+        }
+    }
+}
+
+enum AddTorrentSummaryPresentation {
+    static func showsSelectionMetrics(selectedFileCount: Int) -> Bool {
+        selectedFileCount >= 4
+    }
+}
+
+enum AddTorrentReviewSelectionIndicator {
+    static func sourceValues(for state: AddTorrentTreeSelectionState) -> [Bool] {
+        switch state {
+        case .selected:
+            [true]
+        case .unselected:
+            [false]
+        case .mixed:
+            [true, false]
         }
     }
 }
@@ -513,18 +627,10 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         )
         .background {
             if isPinned {
-                Rectangle()
-                    .fill(ShatlColor.backgroundTertiary)
-                    .shatlShadow(ShatlShadow.addTorrentStickyRow)
+                stickyBackground
+                    .padding(.trailing, AddTorrentReviewLayout.stickyBackgroundTrailingInset)
                     .animation(ShatlMotion.stickyContentReplace, value: isPinned)
             }
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(ShatlColor.outlinePrimary)
-                .frame(height: 1)
-                .opacity(isPinned ? 1 : 0)
-                .allowsHitTesting(false)
         }
         .zIndex(isPinned ? 1 : 0)
         .contentShape(Rectangle())
@@ -541,6 +647,20 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
             geometry.frame(in: .scrollView(axis: .vertical))
         } action: { oldFrame, newFrame in
             logFolderFrameChange(from: oldFrame, to: newFrame)
+        }
+    }
+
+    @ViewBuilder
+    private var stickyBackground: some View {
+        if #available(macOS 27.0, *) {
+            Color.clear
+                .glassEffect(
+                    .regular.interactive(false),
+                    in: Rectangle()
+                )
+        } else {
+            Rectangle()
+                .fill(.ultraThinMaterial)
         }
     }
 
@@ -564,16 +684,9 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
     private var expandButtonContainer: some View {
         Button(action: onToggleExpansion) {
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                .font(.system(size: 8, weight: .bold))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(ShatlColor.typographyPrimary)
                 .frame(width: 16, height: 16)
-                .background(ShatlColor.backgroundPrimary)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: ShatlCornerRadius.expandButton,
-                        style: .continuous
-                    )
-                )
                 .contentTransition(.symbolEffect(.replace))
                 .padding(AddTorrentReviewLayout.expandButtonContainerPadding)
                 .contentShape(Rectangle())
@@ -759,8 +872,8 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
 struct AddTorrentReviewView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.shatlTypographyProfile) private var typographyProfile
-    @State private var selectedTab: AddTorrentReviewTab = .files
     @State private var expandedFolderIDs: Set<String> = []
+    @State private var searchCollapsedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
@@ -768,29 +881,41 @@ struct AddTorrentReviewView: View {
     @State private var pendingCollapsedFolderID: String?
     @State private var isAliasEnabled = false
     @State private var renderedDraft: AddTorrentDraft?
+    @State private var searchText = ""
     @FocusState private var isAliasFocused: Bool
 
     var body: some View {
-        Group {
-            if usesEdgeToEdgeFilesLayout, let draft {
-                edgeToEdgeFilesLayout(for: draft)
-            } else if isReviewInvalid {
-                invalidReviewLayout
-            } else {
-                insetReviewLayout
-            }
+        HStack(spacing: 0) {
+            filesColumn
+
+            settingsColumn
         }
-        .frame(width: 440)
+        .frame(
+            minWidth: AddTorrentReviewLayout.minimumWindowWidth,
+            minHeight: AddTorrentReviewLayout.minimumWindowHeight
+        )
+        .searchable(
+            text: $searchText,
+            placement: .toolbar,
+            prompt: Text(
+                L10n.string(
+                    "add_torrent.review.search_files",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Искать файлы…"
+                )
+            )
+        )
+        .searchToolbarBehavior(.automatic)
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
             addTorrentDiagnosticsState.rootSize = newSize
-            logModalRootSizeChange(from: oldSize, to: newSize)
+            logWindowRootSizeChange(from: oldSize, to: newSize)
         }
         .background {
             AddTorrentReviewWindowDiagnosticsReader(
-                selectedTab: selectedTab.rawValue,
-                layoutMode: addTorrentDiagnosticsLayoutMode
+                selectedTab: "combined",
+                layoutMode: "split-window"
             )
             .frame(width: 0, height: 0)
         }
@@ -802,6 +927,7 @@ struct AddTorrentReviewView: View {
             guard let newDraft else { return }
             if oldDraft?.id != newDraft.id {
                 expandedFolderIDs.removeAll()
+                searchCollapsedFolderIDs.removeAll()
                 pinnedFolderID = nil
                 pendingCollapsedFolderID = nil
                 filesScrollGeneration += 1
@@ -809,238 +935,71 @@ struct AddTorrentReviewView: View {
             renderedDraft = newDraft
             syncAliasToggleWithDraft()
         }
+        .onChange(of: searchText) { _, _ in
+            searchCollapsedFolderIDs.removeAll()
+            pinnedFolderID = nil
+            pendingCollapsedFolderID = nil
+            filesScrollGeneration += 1
+        }
         .task(id: draft?.suggestedSavePath) {
             await refreshAvailableCapacity()
         }
     }
 
-    private var insetReviewLayout: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            heroHeaderGroup
-            reviewContentArea
-            buttonContainer
-        }
-        .padding(AddTorrentReviewLayout.windowEdgePadding)
-    }
-
-    private var invalidReviewLayout: some View {
-        VStack(spacing: 16) {
-            invalidReviewContent
-        }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: AddTorrentReviewLayout.invalidContentHeight(for: typographyProfile),
-            alignment: .center
-        )
-        .padding(12)
-        .transition(ShatlMotion.stickyPinInsertion)
-        .animation(ShatlMotion.interface, value: isReviewInvalid)
-    }
-
-    private func edgeToEdgeFilesLayout(for draft: AddTorrentDraft) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-                heroHeaderGroup
-                tabsContainer
+    private var filesColumn: some View {
+        filesTabContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .overlay(alignment: .bottom) {
+                torrentSummaryContainer(for: draft)
             }
-            .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .overlay(alignment: .trailing) {
+                Rectangle()
+                    .fill(ShatlColor.outlineTertiary)
+                    .frame(width: AddTorrentReviewLayout.leftColumnOutlineWidth)
+                    .allowsHitTesting(false)
+            }
+    }
 
-            filesAndSummaryContainer(for: draft)
+    private var settingsColumn: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            settingsTabContent
 
-            buttonContainer
-                .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
+            Spacer(minLength: 0)
+
+            downloadButton
         }
-        .padding(.vertical, AddTorrentReviewLayout.windowEdgePadding)
+        .padding(AddTorrentReviewLayout.settingsColumnPadding)
+        .frame(width: AddTorrentReviewLayout.settingsColumnWidth)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var draft: AddTorrentDraft? {
         store.currentAddTorrentDraft ?? renderedDraft
     }
 
-    private var isReviewInvalid: Bool {
-        if case .invalid? = draft?.reviewState {
-            true
-        } else {
-            false
-        }
-    }
-
-    private var usesEdgeToEdgeFilesLayout: Bool {
-        guard selectedTab == .files,
-              draft?.reviewState == .ready,
-              draft?.files.isEmpty == false
-        else {
-            return false
-        }
-
-        return true
-    }
-
-    private var heroHeaderGroup: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(
-                L10n.string(
-                    "add_torrent.title",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Добавление загрузки"
-                )
-            )
-                .shatlTypography(ShatlTypography.subheadlineBold)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(draft?.originalName ?? L10n.string(
-                    "add_torrent.review.no_selection",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Раздача пока не выбрана"
-                ))
-                .shatlTypography(ShatlTypography.bodyRegular)
-                .foregroundStyle(ShatlColor.typographySecondary)
-                .multilineTextAlignment(.leading)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .opacity(isReviewInvalid ? 0 : 1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var reviewContentArea: some View {
-        ZStack(alignment: .topLeading) {
-            if isReviewInvalid {
-                invalidReviewContent
-                    .transition(ShatlMotion.stickyPinInsertion)
-            } else {
-                VStack(spacing: 12) {
-                    tabsContainer
-                    selectedTabContent
-                }
-                .transition(.identity)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .clipped()
-        .animation(ShatlMotion.interface, value: isReviewInvalid)
-    }
-
-    private var tabsContainer: some View {
-        HStack(spacing: 6) {
-            ForEach(AddTorrentReviewTab.allCases) { tab in
-                ShatlTabButton(
-                    title: tab.title(localeOverride: store.preferences.localeOverride),
-                    isActive: selectedTab == tab
-                ) {
-                    let previousTab = selectedTab
-                    logTabSelection(
-                        event: "tab.selection.requested",
-                        previousTab: previousTab,
-                        newTab: tab,
-                        phase: "requested"
-                    )
-                    selectedTab = tab
-                    if tab == .settings {
-                        pinnedFolderID = nil
-                        syncAliasToggleWithDraft()
-                    }
-                    scheduleTabPostLayoutDiagnostics(
-                        previousTab: previousTab,
-                        newTab: tab
-                    )
-                }
-            }
-        }
-        .padding(2)
-        .frame(maxWidth: .infinity)
-        .background(ShatlColor.backgroundPrimary)
-        .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.tabsContainer, style: .continuous))
-    }
-
-    private var addTorrentDiagnosticsLayoutMode: String {
-        usesEdgeToEdgeFilesLayout ? "edge-to-edge-files" : "inset-review"
-    }
-
-    private func logModalRootSizeChange(from oldSize: CGSize, to newSize: CGSize) {
+    private func logWindowRootSizeChange(from oldSize: CGSize, to newSize: CGSize) {
         guard ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
 
         ShatlAddTorrentReviewDiagnosticsLog.event(
-            "modal.root.size.changed",
+            "window.root.size.changed",
             fields: [
-                "layoutMode": addTorrentDiagnosticsLayoutMode,
+                "layoutMode": "split-window",
                 "new.height": addTorrentDiagnosticsNumber(newSize.height),
                 "new.width": addTorrentDiagnosticsNumber(newSize.width),
                 "old.height": addTorrentDiagnosticsNumber(oldSize.height),
                 "old.width": addTorrentDiagnosticsNumber(oldSize.width),
-                "selectedTab": selectedTab.rawValue,
             ],
             flush: true
         )
-    }
-
-    private func logTabSelection(
-        event: String,
-        previousTab: AddTorrentReviewTab,
-        newTab: AddTorrentReviewTab,
-        phase: String
-    ) {
-        guard ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
-
-        let rootSize = addTorrentDiagnosticsState.rootSize
-        ShatlAddTorrentReviewDiagnosticsLog.event(
-            event,
-            fields: [
-                "layoutMode": addTorrentDiagnosticsLayoutMode,
-                "newTab": newTab.rawValue,
-                "phase": phase,
-                "previousTab": previousTab.rawValue,
-                "root.height": addTorrentDiagnosticsNumber(rootSize.height),
-                "root.width": addTorrentDiagnosticsNumber(rootSize.width),
-                "selectedTab": selectedTab.rawValue,
-            ],
-            flush: true
-        )
-    }
-
-    private func scheduleTabPostLayoutDiagnostics(
-        previousTab: AddTorrentReviewTab,
-        newTab: AddTorrentReviewTab
-    ) {
-        guard ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
-
-        Task { @MainActor in
-            await Task.yield()
-            logTabSelection(
-                event: "tab.selection.post-layout",
-                previousTab: previousTab,
-                newTab: newTab,
-                phase: "first-yield"
-            )
-            await Task.yield()
-            logTabSelection(
-                event: "tab.selection.post-layout",
-                previousTab: previousTab,
-                newTab: newTab,
-                phase: "second-yield"
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var selectedTabContent: some View {
-        switch selectedTab {
-        case .files:
-            filesTabContent
-        case .settings:
-            settingsTabContent
-        }
     }
 
     @ViewBuilder
     private var invalidReviewContent: some View {
         if let errorState = draft?.errorState {
-            invalidErrorStateContent(for: errorState)
+            invalidErrorLabelGroup(title: errorState.title, message: errorState.message)
         } else {
-            invalidErrorStateContent(
+            invalidErrorLabelGroup(
                 title: L10n.string(
                     "add_torrent.review.invalid_placeholder",
                     localeOverride: store.preferences.localeOverride,
@@ -1059,7 +1018,7 @@ struct AddTorrentReviewView: View {
                 localizedTitle: "add_torrent.review.files_after_metadata",
                 defaultValue: "Файлы появятся после получения метаданных."
             )
-                .frame(maxWidth: .infinity, minHeight: 360)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(ShatlColor.backgroundTertiary)
                 .clipShape(filesContainerShape)
                 .overlay {
@@ -1068,17 +1027,19 @@ struct AddTorrentReviewView: View {
                 }
 
         case .invalid?:
-            EmptyView()
+            invalidReviewContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .transition(ShatlMotion.stickyPinInsertion)
 
         case .ready?:
             if let draft, !draft.files.isEmpty {
-                filesAndSummaryContainer(for: draft)
+                filesContainer(for: draft)
             } else {
                 placeholderBlock(
                     localizedTitle: "add_torrent.review.no_files",
                     defaultValue: "Нет файлов для загрузки."
                 )
-                    .frame(maxWidth: .infinity, minHeight: 360)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(ShatlColor.backgroundTertiary)
                     .clipShape(filesContainerShape)
                     .overlay {
@@ -1092,7 +1053,7 @@ struct AddTorrentReviewView: View {
                 localizedTitle: "add_torrent.review.no_draft",
                 defaultValue: "Черновик загрузки пока не создан."
             )
-                .frame(maxWidth: .infinity, minHeight: 360)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(ShatlColor.backgroundTertiary)
                 .clipShape(filesContainerShape)
                 .overlay {
@@ -1102,34 +1063,32 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func filesAndSummaryContainer(for draft: AddTorrentDraft) -> some View {
-        VStack(spacing: 0) {
-            filesContainer(for: draft)
-
-            if draft.files.count >= 3 {
-                torrentSummaryContainer(for: draft)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     private func filesContainer(for draft: AddTorrentDraft) -> some View {
+        let searchProjection = AddTorrentFileSearchProjection.make(
+            from: draft.fileTree,
+            query: searchText
+        )
         let rows = flattenedFileRows(
             draft.fileTree,
             level: 0,
-            ancestorFolderIDs: []
+            ancestorFolderIDs: [],
+            searchProjection: searchProjection
         )
 
         return ScrollViewReader { scrollProxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(rows) { row in
-                        fileListItem(row.node, level: row.level)
+                        fileListItem(row)
                             .id(row.id)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .padding(.vertical, AddTorrentReviewLayout.filesVerticalPadding)
+                .padding(
+                    .bottom,
+                    AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
+                )
             }
             .id(filesScrollGeneration)
             .task(id: filesScrollGeneration) {
@@ -1176,7 +1135,7 @@ struct AddTorrentReviewView: View {
             .overlay(alignment: .top) {
                 Group {
                     if let pinnedRow = rows.first(where: { $0.node.id == pinnedFolderID }) {
-                        fileListItem(pinnedRow.node, level: pinnedRow.level, isPinned: true)
+                        fileListItem(pinnedRow, isPinned: true)
                             .transition(ShatlMotion.stickyPinInsertion)
                     }
                 }
@@ -1186,23 +1145,9 @@ struct AddTorrentReviewView: View {
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: AddTorrentReviewLayout.filesContainerHeight,
+            maxHeight: .infinity,
             alignment: .topLeading
         )
-        .background(ShatlColor.backgroundFiles)
-        .overlay(alignment: .top) {
-            filesContainerOutline
-        }
-        .overlay(alignment: .bottom) {
-            filesContainerOutline
-        }
-    }
-
-    private var filesContainerOutline: some View {
-        Rectangle()
-            .fill(ShatlColor.outlinePrimary)
-            .frame(height: 1)
-            .allowsHitTesting(false)
     }
 
     private func logScrollGeometryChange(
@@ -1304,7 +1249,10 @@ struct AddTorrentReviewView: View {
     }
 
     private func expectedContentHeight(for rows: [AddTorrentFileTreeRow]) -> CGFloat {
-        rows.reduce(AddTorrentReviewLayout.filesVerticalPadding * 2) { height, row in
+        rows.reduce(
+            AddTorrentReviewLayout.filesVerticalPadding * 2
+                + AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
+        ) { height, row in
             height + AddTorrentReviewLayout.listItemHeight(
                 for: typographyProfile,
                 showsFolderSummary: row.node.isFolder && row.node.fileCount >= 3
@@ -1322,15 +1270,25 @@ struct AddTorrentReviewView: View {
     private func flattenedFileRows(
         _ nodes: [AddTorrentFileTreeNode],
         level: Int,
-        ancestorFolderIDs: [String]
+        ancestorFolderIDs: [String],
+        searchProjection: AddTorrentFileSearchProjection?
     ) -> [AddTorrentFileTreeRow] {
         nodes.flatMap { node -> [AddTorrentFileTreeRow] in
-            let isExpanded = node.isFolder && isFolderExpanded(node)
+            if let searchProjection,
+               !searchProjection.visibleNodeIDs.contains(node.id) {
+                return []
+            }
+
+            let isExpanded = node.isFolder && isFolderExpanded(
+                node,
+                searchProjection: searchProjection
+            )
             var rows = [
                 AddTorrentFileTreeRow(
                     node: node,
                     level: level,
-                    ancestorFolderIDs: ancestorFolderIDs
+                    ancestorFolderIDs: ancestorFolderIDs,
+                    isExpanded: isExpanded
                 ),
             ]
 
@@ -1341,7 +1299,8 @@ struct AddTorrentReviewView: View {
                     contentsOf: flattenedFileRows(
                         children,
                         level: level + 1,
-                        ancestorFolderIDs: ancestorFolderIDs + [node.id]
+                        ancestorFolderIDs: ancestorFolderIDs + [node.id],
+                        searchProjection: searchProjection
                     )
                 )
             }
@@ -1350,21 +1309,19 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func fileListItem(
-        _ node: AddTorrentFileTreeNode,
-        level: Int,
-        isPinned: Bool = false
-    ) -> some View {
-        AddTorrentFileListItem(
+    private func fileListItem(_ row: AddTorrentFileTreeRow, isPinned: Bool = false) -> some View {
+        let node = row.node
+
+        return AddTorrentFileListItem(
             node: node,
-            level: level,
+            level: row.level,
             formattedSize: Metrics.formatBytes(
                 node.sizeBytes,
                 mode: .simplified,
                 localeOverride: store.preferences.localeOverride
             ),
             folderSummary: folderSummary(for: node),
-            isExpanded: node.isFolder && isFolderExpanded(node),
+            isExpanded: row.isExpanded,
             isPinned: isPinned,
             onToggleExpansion: {
                 toggleFolderExpansion(
@@ -1380,16 +1337,21 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func torrentSummaryContainer(for draft: AddTorrentDraft) -> some View {
+    private func torrentSummaryContainer(for draft: AddTorrentDraft?) -> some View {
         torrentSummary(for: draft)
-            .padding(.horizontal, AddTorrentReviewLayout.windowEdgePadding)
+            .padding(.horizontal, AddTorrentReviewLayout.summaryContainerHorizontalPadding)
+            .padding(.bottom, AddTorrentReviewLayout.summaryContainerBottomPadding)
     }
 
-    private func torrentSummary(for draft: AddTorrentDraft) -> some View {
-        let showsSelectedMetrics = draft.selectedFileCount > 0
+    @ViewBuilder
+    private func torrentSummary(for draft: AddTorrentDraft?) -> some View {
+        let selectedFileCount = draft?.selectedFileCount ?? 0
+        let showsSelectedMetrics = AddTorrentSummaryPresentation.showsSelectionMetrics(
+            selectedFileCount: selectedFileCount
+        )
 
-        return HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
-            if showsSelectedMetrics {
+        let content = HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
+            if showsSelectedMetrics, let draft {
                 torrentSummaryMetric(
                     label: L10n.string(
                         "add_torrent.review.summary.selected_files",
@@ -1443,12 +1405,21 @@ struct AddTorrentReviewView: View {
         .padding(.horizontal, AddTorrentReviewLayout.summaryHorizontalPadding)
         .padding(.vertical, AddTorrentReviewLayout.summaryVerticalPadding)
         .frame(maxWidth: .infinity)
-        .background(ShatlColor.backgroundSecondary)
-        .clipShape(torrentSummaryShape)
         .animation(
             ShatlMotion.metricResize,
-            value: "\(draft.selectedFileCount)-\(draft.selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
+            value: "\(selectedFileCount)-\(draft?.selectedBytes ?? 0)-\(availableCapacityText)-\(store.preferences.metricsMode)"
         )
+
+        if #available(macOS 27.0, *) {
+            content
+                .glassEffect(
+                    .regular.interactive(false),
+                    in: torrentSummaryShape
+                )
+        } else {
+            content
+                .background(.ultraThinMaterial, in: torrentSummaryShape)
+        }
     }
 
     private var torrentSummarySupplementaryTransition: AnyTransition {
@@ -1489,12 +1460,9 @@ struct AddTorrentReviewView: View {
             )
     }
 
-    private var torrentSummaryShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(
-            topLeadingRadius: 0,
-            bottomLeadingRadius: AddTorrentReviewLayout.summaryCornerRadius,
-            bottomTrailingRadius: AddTorrentReviewLayout.summaryCornerRadius,
-            topTrailingRadius: 0,
+    private var torrentSummaryShape: RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: AddTorrentReviewLayout.summaryCornerRadius,
             style: .continuous
         )
     }
@@ -1521,7 +1489,7 @@ struct AddTorrentReviewView: View {
 
     private func numericText(_ value: String) -> some View {
         HStack(spacing: 0) {
-            ForEach(numericSegments(in: value)) { segment in
+            ForEach(AddTorrentNumericTextSegmentation.segments(in: value)) { segment in
                 Text(segment.value)
                     .contentTransition(
                         segment.animatesNumericChange
@@ -1562,46 +1530,6 @@ struct AddTorrentReviewView: View {
                 removal: .move(edge: .leading).combined(with: .opacity)
             )
         }
-    }
-
-    private func numericSegments(in value: String) -> [AddTorrentTextSegment] {
-        var segments: [AddTorrentTextSegment] = []
-        var buffer = ""
-        var currentKind: AddTorrentTextSegment.Kind?
-        var textIndex = 0
-        var numberIndex = 0
-
-        func appendBuffer() {
-            guard let currentKind, !buffer.isEmpty else { return }
-            let isNumber = currentKind == .number
-            let index = isNumber ? numberIndex : textIndex
-            segments.append(
-                AddTorrentTextSegment(
-                    id: "\(isNumber ? "number" : "text")-\(index)",
-                    kind: currentKind,
-                    value: buffer,
-                    animatesNumericChange: isNumber
-                )
-            )
-            if isNumber {
-                numberIndex += 1
-            } else {
-                textIndex += 1
-            }
-            buffer = ""
-        }
-
-        for character in value {
-            let kind: AddTorrentTextSegment.Kind = character.isNumber ? .number : .text
-            if let currentKind, currentKind != kind {
-                appendBuffer()
-            }
-            currentKind = kind
-            buffer.append(character)
-        }
-        appendBuffer()
-
-        return segments
     }
 
     private func localizedTemplateSegments(
@@ -1679,7 +1607,9 @@ struct AddTorrentReviewView: View {
             )
         }
 
-        return segments
+        return AddTorrentTextSegmentSpacing.movingTrailingWhitespaceToFollowingNumber(
+            in: segments
+        )
     }
 
     private func folderSummary(for node: AddTorrentFileTreeNode) -> AddTorrentFolderSummary? {
@@ -1789,7 +1719,7 @@ struct AddTorrentReviewView: View {
             let rowBottom = rowTop + rowHeight
 
             if scrollOffset < rowBottom {
-                if row.node.isFolder, isFolderExpanded(row.node) {
+                if row.node.isFolder, row.isExpanded {
                     return row.node.id
                 }
 
@@ -1805,16 +1735,11 @@ struct AddTorrentReviewView: View {
     private func selectionToggle(for node: AddTorrentFileTreeNode) -> some View {
         Group {
             if node.isFolder {
-                Toggle(sources: fileSelectionBindings(in: node), isOn: \.isSelected) {
+                Toggle(sources: selectionIndicatorSources(for: node), isOn: \.isSelected) {
                     EmptyView()
                 }
-            } else if let fileID = node.fileID {
-                Toggle(
-                    isOn: Binding(
-                        get: { isDraftFileSelected(id: fileID) },
-                        set: { store.setDraftFileSelection(id: fileID, isSelected: $0) }
-                    )
-                ) {
+            } else {
+                Toggle(isOn: .constant(node.selectionState == .selected)) {
                     EmptyView()
                 }
             }
@@ -1824,28 +1749,18 @@ struct AddTorrentReviewView: View {
         .fixedSize()
     }
 
-    private func fileSelectionBindings(in node: AddTorrentFileTreeNode) -> [AddTorrentFileSelectionBinding] {
-        fileIDs(in: node).map { fileID in
-            AddTorrentFileSelectionBinding(
-                id: fileID,
-                isSelected: Binding(
-                    get: { isDraftFileSelected(id: fileID) },
-                    set: { store.setDraftFileSelection(id: fileID, isSelected: $0) }
-                )
+    private func selectionIndicatorSources(
+        for node: AddTorrentFileTreeNode
+    ) -> [AddTorrentSelectionIndicatorSource] {
+        // The surrounding row button owns the selection action. These sources
+        // only let SwiftUI render the native selected, unselected, or mixed
+        // checkbox without creating one Binding per descendant file.
+        AddTorrentReviewSelectionIndicator.sourceValues(for: node.selectionState).map { value in
+            AddTorrentSelectionIndicatorSource(
+                id: value,
+                isSelected: .constant(value)
             )
         }
-    }
-
-    private func fileIDs(in node: AddTorrentFileTreeNode) -> [UUID] {
-        if let fileID = node.fileID {
-            return [fileID]
-        }
-
-        return node.children?.flatMap(fileIDs(in:)) ?? []
-    }
-
-    private func isDraftFileSelected(id: UUID) -> Bool {
-        draft?.files.first { $0.id == id }?.isSelected ?? false
     }
 
     private func toggleSelection(for node: AddTorrentFileTreeNode) {
@@ -1858,15 +1773,24 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    private func isFolderExpanded(_ node: AddTorrentFileTreeNode) -> Bool {
-        expandedFolderIDs.contains(node.id)
+    private func isFolderExpanded(
+        _ node: AddTorrentFileTreeNode,
+        searchProjection: AddTorrentFileSearchProjection?
+    ) -> Bool {
+        if let searchProjection {
+            return searchProjection.foldersWithVisibleDescendants.contains(node.id)
+                && !searchCollapsedFolderIDs.contains(node.id)
+        }
+
+        return expandedFolderIDs.contains(node.id)
     }
 
     private func toggleFolderExpansion(
         _ node: AddTorrentFileTreeNode,
         source: String
     ) {
-        let wasExpanded = expandedFolderIDs.contains(node.id)
+        let searchProjection = activeSearchProjection
+        let wasExpanded = isFolderExpanded(node, searchProjection: searchProjection)
         let diagnosticsEnabled = ShatlAddTorrentReviewDiagnosticsLog.isEnabled
         let operationID = diagnosticsEnabled ? UUID().uuidString : "-"
         if diagnosticsEnabled {
@@ -1880,7 +1804,16 @@ struct AddTorrentReviewView: View {
             )
         }
 
-        if wasExpanded {
+        if searchProjection != nil {
+            if wasExpanded {
+                searchCollapsedFolderIDs.insert(node.id)
+                if pinnedFolderID == node.id {
+                    pinnedFolderID = nil
+                }
+            } else {
+                searchCollapsedFolderIDs.remove(node.id)
+            }
+        } else if wasExpanded {
             let shouldRecreateScroll =
                 source == "sticky" &&
                 pinnedFolderID == node.id
@@ -1972,8 +1905,14 @@ struct AddTorrentReviewView: View {
         return flattenedFileRows(
             draft.fileTree,
             level: 0,
-            ancestorFolderIDs: []
+            ancestorFolderIDs: [],
+            searchProjection: activeSearchProjection
         )
+    }
+
+    private var activeSearchProjection: AddTorrentFileSearchProjection? {
+        guard let draft else { return nil }
+        return AddTorrentFileSearchProjection.make(from: draft.fileTree, query: searchText)
     }
 
     private var settingsTabContent: some View {
@@ -1990,18 +1929,13 @@ struct AddTorrentReviewView: View {
                 .shatlTypography(ShatlTypography.captionRegular)
                 .foregroundStyle(ShatlColor.typographyTertiary)
                 .padding(.horizontal, 12)
-
-            Spacer(minLength: 0)
         }
-        .frame(
-            maxWidth: .infinity,
-            minHeight: AddTorrentReviewLayout.tabContentHeight(
-                for: typographyProfile,
-                showsSummary: draft?.reviewState == .ready && (draft?.files.count ?? 0) >= 3
-            ),
-            alignment: .topLeading
-        )
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .onAppear(perform: syncAliasToggleWithDraft)
+    }
+
+    private var areSettingsControlsEnabled: Bool {
+        draft?.reviewState == .ready
     }
 
     private var parametersGroup: some View {
@@ -2036,7 +1970,8 @@ struct AddTorrentReviewView: View {
                         localeOverride: store.preferences.localeOverride,
                         defaultValue: "Сменить"
                     ),
-                    role: .borderedNeutral
+                    role: .borderedNeutral,
+                    isDisabled: !areSettingsControlsEnabled
                 ) {
                     presentSavePathPicker()
                 }
@@ -2066,6 +2001,7 @@ struct AddTorrentReviewView: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
+                .disabled(!areSettingsControlsEnabled)
             }
 
             parameterDivider
@@ -2093,6 +2029,7 @@ struct AddTorrentReviewView: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.mini)
+                    .disabled(!areSettingsControlsEnabled)
                 }
 
                 if isAliasEnabled {
@@ -2109,6 +2046,7 @@ struct AddTorrentReviewView: View {
                     )
                     .textFieldStyle(.roundedBorder)
                     .focused($isAliasFocused)
+                    .disabled(!areSettingsControlsEnabled)
                     .transition(ShatlMotion.appearFromTop)
                 }
             }
@@ -2126,33 +2064,19 @@ struct AddTorrentReviewView: View {
             .frame(height: 1)
     }
 
-    private var buttonContainer: some View {
-        HStack(spacing: 6) {
-            Spacer()
-
-            ShatlButton(
-                title: L10n.string(
-                    "common.cancel",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Отменить"
-                ),
-                role: .borderedNeutral
-            ) {
-                store.dismissModal()
-            }
-
-            ShatlButton(
-                title: L10n.string(
-                    "add_torrent.review.confirm",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Скачать"
-                ),
-                role: .borderedColored,
-                isDisabled: !(draft?.canConfirmDownload ?? false)
-            ) {
-                store.confirmDraft()
-            }
+    private var downloadButton: some View {
+        ShatlButton(
+            title: L10n.string(
+                "add_torrent.review.confirm",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Скачать"
+            ),
+            role: .borderedColored,
+            isDisabled: !(draft?.canConfirmDownload ?? false)
+        ) {
+            store.confirmDraft()
         }
+        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     private func placeholderBlock(localizedTitle key: String, defaultValue: String) -> some View {
@@ -2171,28 +2095,6 @@ struct AddTorrentReviewView: View {
     private var displayedFolderPath: String {
         let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return path.isEmpty ? folderNotSelectedTitle : path
-    }
-
-    private func invalidErrorStateContent(for errorState: TorrentErrorState) -> some View {
-        invalidErrorStateContent(title: errorState.title, message: errorState.message)
-    }
-
-    private func invalidErrorStateContent(title: String, message: String) -> some View {
-        VStack(spacing: 16) {
-            invalidErrorLabelGroup(title: title, message: message)
-
-            ShatlButton(
-                title: L10n.string(
-                    "onboarding.action.close",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Закрыть"
-                ),
-                role: .borderedColored
-            ) {
-                store.dismissModal()
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private func invalidErrorLabelGroup(title: String, message: String) -> some View {

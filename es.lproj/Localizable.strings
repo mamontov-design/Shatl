@@ -128,6 +128,7 @@
 "add_torrent.entry.choose_file" = "Elegir archivo .torrent…";
 "add_torrent.review.tab.files" = "Archivos";
 "add_torrent.review.tab.settings" = "Ajustes";
+"add_torrent.review.search_files" = "Buscar archivos…";
 "add_torrent.review.no_selection" = "Todavía no hay torrent seleccionado";
 "add_torrent.review.invalid_placeholder" = "No se pudo preparar la descarga.";
 "add_torrent.review.files_after_metadata" = "Los archivos aparecerán después de obtener los metadatos.";

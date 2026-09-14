@@ -29,6 +29,7 @@ nonisolated enum SessionRestoreStatusTiming {
 struct MainWindowView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openWindow) private var openWindow
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
     @State private var isOnboardingPresented = false
@@ -82,6 +83,17 @@ struct MainWindowView: View {
                 store.payloadDeletionAlert = nil
             }
         }
+    }
+
+    private var isAddTorrentEntryPresented: Binding<Bool> {
+        Binding(
+            get: { store.presentedModal == .addTorrentEntry },
+            set: { isPresented in
+                if !isPresented, store.presentedModal == .addTorrentEntry {
+                    store.dismissModal()
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -184,27 +196,21 @@ struct MainWindowView: View {
         .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
             isOnboardingPresented = true
         }
+        .onChange(of: store.addTorrentReviewWindowRequestID, initial: true) { _, requestID in
+            guard requestID > 0, store.isAddTorrentReviewWindowActive else { return }
+            Task { @MainActor in
+                await Task.yield()
+                openWindow(id: AppWindowID.addTorrentReview)
+            }
+        }
         .environment(\.shatlAnimationMode, store.preferences.animationMode)
         .animation(ShatlMotion.mainContentMode, value: contentMode)
-        .sheet(
-            item: $store.presentedModal,
-            onDismiss: {
-                withAnimation(ShatlMotion.mainContentMode) {
-                    store.commitPendingConfirmedTorrent()
-                }
-            }
-        ) { modal in
-            switch modal {
-            case .addTorrentEntry:
-                AddTorrentEntryView(
-                    placement: .modal,
-                    onValidationError: presentAddTorrentEntryAlert
-                )
-                    .environmentObject(store)
-            case .addTorrentReview:
-                AddTorrentReviewView()
-                    .environmentObject(store)
-            }
+        .sheet(isPresented: isAddTorrentEntryPresented) {
+            AddTorrentEntryView(
+                placement: .modal,
+                onValidationError: presentAddTorrentEntryAlert
+            )
+                .environmentObject(store)
         }
         .sheet(isPresented: $isOnboardingPresented) {
             OnboardingFlowView(

@@ -128,6 +128,7 @@
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.review.tab.files" = "文件";
 "add_torrent.review.tab.settings" = "设置";
+"add_torrent.review.search_files" = "搜索文件…";
 "add_torrent.review.no_selection" = "尚未选择 Torrent";
 "add_torrent.review.invalid_placeholder" = "无法准备下载。";
 "add_torrent.review.files_after_metadata" = "获取元数据后会显示文件。";

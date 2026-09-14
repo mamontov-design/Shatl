@@ -61,6 +61,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
     @Published var payloadDeletionAlert: PayloadDeletionAlert?
     @Published var presentedModal: PresentedModal?
+    @Published private(set) var addTorrentReviewWindowRequestID = 0
+    @Published private(set) var isAddTorrentReviewWindowActive = false
     @Published var currentAddTorrentDraft: AddTorrentDraft?
     @Published var isRestoringSession = false
     @Published private(set) var hasLoadedInitialSession: Bool
@@ -534,9 +536,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func presentAddTorrentEntry() {
         guard canAddTorrent else { return }
+        if isAddTorrentReviewWindowActive {
+            requestAddTorrentReviewWindowActivation()
+            return
+        }
         draftPreparationTask?.cancel()
         currentAddTorrentDraft = nil
         presentedModal = .addTorrentEntry
+    }
+
+    func requestAddTorrentReviewWindowActivation() {
+        guard isAddTorrentReviewWindowActive else { return }
+        addTorrentReviewWindowRequestID &+= 1
+    }
+
+    func addTorrentReviewWindowDidClose() {
+        isAddTorrentReviewWindowActive = false
+        if presentedModal == .addTorrentReview {
+            dismissModal()
+        }
     }
 
     func dismissModal() {
@@ -1280,7 +1298,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             suggestedSavePath: draft.suggestedSavePath,
             stopAfterDownload: draft.stopAfterDownload,
             alias: draft.alias,
-            savePathBookmarkData: draft.savePathBookmarkData
+            savePathBookmarkData: draft.savePathBookmarkData,
+            replacesCurrentReview: true
         )
     }
 
@@ -2060,9 +2079,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         suggestedSavePath: String,
         stopAfterDownload: Bool,
         alias: String = "",
-        savePathBookmarkData: Data? = nil
+        savePathBookmarkData: Data? = nil,
+        replacesCurrentReview: Bool = false
     ) {
         guard canAddTorrent else { return }
+        if isAddTorrentReviewWindowActive, !replacesCurrentReview {
+            requestAddTorrentReviewWindowActivation()
+            return
+        }
         draftPreparationTask?.cancel()
         currentAddTorrentDraft = makeLoadingDraft(
             for: source,
@@ -2071,7 +2095,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             alias: alias,
             savePathBookmarkData: savePathBookmarkData
         )
-        presentedModal = .addTorrentReview
+        presentAddTorrentReviewWindow()
 
         draftPreparationTask = Task { [weak self] in
             guard let self else { return }
@@ -2143,7 +2167,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             reviewState: .invalid(message: errorState.message),
             errorState: errorState
         )
+        presentAddTorrentReviewWindow()
+    }
+
+    private func presentAddTorrentReviewWindow() {
+        isAddTorrentReviewWindowActive = true
         presentedModal = .addTorrentReview
+        addTorrentReviewWindowRequestID &+= 1
     }
 
     private func isDuplicateDraft(_ draft: AddTorrentDraft) -> Bool {
