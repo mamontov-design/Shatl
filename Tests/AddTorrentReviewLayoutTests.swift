@@ -483,6 +483,39 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         XCTAssertEqual(firstSeason.selectedFileCount, 1)
     }
 
+    func testInitialExpansionIncludesOnlyTopLevelFolders() throws {
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/blender-video-kit.torrent"),
+            originalName: "Blender Video Kit",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Blender Video Kit/Video.mov",
+                    sizeBytes: 1_000,
+                    fileIndex: 0,
+                    isSelected: true
+                ),
+                AddTorrentFileOption(
+                    name: "Blender Video Kit/Assets/Texture.png",
+                    sizeBytes: 2_000,
+                    fileIndex: 1,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        let root = try XCTUnwrap(draft.fileTree.first)
+        let nestedFolder = try XCTUnwrap(root.children?.first { $0.isFolder })
+        let expandedFolderIDs = AddTorrentInitialFolderExpansion.folderIDs(in: draft.fileTree)
+
+        XCTAssertEqual(expandedFolderIDs, Set([root.id]))
+        XCTAssertFalse(expandedFolderIDs.contains(nestedFolder.id))
+    }
+
     func testPluralCategoriesFollowSupportedLocales() {
         XCTAssertEqual(
             AddTorrentFilePluralCategory.resolve(count: 1, localeOverride: .russian),

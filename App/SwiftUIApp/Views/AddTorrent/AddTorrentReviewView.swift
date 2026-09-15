@@ -100,6 +100,12 @@ enum AddTorrentReviewRowLookup {
     }
 }
 
+enum AddTorrentInitialFolderExpansion {
+    static func folderIDs(in nodes: [AddTorrentFileTreeNode]) -> Set<String> {
+        Set(nodes.lazy.filter(\.isFolder).map(\.id))
+    }
+}
+
 struct AddTorrentFileSearchProjection: Equatable {
     let visibleNodeIDs: Set<String>
     let foldersWithVisibleDescendants: Set<String>
@@ -1036,12 +1042,17 @@ struct AddTorrentReviewView: View {
             renderedDraft = store.currentAddTorrentDraft
             syncAliasToggleWithDraft()
             if let draft {
-                rebuildFilePresentation(draft: draft)
+                rebuildFilePresentation(
+                    draft: draft,
+                    expandsTopLevelFolders: draft.reviewState == .ready
+                )
             }
         }
         .onChange(of: draftPresentationToken) { oldToken, newToken in
             guard let newToken, let newDraft = store.currentAddTorrentDraft else { return }
-            if oldToken?.id != newToken.id {
+            let isNewDraft = oldToken?.id != newToken.id
+            let becameReady = oldToken?.reviewState != .ready && newToken.reviewState == .ready
+            if isNewDraft {
                 expandedFolderIDs.removeAll()
                 searchCollapsedFolderIDs.removeAll()
                 searchExpandedFolderIDs.removeAll()
@@ -1051,7 +1062,10 @@ struct AddTorrentReviewView: View {
             }
             renderedDraft = newDraft
             syncAliasToggleWithDraft()
-            rebuildFilePresentation(draft: newDraft)
+            rebuildFilePresentation(
+                draft: newDraft,
+                expandsTopLevelFolders: isNewDraft || becameReady
+            )
         }
         .onChange(of: typographyProfile) { _, _ in
             rebuildFilePresentation()
@@ -1116,8 +1130,14 @@ struct AddTorrentReviewView: View {
         rebuildFilePresentation()
     }
 
-    private func rebuildFilePresentation(draft newDraft: AddTorrentDraft? = nil) {
+    private func rebuildFilePresentation(
+        draft newDraft: AddTorrentDraft? = nil,
+        expandsTopLevelFolders: Bool = false
+    ) {
         let tree = newDraft?.fileTree ?? filePresentation.tree
+        if expandsTopLevelFolders {
+            expandedFolderIDs = AddTorrentInitialFolderExpansion.folderIDs(in: tree)
+        }
         let selectionMetrics = newDraft.map { draft in
             draft.files.reduce(into: (count: 0, bytes: Int64(0))) { result, file in
                 guard file.isSelected else { return }
@@ -1277,6 +1297,7 @@ struct AddTorrentReviewView: View {
                     AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
                 )
             }
+            .scrollIndicators(.hidden)
             .id(filesScrollGeneration)
             .task(id: filesScrollGeneration) {
                 guard let targetID = pendingCollapsedFolderID else { return }
