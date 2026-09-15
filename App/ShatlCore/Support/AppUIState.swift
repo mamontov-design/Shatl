@@ -10,3 +10,7 @@ enum PresentedModal: String, Identifiable {
 
     var id: String { rawValue }
 }
+
+enum AppWindowID {
+    static let addTorrentReview = "add-torrent-review"
+}

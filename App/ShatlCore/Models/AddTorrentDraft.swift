@@ -72,6 +72,7 @@ nonisolated struct AddTorrentDraft: Identifiable, Equatable, Sendable {
     var alias: String
     var stopAfterDownload: Bool
     var files: [AddTorrentFileOption]
+    var fileSelectionRevision: UInt64 = 0
     var reviewState: AddTorrentReviewState
     var errorState: TorrentErrorState?
 

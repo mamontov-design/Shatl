@@ -7,6 +7,102 @@ import XCTest
 
 @MainActor
 final class AppStoreTests: XCTestCase {
+    func testActiveReviewRequestsActivationInsteadOfStartingAnotherAddFlow() {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        let existingMagnet = "magnet:?xt=urn:btih:existing-request"
+        bundle.store.continueFromEntry(with: existingMagnet)
+
+        XCTAssertTrue(bundle.store.isAddTorrentReviewWindowActive)
+        XCTAssertEqual(bundle.store.presentedModal, .addTorrentReview)
+        let initialRequestID = bundle.store.addTorrentReviewWindowRequestID
+
+        bundle.store.presentAddTorrentEntry()
+        bundle.store.continueFromEntry(with: "magnet:?xt=urn:btih:new-request")
+
+        XCTAssertEqual(bundle.store.presentedModal, .addTorrentReview)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.source.rawValue, existingMagnet)
+        XCTAssertEqual(
+            bundle.store.addTorrentReviewWindowRequestID,
+            initialRequestID + 2
+        )
+    }
+
+    func testClosingReviewWindowCancelsDraftAndReleasesSingletonGuard() {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        bundle.store.continueFromEntry(with: "magnet:?xt=urn:btih:close-review")
+
+        bundle.store.addTorrentReviewWindowDidClose()
+
+        XCTAssertFalse(bundle.store.isAddTorrentReviewWindowActive)
+        XCTAssertNil(bundle.store.presentedModal)
+        XCTAssertNil(bundle.store.currentAddTorrentDraft)
+    }
+
+    func testDraftFolderSelectionUpdatesOnlyFolderDescendants() {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.currentAddTorrentDraft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/test.torrent"),
+            originalName: "Nested selection",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Root/A.bin",
+                    sizeBytes: 100,
+                    fileIndex: 0,
+                    isSelected: false
+                ),
+                AddTorrentFileOption(
+                    name: "Root/Nested/B.bin",
+                    sizeBytes: 200,
+                    fileIndex: 1,
+                    isSelected: true
+                ),
+                AddTorrentFileOption(
+                    name: "Rooted/C.bin",
+                    sizeBytes: 300,
+                    fileIndex: 2,
+                    isSelected: false
+                ),
+                AddTorrentFileOption(
+                    name: "Other/D.bin",
+                    sizeBytes: 400,
+                    fileIndex: 3,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        bundle.store.setDraftFolderSelection(path: "Root", isSelected: true)
+
+        XCTAssertEqual(
+            bundle.store.currentAddTorrentDraft?.files.map(\.isSelected),
+            [true, true, false, true]
+        )
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.fileSelectionRevision, 1)
+
+        bundle.store.setDraftFolderSelection(path: "Root", isSelected: false)
+
+        XCTAssertEqual(
+            bundle.store.currentAddTorrentDraft?.files.map(\.isSelected),
+            [false, false, false, true]
+        )
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.fileSelectionRevision, 2)
+    }
+
     func testCompleteOnboardingPersistsPreferenceFlag() {
         let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
         addTeardownBlock {

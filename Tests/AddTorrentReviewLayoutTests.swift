@@ -5,6 +5,132 @@ import XCTest
 @testable import Shatl
 
 final class AddTorrentReviewLayoutTests: XCTestCase {
+    func testTextSegmentSpacingMovesUnicodeWhitespaceToFollowingNumber() {
+        let separators = [" ", "\u{00A0}", "\u{202F}"]
+
+        for separator in separators {
+            let segments = [
+                AddTorrentTextSegment(
+                    id: "number-0",
+                    kind: .number,
+                    value: "8\u{00A0}955",
+                    animatesNumericChange: true
+                ),
+                AddTorrentTextSegment(
+                    id: "text-0",
+                    kind: .text,
+                    value: "\u{202F}из\(separator)",
+                    animatesNumericChange: false
+                ),
+                AddTorrentTextSegment(
+                    id: "number-1",
+                    kind: .number,
+                    value: "8\u{00A0}955",
+                    animatesNumericChange: true
+                ),
+            ]
+
+            let normalized = AddTorrentTextSegmentSpacing
+                .movingTrailingWhitespaceToFollowingNumber(in: segments)
+
+            XCTAssertEqual(normalized.map(\.value).joined(), segments.map(\.value).joined())
+            XCTAssertEqual(normalized[1].value, "\u{202F}из")
+            XCTAssertEqual(normalized[2].value, "\(separator)8\u{00A0}955")
+            XCTAssertEqual(normalized.map(\.id), segments.map(\.id))
+            XCTAssertEqual(normalized.map(\.kind), segments.map(\.kind))
+            XCTAssertEqual(
+                normalized.map(\.animatesNumericChange),
+                segments.map(\.animatesNumericChange)
+            )
+        }
+    }
+
+    func testTextSegmentSpacingLeavesWhitespaceOnlyGroupingSegmentUnchanged() {
+        let segments = [
+            AddTorrentTextSegment(
+                id: "number-0",
+                kind: .number,
+                value: "8",
+                animatesNumericChange: true
+            ),
+            AddTorrentTextSegment(
+                id: "text-0",
+                kind: .text,
+                value: "\u{00A0}",
+                animatesNumericChange: false
+            ),
+            AddTorrentTextSegment(
+                id: "number-1",
+                kind: .number,
+                value: "955",
+                animatesNumericChange: true
+            ),
+        ]
+
+        XCTAssertEqual(
+            AddTorrentTextSegmentSpacing.movingTrailingWhitespaceToFollowingNumber(
+                in: segments
+            ),
+            segments
+        )
+    }
+
+    func testSelectedCountSegmentationPreservesSpacingForEverySupportedLocale() {
+        let locales: [AppLocaleOverride] = [
+            .english,
+            .russian,
+            .german,
+            .spanish,
+            .french,
+            .japanese,
+            .simplifiedChinese,
+        ]
+
+        for locale in locales {
+            let value = L10n.format(
+                "add_torrent.review.summary.selected_count",
+                localeOverride: locale,
+                defaultValue: "%lld of %lld",
+                Int64(8_955),
+                Int64(8_955)
+            )
+            let segments = AddTorrentNumericTextSegmentation.segments(in: value)
+
+            XCTAssertEqual(
+                segments.map(\.value).joined(),
+                value,
+                "Segmentation changed the localized value for \(locale.rawValue)"
+            )
+
+            for (segment, followingSegment) in zip(segments, segments.dropFirst()) {
+                let containsNonWhitespace = segment.value.contains { !$0.isWhitespace }
+                if segment.kind == .text,
+                   followingSegment.kind == .number,
+                   containsNonWhitespace {
+                    XCTAssertFalse(
+                        segment.value.last?.isWhitespace == true,
+                        "A visible text segment keeps trailing whitespace for \(locale.rawValue)"
+                    )
+                }
+            }
+        }
+    }
+
+    func testSelectionIndicatorUsesConstantSizeSourcesForEveryTreeState() {
+        XCTAssertEqual(
+            AddTorrentReviewSelectionIndicator.sourceValues(for: .selected),
+            [true]
+        )
+        XCTAssertEqual(
+            AddTorrentReviewSelectionIndicator.sourceValues(for: .unselected),
+            [false]
+        )
+        XCTAssertEqual(
+            AddTorrentReviewSelectionIndicator.sourceValues(for: .mixed),
+            [true, false]
+        )
+    }
+
     func testListItemMetricsFollowTypographyProfile() {
         XCTAssertEqual(
             AddTorrentReviewLayout.listItemHeight(for: .standard),
@@ -39,27 +165,199 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             33
         )
         XCTAssertEqual(
-            AddTorrentReviewLayout.invalidContentHeight(for: .standard),
-            491
+            AddTorrentReviewLayout.summaryOverlayHeight(for: .standard),
+            59
         )
         XCTAssertEqual(
-            AddTorrentReviewLayout.invalidContentHeight(for: .cjk),
-            499
+            AddTorrentReviewLayout.summaryOverlayHeight(for: .cjk),
+            63
         )
     }
 
-    func testTabContentHeightReservesSummarySpace() {
+    func testWindowAndSplitLayoutMetricsMatchReviewDesign() {
+        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 780)
+        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowHeight, 570)
+        XCTAssertEqual(AddTorrentReviewLayout.settingsColumnWidth, 380)
+        XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
+        XCTAssertEqual(AddTorrentReviewLayout.leftColumnOutlineWidth, 1)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryContainerHorizontalPadding, 6)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryContainerBottomPadding, 6)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 12)
+        XCTAssertEqual(AddTorrentReviewLayout.summarySpacing, 24)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryVerticalPadding, 12)
+    }
+
+    func testSummaryShowsSelectionMetricsOnlyFromFourSelectedFiles() {
+        for count in 0...3 {
+            XCTAssertFalse(
+                AddTorrentSummaryPresentation.showsSelectionMetrics(
+                    selectedFileCount: count
+                )
+            )
+        }
+
+        XCTAssertTrue(
+            AddTorrentSummaryPresentation.showsSelectionMetrics(
+                selectedFileCount: 4
+            )
+        )
+        XCTAssertTrue(
+            AddTorrentSummaryPresentation.showsSelectionMetrics(
+                selectedFileCount: 8_955
+            )
+        )
+    }
+
+    func testSearchProjectionIncludesMatchesAndTheirAncestorChain() throws {
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/search.torrent"),
+            originalName: "Search",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Root/Season 1/Episode One.mkv",
+                    sizeBytes: 100,
+                    fileIndex: 0,
+                    isSelected: true
+                ),
+                AddTorrentFileOption(
+                    name: "Root/Season 2/Trailer.mkv",
+                    sizeBytes: 200,
+                    fileIndex: 1,
+                    isSelected: true
+                ),
+                AddTorrentFileOption(
+                    name: "Notes.txt",
+                    sizeBytes: 300,
+                    fileIndex: 2,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        let root = try XCTUnwrap(draft.fileTree.first { $0.name == "Root" })
+        let seasonOne = try XCTUnwrap(root.children?.first { $0.name == "Season 1" })
+        let episode = try XCTUnwrap(seasonOne.children?.first)
+        let seasonTwo = try XCTUnwrap(root.children?.first { $0.name == "Season 2" })
+        let notes = try XCTUnwrap(draft.fileTree.first { $0.name == "Notes.txt" })
+        let projection = try XCTUnwrap(
+            AddTorrentFileSearchProjection.make(
+                from: draft.fileTree,
+                query: "episode one"
+            )
+        )
+
         XCTAssertEqual(
-            AddTorrentReviewLayout.tabContentHeight(for: .standard, showsSummary: false),
-            360
+            projection.visibleNodeIDs,
+            Set([root.id, seasonOne.id, episode.id])
         )
         XCTAssertEqual(
-            AddTorrentReviewLayout.tabContentHeight(for: .standard, showsSummary: true),
-            405
+            projection.foldersWithVisibleDescendants,
+            Set([root.id, seasonOne.id])
+        )
+        XCTAssertEqual(projection.matchingNodeIDs, Set([episode.id]))
+        XCTAssertFalse(projection.visibleNodeIDs.contains(seasonTwo.id))
+        XCTAssertFalse(projection.visibleNodeIDs.contains(notes.id))
+    }
+
+    func testMatchingFolderCanBeExplicitlyExpandedWithoutMatchingDescendants() throws {
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/search-folder.torrent"),
+            originalName: "Search folder",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Root/Cute Rin/File.bin",
+                    sizeBytes: 100,
+                    fileIndex: 0,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        let root = try XCTUnwrap(draft.fileTree.first)
+        let matchingFolder = try XCTUnwrap(root.children?.first)
+        let projection = try XCTUnwrap(
+            AddTorrentFileSearchProjection.make(from: draft.fileTree, query: "cute rin")
+        )
+
+        XCTAssertTrue(projection.matchingNodeIDs.contains(matchingFolder.id))
+        XCTAssertFalse(projection.foldersWithVisibleDescendants.contains(matchingFolder.id))
+        XCTAssertFalse(
+            AddTorrentSearchFolderExpansion.isExpanded(
+                folderID: matchingFolder.id,
+                projection: projection,
+                collapsedFolderIDs: [],
+                expandedFolderIDs: []
+            )
+        )
+        XCTAssertTrue(
+            AddTorrentSearchFolderExpansion.isExpanded(
+                folderID: matchingFolder.id,
+                projection: projection,
+                collapsedFolderIDs: [],
+                expandedFolderIDs: [matchingFolder.id]
+            )
+        )
+    }
+
+    func testRowLookupUsesBoundariesOfCachedOffsets() {
+        let offsets: [CGFloat] = [36, 82, 114]
+
+        XCTAssertNil(
+            AddTorrentReviewRowLookup.index(
+                at: 3,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            )
         )
         XCTAssertEqual(
-            AddTorrentReviewLayout.tabContentHeight(for: .cjk, showsSummary: true),
-            409
+            AddTorrentReviewRowLookup.index(
+                at: 4,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            0
+        )
+        XCTAssertEqual(
+            AddTorrentReviewRowLookup.index(
+                at: 36,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            1
+        )
+        XCTAssertEqual(
+            AddTorrentReviewRowLookup.index(
+                at: 113.5,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            ),
+            2
+        )
+        XCTAssertNil(
+            AddTorrentReviewRowLookup.index(
+                at: 114,
+                contentTop: 4,
+                rowBottomOffsets: offsets
+            )
+        )
+    }
+
+    func testEmptySearchDoesNotCreateProjection() {
+        XCTAssertNil(
+            AddTorrentFileSearchProjection.make(
+                from: [],
+                query: " \n\t "
+            )
         )
     }
 
@@ -183,6 +481,39 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         let firstSeason = try XCTUnwrap(root.children?.first { $0.name == "Season 1" })
         XCTAssertEqual(firstSeason.fileCount, 2)
         XCTAssertEqual(firstSeason.selectedFileCount, 1)
+    }
+
+    func testInitialExpansionIncludesOnlyTopLevelFolders() throws {
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/blender-video-kit.torrent"),
+            originalName: "Blender Video Kit",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(
+                    name: "Blender Video Kit/Video.mov",
+                    sizeBytes: 1_000,
+                    fileIndex: 0,
+                    isSelected: true
+                ),
+                AddTorrentFileOption(
+                    name: "Blender Video Kit/Assets/Texture.png",
+                    sizeBytes: 2_000,
+                    fileIndex: 1,
+                    isSelected: true
+                ),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        let root = try XCTUnwrap(draft.fileTree.first)
+        let nestedFolder = try XCTUnwrap(root.children?.first { $0.isFolder })
+        let expandedFolderIDs = AddTorrentInitialFolderExpansion.folderIDs(in: draft.fileTree)
+
+        XCTAssertEqual(expandedFolderIDs, Set([root.id]))
+        XCTAssertFalse(expandedFolderIDs.contains(nestedFolder.id))
     }
 
     func testPluralCategoriesFollowSupportedLocales() {

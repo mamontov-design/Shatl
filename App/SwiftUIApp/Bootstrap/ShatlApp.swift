@@ -85,6 +85,28 @@ struct ShatlApp: App {
             ShatlCommands(store: store)
         }
 
+        Window("Добавление загрузки", id: AppWindowID.addTorrentReview) {
+            AddTorrentReviewWindowRoot()
+                .environmentObject(store)
+                .environmentObject(accentState)
+                .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
+                .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
+                .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .frame(
+                    minWidth: AddTorrentReviewLayout.minimumWindowWidth,
+                    minHeight: AddTorrentReviewLayout.minimumWindowHeight
+                )
+                .windowFullScreenBehavior(.disabled)
+        }
+        .defaultSize(
+            width: AddTorrentReviewLayout.minimumWindowWidth,
+            height: AddTorrentReviewLayout.minimumWindowHeight
+        )
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
+        .windowResizability(.contentMinSize)
+        .windowToolbarStyle(.unified(showsTitle: true))
+
         Settings {
             ShatlSettingsView()
                 .environmentObject(store)
@@ -98,6 +120,134 @@ struct ShatlApp: App {
                 .windowFullScreenBehavior(.disabled)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+private struct AddTorrentReviewWindowRoot: View {
+    @EnvironmentObject private var store: AppStore
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        AddTorrentReviewView()
+            .background {
+                AddTorrentReviewWindowChromeConfigurator(
+                    title: L10n.string(
+                        "add_torrent.title",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Добавление загрузки"
+                    ),
+                    subtitle: reviewWindowSubtitle,
+                    onClose: finishReviewWindowClosure
+                )
+                .frame(width: 0, height: 0)
+            }
+            .onAppear {
+                guard !store.isAddTorrentReviewWindowActive else { return }
+                dismissWindow(id: AppWindowID.addTorrentReview)
+            }
+            .onChange(of: store.presentedModal) { _, presentation in
+                guard presentation != .addTorrentReview else { return }
+                dismissWindow(id: AppWindowID.addTorrentReview)
+            }
+    }
+
+    private var reviewWindowSubtitle: String {
+        guard let draft = store.currentAddTorrentDraft else {
+            return L10n.string(
+                "add_torrent.loading_metadata",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Получение метаданных…"
+            )
+        }
+
+        if draft.reviewState == .loadingMetadata {
+            return L10n.string(
+                "add_torrent.loading_metadata",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Получение метаданных…"
+            )
+        }
+
+        return draft.originalName
+    }
+
+    private func finishReviewWindowClosure() {
+        store.addTorrentReviewWindowDidClose()
+        withAnimation(ShatlMotion.mainContentMode) {
+            store.commitPendingConfirmedTorrent()
+        }
+    }
+}
+
+private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
+    let title: String
+    let subtitle: String
+    let onClose: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onClose: onClose)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.onClose = onClose
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            context.coordinator.observe(window)
+            window.title = title
+            window.subtitle = subtitle
+            window.titleVisibility = .visible
+            window.toolbarStyle = .unified
+            window.titlebarSeparatorStyle = .line
+            window.setFrameAutosaveName(AppWindowID.addTorrentReview)
+        }
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
+    }
+
+    @MainActor
+    final class Coordinator {
+        var onClose: () -> Void
+        private weak var observedWindow: NSWindow?
+        private var closeObservation: NSObjectProtocol?
+
+        init(onClose: @escaping () -> Void) {
+            self.onClose = onClose
+        }
+
+        func observe(_ window: NSWindow) {
+            guard observedWindow !== window else { return }
+            stopObserving()
+            observedWindow = window
+            closeObservation = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.onClose()
+                }
+            }
+        }
+
+        func stopObserving() {
+            if let closeObservation {
+                NotificationCenter.default.removeObserver(closeObservation)
+            }
+            closeObservation = nil
+            observedWindow = nil
+        }
+
+        deinit {
+            if let closeObservation {
+                NotificationCenter.default.removeObserver(closeObservation)
+            }
+        }
     }
 }
 
