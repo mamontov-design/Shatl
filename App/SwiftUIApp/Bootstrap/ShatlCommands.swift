@@ -67,6 +67,23 @@ struct ShatlCommands: Commands {
             Button(role: .destructive) {
                 guard let selectedTorrentID else { return }
                 Task {
+                    if let shortDisplayName = store.pendingAdditionShortDisplayName(for: selectedTorrentID) {
+                        guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
+                            named: shortDisplayName,
+                            localeOverride: store.preferences.localeOverride
+                        ) else {
+                            return
+                        }
+                        if store.isPendingAddition(id: selectedTorrentID) {
+                            store.cancelPendingAddition(id: selectedTorrentID)
+                        } else {
+                            await store.removeTorrent(
+                                id: selectedTorrentID,
+                                policy: .removeFromListOnly
+                            )
+                        }
+                        return
+                    }
                     await store.removeTorrent(id: selectedTorrentID, policy: .removeFromListOnly)
                 }
             } label: {

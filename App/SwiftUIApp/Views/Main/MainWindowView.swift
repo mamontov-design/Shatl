@@ -54,7 +54,7 @@ struct MainWindowView: View {
         if let issue = store.sessionLoadIssue {
             return .sessionLoadFailure(issue)
         }
-        return store.torrents.isEmpty ? .empty : .list
+        return store.torrentRowIDs.isEmpty ? .empty : .list
     }
 
     private var showsBlockedToolbarControls: Bool {
@@ -177,7 +177,7 @@ struct MainWindowView: View {
                 )
             )
         )
-        .onChange(of: store.torrents.isEmpty) { _, isEmpty in
+        .onChange(of: store.torrentRowIDs.isEmpty) { _, isEmpty in
             if isEmpty {
                 searchText = ""
             }
@@ -413,6 +413,28 @@ struct MainWindowView: View {
     }
 
     private func presentToolbarRemovalDialog() {
+        guard let selectedTorrentID = store.selectedTorrentID else { return }
+
+        if let shortDisplayName = store.pendingAdditionShortDisplayName(for: selectedTorrentID) {
+            Task {
+                guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
+                    named: shortDisplayName,
+                    localeOverride: store.preferences.localeOverride
+                ) else {
+                    return
+                }
+                if store.isPendingAddition(id: selectedTorrentID) {
+                    store.cancelPendingAddition(id: selectedTorrentID)
+                } else {
+                    await store.removeTorrent(
+                        id: selectedTorrentID,
+                        policy: .removeFromListOnly
+                    )
+                }
+            }
+            return
+        }
+
         guard let record = store.selectedTorrent else { return }
 
         Task {

@@ -224,10 +224,17 @@ struct TorrentCardView: View, Equatable {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentTransition(.interpolate)
 
             if row.errorState == nil, showsExpansionToggle {
-                expandButton
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                ZStack {
+                    if row.canExpand {
+                        expandButton
+                            .transition(ShatlMotion.appearFromTop)
+                    }
+                }
+                .frame(width: 18, height: 18)
+                .animation(ShatlMotion.metricResize, value: row.canExpand)
             }
 
             if row.isSelected {
@@ -295,11 +302,11 @@ struct TorrentCardView: View, Equatable {
                 Text(row.statusTitle)
                     .shatlTypography(ShatlTypography.metricSemibold)
                     .foregroundStyle(ShatlColor.typographyPrimary)
-                    .id(statusKind)
+                    .id(statusPresentationKey)
                     .transition(.blurReplace)
             }
         }
-        .animation(ShatlMotion.progressStatusReplace, value: statusKind)
+        .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
     }
 
     private func transferMetricSetView(_ metricSet: CompactTransferMetricSet) -> some View {
@@ -441,7 +448,14 @@ struct TorrentCardView: View, Equatable {
         .frame(minWidth: progressGroupMinimumWidth, alignment: .center)
         .background(progressGroupColor)
         .clipShape(progressGroupShape)
+        .overlay {
+            progressGroupShape
+                .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
+                .opacity(row.isPendingAddition ? 1 : 0)
+                .allowsHitTesting(false)
+        }
         .frame(height: ShatlMetricLayout.containerHeight)
+        .animation(ShatlMotion.cardState, value: row.isPendingAddition)
     }
 
     private var progressGroupMinimumWidth: CGFloat {
@@ -465,24 +479,36 @@ struct TorrentCardView: View, Equatable {
         row.errorState == nil ? row.status : .error
     }
 
+    private var statusPresentationKey: String {
+        row.isPendingAddition ? "pending-addition" : statusKind.rawValue
+    }
+
     private var progressIconName: String {
+        if row.isPendingAddition {
+            return "clock.fill"
+        }
+
         switch statusKind {
         case .downloading:
-            "square.and.arrow.down.fill"
+            return "square.and.arrow.down.fill"
         case .stopped:
-            "stop.fill"
+            return "stop.fill"
         case .seeding:
-            "square.and.arrow.up.fill"
+            return "square.and.arrow.up.fill"
         case .completed:
-            "checkmark.circle.fill"
+            return "checkmark.circle.fill"
         case .error:
-            "exclamationmark.triangle.fill"
+            return "exclamationmark.triangle.fill"
         case .checking:
-            "text.magnifyingglass"
+            return "text.magnifyingglass"
         }
     }
 
     private var progressText: String? {
+        if row.isPendingAddition {
+            return nil
+        }
+
         switch statusKind {
         case .seeding, .completed:
             return nil
@@ -519,6 +545,10 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.backgroundPrimary
         }
 
+        if row.isPendingAddition {
+            return .clear
+        }
+
         switch statusKind {
         case .downloading, .checking:
             return usesHoverStatusPalette
@@ -541,6 +571,12 @@ struct TorrentCardView: View, Equatable {
                 ? ShatlColor.statusBadgeErrorHover
                 : ShatlColor.statusBadgeErrorDefault
         }
+    }
+
+    private var pendingProgressGroupBorderColor: Color {
+        usesHoverStatusPalette
+            ? ShatlColor.statusBadgeDownloadingHover
+            : ShatlColor.statusBadgeDownloadingDefault
     }
 
     private var progressGroupForegroundColor: Color {
@@ -763,7 +799,7 @@ struct TorrentCardView: View, Equatable {
             return
         }
 
-        guard row.errorState == nil else {
+        guard row.errorState == nil, !row.isPendingAddition else {
             canOpenPrimaryItem = false
             canRevealInFinder = false
             return

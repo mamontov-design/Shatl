@@ -79,6 +79,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var canRemoveWithFiles: Bool
     var navigationAvailabilityKey: String
     var localeOverride: AppLocaleOverride
+    var isPendingAddition = false
+    var canExpand = true
 }
 
 @MainActor

@@ -83,6 +83,7 @@
 "torrent.action.download_to_another_folder" = "下载到其他文件夹";
 
 "torrent.status.downloading" = "下载中";
+"torrent.status.adding" = "正在添加…";
 "torrent.status.stopped" = "已停止";
 "torrent.status.seeding" = "做种中";
 "torrent.status.completed" = "已下载";
@@ -90,6 +91,7 @@
 "torrent.status.checking" = "检查中";
 
 "torrent.card.original_title" = "Torrent 名称：%@";
+"torrent.card.adding_title" = "正在添加下载“%@”…";
 
 "torrent.metric.download_speed" = "下载速度";
 "torrent.metric.eta" = "剩余时间";
@@ -112,6 +114,10 @@
 "remove_dialog.choice.message.list_only" = "Shatl 只会移除列表项。此卡片无法删除文件。";
 "remove_dialog.delete_with_files.title" = "连同文件删除“%@”？";
 "remove_dialog.delete_with_files.message" = "Shatl 会将 Torrent 从列表中移除，并删除磁盘上的所有相关文件。";
+"add_torrent.cancel.title" = "取消添加“%@”？";
+"add_torrent.cancel.message" = "Shatl 将停止添加并从列表中移除该下载。此操作无法撤销。";
+"add_torrent.cancel.delete_action" = "删除下载";
+"add_torrent.cancel.cancel_action" = "取消";
 
 "payload_deletion.files_not_deleted.title" = "文件未删除";
 "payload_deletion.not_all_files_deleted.title" = "部分文件未删除";

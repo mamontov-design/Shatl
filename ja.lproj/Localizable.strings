@@ -83,6 +83,7 @@
 "torrent.action.download_to_another_folder" = "別のフォルダにダウンロード";
 
 "torrent.status.downloading" = "ダウンロード中";
+"torrent.status.adding" = "追加中…";
 "torrent.status.stopped" = "停止中";
 "torrent.status.seeding" = "シード中";
 "torrent.status.completed" = "ダウンロード済み";
@@ -90,6 +91,7 @@
 "torrent.status.checking" = "確認中";
 
 "torrent.card.original_title" = "Torrent名：%@";
+"torrent.card.adding_title" = "ダウンロード「%@」を追加中…";
 
 "torrent.metric.download_speed" = "ダウンロード速度";
 "torrent.metric.eta" = "残り時間";
@@ -112,6 +114,10 @@
 "remove_dialog.choice.message.list_only" = "Shatlはリスト項目だけを削除します。このカードではファイル削除を利用できません。";
 "remove_dialog.delete_with_files.title" = "「%@」をファイルごと削除しますか？";
 "remove_dialog.delete_with_files.message" = "ShatlはTorrentをリストから削除し、関連するすべてのファイルをディスクから削除します。";
+"add_torrent.cancel.title" = "「%@」の追加をキャンセルしますか？";
+"add_torrent.cancel.message" = "Shatlは追加を停止し、ダウンロードをリストから削除します。この操作は取り消せません。";
+"add_torrent.cancel.delete_action" = "ダウンロードを削除";
+"add_torrent.cancel.cancel_action" = "キャンセル";
 
 "payload_deletion.files_not_deleted.title" = "ファイルは削除されませんでした";
 "payload_deletion.not_all_files_deleted.title" = "一部のファイルは削除されませんでした";

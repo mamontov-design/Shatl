@@ -83,6 +83,7 @@
 "torrent.action.download_to_another_folder" = "Скачать в другую папку";
 
 "torrent.status.downloading" = "Загружается";
+"torrent.status.adding" = "Добавляется…";
 "torrent.status.stopped" = "Остановлен";
 "torrent.status.seeding" = "Раздаётся";
 "torrent.status.completed" = "Загружен";
@@ -90,6 +91,7 @@
 "torrent.status.checking" = "Проверяется";
 
 "torrent.card.original_title" = "Название торрента — %@";
+"torrent.card.adding_title" = "Загрузка «%@» в процессе добавления…";
 
 "torrent.metric.download_speed" = "Скорость загрузки";
 "torrent.metric.eta" = "Осталось";
@@ -112,6 +114,10 @@
 "remove_dialog.choice.message.list_only" = "Shatl удалит только запись из списка. Удаление файлов для этой карточки недоступно.";
 "remove_dialog.delete_with_files.title" = "Удалить «%@» вместе с файлами?";
 "remove_dialog.delete_with_files.message" = "Shatl удалит торрент из списка, а также все связанные файлы с диска.";
+"add_torrent.cancel.title" = "Отменить добавление «%@»?";
+"add_torrent.cancel.message" = "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо.";
+"add_torrent.cancel.delete_action" = "Удалить загрузку";
+"add_torrent.cancel.cancel_action" = "Отмена";
 
 "payload_deletion.files_not_deleted.title" = "Файлы не удалены";
 "payload_deletion.not_all_files_deleted.title" = "Не все файлы удалены";

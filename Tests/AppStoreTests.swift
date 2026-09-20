@@ -141,7 +141,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertNil(bundle.store.selectedTorrentID)
     }
 
-    func testConfirmDraftDoesNotAutomaticallySelectAddedTorrent() async {
+    func testFastConfirmedDraftKeepsPendingCardVisibleBeforeMorph() async throws {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(engine: engine)
         addTeardownBlock {
@@ -164,20 +164,36 @@ final class AppStoreTests: XCTestCase {
 
         bundle.store.confirmDraft()
 
+        let pendingID = try XCTUnwrap(bundle.store.torrentRowIDs.first)
+        let didPersistTorrentWhileCardIsPending = await waitForCondition {
+            guard let data = try? Data(contentsOf: bundle.directories.sessionSnapshotURL),
+                  let snapshot = try? JSONDecoder().decode(SessionSnapshot.self, from: data) else {
+                return false
+            }
+            return snapshot.torrents.contains(where: { $0.torrentID == pendingID })
+        }
+
+        XCTAssertTrue(didPersistTorrentWhileCardIsPending)
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+        XCTAssertTrue(try XCTUnwrap(bundle.store.rowState(for: pendingID)).isPendingAddition)
+        XCTAssertNil(bundle.store.selectedTorrentID)
+
         let didAddTorrent = await waitForCondition {
             bundle.store.torrents.count == 1
         }
 
         XCTAssertTrue(didAddTorrent)
+        XCTAssertEqual(bundle.store.torrents.first?.id, pendingID)
         XCTAssertNil(bundle.store.selectedTorrentID)
     }
 
-    func testConfirmDraftFromModalCommitsTorrentOnlyAfterDismissCallback() async {
+    func testConfirmDraftImmediatelyShowsPendingCardThenMorphsUsingSameID() async throws {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(engine: engine)
         addTeardownBlock {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
+        await engine.setAddSuspended(true)
 
         bundle.store.presentedModal = .addTorrentReview
         bundle.store.currentAddTorrentDraft = AddTorrentDraft(
@@ -185,7 +201,7 @@ final class AppStoreTests: XCTestCase {
             originalName: "New Torrent",
             infoHash: "new-info-hash",
             suggestedSavePath: "/tmp",
-            alias: "",
+            alias: "12345678901234567890123456789012345",
             stopAfterDownload: false,
             files: [
                 AddTorrentFileOption(name: "A.bin", sizeBytes: 100, fileIndex: 0, isSelected: true),
@@ -196,31 +212,48 @@ final class AppStoreTests: XCTestCase {
 
         bundle.store.confirmDraft()
 
-        let didDismissModal = await waitForCondition {
-            bundle.store.presentedModal == nil
-        }
-
-        XCTAssertTrue(didDismissModal)
+        XCTAssertNil(bundle.store.presentedModal)
+        XCTAssertNil(bundle.store.currentAddTorrentDraft)
         XCTAssertTrue(bundle.store.torrents.isEmpty)
-
-        let persistedBeforeDismissCallback = try? Data(
-            contentsOf: bundle.directories.sessionSnapshotURL
+        let pendingID = try XCTUnwrap(bundle.store.torrentRowIDs.first)
+        let pendingModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: pendingID))
+        let pendingRow = pendingModel.state
+        XCTAssertTrue(pendingRow.isPendingAddition)
+        XCTAssertFalse(pendingRow.canExpand)
+        XCTAssertEqual(pendingRow.progress, 0)
+        XCTAssertEqual(pendingRow.statusTitle, "Добавляется…")
+        XCTAssertEqual(
+            pendingRow.title,
+            "Загрузка «12345678901234567890123456789…» в процессе добавления…"
         )
-        let snapshotBeforeDismissCallback = persistedBeforeDismissCallback.flatMap {
-            try? JSONDecoder().decode(SessionSnapshot.self, from: $0)
+        XCTAssertNil(pendingRow.compactTransferMetricSet)
+        XCTAssertFalse(pendingRow.canToggleRunningState)
+        XCTAssertTrue(pendingRow.canRemoveFromList)
+        XCTAssertFalse(pendingRow.canRemoveWithFiles)
+
+        let didStartEngineAdd = await waitForAsyncCondition {
+            await engine.addCallCount() == 1
         }
-        XCTAssertEqual(snapshotBeforeDismissCallback?.torrents.count, 1)
-        XCTAssertEqual(snapshotBeforeDismissCallback?.torrents.first?.originalName, "New Torrent")
-        let persistedTorrentID = snapshotBeforeDismissCallback?.torrents.first?.torrentID
+        XCTAssertTrue(didStartEngineAdd)
 
-        bundle.store.commitPendingConfirmedTorrent()
-
-        XCTAssertEqual(bundle.store.torrents.count, 1)
-        XCTAssertEqual(bundle.store.torrents.first?.id, persistedTorrentID)
+        await engine.setAddSuspended(false)
+        let didCommitTorrent = await waitForCondition {
+            bundle.store.torrents.count == 1
+        }
+        XCTAssertTrue(didCommitTorrent)
+        XCTAssertEqual(bundle.store.torrents.first?.id, pendingID)
+        XCTAssertEqual(bundle.store.torrentRowIDs, [pendingID])
+        XCTAssertTrue(bundle.store.torrentRowPresentationModel(for: pendingID) === pendingModel)
+        XCTAssertFalse(try XCTUnwrap(bundle.store.rowState(for: pendingID)).isPendingAddition)
+        XCTAssertTrue(try XCTUnwrap(bundle.store.rowState(for: pendingID)).canExpand)
         XCTAssertNil(bundle.store.selectedTorrentID)
+
+        let persistedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let snapshot = try JSONDecoder().decode(SessionSnapshot.self, from: persistedData)
+        XCTAssertEqual(snapshot.torrents.map(\.torrentID), [pendingID])
     }
 
-    func testProgressSaveMustPreservePendingConfirmedTorrentArchive() async throws {
+    func testProgressSaveMustPreserveNewlyAddedTorrentArchive() async throws {
         let engine = FakeTorrentEngine()
         let existingRecord = makeTestRecord(originalName: "Existing Torrent", progress: 0.41)
         let bundle = makeTestStoreBundle(engine: engine, torrents: [existingRecord])
@@ -245,11 +278,10 @@ final class AppStoreTests: XCTestCase {
 
         bundle.store.confirmDraft()
 
-        let didDismissModal = await waitForCondition {
-            bundle.store.presentedModal == nil
+        let didCommitTorrent = await waitForCondition {
+            bundle.store.torrents.count == 2
         }
-        XCTAssertTrue(didDismissModal)
-        XCTAssertEqual(bundle.store.torrents.map(\.id), [existingRecord.id])
+        XCTAssertTrue(didCommitTorrent)
 
         let committedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
         let committedSnapshot = try JSONDecoder().decode(SessionSnapshot.self, from: committedData)
@@ -263,13 +295,115 @@ final class AppStoreTests: XCTestCase {
         progressedExistingRecord.progress = 0.42
         _ = await bundle.sessionStore.updateExisting(from: [progressedExistingRecord])
 
-        bundle.store.commitPendingConfirmedTorrent()
-
         let persistedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
         let persistedSnapshot = try JSONDecoder().decode(SessionSnapshot.self, from: persistedData)
         XCTAssertEqual(Set(persistedSnapshot.torrents.map(\.torrentID)), [existingRecord.id, pendingRecord.torrentID])
         XCTAssertTrue(FileManager.default.fileExists(atPath: archiveURL.path))
         XCTAssertEqual(Set(bundle.store.torrents.map(\.id)), [existingRecord.id, pendingRecord.torrentID])
+    }
+
+    func testCancellingPendingAdditionRemovesLateEngineResultAndArtifacts() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(engine: engine)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        await engine.setAddSuspended(true)
+
+        bundle.store.currentAddTorrentDraft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/cancelled.torrent"),
+            originalName: "Cancelled Torrent",
+            infoHash: "cancelled-info-hash",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(name: "A.bin", sizeBytes: 100, fileIndex: 0, isSelected: true),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        bundle.store.confirmDraft()
+        let pendingID = try XCTUnwrap(bundle.store.torrentRowIDs.first)
+        let didStartEngineAdd = await waitForAsyncCondition {
+            await engine.addCallCount() == 1
+        }
+        XCTAssertTrue(didStartEngineAdd)
+
+        bundle.store.selectTorrent(id: pendingID)
+        XCTAssertTrue(bundle.store.isToolbarRemoveEnabled)
+        XCTAssertFalse(bundle.store.isToolbarStartStopEnabled)
+
+        bundle.store.cancelPendingAddition(id: pendingID)
+        XCTAssertTrue(bundle.store.torrentRowIDs.isEmpty)
+        XCTAssertNil(bundle.store.selectedTorrentID)
+
+        await engine.setAddSuspended(false)
+        let didRemoveLateEngineResult = await waitForAsyncCondition {
+            await engine.recordedRemoveCalls().contains(
+                RemovedTorrentCall(id: pendingID, deleteData: false)
+            )
+        }
+        XCTAssertTrue(didRemoveLateEngineResult)
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: pendingID)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
+        if FileManager.default.fileExists(atPath: bundle.directories.sessionSnapshotURL.path) {
+            let persistedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+            let snapshot = try JSONDecoder().decode(SessionSnapshot.self, from: persistedData)
+            XCTAssertTrue(snapshot.torrents.isEmpty)
+        }
+    }
+
+    func testPendingAdditionParticipatesInDuplicateDetection() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(engine: engine)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        await engine.setAddSuspended(true)
+        let draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/duplicate.torrent"),
+            originalName: "Duplicate Torrent",
+            infoHash: "pending-duplicate-info-hash",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(name: "A.bin", sizeBytes: 100, fileIndex: 0, isSelected: true),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        bundle.store.currentAddTorrentDraft = draft
+        bundle.store.confirmDraft()
+        let pendingID = try XCTUnwrap(bundle.store.torrentRowIDs.first)
+        let didStartEngineAdd = await waitForAsyncCondition {
+            await engine.addCallCount() == 1
+        }
+        XCTAssertTrue(didStartEngineAdd)
+
+        bundle.store.presentedModal = .addTorrentReview
+        bundle.store.currentAddTorrentDraft = draft
+        bundle.store.confirmDraft()
+
+        XCTAssertEqual(bundle.store.torrentRowIDs, [pendingID])
+        let addCallCount = await engine.addCallCount()
+        XCTAssertEqual(addCallCount, 1)
+        XCTAssertEqual(bundle.store.presentedModal, .addTorrentReview)
+        XCTAssertNotNil(bundle.store.currentAddTorrentDraft?.errorState)
+
+        bundle.store.cancelPendingAddition(id: pendingID)
+        await engine.setAddSuspended(false)
+        let didCancelOriginalAddition = await waitForAsyncCondition {
+            await engine.recordedRemoveCalls().contains(
+                RemovedTorrentCall(id: pendingID, deleteData: false)
+            )
+        }
+        XCTAssertTrue(didCancelOriginalAddition)
     }
 
     func testRemovingSelectedTorrentClearsSelectionInsteadOfSelectingNextTorrent() async {
@@ -751,6 +885,38 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(didApplyDuplicate)
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
         XCTAssertTrue(bundle.store.torrents.isEmpty)
+    }
+
+    func testFastAddFailureReopensReviewOnlyAfterOriginalWindowCloses() async {
+        let engine = FakeTorrentEngine()
+        await engine.setAddError(
+            TorrentEngineError(kind: .duplicateTorrent, debugReason: "engine duplicate")
+        )
+        let bundle = makeTestStoreBundle(engine: engine)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.continueFromEntry(with: "magnet:?xt=urn:btih:fast-window-failure")
+        let didPrepareDraft = await waitForCondition {
+            bundle.store.currentAddTorrentDraft?.canConfirmDownload == true
+        }
+        XCTAssertTrue(didPrepareDraft)
+        XCTAssertTrue(bundle.store.isAddTorrentReviewWindowActive)
+
+        bundle.store.confirmDraft()
+        let didDeferFailure = await waitForCondition {
+            bundle.store.torrentRowIDs.isEmpty
+                && bundle.store.presentedModal == nil
+                && bundle.store.currentAddTorrentDraft == nil
+        }
+        XCTAssertTrue(didDeferFailure)
+
+        bundle.store.addTorrentReviewWindowDidClose()
+
+        XCTAssertTrue(bundle.store.isAddTorrentReviewWindowActive)
+        XCTAssertEqual(bundle.store.presentedModal, .addTorrentReview)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.errorState?.kind, .duplicateTorrent)
     }
 
     func testSleepingMagnetDuplicateShowsInlineDraftErrorAfterPreparation() async throws {

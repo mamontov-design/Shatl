@@ -82,7 +82,11 @@ nonisolated protocol TorrentEngine: Sendable {
     ) async throws -> AddTorrentDraft
     func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor]
     func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws
-    func addTorrent(using draft: AddTorrentDraft) async throws -> TorrentRecord
+    func addTorrent(
+        using draft: AddTorrentDraft,
+        recordID: UUID,
+        attemptID: UUID
+    ) async throws -> TorrentRecord
     func restoreSession(_ entries: [SessionRestoreEntry]) async throws -> [EngineTorrentSnapshot]
     func fetchMaterializedSelectedFileIndices(
         for id: UUID,

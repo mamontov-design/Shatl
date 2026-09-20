@@ -173,9 +173,6 @@ private struct AddTorrentReviewWindowRoot: View {
 
     private func finishReviewWindowClosure() {
         store.addTorrentReviewWindowDidClose()
-        withAnimation(ShatlMotion.mainContentMode) {
-            store.commitPendingConfirmedTorrent()
-        }
     }
 }
 

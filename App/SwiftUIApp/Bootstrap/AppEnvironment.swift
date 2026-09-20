@@ -201,12 +201,16 @@ private actor PreviewTorrentEngine: TorrentEngine {
 
     func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws {}
 
-    func addTorrent(using draft: AddTorrentDraft) async throws -> TorrentRecord {
+    func addTorrent(
+        using draft: AddTorrentDraft,
+        recordID: UUID,
+        attemptID: UUID
+    ) async throws -> TorrentRecord {
         let selectedFiles = draft.files.filter(\.isSelected)
 
         return TorrentRecord(
-            id: draft.id,
-            attemptID: UUID(),
+            id: recordID,
+            attemptID: attemptID,
             infoHash: draft.infoHash,
             originalName: draft.originalName,
             alias: draft.alias.isEmpty ? nil : draft.alias,

@@ -100,9 +100,11 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
-    func addTorrent(using draft: AddTorrentDraft) async throws -> TorrentRecord {
-        let recordID = UUID()
-        let attemptID = UUID()
+    func addTorrent(
+        using draft: AddTorrentDraft,
+        recordID: UUID,
+        attemptID: UUID
+    ) async throws -> TorrentRecord {
         let selectedIndices = draft.files
             .compactMap { $0.isSelected ? NSNumber(value: $0.fileIndex) : nil }
         let selectedFileIndices = draft.selectedFileIndices
@@ -127,8 +129,8 @@ actor LibtorrentEngine: TorrentEngine {
         }
 
         return TorrentRecord(
-            id: UUID(uuidString: addedTorrent.recordIdentifier) ?? recordID,
-            attemptID: UUID(uuidString: addedTorrent.attemptIdentifier) ?? attemptID,
+            id: recordID,
+            attemptID: attemptID,
             infoHash: addedTorrent.infoHash,
             originalName: addedTorrent.originalName,
             alias: draft.alias.isEmpty ? nil : draft.alias,

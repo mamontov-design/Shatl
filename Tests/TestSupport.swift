@@ -13,6 +13,8 @@ actor FakeTorrentEngine: TorrentEngine {
     private var bootCallCountValue = 0
     private var addCallCountValue = 0
     private var addError: TorrentEngineError?
+    private var suspendsAdd = false
+    private var addContinuation: CheckedContinuation<Void, Never>?
     private var prepareSources: [AddTorrentSource] = []
     private var removeCallsValue: [RemovedTorrentCall] = []
     private var removeError: TorrentEngineError?
@@ -78,14 +80,27 @@ actor FakeTorrentEngine: TorrentEngine {
         _ = source
     }
 
-    func addTorrent(using draft: AddTorrentDraft) async throws -> TorrentRecord {
+    func addTorrent(
+        using draft: AddTorrentDraft,
+        recordID: UUID,
+        attemptID: UUID
+    ) async throws -> TorrentRecord {
         addCallCountValue += 1
+
+        if suspendsAdd {
+            await withCheckedContinuation { continuation in
+                addContinuation = continuation
+            }
+        }
 
         if let addError {
             throw addError
         }
 
-        return makeTestRecord(
+        activeTorrentIDs.insert(recordID)
+        var record = makeTestRecord(
+            id: recordID,
+            attemptID: attemptID,
             infoHash: draft.infoHash,
             originalName: draft.originalName,
             savePath: draft.suggestedSavePath,
@@ -95,6 +110,8 @@ actor FakeTorrentEngine: TorrentEngine {
             status: .downloading,
             progress: 0
         )
+        record.alias = draft.alias.isEmpty ? nil : draft.alias
+        return record
     }
 
     func restoreSession(_ entries: [SessionRestoreEntry]) async throws -> [EngineTorrentSnapshot] {
@@ -213,6 +230,15 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func setAddError(_ error: TorrentEngineError?) async {
         addError = error
+    }
+
+    func setAddSuspended(_ isSuspended: Bool) async {
+        suspendsAdd = isSuspended
+        if !isSuspended {
+            let continuation = addContinuation
+            addContinuation = nil
+            continuation?.resume()
+        }
     }
 
     func recordedRecheckCallIDs() async -> [UUID] {

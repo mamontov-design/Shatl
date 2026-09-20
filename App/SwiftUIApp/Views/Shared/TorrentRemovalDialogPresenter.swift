@@ -6,6 +6,45 @@ import Foundation
 
 @MainActor
 enum TorrentRemovalDialogPresenter {
+    static func confirmCancelPendingAddition(
+        named shortDisplayName: String,
+        localeOverride: AppLocaleOverride = .system,
+        window: NSWindow? = nil
+    ) async -> Bool {
+        let alert = NSAlert()
+        alert.icon = NSApp.applicationIconImage
+        alert.alertStyle = .critical
+        alert.messageText = L10n.format(
+            "add_torrent.cancel.title",
+            localeOverride: localeOverride,
+            defaultValue: "Отменить добавление «%@»?",
+            shortDisplayName
+        )
+        alert.informativeText = L10n.string(
+            "add_torrent.cancel.message",
+            localeOverride: localeOverride,
+            defaultValue: "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо."
+        )
+        alert.addButton(
+            withTitle: L10n.string(
+                "add_torrent.cancel.delete_action",
+                localeOverride: localeOverride,
+                defaultValue: "Удалить загрузку"
+            )
+        )
+        alert.addButton(
+            withTitle: L10n.string(
+                "add_torrent.cancel.cancel_action",
+                localeOverride: localeOverride,
+                defaultValue: "Отмена"
+            )
+        )
+        markDestructiveIfPossible(alert.buttons[safe: 0])
+
+        let response = await present(alert, on: resolvedWindow(window))
+        return response == .alertFirstButtonReturn
+    }
+
     static func presentRemovalChoice(
         for record: TorrentRecord,
         allowsDeleteWithFiles: Bool = true,

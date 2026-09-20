@@ -83,6 +83,7 @@
 "torrent.action.download_to_another_folder" = "In anderen Ordner laden";
 
 "torrent.status.downloading" = "Lädt";
+"torrent.status.adding" = "Wird hinzugefügt…";
 "torrent.status.stopped" = "Gestoppt";
 "torrent.status.seeding" = "Seeding";
 "torrent.status.completed" = "Geladen";
@@ -90,6 +91,7 @@
 "torrent.status.checking" = "Prüfen";
 
 "torrent.card.original_title" = "Torrent-Name — %@";
+"torrent.card.adding_title" = "Download „%@“ wird hinzugefügt…";
 
 "torrent.metric.download_speed" = "Download-Geschwindigkeit";
 "torrent.metric.eta" = "Verbleibend";
@@ -112,6 +114,10 @@
 "remove_dialog.choice.message.list_only" = "Shatl entfernt nur den Listeneintrag. Das Löschen von Dateien ist für diese Karte nicht verfügbar.";
 "remove_dialog.delete_with_files.title" = "„%@“ mit Dateien löschen?";
 "remove_dialog.delete_with_files.message" = "Shatl entfernt den Torrent aus der Liste und löscht alle zugehörigen Dateien vom Datenträger.";
+"add_torrent.cancel.title" = "Hinzufügen von „%@“ abbrechen?";
+"add_torrent.cancel.message" = "Shatl bricht das Hinzufügen ab und entfernt den Download aus der Liste. Diese Aktion kann nicht rückgängig gemacht werden.";
+"add_torrent.cancel.delete_action" = "Download löschen";
+"add_torrent.cancel.cancel_action" = "Abbrechen";
 
 "payload_deletion.files_not_deleted.title" = "Dateien wurden nicht gelöscht";
 "payload_deletion.not_all_files_deleted.title" = "Nicht alle Dateien wurden gelöscht";

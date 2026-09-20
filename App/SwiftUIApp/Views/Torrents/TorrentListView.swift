@@ -77,6 +77,23 @@ struct TorrentListView: View {
                                 },
                                 onRemove: {
                                     Task {
+                                        if let shortDisplayName = store.pendingAdditionShortDisplayName(for: torrentID) {
+                                            guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
+                                                named: shortDisplayName,
+                                                localeOverride: store.preferences.localeOverride
+                                            ) else {
+                                                return
+                                            }
+                                            if store.isPendingAddition(id: torrentID) {
+                                                store.cancelPendingAddition(id: torrentID)
+                                            } else {
+                                                await store.removeTorrent(
+                                                    id: torrentID,
+                                                    policy: .removeFromListOnly
+                                                )
+                                            }
+                                            return
+                                        }
                                         await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
                                     }
                                 },

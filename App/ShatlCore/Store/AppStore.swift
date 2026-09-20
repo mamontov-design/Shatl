@@ -19,6 +19,19 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var stalledTask: Task<Void, Never>?
     }
 
+    private struct PendingTorrentAddition {
+        let id: UUID
+        let attemptID: UUID
+        let draft: AddTorrentDraft
+        let shortDisplayName: String
+        let presentationStartedAt: ContinuousClock.Instant
+    }
+
+    private struct DeferredAddTorrentFailure {
+        let draft: AddTorrentDraft
+        let errorState: TorrentErrorState
+    }
+
     struct TorrentNavigationAvailability: Equatable {
         var canOpen = false
         var canReveal = false
@@ -127,7 +140,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var isEngineReady = false
     private var lastPersistedProgressBucketByID: [UUID: Int] = [:]
     private var isPreparingForTermination = false
-    private var pendingConfirmedTorrent: TorrentRecord?
+    private var pendingTorrentAdditions: [PendingTorrentAddition] = []
+    private var pendingTorrentAdditionTasks: [UUID: Task<Void, Never>] = [:]
+    private var cancelledPendingTorrentAdditionIDs: Set<UUID> = []
+    private var deferredAddTorrentFailures: [DeferredAddTorrentFailure] = []
+    private static let minimumPendingAdditionPresentationDuration = Duration.milliseconds(600)
     private var pendingIncomingURLs: [URL] = []
     /// Torrents that must intentionally ignore engine snapshots.
     /// Prevents delayed polling from resurrecting an already stopped torrent.
@@ -230,6 +247,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         usageTelemetrySendTask?.cancel()
+        for task in pendingTorrentAdditionTasks.values {
+            task.cancel()
+        }
         for context in transitionTracesByTorrentID.values {
             context.slowTask?.cancel()
             context.stalledTask?.cancel()
@@ -242,7 +262,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     var torrentRowIDs: [UUID] {
-        torrents.map(\.id)
+        let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
+        return pendingTorrentAdditions.map(\.id) + torrents.compactMap {
+            pendingIDs.contains($0.id) ? nil : $0.id
+        }
     }
 
     var bottomTransferChips: [BottomTransferChipPresentation] {
@@ -261,12 +284,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let normalizedQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedQuery.isEmpty else { return torrentRowIDs }
 
-        return torrents
-            .filter { record in
-                record.originalName.localizedCaseInsensitiveContains(normalizedQuery)
-                    || record.alias?.localizedCaseInsensitiveContains(normalizedQuery) == true
+        let matchingPendingIDs = pendingTorrentAdditions
+            .filter { addition in
+                addition.draft.originalName.localizedCaseInsensitiveContains(normalizedQuery)
+                    || addition.draft.alias.localizedCaseInsensitiveContains(normalizedQuery)
             }
             .map(\.id)
+        let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
+        let matchingTorrentIDs = torrents
+            .filter { record in
+                !pendingIDs.contains(record.id)
+                    && (record.originalName.localizedCaseInsensitiveContains(normalizedQuery)
+                        || record.alias?.localizedCaseInsensitiveContains(normalizedQuery) == true)
+            }
+            .map(\.id)
+        return matchingPendingIDs + matchingTorrentIDs
     }
 
     func clearHiddenSelection(visibleTorrentIDs: [UUID]) {
@@ -286,10 +318,69 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         torrents.first(where: { $0.id == id })
     }
 
-    func rowState(for id: UUID) -> TorrentRowState? {
-        guard let record = torrents.first(where: { $0.id == id }) else { return nil }
+    func isPendingAddition(id: UUID) -> Bool {
+        pendingTorrentAdditions.contains(where: { $0.id == id })
+    }
 
-        return makeRowState(for: record)
+    func pendingAdditionShortDisplayName(for id: UUID) -> String? {
+        pendingTorrentAdditions.first(where: { $0.id == id })?.shortDisplayName
+    }
+
+    func rowState(for id: UUID) -> TorrentRowState? {
+        if let record = torrents.first(where: { $0.id == id }) {
+            return makeRowState(for: record)
+        }
+        guard let addition = pendingTorrentAdditions.first(where: { $0.id == id }) else {
+            return nil
+        }
+
+        return makeRowState(for: addition)
+    }
+
+    private func makeRowState(for addition: PendingTorrentAddition) -> TorrentRowState {
+        TorrentRowState(
+            id: addition.id,
+            title: L10n.format(
+                "torrent.card.adding_title",
+                localeOverride: preferences.localeOverride,
+                defaultValue: "Загрузка «%@» в процессе добавления…",
+                addition.shortDisplayName
+            ),
+            originalTitle: addition.draft.originalName,
+            hasAlias: addition.draft.alias.isEmpty == false,
+            status: .downloading,
+            statusTitle: L10n.string(
+                "torrent.status.adding",
+                localeOverride: preferences.localeOverride,
+                defaultValue: "Добавляется…"
+            ),
+            progress: 0,
+            hasActiveTransfer: false,
+            compactTransferMetricSet: nil,
+            expandedMetricGroups: nil,
+            metricsMode: preferences.metricsMode,
+            colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
+            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
+            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
+            errorState: nil,
+            isSelected: selectedTorrentID == addition.id,
+            isExpanded: false,
+            canToggleRunningState: false,
+            canRemoveFromList: !isRestoringSession,
+            canRemoveWithFiles: false,
+            navigationAvailabilityKey: "pending-addition|\(addition.id.uuidString)",
+            localeOverride: preferences.localeOverride,
+            isPendingAddition: true,
+            canExpand: false
+        )
+    }
+
+    private static func shortenedPendingDisplayName(for draft: AddTorrentDraft) -> String {
+        let alias = draft.alias.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sourceName = alias.isEmpty ? draft.originalName : alias
+        guard sourceName.count > 30 else { return sourceName }
+
+        return String(sourceName.prefix(29)) + "…"
     }
 
     private func makeRowState(for record: TorrentRecord) -> TorrentRowState {
@@ -347,9 +438,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func refreshTorrentPresentations() {
-        let currentIDs = Set(torrents.map(\.id))
+        let currentIDs = Set(torrents.map(\.id)).union(pendingTorrentAdditions.map(\.id))
         torrentRowPresentationModelsByID = torrentRowPresentationModelsByID.filter {
             currentIDs.contains($0.key)
+        }
+
+        for addition in pendingTorrentAdditions {
+            let state = makeRowState(for: addition)
+            if let model = torrentRowPresentationModelsByID[addition.id] {
+                model.update(state: state)
+            } else {
+                torrentRowPresentationModelsByID[addition.id] = TorrentRowPresentationModel(state: state)
+            }
         }
 
         for record in torrents {
@@ -536,6 +636,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             _ = await resolveInitialSessionLoad(result)
         }
 
+        let additionTasks = Array(pendingTorrentAdditionTasks.values)
+        for task in additionTasks {
+            await task.value
+        }
+
         guard !didBootstrap || (didCompleteRuntimeBootstrap && sessionLoadIssue == nil) else {
             return
         }
@@ -556,6 +661,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     var isToolbarRemoveEnabled: Bool {
+        if let selectedTorrentID, isPendingAddition(id: selectedTorrentID) {
+            return !isRestoringSession
+        }
         guard let selectedTorrent else { return false }
         return selectedTorrent.persistentIssue == nil
             && !isRestoringSession
@@ -585,7 +693,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func canRemoveFromList(for id: UUID) -> Bool {
-        torrents.contains(where: { $0.id == id })
+        if isPendingAddition(id: id) {
+            return !isRestoringSession
+        }
+        return torrents.contains(where: { $0.id == id })
             && !isRestoringSession
             && !transitioningTorrentIDs.contains(id)
     }
@@ -618,24 +729,24 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         if presentedModal == .addTorrentReview {
             dismissModal()
         }
+
+        if !deferredAddTorrentFailures.isEmpty {
+            let deferredAddTorrentFailure = deferredAddTorrentFailures.removeFirst()
+            presentInvalidDraft(
+                for: deferredAddTorrentFailure.draft.source,
+                errorState: deferredAddTorrentFailure.errorState,
+                suggestedSavePath: deferredAddTorrentFailure.draft.suggestedSavePath,
+                stopAfterDownload: deferredAddTorrentFailure.draft.stopAfterDownload,
+                alias: deferredAddTorrentFailure.draft.alias,
+                savePathBookmarkData: deferredAddTorrentFailure.draft.savePathBookmarkData
+            )
+        }
     }
 
     func dismissModal() {
         draftPreparationTask?.cancel()
         presentedModal = nil
         currentAddTorrentDraft = nil
-    }
-
-    func commitPendingConfirmedTorrent() {
-        guard canAddTorrent else { return }
-        guard let record = pendingConfirmedTorrent else { return }
-
-        pendingConfirmedTorrent = nil
-        insertConfirmedTorrent(record)
-
-        Task { [weak self] in
-            await self?.refreshActiveSnapshots()
-        }
     }
 
     func selectTorrent(id: UUID) {
@@ -657,6 +768,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func toggleExpanded(for id: UUID) {
         guard torrents.contains(where: { $0.id == id }) else { return }
         expandedTorrentID = expandedTorrentID == id ? nil : id
+    }
+
+    func cancelPendingAddition(id: UUID) {
+        guard pendingTorrentAdditions.contains(where: { $0.id == id }) else { return }
+
+        cancelledPendingTorrentAdditionIDs.insert(id)
+        pendingTorrentAdditionTasks[id]?.cancel()
+        removePendingTorrentAdditionFromPresentation(id: id)
     }
 
     func collapseExpandedTorrent() {
@@ -1443,109 +1562,195 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard let draft = currentAddTorrentDraft else { return }
         guard draft.canConfirmDownload else { return }
 
-        if let infoHash = draft.infoHash,
-           torrents.contains(where: { $0.infoHash == infoHash }) {
+        if isDuplicateDraft(draft) {
             presentDuplicateDraft(for: draft)
             return
         }
 
-        Task { [weak self] in
+        let addition = PendingTorrentAddition(
+            id: UUID(),
+            attemptID: UUID(),
+            draft: draft,
+            shortDisplayName: Self.shortenedPendingDisplayName(for: draft),
+            presentationStartedAt: ContinuousClock().now
+        )
+        insertPendingTorrentAddition(addition)
+        dismissModal()
+
+        let task = Task { [weak self] in
             guard let self else { return }
-
-            do {
-                let record = try await self.engine.addTorrent(using: draft)
-                guard let addLease = await self.sessionStore.beginAdd(torrentID: record.id) else {
-                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
-                    let persistenceError = TorrentEngineError(
-                        kind: .engineFailure,
-                        debugReason: "Не удалось зарезервировать новую загрузку в сессии."
-                    )
-                    self.presentInvalidDraft(
-                        for: draft.source,
-                        errorState: ShatlErrorCatalog.reviewError(
-                            for: persistenceError,
-                            source: draft.source,
-                            localeOverride: self.preferences.localeOverride
-                        ),
-                        suggestedSavePath: draft.suggestedSavePath,
-                        stopAfterDownload: draft.stopAfterDownload,
-                        alias: draft.alias,
-                        savePathBookmarkData: draft.savePathBookmarkData
-                    )
-                    return
-                }
-
-                do {
-                    try await self.persistRestoreArtifacts(for: record, draft: draft)
-                } catch {
-                    await self.sessionStore.abortAdd(addLease)
-                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
-                    let errorState = ShatlErrorCatalog.reviewError(
-                        for: error,
-                        source: draft.source,
-                        localeOverride: self.preferences.localeOverride
-                    )
-                    self.presentInvalidDraft(
-                        for: draft.source,
-                        errorState: errorState,
-                        suggestedSavePath: draft.suggestedSavePath,
-                        stopAfterDownload: draft.stopAfterDownload,
-                        alias: draft.alias,
-                        savePathBookmarkData: draft.savePathBookmarkData
-                    )
-                    return
-                }
-
-                let saveOutcome = await self.sessionStore.commitAdd(record, lease: addLease)
-                guard saveOutcome == .saved else {
-                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
-                    await self.sessionStore.abortAdd(addLease)
-                    let persistenceError = TorrentEngineError(
-                        kind: .engineFailure,
-                        debugReason: "Не удалось сохранить новую загрузку в сессии."
-                    )
-                    self.presentInvalidDraft(
-                        for: draft.source,
-                        errorState: ShatlErrorCatalog.reviewError(
-                            for: persistenceError,
-                            source: draft.source,
-                            localeOverride: self.preferences.localeOverride
-                        ),
-                        suggestedSavePath: draft.suggestedSavePath,
-                        stopAfterDownload: draft.stopAfterDownload,
-                        alias: draft.alias,
-                        savePathBookmarkData: draft.savePathBookmarkData
-                    )
-                    return
-                }
-
-                if self.presentedModal != nil {
-                    self.pendingConfirmedTorrent = record
-                    self.dismissModal()
-                } else {
-                    self.insertConfirmedTorrent(record)
-                    await self.refreshActiveSnapshots()
-                }
-            } catch {
-                if self.isDuplicateError(error) {
-                    self.presentDuplicateDraft(for: draft)
-                } else {
-                    let errorState = ShatlErrorCatalog.reviewError(
-                        for: error,
-                        source: draft.source,
-                        localeOverride: self.preferences.localeOverride
-                    )
-                    self.presentInvalidDraft(
-                        for: draft.source,
-                        errorState: errorState,
-                        suggestedSavePath: draft.suggestedSavePath,
-                        stopAfterDownload: draft.stopAfterDownload,
-                        alias: draft.alias,
-                        savePathBookmarkData: draft.savePathBookmarkData
-                    )
-                }
-            }
+            await self.performPendingTorrentAddition(addition)
         }
+        pendingTorrentAdditionTasks[addition.id] = task
+    }
+
+    private func performPendingTorrentAddition(_ addition: PendingTorrentAddition) async {
+        guard let addLease = await sessionStore.beginAdd(torrentID: addition.id) else {
+            handlePendingAdditionFailure(
+                TorrentEngineError(
+                    kind: .engineFailure,
+                    debugReason: "Не удалось зарезервировать новую загрузку в сессии."
+                ),
+                addition: addition
+            )
+            finishPendingTorrentAddition(id: addition.id)
+            return
+        }
+
+        guard !isPendingAdditionCancelled(id: addition.id) else {
+            await sessionStore.abortAdd(addLease)
+            finishPendingTorrentAddition(id: addition.id)
+            return
+        }
+
+        var addedRecord: TorrentRecord?
+        do {
+            let record = try await engine.addTorrent(
+                using: addition.draft,
+                recordID: addition.id,
+                attemptID: addition.attemptID
+            )
+            addedRecord = record
+
+            guard !isPendingAdditionCancelled(id: addition.id) else {
+                await rollbackCancelledPendingAddition(record: record, lease: addLease, isCommitted: false)
+                finishPendingTorrentAddition(id: addition.id)
+                return
+            }
+
+            try await persistRestoreArtifacts(for: record, draft: addition.draft)
+
+            guard !isPendingAdditionCancelled(id: addition.id) else {
+                await rollbackCancelledPendingAddition(record: record, lease: addLease, isCommitted: false)
+                finishPendingTorrentAddition(id: addition.id)
+                return
+            }
+
+            let saveOutcome = await sessionStore.commitAdd(record, lease: addLease)
+            guard saveOutcome == .saved else {
+                let persistenceError = TorrentEngineError(
+                    kind: .engineFailure,
+                    debugReason: "Не удалось сохранить новую загрузку в сессии."
+                )
+                throw persistenceError
+            }
+
+            await waitForMinimumPendingAdditionPresentation(addition)
+
+            guard !isPendingAdditionCancelled(id: addition.id) else {
+                await rollbackCancelledPendingAddition(record: record, lease: addLease, isCommitted: true)
+                finishPendingTorrentAddition(id: addition.id)
+                return
+            }
+
+            completePendingTorrentAddition(with: record)
+            finishPendingTorrentAddition(id: addition.id)
+            await refreshActiveSnapshots()
+        } catch {
+            if let addedRecord {
+                try? await engine.removeTorrent(id: addedRecord.id, deleteData: false)
+            }
+            await sessionStore.abortAdd(addLease)
+
+            if !isPendingAdditionCancelled(id: addition.id) {
+                handlePendingAdditionFailure(error, addition: addition)
+            }
+            finishPendingTorrentAddition(id: addition.id)
+        }
+    }
+
+    private func waitForMinimumPendingAdditionPresentation(
+        _ addition: PendingTorrentAddition
+    ) async {
+        let elapsed = addition.presentationStartedAt.duration(to: ContinuousClock().now)
+        let remaining = Self.minimumPendingAdditionPresentationDuration - elapsed
+        guard remaining > .zero else { return }
+
+        try? await Task.sleep(for: remaining)
+    }
+
+    private func rollbackCancelledPendingAddition(
+        record: TorrentRecord,
+        lease: SessionAddLease,
+        isCommitted: Bool
+    ) async {
+        if isCommitted {
+            let removalOutcome = await sessionStore.commitRemoval(torrentID: record.id)
+            guard removalOutcome == .saved else {
+                Self.logger.error(
+                    "Pending add cancellation could not be committed for torrent id=\(record.id.uuidString) outcome=\(String(describing: removalOutcome))"
+                )
+                completePendingTorrentAddition(with: record)
+                return
+            }
+        } else {
+            await sessionStore.abortAdd(lease)
+        }
+
+        try? await engine.removeTorrent(id: record.id, deleteData: false)
+        if isCommitted {
+            await sessionStore.finalizeRemovalArtifacts(torrentID: record.id)
+        }
+    }
+
+    private func insertPendingTorrentAddition(_ addition: PendingTorrentAddition) {
+        objectWillChange.send()
+        pendingTorrentAdditions.insert(addition, at: 0)
+        refreshTorrentPresentations()
+    }
+
+    private func completePendingTorrentAddition(with record: TorrentRecord) {
+        insertConfirmedTorrent(record)
+        removePendingTorrentAdditionFromPresentation(id: record.id)
+    }
+
+    private func removePendingTorrentAdditionFromPresentation(id: UUID) {
+        guard pendingTorrentAdditions.contains(where: { $0.id == id }) else { return }
+        objectWillChange.send()
+        pendingTorrentAdditions.removeAll { $0.id == id }
+        if selectedTorrentID == id, !torrents.contains(where: { $0.id == id }) {
+            selectedTorrentID = nil
+            selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
+        }
+        refreshTorrentPresentations()
+    }
+
+    private func finishPendingTorrentAddition(id: UUID) {
+        pendingTorrentAdditionTasks[id] = nil
+        cancelledPendingTorrentAdditionIDs.remove(id)
+    }
+
+    private func isPendingAdditionCancelled(id: UUID) -> Bool {
+        Task.isCancelled || cancelledPendingTorrentAdditionIDs.contains(id)
+    }
+
+    private func handlePendingAdditionFailure(_ error: Error, addition: PendingTorrentAddition) {
+        removePendingTorrentAdditionFromPresentation(id: addition.id)
+        let errorState = isDuplicateError(error)
+            ? ShatlErrorCatalog.duplicateDraftError(localeOverride: preferences.localeOverride)
+            : ShatlErrorCatalog.reviewError(
+                for: error,
+                source: addition.draft.source,
+                localeOverride: preferences.localeOverride
+            )
+        if isAddTorrentReviewWindowActive {
+            deferredAddTorrentFailures.append(
+                DeferredAddTorrentFailure(
+                    draft: addition.draft,
+                    errorState: errorState
+                )
+            )
+            return
+        }
+
+        presentInvalidDraft(
+            for: addition.draft.source,
+            errorState: errorState,
+            suggestedSavePath: addition.draft.suggestedSavePath,
+            stopAfterDownload: addition.draft.stopAfterDownload,
+            alias: addition.draft.alias,
+            savePathBookmarkData: addition.draft.savePathBookmarkData
+        )
     }
 
     func updateDraftAlias(_ alias: String) {
@@ -2292,6 +2497,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func isDuplicateDraft(_ draft: AddTorrentDraft) -> Bool {
         guard let infoHash = draft.infoHash else { return false }
         return torrents.contains(where: { $0.infoHash == infoHash })
+            || pendingTorrentAdditions.contains(where: { $0.draft.infoHash == infoHash })
     }
 
     private func presentDuplicateDraft(for draft: AddTorrentDraft) {
