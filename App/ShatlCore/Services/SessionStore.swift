@@ -31,6 +31,11 @@ nonisolated enum SessionSaveOutcome: Equatable, Sendable {
     case failed
 }
 
+nonisolated struct SessionAddLease: Equatable, Sendable {
+    fileprivate let torrentID: UUID
+    fileprivate let token: UUID
+}
+
 /// Persists durable session state and must not behave like a cache.
 actor SessionStore {
     private enum PersistenceState {
@@ -49,7 +54,11 @@ actor SessionStore {
     private let decoder: JSONDecoder
     private let readSessionData: @Sendable (URL) async throws -> Data
     private var persistenceState: PersistenceState
+    private var canonicalTorrentRecords: [SessionTorrentRecord]
     private var lastPersistedTorrentRecords: [SessionTorrentRecord]?
+    private var addLeaseTokensByTorrentID: [UUID: UUID] = [:]
+    private var removalArtifactReservations: Set<UUID> = []
+    private var isReconcilingArtifacts = false
 
     init(
         directories: ShatlDirectories,
@@ -58,6 +67,7 @@ actor SessionStore {
         resumeDataStore: ResumeDataStore? = nil,
         fileManager: FileManager = .default,
         startupMode: SessionStoreStartupMode = .requiresInitialLoad,
+        initialRecords: [TorrentRecord] = [],
         readSessionData: @escaping @Sendable (URL) async throws -> Data = { url in
             try Data(contentsOf: url)
         }
@@ -69,6 +79,9 @@ actor SessionStore {
         self.fileManager = fileManager
         self.readSessionData = readSessionData
         self.persistenceState = startupMode == .alreadyInitialized ? .writable : .awaitingInitialLoad
+        self.canonicalTorrentRecords = initialRecords.map {
+            Self.makeSessionRecord(from: $0, archiveStore: archiveStore)
+        }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -143,6 +156,7 @@ actor SessionStore {
             }
 
             let snapshot = try decoder.decode(SessionSnapshot.self, from: data)
+            canonicalTorrentRecords = snapshot.torrents
             lastPersistedTorrentRecords = snapshot.torrents
             return register(.loaded(snapshot))
         } catch {
@@ -159,36 +173,159 @@ actor SessionStore {
     func discardFailedSessionAndCreateEmpty() async -> SessionSaveOutcome {
         guard persistenceState == .blocked else { return .blocked }
         persistenceState = .writable
-        let outcome = await save(records: [], pruneRestoreArtifacts: true)
+        addLeaseTokensByTorrentID.removeAll()
+        removalArtifactReservations.removeAll()
+        let outcome = persistCandidate([])
         if outcome != .saved {
             persistenceState = .blocked
+            return outcome
+        }
+        _ = await reconcileOrphanedArtifacts()
+        return outcome
+    }
+
+    func beginAdd(torrentID: UUID) -> SessionAddLease? {
+        guard persistenceState == .writable,
+              !isReconcilingArtifacts,
+              !canonicalTorrentRecords.contains(where: { $0.torrentID == torrentID }),
+              addLeaseTokensByTorrentID[torrentID] == nil,
+              !removalArtifactReservations.contains(torrentID) else {
+            return nil
+        }
+
+        let lease = SessionAddLease(torrentID: torrentID, token: UUID())
+        addLeaseTokensByTorrentID[torrentID] = lease.token
+        return lease
+    }
+
+    @discardableResult
+    func commitAdd(_ record: TorrentRecord, lease: SessionAddLease) -> SessionSaveOutcome {
+        guard persistenceState == .writable else { return .blocked }
+        guard lease.torrentID == record.id,
+              addLeaseTokensByTorrentID[record.id] == lease.token,
+              !canonicalTorrentRecords.contains(where: { $0.torrentID == record.id }) else {
+            return .failed
+        }
+
+        var nextRecords = canonicalTorrentRecords
+        nextRecords.insert(makeSessionRecord(from: record), at: 0)
+        let outcome = persistCandidate(nextRecords)
+        if outcome == .saved {
+            addLeaseTokensByTorrentID[record.id] = nil
         }
         return outcome
     }
 
-    @discardableResult
-    func saveCriticalState(
-        from records: [TorrentRecord],
-        pruneRestoreArtifacts: Bool = true
-    ) async -> SessionSaveOutcome {
-        await save(records: records, pruneRestoreArtifacts: pruneRestoreArtifacts)
+    func abortAdd(_ lease: SessionAddLease) async {
+        guard addLeaseTokensByTorrentID[lease.torrentID] == lease.token else { return }
+        await archiveStore.removeArchive(for: lease.torrentID)
+        await bookmarkStore.removeBookmark(for: lease.torrentID)
+        await resumeDataStore?.removeResumeData(for: lease.torrentID)
+        addLeaseTokensByTorrentID[lease.torrentID] = nil
     }
 
+    /// Updates durable fields for records that already belong to the session.
+    /// Missing records are intentionally preserved; this path cannot change membership.
     @discardableResult
-    func saveProgressBatch(
-        from records: [TorrentRecord],
-        pruneRestoreArtifacts: Bool = true
-    ) async -> SessionSaveOutcome {
-        await save(records: records, pruneRestoreArtifacts: pruneRestoreArtifacts)
-    }
-
-    private func save(
-        records: [TorrentRecord],
-        pruneRestoreArtifacts: Bool
-    ) async -> SessionSaveOutcome {
+    func updateExisting(from records: [TorrentRecord]) -> SessionSaveOutcome {
         guard persistenceState == .writable else {
             return .blocked
         }
+
+        let updatesByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
+        var nextRecords = canonicalTorrentRecords
+        for index in nextRecords.indices {
+            guard let record = updatesByID[nextRecords[index].torrentID],
+                  record.attemptID == nextRecords[index].attemptID else {
+                continue
+            }
+            nextRecords[index] = makeSessionRecord(from: record)
+        }
+        return persistCandidate(nextRecords)
+    }
+
+    /// Replaces one logical download attempt without allowing a stale update from
+    /// the previous attempt to win later.
+    @discardableResult
+    func commitAttemptTransition(
+        _ record: TorrentRecord,
+        replacingAttemptID expectedAttemptID: UUID
+    ) -> SessionSaveOutcome {
+        guard persistenceState == .writable else { return .blocked }
+        guard let index = canonicalTorrentRecords.firstIndex(where: {
+            $0.torrentID == record.id && $0.attemptID == expectedAttemptID
+        }) else {
+            return .failed
+        }
+
+        var nextRecords = canonicalTorrentRecords
+        nextRecords[index] = makeSessionRecord(from: record)
+        return persistCandidate(nextRecords)
+    }
+
+    @discardableResult
+    func commitRemoval(torrentID: UUID) -> SessionSaveOutcome {
+        guard persistenceState == .writable else { return .blocked }
+        guard canonicalTorrentRecords.contains(where: { $0.torrentID == torrentID }) else {
+            return .failed
+        }
+
+        removalArtifactReservations.insert(torrentID)
+        let nextRecords = canonicalTorrentRecords.filter { $0.torrentID != torrentID }
+        let outcome = persistCandidate(nextRecords)
+        if outcome != .saved {
+            removalArtifactReservations.remove(torrentID)
+        }
+        return outcome
+    }
+
+    func finalizeRemovalArtifacts(torrentID: UUID) async {
+        await archiveStore.removeArchive(for: torrentID)
+        await bookmarkStore.removeBookmark(for: torrentID)
+        await resumeDataStore?.removeResumeData(for: torrentID)
+        removalArtifactReservations.remove(torrentID)
+    }
+
+    @discardableResult
+    func flush() -> SessionSaveOutcome {
+        persistCandidate(canonicalTorrentRecords)
+    }
+
+    /// Directory-wide reconciliation is a maintenance operation, never part of
+    /// progress/status persistence. Call it only while user mutations are blocked.
+    @discardableResult
+    func reconcileOrphanedArtifacts() async -> SessionSaveOutcome {
+        guard persistenceState == .writable, !isReconcilingArtifacts else { return .blocked }
+        isReconcilingArtifacts = true
+        defer { isReconcilingArtifacts = false }
+
+        let protectedIDs = Set(canonicalTorrentRecords.map(\.torrentID))
+            .union(addLeaseTokensByTorrentID.keys)
+            .union(removalArtifactReservations)
+        await archiveStore.cleanupOrphanedArchives(validTorrentIDs: protectedIDs)
+        await bookmarkStore.cleanupOrphanedBookmarks(validTorrentIDs: protectedIDs)
+        await resumeDataStore?.cleanupOrphanedResumeData(validTorrentIDs: protectedIDs)
+        return .saved
+    }
+
+    #if DEBUG
+    /// Full replacement is intentionally test-only. Production callers must use
+    /// add/update/remove commands so a stale snapshot cannot change membership.
+    @discardableResult
+    func replaceAllRecordsForTesting(
+        from records: [TorrentRecord],
+        reconcileOrphanedArtifacts: Bool = true
+    ) async -> SessionSaveOutcome {
+        let outcome = persistCandidate(records.map { makeSessionRecord(from: $0) })
+        if outcome == .saved, reconcileOrphanedArtifacts {
+            _ = await self.reconcileOrphanedArtifacts()
+        }
+        return outcome
+    }
+    #endif
+
+    private func persistCandidate(_ records: [SessionTorrentRecord]) -> SessionSaveOutcome {
+        guard persistenceState == .writable else { return .blocked }
 
         do {
             try directories.ensureSessionDirectories()
@@ -198,19 +335,14 @@ actor SessionStore {
 
         let snapshot = makeSnapshot(from: records)
         if snapshot.torrents == lastPersistedTorrentRecords {
+            canonicalTorrentRecords = records
             return .saved
         }
-        let validIDs = Set(records.map(\.id))
 
         do {
             let data = try encoder.encode(snapshot)
             try data.write(to: directories.sessionSnapshotURL, options: .atomic)
-
-            if pruneRestoreArtifacts {
-                await archiveStore.cleanupOrphanedArchives(validTorrentIDs: validIDs)
-                await bookmarkStore.cleanupOrphanedBookmarks(validTorrentIDs: validIDs)
-                await resumeDataStore?.cleanupOrphanedResumeData(validTorrentIDs: validIDs)
-            }
+            canonicalTorrentRecords = records
             lastPersistedTorrentRecords = snapshot.torrents
             return .saved
         } catch {
@@ -218,40 +350,48 @@ actor SessionStore {
         }
     }
 
-    private func makeSnapshot(from records: [TorrentRecord]) -> SessionSnapshot {
+    private func makeSnapshot(from records: [SessionTorrentRecord]) -> SessionSnapshot {
         SessionSnapshot(
             schemaVersion: SessionSnapshot.currentSchemaVersion,
             savedAt: Date(),
-            torrents: records.map {
-                let normalizedStatus = normalizedPersistedStatus(for: $0)
-                return SessionTorrentRecord(
-                    torrentID: $0.id,
-                    attemptID: $0.attemptID,
-                    infoHash: $0.infoHash,
-                    originalName: $0.originalName,
-                    alias: $0.alias,
-                    status: normalizedStatus,
-                    // libtorrent can temporarily lower progress during a recheck.
-                    // Persist the last confirmed maximum to avoid showing a false
-                    // rollback to zero after relaunch.
-                    progress: max($0.progress, $0.lastKnownProgress),
-                    canonicalSavePath: $0.canonicalSavePath,
-                    stopAfterDownload: $0.stopAfterDownload,
-                    selectedFileIndices: $0.selectedFileIndices,
-                    selectedFileRelativePaths: TorrentPathSafety.normalizedRelativePaths($0.selectedFileRelativePaths),
-                    selectedFileCount: $0.selectedFileCount,
-                    totalFileCount: $0.totalFileCount,
-                    archivedTorrentRelativePath: archiveStore.relativeArchivePath(for: $0.id),
-                    materializedSelectionFootprint: $0.materializedSelectionFootprint,
-                    persistentIssue: $0.persistentIssue,
-                    resumeCheckpointedAt: $0.resumeCheckpointedAt,
-                    resumeCheckpointProgress: $0.resumeCheckpointProgress
-                )
-            }
+            torrents: records
         )
     }
 
-    private func normalizedPersistedStatus(for record: TorrentRecord) -> TorrentStatus {
+    private func makeSessionRecord(from record: TorrentRecord) -> SessionTorrentRecord {
+        Self.makeSessionRecord(from: record, archiveStore: archiveStore)
+    }
+
+    private nonisolated static func makeSessionRecord(
+        from record: TorrentRecord,
+        archiveStore: TorrentArchiveStore
+    ) -> SessionTorrentRecord {
+        SessionTorrentRecord(
+            torrentID: record.id,
+            attemptID: record.attemptID,
+            infoHash: record.infoHash,
+            originalName: record.originalName,
+            alias: record.alias,
+            status: normalizedPersistedStatus(for: record),
+            // libtorrent can temporarily lower progress during a recheck.
+            // Persist the last confirmed maximum to avoid showing a false
+            // rollback to zero after relaunch.
+            progress: max(record.progress, record.lastKnownProgress),
+            canonicalSavePath: record.canonicalSavePath,
+            stopAfterDownload: record.stopAfterDownload,
+            selectedFileIndices: record.selectedFileIndices,
+            selectedFileRelativePaths: TorrentPathSafety.normalizedRelativePaths(record.selectedFileRelativePaths),
+            selectedFileCount: record.selectedFileCount,
+            totalFileCount: record.totalFileCount,
+            archivedTorrentRelativePath: archiveStore.relativeArchivePath(for: record.id),
+            materializedSelectionFootprint: record.materializedSelectionFootprint,
+            persistentIssue: record.persistentIssue,
+            resumeCheckpointedAt: record.resumeCheckpointedAt,
+            resumeCheckpointProgress: record.resumeCheckpointProgress
+        )
+    }
+
+    private nonisolated static func normalizedPersistedStatus(for record: TorrentRecord) -> TorrentStatus {
         guard record.persistentIssue == nil,
               record.runtimeErrorState != nil,
               record.status == .error else {

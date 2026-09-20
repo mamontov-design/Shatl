@@ -40,7 +40,7 @@ final class SessionStoreTests: XCTestCase {
             progress: 0.4
         )
 
-        await sessionStore.saveCriticalState(from: [record])
+        await sessionStore.replaceAllRecordsForTesting(from: [record])
         let loadedSnapshot = await sessionStore.load().snapshot
         let unwrappedSnapshot = try XCTUnwrap(loadedSnapshot)
         let loadedRecord = try XCTUnwrap(unwrappedSnapshot.torrents.first)
@@ -102,7 +102,7 @@ final class SessionStoreTests: XCTestCase {
             )
         )
 
-        await sessionStore.saveCriticalState(
+        await sessionStore.replaceAllRecordsForTesting(
             from: [runtimeIncompleteRecord, runtimeCompletedRecord, persistentIssueRecord]
         )
 
@@ -150,10 +150,102 @@ final class SessionStoreTests: XCTestCase {
         try Data("valid".utf8).write(to: validResumeURL, options: .atomic)
         try Data("orphan".utf8).write(to: orphanResumeURL, options: .atomic)
 
-        await sessionStore.saveCriticalState(from: [validRecord])
+        await sessionStore.replaceAllRecordsForTesting(from: [validRecord])
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: validResumeURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: orphanResumeURL.path))
+    }
+
+    func testAddLeaseProtectsArchiveAndUpdateCannotChangeMembership() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SessionStoreTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+
+        let directories = ShatlDirectories(
+            applicationSupportURL: rootURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+            cachesURL: rootURL.appendingPathComponent("Caches", isDirectory: true)
+        )
+        let archiveStore = TorrentArchiveStore(directories: directories)
+        let bookmarkStore = BookmarkStore(directories: directories)
+        let resumeDataStore = ResumeDataStore(directories: directories)
+        let existingRecord = makeTestRecord(originalName: "Existing", progress: 0.41)
+        let addedRecord = makeTestRecord(originalName: "Added", progress: 0.0)
+        let sessionStore = SessionStore(
+            directories: directories,
+            archiveStore: archiveStore,
+            bookmarkStore: bookmarkStore,
+            resumeDataStore: resumeDataStore,
+            startupMode: .alreadyInitialized,
+            initialRecords: [existingRecord]
+        )
+
+        let initialFlushOutcome = await sessionStore.flush()
+        XCTAssertEqual(initialFlushOutcome, .saved)
+        let pendingLease = await sessionStore.beginAdd(torrentID: addedRecord.id)
+        let lease = try XCTUnwrap(pendingLease)
+        let addedArchiveURL = try await archiveStore.destinationURL(for: addedRecord.id)
+        try Data("added".utf8).write(to: addedArchiveURL, options: .atomic)
+
+        let orphanArchiveURL = directories.archivedTorrentsDirectoryURL
+            .appendingPathComponent("\(UUID().uuidString).torrent", isDirectory: false)
+        try Data("orphan".utf8).write(to: orphanArchiveURL, options: .atomic)
+
+        let reconciliationOutcome = await sessionStore.reconcileOrphanedArtifacts()
+        XCTAssertEqual(reconciliationOutcome, .saved)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: addedArchiveURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: orphanArchiveURL.path))
+        let addOutcome = await sessionStore.commitAdd(addedRecord, lease: lease)
+        XCTAssertEqual(addOutcome, .saved)
+
+        var progressedExistingRecord = existingRecord
+        progressedExistingRecord.progress = 0.42
+        let updateOutcome = await sessionStore.updateExisting(from: [progressedExistingRecord])
+        XCTAssertEqual(updateOutcome, .saved)
+
+        let loadedSnapshot = await sessionStore.load().snapshot
+        let snapshot = try XCTUnwrap(loadedSnapshot)
+        XCTAssertEqual(
+            Set(snapshot.torrents.map(\.torrentID)),
+            Set([existingRecord.id, addedRecord.id])
+        )
+        XCTAssertTrue(FileManager.default.fileExists(atPath: addedArchiveURL.path))
+    }
+
+    func testUpdateExistingDoesNotReconcileUnrelatedArtifacts() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SessionStoreTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+
+        let directories = ShatlDirectories(
+            applicationSupportURL: rootURL.appendingPathComponent("ApplicationSupport", isDirectory: true),
+            cachesURL: rootURL.appendingPathComponent("Caches", isDirectory: true)
+        )
+        let record = makeTestRecord(progress: 0.41)
+        let sessionStore = SessionStore(
+            directories: directories,
+            archiveStore: TorrentArchiveStore(directories: directories),
+            bookmarkStore: BookmarkStore(directories: directories),
+            resumeDataStore: ResumeDataStore(directories: directories),
+            startupMode: .alreadyInitialized,
+            initialRecords: [record]
+        )
+
+        let initialFlushOutcome = await sessionStore.flush()
+        XCTAssertEqual(initialFlushOutcome, .saved)
+        let orphanResumeURL = directories.resumeDataDirectoryURL
+            .appendingPathComponent("\(UUID().uuidString).fastresume", isDirectory: false)
+        try Data("orphan".utf8).write(to: orphanResumeURL, options: .atomic)
+
+        var progressedRecord = record
+        progressedRecord.progress = 0.42
+        let updateOutcome = await sessionStore.updateExisting(from: [progressedRecord])
+        XCTAssertEqual(updateOutcome, .saved)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: orphanResumeURL.path))
     }
 
     func testSavingUnchangedDurableStateDoesNotRewriteSessionFile() async throws {
@@ -176,11 +268,11 @@ final class SessionStoreTests: XCTestCase {
         )
         let record = makeTestRecord(status: .stopped, progress: 0.42)
 
-        let firstOutcome = await sessionStore.saveCriticalState(from: [record])
+        let firstOutcome = await sessionStore.replaceAllRecordsForTesting(from: [record])
         XCTAssertEqual(firstOutcome, .saved)
         let firstData = try Data(contentsOf: directories.sessionSnapshotURL)
 
-        let secondOutcome = await sessionStore.saveCriticalState(from: [record])
+        let secondOutcome = await sessionStore.replaceAllRecordsForTesting(from: [record])
         XCTAssertEqual(secondOutcome, .saved)
         let secondData = try Data(contentsOf: directories.sessionSnapshotURL)
 
@@ -195,12 +287,12 @@ final class SessionStoreTests: XCTestCase {
             return XCTFail("Expected a clean first launch")
         }
 
-        let blockedOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        let blockedOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(blockedOutcome, .blocked)
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.directories.sessionSnapshotURL.path))
 
         await fixture.sessionStore.acceptInitialLoad()
-        let savedOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        let savedOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(savedOutcome, .saved)
 
         let data = try Data(contentsOf: fixture.directories.sessionSnapshotURL)
@@ -239,8 +331,8 @@ final class SessionStoreTests: XCTestCase {
 
             let result = await fixture.sessionStore.load()
             XCTAssertEqual(loadIssue(from: result), .unreadable)
-            let criticalOutcome = await fixture.sessionStore.saveCriticalState(from: [])
-            let progressOutcome = await fixture.sessionStore.saveProgressBatch(from: [makeTestRecord()])
+            let criticalOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
+            let progressOutcome = await fixture.sessionStore.updateExisting(from: [makeTestRecord()])
             XCTAssertEqual(criticalOutcome, .blocked)
             XCTAssertEqual(progressOutcome, .blocked)
             XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), corruptData)
@@ -258,7 +350,7 @@ final class SessionStoreTests: XCTestCase {
         let result = await fixture.sessionStore.load()
 
         XCTAssertEqual(loadIssue(from: result), .unsupportedVersion(found: 999))
-        let saveOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        let saveOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(saveOutcome, .blocked)
         XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), unsupportedData)
     }
@@ -273,7 +365,7 @@ final class SessionStoreTests: XCTestCase {
         let result = await fixture.sessionStore.load()
 
         XCTAssertEqual(loadIssue(from: result), .unreadable)
-        let saveOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        let saveOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(saveOutcome, .blocked)
         XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), originalData)
     }
@@ -295,7 +387,7 @@ final class SessionStoreTests: XCTestCase {
             let result = await fixture.sessionStore.load()
 
             XCTAssertEqual(loadIssue(from: result), .missingWithRecoveryArtifacts)
-            let saveOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+            let saveOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
             XCTAssertEqual(saveOutcome, .blocked)
             XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.directories.sessionSnapshotURL.path))
             XCTAssertEqual(try Data(contentsOf: artifactURL), originalData)
@@ -318,7 +410,7 @@ final class SessionStoreTests: XCTestCase {
 
         XCTAssertEqual(loadIssue(from: result), .missingWithRecoveryArtifacts)
         XCTAssertFalse(FileManager.default.fileExists(atPath: directories.applicationSupportURL.path))
-        let saveOutcome = await sessionStore.saveCriticalState(from: [])
+        let saveOutcome = await sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(saveOutcome, .blocked)
     }
 
@@ -334,7 +426,7 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(
             atPath: fixture.directories.archivedTorrentsDirectoryURL.path
         ))
-        let saveOutcome = await fixture.sessionStore.saveCriticalState(from: [])
+        let saveOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(saveOutcome, .blocked)
         XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), snapshotData)
     }
@@ -349,7 +441,7 @@ final class SessionStoreTests: XCTestCase {
 
         let relaunchedStore = makeSessionStore(directories: fixture.directories)
         let relaunchedLoadResult = await relaunchedStore.load()
-        let relaunchedSaveOutcome = await relaunchedStore.saveCriticalState(from: [])
+        let relaunchedSaveOutcome = await relaunchedStore.replaceAllRecordsForTesting(from: [])
         XCTAssertEqual(loadIssue(from: relaunchedLoadResult), .unreadable)
         XCTAssertEqual(relaunchedSaveOutcome, .blocked)
         XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), corruptData)

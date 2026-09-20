@@ -220,6 +220,58 @@ final class AppStoreTests: XCTestCase {
         XCTAssertNil(bundle.store.selectedTorrentID)
     }
 
+    func testProgressSaveMustPreservePendingConfirmedTorrentArchive() async throws {
+        let engine = FakeTorrentEngine()
+        let existingRecord = makeTestRecord(originalName: "Existing Torrent", progress: 0.41)
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [existingRecord])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.presentedModal = .addTorrentReview
+        bundle.store.currentAddTorrentDraft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/test.torrent"),
+            originalName: "Pending Torrent",
+            infoHash: "pending-info-hash",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [
+                AddTorrentFileOption(name: "A.bin", sizeBytes: 100, fileIndex: 0, isSelected: true),
+            ],
+            reviewState: .ready,
+            errorState: nil
+        )
+
+        bundle.store.confirmDraft()
+
+        let didDismissModal = await waitForCondition {
+            bundle.store.presentedModal == nil
+        }
+        XCTAssertTrue(didDismissModal)
+        XCTAssertEqual(bundle.store.torrents.map(\.id), [existingRecord.id])
+
+        let committedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let committedSnapshot = try JSONDecoder().decode(SessionSnapshot.self, from: committedData)
+        let pendingRecord = try XCTUnwrap(
+            committedSnapshot.torrents.first(where: { $0.torrentID != existingRecord.id })
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: pendingRecord.torrentID)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: archiveURL.path))
+
+        var progressedExistingRecord = existingRecord
+        progressedExistingRecord.progress = 0.42
+        _ = await bundle.sessionStore.updateExisting(from: [progressedExistingRecord])
+
+        bundle.store.commitPendingConfirmedTorrent()
+
+        let persistedData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let persistedSnapshot = try JSONDecoder().decode(SessionSnapshot.self, from: persistedData)
+        XCTAssertEqual(Set(persistedSnapshot.torrents.map(\.torrentID)), [existingRecord.id, pendingRecord.torrentID])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: archiveURL.path))
+        XCTAssertEqual(Set(bundle.store.torrents.map(\.id)), [existingRecord.id, pendingRecord.torrentID])
+    }
+
     func testRemovingSelectedTorrentClearsSelectionInsteadOfSelectingNextTorrent() async {
         let engine = FakeTorrentEngine()
         let first = makeTestRecord(originalName: "First")
@@ -749,7 +801,7 @@ final class AppStoreTests: XCTestCase {
             status: .stopped,
             progress: 0.0
         )
-        await bundle.sessionStore.saveCriticalState(from: [existingRecord])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [existingRecord])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -785,7 +837,7 @@ final class AppStoreTests: XCTestCase {
             status: .stopped,
             progress: 0.0
         )
-        await bundle.sessionStore.saveCriticalState(from: [existingRecord])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [existingRecord])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -1095,7 +1147,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
@@ -1146,7 +1198,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
@@ -1197,7 +1249,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
@@ -1242,7 +1294,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
 
         await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
@@ -1285,7 +1337,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
@@ -1336,7 +1388,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
@@ -2068,7 +2120,7 @@ final class AppStoreTests: XCTestCase {
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2111,7 +2163,7 @@ final class AppStoreTests: XCTestCase {
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2151,7 +2203,7 @@ final class AppStoreTests: XCTestCase {
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2330,7 +2382,7 @@ final class AppStoreTests: XCTestCase {
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
         await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2557,7 +2609,7 @@ final class AppStoreTests: XCTestCase {
         let healthyArchiveURL = try await bundle.archiveStore.destinationURL(for: healthyRecord.id)
         try Data("healthy archive".utf8).write(to: healthyArchiveURL, options: .atomic)
 
-        await bundle.sessionStore.saveCriticalState(from: [failedRecord, healthyRecord])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [failedRecord, healthyRecord])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2608,7 +2660,7 @@ final class AppStoreTests: XCTestCase {
         )
         let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
         try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2641,7 +2693,7 @@ final class AppStoreTests: XCTestCase {
             try? FileManager.default.removeItem(at: bundle.rootURL)
         }
 
-        await bundle.sessionStore.saveCriticalState(from: [record])
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
 
         bundle.store.bootstrapRuntimeState()
 
@@ -2796,7 +2848,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertNil(bundle.store.presentedModal)
         XCTAssertNil(bundle.store.currentAddTorrentDraft)
         let preparedSources = await engine.recordedPrepareSources()
-        let progressSaveOutcome = await bundle.sessionStore.saveProgressBatch(from: [makeTestRecord()])
+        let progressSaveOutcome = await bundle.sessionStore.updateExisting(from: [makeTestRecord()])
         XCTAssertTrue(preparedSources.isEmpty)
         XCTAssertEqual(progressSaveOutcome, .blocked)
 

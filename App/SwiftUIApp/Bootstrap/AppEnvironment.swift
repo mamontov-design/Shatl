@@ -122,7 +122,8 @@ extension AppEnvironment {
                 archiveStore: archiveStore,
                 bookmarkStore: bookmarkStore,
                 resumeDataStore: resumeDataStore,
-                startupMode: .alreadyInitialized
+                startupMode: .alreadyInitialized,
+                initialRecords: torrents
             ),
             torrentArchiveStore: archiveStore,
             bookmarkStore: bookmarkStore,

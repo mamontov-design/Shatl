@@ -1128,10 +1128,24 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func removeTorrent(id: UUID, policy: TorrentRemovalPolicy = .removeFromListOnly) async {
-        guard let record = torrents.first(where: { $0.id == id }) else { return }
+        guard let record = torrents.first(where: { $0.id == id }),
+              !transitioningTorrentIDs.contains(id) else {
+            return
+        }
         let resolvedPolicy: TorrentRemovalPolicy = record.errorState == nil
             ? policy
             : .removeFromListOnly
+
+        transitioningTorrentIDs.insert(id)
+        defer { transitioningTorrentIDs.remove(id) }
+
+        let sessionSaveOutcome = await sessionStore.commitRemoval(torrentID: id)
+        guard sessionSaveOutcome == .saved else {
+            Self.logger.error(
+                "Remove blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
+            )
+            return
+        }
 
         detachedTorrentIDs.remove(id)
         clearUnreadUserEvents(for: id)
@@ -1146,7 +1160,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedTorrentID = nil
         }
         refreshSelectedTorrentNavigationAvailability()
-        await persistCriticalState(pruneRestoreArtifacts: false)
 
         var canDeletePayload = false
         do {
@@ -1250,9 +1263,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
-        await torrentArchiveStore.removeArchive(for: id)
-        await bookmarkStore.removeBookmark(for: id)
-        await persistCriticalState()
+        await sessionStore.finalizeRemovalArtifacts(torrentID: id)
     }
 
     func redownloadTorrent(id: UUID) {
@@ -1416,7 +1427,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
 
             applySnapshots(snapshots)
-            saveCriticalState()
+            if let updatedRecord = torrents.first(where: { $0.id == record.id }) {
+                _ = await sessionStore.commitAttemptTransition(
+                    updatedRecord,
+                    replacingAttemptID: record.attemptID
+                )
+            }
         } catch {
             applyEngineError(error, to: record.id)
         }
@@ -1438,10 +1454,31 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
             do {
                 let record = try await self.engine.addTorrent(using: draft)
+                guard let addLease = await self.sessionStore.beginAdd(torrentID: record.id) else {
+                    try? await self.engine.removeTorrent(id: record.id, deleteData: false)
+                    let persistenceError = TorrentEngineError(
+                        kind: .engineFailure,
+                        debugReason: "Не удалось зарезервировать новую загрузку в сессии."
+                    )
+                    self.presentInvalidDraft(
+                        for: draft.source,
+                        errorState: ShatlErrorCatalog.reviewError(
+                            for: persistenceError,
+                            source: draft.source,
+                            localeOverride: self.preferences.localeOverride
+                        ),
+                        suggestedSavePath: draft.suggestedSavePath,
+                        stopAfterDownload: draft.stopAfterDownload,
+                        alias: draft.alias,
+                        savePathBookmarkData: draft.savePathBookmarkData
+                    )
+                    return
+                }
 
                 do {
                     try await self.persistRestoreArtifacts(for: record, draft: draft)
                 } catch {
+                    await self.sessionStore.abortAdd(addLease)
                     try? await self.engine.removeTorrent(id: record.id, deleteData: false)
                     let errorState = ShatlErrorCatalog.reviewError(
                         for: error,
@@ -1459,14 +1496,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     return
                 }
 
-                let saveOutcome = await self.sessionStore.saveCriticalState(
-                    from: [record] + self.torrents,
-                    pruneRestoreArtifacts: false
-                )
+                let saveOutcome = await self.sessionStore.commitAdd(record, lease: addLease)
                 guard saveOutcome == .saved else {
                     try? await self.engine.removeTorrent(id: record.id, deleteData: false)
-                    await self.torrentArchiveStore.removeArchive(for: record.id)
-                    await self.bookmarkStore.removeBookmark(for: record.id)
+                    await self.sessionStore.abortAdd(addLease)
                     let persistenceError = TorrentEngineError(
                         kind: .engineFailure,
                         debugReason: "Не удалось сохранить новую загрузку в сессии."
@@ -1614,6 +1647,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func completeRuntimeBootstrap(shouldRestoreSession: Bool) async {
         guard !isPreparingForTermination else { return }
+
+        guard await sessionStore.reconcileOrphanedArtifacts() == .saved else {
+            return
+        }
 
         do {
             let performanceSettings = preferences.enginePerformanceSettings
@@ -2115,11 +2152,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         detachedTorrentIDs.remove(record.id)
     }
 
-    private func persistCriticalState(pruneRestoreArtifacts: Bool = true) async {
-        _ = await sessionStore.saveCriticalState(
-            from: torrents,
-            pruneRestoreArtifacts: pruneRestoreArtifacts
-        )
+    private func persistCriticalState() async {
+        _ = await sessionStore.updateExisting(from: torrents)
     }
 
     private func persistRestoreArtifacts(for record: TorrentRecord, draft: AddTorrentDraft) async throws {

@@ -365,6 +365,7 @@ func makeTestStoreBundle(
         bookmarkStore: bookmarkStore,
         resumeDataStore: resumeDataStore,
         startupMode: sessionStoreStartupMode,
+        initialRecords: torrents,
         readSessionData: sessionReadData
     )
     let coordinator = SessionRestoreCoordinator(
