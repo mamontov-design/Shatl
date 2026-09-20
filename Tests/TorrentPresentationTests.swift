@@ -15,7 +15,7 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(ShatlBottomChipLayout.standardListBottomPadding, 8)
     }
 
-    func testExpandedMetricsHideConnectivityMetricsForSleepingStatuses() {
+    func testExpandedMetricGroupsHideConnectivityMetricsForSleepingStatuses() {
         let record = makeTestRecord(status: .stopped, progress: 0.23)
         var mutatedRecord = record
         mutatedRecord.metrics.seeds = 2
@@ -24,27 +24,27 @@ final class TorrentPresentationTests: XCTestCase {
         mutatedRecord.metrics.uploadedBytes = 4_096
         mutatedRecord.metrics.totalBytes = 2_147_483_648
 
-        let metrics = TorrentPresentation.expandedMetrics(for: mutatedRecord, mode: .detailed)
-        let metricIDs = Set(metrics.map { $0.id })
+        let groups = TorrentPresentation.expandedMetricGroups(for: mutatedRecord, mode: .detailed)
+        let groupIDs = Set(groups.dynamicGroups.map(\.id))
 
-        XCTAssertFalse(metricIDs.contains("peers"))
-        XCTAssertFalse(metricIDs.contains("upload-speed"))
-        XCTAssertTrue(metricIDs.contains("uploaded"))
-        XCTAssertTrue(metricIDs.contains("size"))
+        XCTAssertFalse(groupIDs.contains("peers"))
+        XCTAssertFalse(groupIDs.contains("upload-speed"))
+        XCTAssertTrue(groupIDs.contains("uploaded"))
+        XCTAssertEqual(groups.sizeGroup.id, "size")
     }
 
-    func testExpandedMetricsShowConnectivityMetricsForSeeding() {
+    func testExpandedMetricGroupsShowConnectivityMetricsForSeeding() {
         let record = makeTestRecord(status: .seeding, progress: 1.0)
         var mutatedRecord = record
         mutatedRecord.metrics.seeds = 5
         mutatedRecord.metrics.peers = 7
         mutatedRecord.metrics.uploadSpeedBytesPerSecond = 8_192
 
-        let metrics = TorrentPresentation.expandedMetrics(for: mutatedRecord, mode: .detailed)
-        let metricIDs = Set(metrics.map { $0.id })
+        let groups = TorrentPresentation.expandedMetricGroups(for: mutatedRecord, mode: .detailed)
+        let groupIDs = Set(groups.dynamicGroups.map(\.id))
 
-        XCTAssertTrue(metricIDs.contains("peers"))
-        XCTAssertTrue(metricIDs.contains("upload-speed"))
+        XCTAssertTrue(groupIDs.contains("peers"))
+        XCTAssertTrue(groupIDs.contains("upload-speed"))
     }
 
     func testExpandedMetricGroupsHideUploadSpeedWhenUploadSpeedIsZero() {
@@ -85,15 +85,18 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(peerItems?.first { $0.id == "peers" }?.number, ">999")
     }
 
-    func testPeerCountsAreCappedForLegacyExpandedMetrics() {
+    func testSimplifiedPeerCountsAreCappedForExpandedMetricGroups() {
         var record = makeTestRecord(status: .downloading, progress: 0.5)
         record.metrics.seeds = 1_000
         record.metrics.peers = 15_000
 
-        let metrics = TorrentPresentation.expandedMetrics(for: record, mode: .simplified)
-        let peersMetric = metrics.first { $0.id == "peers" }
+        let peerItems = TorrentPresentation.expandedMetricGroups(for: record, mode: .simplified)
+            .dynamicGroups
+            .first { $0.id == "peers" }?
+            .items
 
-        XCTAssertEqual(peersMetric?.value, ">999 ↑  >999 ↓")
+        XCTAssertEqual(peerItems?.first { $0.id == "seeds" }?.number, ">999")
+        XCTAssertEqual(peerItems?.first { $0.id == "peers" }?.number, ">999")
     }
 
     func testPeerCountFormatterCapsOnlyFourDigitValues() {

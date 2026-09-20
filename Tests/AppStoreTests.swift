@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Combine
 import Foundation
 import XCTest
 @testable import Shatl
@@ -233,6 +234,195 @@ final class AppStoreTests: XCTestCase {
 
         XCTAssertNil(bundle.store.selectedTorrentID)
         XCTAssertEqual(bundle.store.torrents.map(\.id), [second.id])
+    }
+
+    func testApplyingSnapshotsUpdatesRowsWithoutPublishingWholeStore() throws {
+        let engine = FakeTorrentEngine()
+        var first = makeTestRecord(originalName: "First")
+        var second = makeTestRecord(originalName: "Second")
+        first.metrics.downloadSpeedBytesPerSecond = 10 * 1_024
+        second.metrics.downloadSpeedBytesPerSecond = 10 * 1_024
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [first, second])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let firstRowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: first.id))
+        let secondRowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: second.id))
+        var storePublicationCount = 0
+        var firstRowPublicationCount = 0
+        var secondRowPublicationCount = 0
+        var summaryPublicationCount = 0
+        let storeObservation = bundle.store.objectWillChange.sink { _ in
+            storePublicationCount += 1
+        }
+        let firstRowObservation = firstRowModel.objectWillChange.sink { _ in
+            firstRowPublicationCount += 1
+        }
+        let secondRowObservation = secondRowModel.objectWillChange.sink { _ in
+            secondRowPublicationCount += 1
+        }
+        let summaryObservation = bundle.store.torrentTransferSummary.objectWillChange.sink { _ in
+            summaryPublicationCount += 1
+        }
+        defer {
+            storeObservation.cancel()
+            firstRowObservation.cancel()
+            secondRowObservation.cancel()
+            summaryObservation.cancel()
+        }
+
+        let identicalSnapshots = [first, second].map {
+            EngineTorrentSnapshot(
+                id: $0.id,
+                status: $0.status,
+                progress: $0.progress,
+                metrics: $0.metrics,
+                errorState: $0.runtimeErrorState
+            )
+        }
+
+        bundle.store.applySnapshotsForTesting(identicalSnapshots)
+
+        XCTAssertEqual(storePublicationCount, 0)
+        XCTAssertEqual(firstRowPublicationCount, 0)
+        XCTAssertEqual(secondRowPublicationCount, 0)
+        XCTAssertEqual(summaryPublicationCount, 0)
+
+        var firstChangedMetrics = first.metrics
+        firstChangedMetrics.downloadSpeedBytesPerSecond = 30 * 1_024
+        var secondChangedMetrics = second.metrics
+        secondChangedMetrics.downloadSpeedBytesPerSecond = 40 * 1_024
+        let changedSnapshots = [
+            EngineTorrentSnapshot(
+                id: first.id,
+                status: first.status,
+                progress: first.progress,
+                metrics: firstChangedMetrics,
+                errorState: first.runtimeErrorState
+            ),
+            EngineTorrentSnapshot(
+                id: second.id,
+                status: second.status,
+                progress: second.progress,
+                metrics: secondChangedMetrics,
+                errorState: second.runtimeErrorState
+            ),
+        ]
+
+        bundle.store.applySnapshotsForTesting(changedSnapshots)
+
+        XCTAssertEqual(storePublicationCount, 0)
+        XCTAssertEqual(firstRowPublicationCount, 1)
+        XCTAssertEqual(secondRowPublicationCount, 1)
+        XCTAssertEqual(summaryPublicationCount, 1)
+        XCTAssertEqual(
+            bundle.store.torrents.map(\.metrics.downloadSpeedBytesPerSecond),
+            [30 * 1_024, 40 * 1_024]
+        )
+
+        bundle.store.applySnapshotsForTesting(changedSnapshots)
+
+        XCTAssertEqual(storePublicationCount, 0)
+        XCTAssertEqual(firstRowPublicationCount, 1)
+        XCTAssertEqual(secondRowPublicationCount, 1)
+        XCTAssertEqual(summaryPublicationCount, 1)
+    }
+
+    func testCompactRowIgnoresRuntimeValuesThatDoNotChangePresentation() throws {
+        var record = makeTestRecord(status: .downloading, progress: 0.401)
+        record.metrics = TorrentMetrics(
+            downloadSpeedBytesPerSecond: 125 * 1_024,
+            uploadSpeedBytesPerSecond: 512,
+            etaSeconds: 3_600,
+            seeds: 2,
+            peers: 4,
+            uploadedBytes: 2_048,
+            totalBytes: 8_192,
+            selectedBytes: 8_192
+        )
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: record.id))
+        let originalState = rowModel.state
+        var rowPublicationCount = 0
+        let observation = rowModel.objectWillChange.sink { _ in
+            rowPublicationCount += 1
+        }
+        defer { observation.cancel() }
+
+        var changedMetrics = record.metrics
+        changedMetrics.downloadSpeedBytesPerSecond = 130 * 1_024
+        changedMetrics.uploadSpeedBytesPerSecond = 900
+        changedMetrics.seeds = 8
+        changedMetrics.peers = 12
+        changedMetrics.uploadedBytes = 7_000
+        bundle.store.applySnapshotsForTesting([
+            EngineTorrentSnapshot(
+                id: record.id,
+                status: .downloading,
+                progress: 0.409,
+                metrics: changedMetrics,
+                errorState: nil
+            ),
+        ])
+
+        XCTAssertEqual(rowPublicationCount, 0)
+        XCTAssertEqual(rowModel.state, originalState)
+        XCTAssertEqual(bundle.store.torrents.first?.progress, 0.409)
+        XCTAssertEqual(bundle.store.torrents.first?.metrics.seeds, 8)
+    }
+
+    func testExpandedRowPublishesExpandedMetricChangesWithoutPublishingStore() throws {
+        var record = makeTestRecord(status: .downloading, progress: 0.4)
+        record.metrics = TorrentMetrics(
+            downloadSpeedBytesPerSecond: 125 * 1_024,
+            uploadSpeedBytesPerSecond: 512,
+            etaSeconds: 3_600,
+            seeds: 2,
+            peers: 4,
+            uploadedBytes: 2_048,
+            totalBytes: 8_192,
+            selectedBytes: 8_192
+        )
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        bundle.store.toggleExpanded(for: record.id)
+
+        let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: record.id))
+        var storePublicationCount = 0
+        var rowPublicationCount = 0
+        let storeObservation = bundle.store.objectWillChange.sink { _ in
+            storePublicationCount += 1
+        }
+        let rowObservation = rowModel.objectWillChange.sink { _ in
+            rowPublicationCount += 1
+        }
+        defer {
+            storeObservation.cancel()
+            rowObservation.cancel()
+        }
+
+        var changedMetrics = record.metrics
+        changedMetrics.seeds = 8
+        bundle.store.applySnapshotsForTesting([
+            EngineTorrentSnapshot(
+                id: record.id,
+                status: .downloading,
+                progress: 0.4,
+                metrics: changedMetrics,
+                errorState: nil
+            ),
+        ])
+
+        XCTAssertEqual(storePublicationCount, 0)
+        XCTAssertEqual(rowPublicationCount, 1)
+        XCTAssertNotNil(rowModel.state.expandedMetricGroups)
     }
 
     func testSavePathUnavailableErrorOffersAnotherFolderRecovery() {
@@ -783,10 +973,9 @@ final class AppStoreTests: XCTestCase {
         let secondRow = bundle.store.rowState(for: secondRecord.id)
 
         XCTAssertEqual(bundle.store.torrentRowIDs, [firstRecord.id, secondRecord.id])
-        XCTAssertFalse(firstRow?.compactMetrics.isEmpty ?? true)
-        XCTAssertEqual(firstRow?.expandedMetrics, [])
+        XCTAssertNotNil(firstRow?.compactTransferMetricSet)
         XCTAssertNil(firstRow?.expandedMetricGroups)
-        XCTAssertFalse(secondRow?.expandedMetrics.isEmpty ?? false)
+        XCTAssertNotNil(secondRow?.compactTransferMetricSet)
         XCTAssertNotNil(secondRow?.expandedMetricGroups)
     }
 

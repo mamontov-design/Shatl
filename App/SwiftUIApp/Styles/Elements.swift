@@ -248,7 +248,7 @@ struct ShatlButton: View {
     }
 
     private var horizontalPadding: CGFloat {
-        role == .lineMessage ? 6 : 12
+        role == .lineMessage ? 6 : 8
     }
 
     private var verticalPadding: CGFloat {
@@ -1046,29 +1046,17 @@ private extension TorrentRowState {
                 defaultValue: "Загружается"
             ),
             progress: record.progress,
-            downloadSpeedBytesPerSecond: record.metrics.downloadSpeedBytesPerSecond,
-            uploadSpeedBytesPerSecond: record.metrics.uploadSpeedBytesPerSecond,
-            visibleProgressPercent: record.visibleProgressPercent,
+            hasActiveTransfer: record.metrics.downloadSpeedBytesPerSecond > 0,
             compactTransferMetricSet: TorrentPresentation.compactTransferMetricSet(
                 for: record,
                 mode: metricsMode,
                 localeOverride: localeOverride
             ),
-            compactMetrics: TorrentPresentation.compactMetrics(
-                for: record,
-                mode: metricsMode,
-                localeOverride: localeOverride
-            ),
-            expandedMetrics: isExpanded
-                ? TorrentPresentation.expandedMetrics(
-                    for: record,
-                    mode: metricsMode,
-                    localeOverride: localeOverride
-                )
-                : [],
-            expandedMetricGroups: expandedMetricGroups,
+            expandedMetricGroups: isExpanded ? expandedMetricGroups : nil,
             metricsMode: metricsMode,
             colorizesDownloadSpeed: colorizesDownloadSpeed,
+            enablesCardLayoutDiagnostics: false,
+            enablesMetricAnimationDiagnostics: false,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,
@@ -1289,11 +1277,9 @@ struct ShatlMetricSet: View {
     @Environment(\.shatlMetricSetOutlinePulseColor) private var metricSetOutlinePulseColor
     @Environment(\.shatlMetricSetOutlineFlashColor) private var metricSetOutlineFlashColor
     @Namespace private var metricSetNamespace
-    @State private var bounceToken = 0
     @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
-    @State private var lastMetricSetSize: CGSize?
 
     var body: some View {
         let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
@@ -1394,18 +1380,14 @@ struct ShatlMetricSet: View {
                 )
             }
         }
-        .background(metricSetDiagnosticsSizeReader)
+        .metricSetDiagnostics(items: items, context: diagnosticsContext)
         .animation(ShatlMotion.metricResize, value: items)
         .animation(ShatlMotion.metricResize, value: usesColoredDownloadSpeed)
-        .onChange(of: items) { oldItems, newItems in
-            logItemsChanged(from: oldItems, to: newItems)
-        }
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
             guard metricSetBounceEnabled else { return }
-            guard hasIconReplacement(from: oldIconSignature, to: newIconSignature) else {
+            guard hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
                 return
             }
-            logIconReplacementDetected(from: oldIconSignature, to: newIconSignature)
             bounceMetricSet()
         }
         .onChange(of: metricSetOutlineFlashTrigger) { _, newTrigger in
@@ -1442,25 +1424,6 @@ struct ShatlMetricSet: View {
         items.map(\.iconName)
     }
 
-    private var metricSetDiagnosticsSizeReader: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onAppear {
-                    recordMetricSetSize(proxy.size)
-                }
-                .onChange(of: proxy.size) { _, newSize in
-                    recordMetricSetSize(newSize)
-                }
-        }
-    }
-
-    private func hasIconReplacement(from oldIconSignature: [String?], to newIconSignature: [String?]) -> Bool {
-        zip(oldIconSignature, newIconSignature).contains { oldIconName, newIconName in
-            guard let oldIconName, let newIconName else { return false }
-            return oldIconName != newIconName
-        }
-    }
-
     private var metricDivider: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
             .fill(ShatlColor.metricDivider)
@@ -1468,41 +1431,47 @@ struct ShatlMetricSet: View {
     }
 
     private func bounceMetricSet() {
-        bounceToken += 1
-        let token = bounceToken
-        let startedAt = DispatchTime.now().uptimeNanoseconds
+        let diagnosticsEnabled = diagnosticsContext != nil && ShatlMetricAnimationDiagnosticsLog.isEnabled
+        let startedAt = diagnosticsEnabled ? DispatchTime.now().uptimeNanoseconds : nil
+        let token = bounceTrigger + 1
 
-        logBounceEvent(
-            "metricset.bounce.start",
-            token: token,
-            startedAt: startedAt,
-            extra: [
-                "upMs": "140",
-                "holdMs": "140",
-                "downMs": "240",
-            ]
-        )
-
-        guard animationMode == .lively, !reduceMotion else {
+        if let startedAt {
             logBounceEvent(
-                "metricset.bounce.skipped",
+                "metricset.bounce.start",
                 token: token,
                 startedAt: startedAt,
                 extra: [
-                    "animationMode": animationMode.rawValue,
-                    "reduceMotion": reduceMotion.description,
+                    "upMs": "140",
+                    "holdMs": "140",
+                    "downMs": "240",
                 ]
             )
+        }
+
+        guard animationMode == .lively, !reduceMotion else {
+            if let startedAt {
+                logBounceEvent(
+                    "metricset.bounce.skipped",
+                    token: token,
+                    startedAt: startedAt,
+                    extra: [
+                        "animationMode": animationMode.rawValue,
+                        "reduceMotion": reduceMotion.description,
+                    ]
+                )
+            }
             return
         }
 
         bounceTrigger += 1
-        logBounceEvent(
-            "metricset.bounce.keyframes-commanded",
-            token: token,
-            startedAt: startedAt,
-            extra: ["trigger": String(bounceTrigger)]
-        )
+        if let startedAt {
+            logBounceEvent(
+                "metricset.bounce.keyframes-commanded",
+                token: token,
+                startedAt: startedAt,
+                extra: ["trigger": String(bounceTrigger)]
+            )
+        }
     }
 
     private func flashMetricSetOutline() {
@@ -1529,6 +1498,70 @@ struct ShatlMetricSet: View {
         }
     }
 
+    private func logBounceEvent(
+        _ event: String,
+        token: Int,
+        startedAt: UInt64,
+        extra: [String: String] = [:]
+    ) {
+        guard let diagnosticsContext, ShatlMetricAnimationDiagnosticsLog.isEnabled else { return }
+
+        var fields = metricSetDiagnosticsFields(context: diagnosticsContext, merging: [
+            "token": String(token),
+            "elapsedMs": metricSetElapsedMilliseconds(since: startedAt),
+        ])
+        for (key, value) in extra {
+            fields[key] = value
+        }
+
+        ShatlMetricAnimationDiagnosticsLog.event(event, fields: fields)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func metricSetDiagnostics(
+        items: [MetricItemPresentation],
+        context: MetricSetDiagnosticsContext?
+    ) -> some View {
+        if let context {
+            modifier(MetricSetDiagnosticsModifier(items: items, context: context))
+        } else {
+            self
+        }
+    }
+}
+
+private struct MetricSetDiagnosticsModifier: ViewModifier {
+    let items: [MetricItemPresentation]
+    let context: MetricSetDiagnosticsContext
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlAnimationMode) private var animationMode
+    @State private var lastSize: CGSize?
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            recordSize(proxy.size)
+                        }
+                        .onChange(of: proxy.size) { _, newSize in
+                            recordSize(newSize)
+                        }
+                }
+            }
+            .onChange(of: items) { oldItems, newItems in
+                logItemsChanged(from: oldItems, to: newItems)
+            }
+            .onChange(of: items.map(\.iconName)) { oldIcons, newIcons in
+                guard hasMetricSetIconReplacement(from: oldIcons, to: newIcons) else { return }
+                logIconReplacementDetected(from: oldIcons, to: newIcons)
+            }
+    }
+
     private func logItemsChanged(
         from oldItems: [MetricItemPresentation],
         to newItems: [MetricItemPresentation]
@@ -1537,27 +1570,27 @@ struct ShatlMetricSet: View {
 
         ShatlMetricAnimationDiagnosticsLog.event(
             "metricset.items.changed",
-            fields: diagnosticsFields([
+            fields: metricSetDiagnosticsFields(context: context, merging: [
                 "reason": itemChangeReason(from: oldItems, to: newItems),
                 "items.previous": itemIDsSignature(oldItems),
                 "items.current": itemIDsSignature(newItems),
-                "icons.previous": iconSignature(oldItems),
-                "icons.current": iconSignature(newItems),
+                "icons.previous": joinedOptionalSignature(oldItems.map(\.iconName)),
+                "icons.current": joinedOptionalSignature(newItems.map(\.iconName)),
                 "values.previous": valueSignature(oldItems),
                 "values.current": valueSignature(newItems),
             ])
         )
     }
 
-    private func logIconReplacementDetected(from oldIconSignature: [String?], to newIconSignature: [String?]) {
+    private func logIconReplacementDetected(from oldIcons: [String?], to newIcons: [String?]) {
         guard ShatlMetricAnimationDiagnosticsLog.isEnabled else { return }
 
         ShatlMetricAnimationDiagnosticsLog.event(
             "metricset.icon-replacement.detected",
-            fields: diagnosticsFields([
-                "icons.previous": joinedOptionalSignature(oldIconSignature),
-                "icons.current": joinedOptionalSignature(newIconSignature),
-                "replacements": iconReplacementSignature(from: oldIconSignature, to: newIconSignature),
+            fields: metricSetDiagnosticsFields(context: context, merging: [
+                "icons.previous": joinedOptionalSignature(oldIcons),
+                "icons.current": joinedOptionalSignature(newIcons),
+                "replacements": iconReplacementSignature(from: oldIcons, to: newIcons),
                 "animationMode": animationMode.rawValue,
                 "reduceMotion": reduceMotion.description,
                 "bounceEligible": (animationMode == .lively && !reduceMotion).description,
@@ -1565,19 +1598,19 @@ struct ShatlMetricSet: View {
         )
     }
 
-    private func recordMetricSetSize(_ size: CGSize) {
-        guard ShatlMetricAnimationDiagnosticsLog.isEnabled else {
-            lastMetricSetSize = size
-            return
-        }
+    private func recordSize(_ size: CGSize) {
+        guard ShatlMetricAnimationDiagnosticsLog.isEnabled else { return }
 
-        let previousSize = lastMetricSetSize
-        lastMetricSetSize = size
+        let previousSize = lastSize
+        lastSize = size
 
         guard let previousSize else {
             ShatlMetricAnimationDiagnosticsLog.event(
                 "metricset.layout.initial",
-                fields: diagnosticsFields(sizeFields(previous: nil, current: size)),
+                fields: metricSetDiagnosticsFields(
+                    context: context,
+                    merging: sizeFields(previous: nil, current: size)
+                ),
                 flush: false
             )
             return
@@ -1585,51 +1618,16 @@ struct ShatlMetricSet: View {
 
         let widthDelta = size.width - previousSize.width
         let heightDelta = size.height - previousSize.height
-        let hasMeaningfulDelta = abs(widthDelta) >= 0.5 || abs(heightDelta) >= 0.5
-        guard hasMeaningfulDelta else { return }
+        guard abs(widthDelta) >= 0.5 || abs(heightDelta) >= 0.5 else { return }
 
         ShatlMetricAnimationDiagnosticsLog.event(
             "metricset.layout.changed",
-            fields: diagnosticsFields(sizeFields(previous: previousSize, current: size)),
+            fields: metricSetDiagnosticsFields(
+                context: context,
+                merging: sizeFields(previous: previousSize, current: size)
+            ),
             flush: false
         )
-    }
-
-    private func logBounceEvent(
-        _ event: String,
-        token: Int,
-        startedAt: UInt64,
-        extra: [String: String] = [:]
-    ) {
-        guard ShatlMetricAnimationDiagnosticsLog.isEnabled else { return }
-
-        var fields = diagnosticsFields([
-            "token": String(token),
-            "elapsedMs": elapsedMilliseconds(since: startedAt),
-        ])
-        for (key, value) in extra {
-            fields[key] = value
-        }
-
-        ShatlMetricAnimationDiagnosticsLog.event(event, fields: fields)
-    }
-
-    private func diagnosticsFields(_ fields: [String: String]) -> [String: String] {
-        var resolvedFields: [String: String] = [
-            "source": diagnosticsContext?.source ?? "unknown",
-            "torrentID": diagnosticsContext?.torrentID?.uuidString ?? "-",
-            "groupID": diagnosticsContext?.groupID ?? "-",
-            "status": diagnosticsContext?.cardStatus?.rawValue ?? "-",
-            "progressPercent": diagnosticsContext?.progressPercent.map(String.init) ?? "-",
-            "downloadSpeedBytesPerSecond": diagnosticsContext?.downloadSpeedBytesPerSecond.map(String.init) ?? "-",
-            "etaSeconds": diagnosticsContext?.etaSeconds.map(String.init) ?? "-",
-        ]
-
-        for (key, value) in fields {
-            resolvedFields[key] = value
-        }
-
-        return resolvedFields
     }
 
     private func itemChangeReason(
@@ -1644,7 +1642,7 @@ struct ShatlMetricSet: View {
             return "itemRemoved"
         }
 
-        if hasIconReplacement(from: oldItems.map(\.iconName), to: newItems.map(\.iconName)) {
+        if hasMetricSetIconReplacement(from: oldItems.map(\.iconName), to: newItems.map(\.iconName)) {
             return "iconReplacement"
         }
 
@@ -1661,10 +1659,6 @@ struct ShatlMetricSet: View {
 
     private func itemIDsSignature(_ items: [MetricItemPresentation]) -> String {
         items.map(\.id).joined(separator: ",")
-    }
-
-    private func iconSignature(_ items: [MetricItemPresentation]) -> String {
-        joinedOptionalSignature(items.map(\.iconName))
     }
 
     private func valueSignature(_ items: [MetricItemPresentation]) -> String {
@@ -1702,19 +1696,48 @@ struct ShatlMetricSet: View {
         ]
     }
 
-    private func elapsedMilliseconds(since startedAt: UInt64) -> String {
-        let elapsedNanoseconds = DispatchTime.now().uptimeNanoseconds - startedAt
-        let elapsedMilliseconds = Double(elapsedNanoseconds) / 1_000_000
-        return formatMetricSetNumber(elapsedMilliseconds)
+}
+
+private func hasMetricSetIconReplacement(from oldIcons: [String?], to newIcons: [String?]) -> Bool {
+    zip(oldIcons, newIcons).contains { oldIconName, newIconName in
+        guard let oldIconName, let newIconName else { return false }
+        return oldIconName != newIconName
+    }
+}
+
+private func metricSetDiagnosticsFields(
+    context: MetricSetDiagnosticsContext,
+    merging fields: [String: String]
+) -> [String: String] {
+    var resolvedFields: [String: String] = [
+        "source": context.source,
+        "torrentID": context.torrentID?.uuidString ?? "-",
+        "groupID": context.groupID ?? "-",
+        "status": context.cardStatus?.rawValue ?? "-",
+        "progressPercent": context.progressPercent.map(String.init) ?? "-",
+        "downloadSpeedBytesPerSecond": context.downloadSpeedBytesPerSecond.map(String.init) ?? "-",
+        "etaSeconds": context.etaSeconds.map(String.init) ?? "-",
+    ]
+
+    for (key, value) in fields {
+        resolvedFields[key] = value
     }
 
-    private func formatMetricSetNumber(_ value: Double) -> String {
-        String(format: "%.2f", value)
-    }
+    return resolvedFields
+}
 
-    private func formatMetricSetNumber(_ value: CGFloat) -> String {
-        formatMetricSetNumber(Double(value))
-    }
+private func metricSetElapsedMilliseconds(since startedAt: UInt64) -> String {
+    let elapsedNanoseconds = DispatchTime.now().uptimeNanoseconds - startedAt
+    let elapsedMilliseconds = Double(elapsedNanoseconds) / 1_000_000
+    return formatMetricSetNumber(elapsedMilliseconds)
+}
+
+private func formatMetricSetNumber(_ value: Double) -> String {
+    String(format: "%.2f", value)
+}
+
+private func formatMetricSetNumber(_ value: CGFloat) -> String {
+    formatMetricSetNumber(Double(value))
 }
 
 struct ShatlInfoBottomSpeedChip: View {

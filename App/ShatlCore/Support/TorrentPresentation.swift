@@ -3,12 +3,6 @@
 
 import Foundation
 
-nonisolated struct VisibleMetric: Identifiable, Equatable, Sendable {
-    var id: String
-    var title: String
-    var value: String
-}
-
 nonisolated struct MetricItemPresentation: Identifiable, Equatable, Sendable {
     var id: String
     var iconName: String?
@@ -48,40 +42,6 @@ nonisolated struct BottomTransferChipPresentation: Identifiable, Equatable, Send
 
 /// Decides what a torrent card displays without exposing UI details to the engine.
 nonisolated enum TorrentPresentation {
-    nonisolated static func compactMetrics(
-        for record: TorrentRecord,
-        mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride = .russian
-    ) -> [VisibleMetric] {
-        var metrics: [VisibleMetric] = []
-        let isDownloadPhase = record.status == .downloading
-
-        // Download speed and ETA belong only to the downloading phase.
-        // Hide them while seeding even if the engine briefly reports a nonzero
-        // download rate.
-        if isDownloadPhase && record.metrics.hasVisibleDownloadSpeed {
-            metrics.append(
-                VisibleMetric(
-                    id: "download-speed",
-                    title: L10n.string("torrent.metric.download_speed", localeOverride: localeOverride, defaultValue: "Скорость загрузки"),
-                    value: Metrics.formatSpeed(record.metrics.downloadSpeedBytesPerSecond, mode: mode, localeOverride: localeOverride)
-                )
-            )
-        }
-
-        if isDownloadPhase, let etaSeconds = record.metrics.etaSeconds, etaSeconds > 0 {
-            metrics.append(
-                VisibleMetric(
-                    id: "eta",
-                    title: L10n.string("torrent.metric.eta", localeOverride: localeOverride, defaultValue: "Осталось"),
-                    value: Metrics.formatETA(etaSeconds, mode: mode, localeOverride: localeOverride)
-                )
-            )
-        }
-
-        return metrics
-    }
-
     nonisolated static func compactTransferMetricSet(
         for record: TorrentRecord,
         mode: MetricsPresentationMode,
@@ -128,7 +88,7 @@ nonisolated enum TorrentPresentation {
         let showsConnectivityMetrics = record.status == .downloading || record.status == .seeding
 
         let peerItems = peerMetricItems(for: record, mode: mode)
-        if !peerItems.isEmpty {
+        if showsConnectivityMetrics && !peerItems.isEmpty {
             dynamicGroups.append(
                 MetricGroupPresentation(
                     id: "peers",
@@ -233,57 +193,6 @@ nonisolated enum TorrentPresentation {
         }
 
         return chips
-    }
-
-    nonisolated static func expandedMetrics(
-        for record: TorrentRecord,
-        mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride = .russian
-    ) -> [VisibleMetric] {
-        var metrics: [VisibleMetric] = []
-        let showsConnectivityMetrics = record.status == .downloading || record.status == .seeding
-
-        if showsConnectivityMetrics && record.metrics.hasVisiblePeerStats {
-            metrics.append(
-                VisibleMetric(
-                    id: "peers",
-                    title: L10n.string("torrent.metric.seeds_and_peers", localeOverride: localeOverride, defaultValue: "Сиды и Пиры"),
-                    value: "\(Metrics.formatPeerCount(record.metrics.seeds ?? 0, mode: mode)) ↑  \(Metrics.formatPeerCount(record.metrics.peers ?? 0, mode: mode)) ↓"
-                )
-            )
-        }
-
-        if showsConnectivityMetrics && record.metrics.hasVisibleUploadSpeed {
-            metrics.append(
-                VisibleMetric(
-                    id: "upload-speed",
-                    title: L10n.string("torrent.metric.upload_speed", localeOverride: localeOverride, defaultValue: "Скорость раздачи"),
-                    value: Metrics.formatSpeed(record.metrics.uploadSpeedBytesPerSecond, mode: mode, localeOverride: localeOverride)
-                )
-            )
-        }
-
-        if record.metrics.uploadedBytes > 0 {
-            metrics.append(
-                VisibleMetric(
-                    id: "uploaded",
-                    title: L10n.string("torrent.metric.uploaded", localeOverride: localeOverride, defaultValue: "Отдано"),
-                    value: Metrics.formatBytes(record.metrics.uploadedBytes, purpose: .uploaded, mode: mode, localeOverride: localeOverride)
-                )
-            )
-        }
-
-        if record.metrics.totalBytes > 0 {
-            metrics.append(
-                VisibleMetric(
-                    id: "size",
-                    title: L10n.string("torrent.metric.size", localeOverride: localeOverride, defaultValue: "Размер"),
-                    value: Metrics.formatBytes(record.metrics.totalBytes, purpose: .size, mode: mode, localeOverride: localeOverride)
-                )
-            )
-        }
-
-        return metrics
     }
 
     private nonisolated static func bottomTransferChip(

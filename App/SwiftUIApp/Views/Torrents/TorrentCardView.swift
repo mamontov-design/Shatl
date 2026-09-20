@@ -50,7 +50,6 @@ struct TorrentCardView: View, Equatable {
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
     @State private var cardWidth: CGFloat = 0
-    @State private var lastLayoutProbe: TorrentCardLayoutProbe?
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -84,7 +83,16 @@ struct TorrentCardView: View, Equatable {
         .background {
             cardBackground
         }
-        .background(cardLayoutProbeReader)
+        .background(cardWidthReader)
+        .background {
+            if row.enablesCardLayoutDiagnostics {
+                TorrentCardLayoutDiagnosticsProbe(
+                    torrentID: row.id,
+                    title: row.title,
+                    signature: layoutSignature
+                )
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .animation(ShatlMotion.cardState, value: isHovered)
         .animation(ShatlMotion.cardState, value: row.isSelected)
@@ -120,15 +128,9 @@ struct TorrentCardView: View, Equatable {
         .task(id: row.navigationAvailabilityKey) {
             await refreshNavigationAvailability()
         }
-        .onPreferenceChange(TorrentCardHeightPreferenceKey.self) { height in
-            recordLayoutProbe(height: height)
-        }
         .onPreferenceChange(TorrentCardWidthPreferenceKey.self) { width in
             guard let width, abs(width - cardWidth) >= 0.5 else { return }
             cardWidth = width
-        }
-        .onChange(of: layoutSignature) { _, _ in
-            recordLayoutProbe(height: lastLayoutProbe?.height)
         }
         .onHover { isHovered in
             guard presentationMode.allowsHoverEffects else { return }
@@ -356,14 +358,16 @@ struct TorrentCardView: View, Equatable {
             && cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
     }
 
-    private func metricDiagnosticsContext(source: String) -> MetricSetDiagnosticsContext {
-        MetricSetDiagnosticsContext(
+    private func metricDiagnosticsContext(source: String) -> MetricSetDiagnosticsContext? {
+        guard row.enablesMetricAnimationDiagnostics else { return nil }
+
+        return MetricSetDiagnosticsContext(
             source: source,
             torrentID: row.id,
             groupID: nil,
             cardStatus: row.status,
             progressPercent: progressPercent,
-            downloadSpeedBytesPerSecond: row.downloadSpeedBytesPerSecond,
+            downloadSpeedBytesPerSecond: nil,
             etaSeconds: nil
         )
     }
@@ -503,14 +507,7 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var hasActiveTransfer: Bool {
-        switch statusKind {
-        case .downloading:
-            row.downloadSpeedBytesPerSecond > 0
-        case .seeding:
-            clampedProgress >= 1 && row.uploadSpeedBytesPerSecond > 1
-        case .stopped, .completed, .error, .checking:
-            false
-        }
+        row.hasActiveTransfer
     }
 
     private var progressGroupColor: Color {
@@ -736,10 +733,9 @@ struct TorrentCardView: View, Equatable {
         }
     }
 
-    private var cardLayoutProbeReader: some View {
+    private var cardWidthReader: some View {
         GeometryReader { proxy in
             Color.clear
-                .preference(key: TorrentCardHeightPreferenceKey.self, value: proxy.size.height)
                 .preference(key: TorrentCardWidthPreferenceKey.self, value: proxy.size.width)
         }
     }
@@ -757,66 +753,6 @@ struct TorrentCardView: View, Equatable {
             hasError: row.errorState != nil,
             hasAlias: row.hasAlias
         )
-    }
-
-    private func recordLayoutProbe(height: CGFloat?) {
-        guard presentationMode == .normal else { return }
-
-        let probe = TorrentCardLayoutProbe(height: height, signature: layoutSignature)
-        defer {
-            lastLayoutProbe = probe
-        }
-
-        guard let previous = lastLayoutProbe else {
-            ShatlLog.ui.criticalDebug(
-                "torrent-card.layout.initial \(layoutLogFields(previous: nil, current: probe))"
-            )
-            return
-        }
-
-        let heightDelta = (probe.height ?? previous.height ?? 0) - (previous.height ?? probe.height ?? 0)
-        guard abs(heightDelta) >= 0.5 || probe.signature != previous.signature else { return }
-
-        let event = heightDelta < -0.5 ? "torrent-card.layout.shrink" : "torrent-card.layout.change"
-        ShatlLog.ui.criticalDebug(
-            "\(event) \(layoutLogFields(previous: previous, current: probe))"
-        )
-    }
-
-    private func layoutLogFields(
-        previous: TorrentCardLayoutProbe?,
-        current: TorrentCardLayoutProbe
-    ) -> String {
-        let previousHeight = previous?.height.map { formatLayoutNumber($0) } ?? "-"
-        let currentHeight = current.height.map { formatLayoutNumber($0) } ?? "-"
-        let delta = previous?.height.flatMap { oldHeight in
-            current.height.map { formatLayoutNumber($0 - oldHeight) }
-        } ?? "-"
-
-        return [
-            "id=\(row.id.uuidString)",
-            "title=\"\(escapedLayoutValue(row.title))\"",
-            "height.previous=\(previousHeight)",
-            "height.current=\(currentHeight)",
-            "height.delta=\(delta)",
-            "status.previous=\(previous?.signature.status.rawValue ?? "-")",
-            "status.current=\(current.signature.status.rawValue)",
-            "progress.previous=\(previous?.signature.progressPercent.description ?? "-")",
-            "progress.current=\(current.signature.progressPercent)",
-            "progressBar.previous=\(previous?.signature.showsProgressBar.description ?? "-")",
-            "progressBar.current=\(current.signature.showsProgressBar)",
-            "compactTransfer.previous=\(previous?.signature.hasCompactTransferMetricSet.description ?? "-")",
-            "compactTransfer.current=\(current.signature.hasCompactTransferMetricSet)",
-            "compactItems.previous=\(previous?.signature.compactTransferItemIDs.joined(separator: ",") ?? "-")",
-            "compactItems.current=\(current.signature.compactTransferItemIDs.joined(separator: ","))",
-            "expanded.previous=\(previous?.signature.isExpanded.description ?? "-")",
-            "expanded.current=\(current.signature.isExpanded)",
-            "expandedGroups.previous=\(previous?.signature.expandedDynamicGroupIDs.joined(separator: ",") ?? "-")",
-            "expandedGroups.current=\(current.signature.expandedDynamicGroupIDs.joined(separator: ","))",
-            "hasError.previous=\(previous?.signature.hasError.description ?? "-")",
-            "hasError.current=\(current.signature.hasError)",
-            "hasAlias=\(current.signature.hasAlias)"
-        ].joined(separator: " ")
     }
 
     @MainActor
@@ -845,6 +781,89 @@ struct TorrentCardView: View, Equatable {
 
 }
 
+private struct TorrentCardLayoutDiagnosticsProbe: View {
+    let torrentID: UUID
+    let title: String
+    let signature: TorrentCardLayoutSignature
+
+    @State private var lastProbe: TorrentCardLayoutProbe?
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onAppear {
+                    recordLayoutProbe(height: proxy.size.height)
+                }
+                .onChange(of: proxy.size.height) { _, height in
+                    recordLayoutProbe(height: height)
+                }
+                .onChange(of: signature) { _, _ in
+                    recordLayoutProbe(height: proxy.size.height)
+                }
+        }
+    }
+
+    private func recordLayoutProbe(height: CGFloat?) {
+        guard ShatlFileLogger.shared.loggingEnabled else { return }
+
+        let probe = TorrentCardLayoutProbe(height: height, signature: signature)
+        defer {
+            lastProbe = probe
+        }
+
+        guard let previous = lastProbe else {
+            ShatlLog.ui.criticalDebug(
+                "torrent-card.layout.initial \(layoutLogFields(previous: nil, current: probe))"
+            )
+            return
+        }
+
+        let heightDelta = (probe.height ?? previous.height ?? 0) - (previous.height ?? probe.height ?? 0)
+        guard abs(heightDelta) >= 0.5 || probe.signature != previous.signature else { return }
+
+        let event = heightDelta < -0.5 ? "torrent-card.layout.shrink" : "torrent-card.layout.change"
+        ShatlLog.ui.criticalDebug(
+            "\(event) \(layoutLogFields(previous: previous, current: probe))"
+        )
+    }
+
+    private func layoutLogFields(
+        previous: TorrentCardLayoutProbe?,
+        current: TorrentCardLayoutProbe
+    ) -> String {
+        let previousHeight = previous?.height.map { formatLayoutNumber($0) } ?? "-"
+        let currentHeight = current.height.map { formatLayoutNumber($0) } ?? "-"
+        let delta = previous?.height.flatMap { oldHeight in
+            current.height.map { formatLayoutNumber($0 - oldHeight) }
+        } ?? "-"
+
+        return [
+            "id=\(torrentID.uuidString)",
+            "title=\"\(escapedLayoutValue(title))\"",
+            "height.previous=\(previousHeight)",
+            "height.current=\(currentHeight)",
+            "height.delta=\(delta)",
+            "status.previous=\(previous?.signature.status.rawValue ?? "-")",
+            "status.current=\(current.signature.status.rawValue)",
+            "progress.previous=\(previous?.signature.progressPercent.description ?? "-")",
+            "progress.current=\(current.signature.progressPercent)",
+            "progressBar.previous=\(previous?.signature.showsProgressBar.description ?? "-")",
+            "progressBar.current=\(current.signature.showsProgressBar)",
+            "compactTransfer.previous=\(previous?.signature.hasCompactTransferMetricSet.description ?? "-")",
+            "compactTransfer.current=\(current.signature.hasCompactTransferMetricSet)",
+            "compactItems.previous=\(previous?.signature.compactTransferItemIDs.joined(separator: ",") ?? "-")",
+            "compactItems.current=\(current.signature.compactTransferItemIDs.joined(separator: ","))",
+            "expanded.previous=\(previous?.signature.isExpanded.description ?? "-")",
+            "expanded.current=\(current.signature.isExpanded)",
+            "expandedGroups.previous=\(previous?.signature.expandedDynamicGroupIDs.joined(separator: ",") ?? "-")",
+            "expandedGroups.current=\(current.signature.expandedDynamicGroupIDs.joined(separator: ","))",
+            "hasError.previous=\(previous?.signature.hasError.description ?? "-")",
+            "hasError.current=\(current.signature.hasError)",
+            "hasAlias=\(current.signature.hasAlias)"
+        ].joined(separator: " ")
+    }
+}
+
 private struct TorrentCardLayoutProbe: Equatable {
     var height: CGFloat?
     var signature: TorrentCardLayoutSignature
@@ -861,14 +880,6 @@ private struct TorrentCardLayoutSignature: Equatable {
     var expandedDynamicGroupIDs: [String]
     var hasError: Bool
     var hasAlias: Bool
-}
-
-private struct TorrentCardHeightPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat? = nil
-
-    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
-        value = nextValue() ?? value
-    }
 }
 
 private struct TorrentCardWidthPreferenceKey: PreferenceKey {

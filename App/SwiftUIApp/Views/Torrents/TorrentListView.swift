@@ -39,63 +39,65 @@ struct TorrentListView: View {
         ScrollView {
             VStack(spacing: 8) {
                 ForEach(visibleTorrentIDs, id: \.self) { torrentID in
-                    if let row = store.rowState(for: torrentID) {
-                        TorrentCardView(
-                            row: row,
-                            resolvePrimaryLocation: {
-                                await store.primaryLocation(for: torrentID)
-                            },
-                            onSelect: { store.toggleTorrentSelection(id: torrentID) },
-                            onToggleExpanded: {
-                                withAnimation(ShatlMotion.cardLayout) {
-                                    store.toggleExpanded(for: torrentID)
-                                }
-                            },
-                            onOpen: {
-                                Task {
-                                    guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                    await MainActor.run {
-                                        TorrentFileNavigationPresenter.open(location)
+                    if let rowModel = store.torrentRowPresentationModel(for: torrentID) {
+                        TorrentRowPresentationObserver(model: rowModel) { row in
+                            TorrentCardView(
+                                row: row,
+                                resolvePrimaryLocation: {
+                                    await store.primaryLocation(for: torrentID)
+                                },
+                                onSelect: { store.toggleTorrentSelection(id: torrentID) },
+                                onToggleExpanded: {
+                                    withAnimation(ShatlMotion.cardLayout) {
+                                        store.toggleExpanded(for: torrentID)
                                     }
-                                }
-                            },
-                            onRevealInFinder: {
-                                Task {
-                                    guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                    await MainActor.run {
-                                        TorrentFileNavigationPresenter.revealInFinder(location)
+                                },
+                                onOpen: {
+                                    Task {
+                                        guard let location = await store.primaryLocation(for: torrentID) else { return }
+                                        await MainActor.run {
+                                            TorrentFileNavigationPresenter.open(location)
+                                        }
                                     }
-                                }
-                            },
-                            onToggleRunningState: {
-                                store.toggleTorrentRunningState(id: torrentID)
-                            },
-                            onRedownload: { store.redownloadTorrent(id: torrentID) },
-                            onChooseAnotherFolder: {
-                                presentRedownloadFolderPicker(for: torrentID)
-                            },
-                            onRemove: {
-                                Task {
-                                    await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
-                                }
-                            },
-                            onRemoveWithFiles: {
-                                Task {
-                                    guard let record = store.torrentRecord(for: torrentID) else {
-                                        return
+                                },
+                                onRevealInFinder: {
+                                    Task {
+                                        guard let location = await store.primaryLocation(for: torrentID) else { return }
+                                        await MainActor.run {
+                                            TorrentFileNavigationPresenter.revealInFinder(location)
+                                        }
                                     }
-                                    guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
-                                        for: record,
-                                        localeOverride: store.preferences.localeOverride
-                                    ) else {
-                                        return
+                                },
+                                onToggleRunningState: {
+                                    store.toggleTorrentRunningState(id: torrentID)
+                                },
+                                onRedownload: { store.redownloadTorrent(id: torrentID) },
+                                onChooseAnotherFolder: {
+                                    presentRedownloadFolderPicker(for: torrentID)
+                                },
+                                onRemove: {
+                                    Task {
+                                        await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
                                     }
+                                },
+                                onRemoveWithFiles: {
+                                    Task {
+                                        guard let record = store.torrentRecord(for: torrentID) else {
+                                            return
+                                        }
+                                        guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
+                                            for: record,
+                                            localeOverride: store.preferences.localeOverride
+                                        ) else {
+                                            return
+                                        }
 
-                                    await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
+                                        await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
+                                    }
                                 }
-                            }
-                        )
-                        .equatable()
+                            )
+                            .equatable()
+                        }
                         .transition(ShatlMotion.cardListItem)
                     }
                 }
@@ -166,6 +168,15 @@ struct TorrentListView: View {
         )
 
         store.redownloadTorrent(id: torrentID, toSaveLocation: url, bookmarkData: bookmarkData)
+    }
+}
+
+private struct TorrentRowPresentationObserver<Content: View>: View {
+    @ObservedObject var model: TorrentRowPresentationModel
+    @ViewBuilder let content: (TorrentRowState) -> Content
+
+    var body: some View {
+        content(model.state)
     }
 }
 

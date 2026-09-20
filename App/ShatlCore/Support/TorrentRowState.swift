@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Combine
 import Foundation
 
 nonisolated struct TorrentRowErrorState: Equatable, Sendable {
@@ -63,15 +64,13 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var status: TorrentStatus
     var statusTitle: String
     var progress: Double
-    var downloadSpeedBytesPerSecond: Int64
-    var uploadSpeedBytesPerSecond: Int64
-    var visibleProgressPercent: Int?
+    var hasActiveTransfer: Bool
     var compactTransferMetricSet: CompactTransferMetricSet?
-    var compactMetrics: [VisibleMetric]
-    var expandedMetrics: [VisibleMetric]
     var expandedMetricGroups: ExpandedMetricGroupsPresentation?
     var metricsMode: MetricsPresentationMode
     var colorizesDownloadSpeed: Bool = false
+    var enablesCardLayoutDiagnostics: Bool = false
+    var enablesMetricAnimationDiagnostics: Bool = false
     var errorState: TorrentRowErrorState?
     var isSelected: Bool
     var isExpanded: Bool
@@ -80,4 +79,51 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var canRemoveWithFiles: Bool
     var navigationAvailabilityKey: String
     var localeOverride: AppLocaleOverride
+}
+
+@MainActor
+final class TorrentRowPresentationModel: ObservableObject, Identifiable {
+    let id: UUID
+    @Published private(set) var state: TorrentRowState
+
+    init(state: TorrentRowState) {
+        id = state.id
+        self.state = state
+    }
+
+    func update(state newState: TorrentRowState) {
+        guard state != newState else { return }
+        state = newState
+    }
+}
+
+@MainActor
+final class TorrentTransferSummaryModel: ObservableObject {
+    @Published private(set) var chips: [BottomTransferChipPresentation]
+    let visibility: TorrentTransferSummaryVisibilityModel
+
+    init(chips: [BottomTransferChipPresentation] = []) {
+        self.chips = chips
+        self.visibility = TorrentTransferSummaryVisibilityModel(hasChips: !chips.isEmpty)
+    }
+
+    func update(chips newChips: [BottomTransferChipPresentation]) {
+        guard chips != newChips else { return }
+        chips = newChips
+        visibility.update(hasChips: !newChips.isEmpty)
+    }
+}
+
+@MainActor
+final class TorrentTransferSummaryVisibilityModel: ObservableObject {
+    @Published private(set) var hasChips: Bool
+
+    init(hasChips: Bool) {
+        self.hasChips = hasChips
+    }
+
+    func update(hasChips newValue: Bool) {
+        guard hasChips != newValue else { return }
+        hasChips = newValue
+    }
 }

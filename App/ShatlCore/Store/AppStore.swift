@@ -24,9 +24,28 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var canReveal = false
     }
 
-    @Published var torrents: [TorrentRecord]
-    @Published var selectedTorrentID: UUID?
-    @Published var expandedTorrentID: UUID?
+    var torrents: [TorrentRecord] {
+        willSet {
+            guard !suppressesTorrentChangePublication, newValue != torrents else { return }
+            objectWillChange.send()
+        }
+        didSet {
+            guard oldValue != torrents else { return }
+            refreshTorrentPresentations()
+        }
+    }
+    @Published var selectedTorrentID: UUID? {
+        didSet {
+            guard oldValue != selectedTorrentID else { return }
+            refreshTorrentPresentations()
+        }
+    }
+    @Published var expandedTorrentID: UUID? {
+        didSet {
+            guard oldValue != expandedTorrentID else { return }
+            refreshTorrentPresentations()
+        }
+    }
     @Published var preferences: AppPreferences {
         didSet {
             if oldValue.canSendAnonymousUsageStatistics && !preferences.canSendAnonymousUsageStatistics {
@@ -42,6 +61,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
                 preferences.isAddTorrentReviewDiagnosticsLoggingEnabled
             )
+            refreshTorrentPresentations()
         }
     }
 
@@ -68,8 +88,15 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
     @Published private(set) var isResolvingSessionRecovery = false
-    @Published private(set) var transitioningTorrentIDs: Set<UUID> = []
+    @Published private(set) var transitioningTorrentIDs: Set<UUID> = [] {
+        didSet {
+            guard oldValue != transitioningTorrentIDs else { return }
+            refreshTorrentPresentations()
+        }
+    }
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
+
+    let torrentTransferSummary = TorrentTransferSummaryModel()
 
     private let engine: any TorrentEngine
     private let preferencesStore: AppPreferencesStore?
@@ -125,6 +152,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var notifiedPersistentIssueKeys: Set<PersistentIssueNotificationKey> = []
     private var unreadCompletedTorrentIDs: Set<UUID> = []
     private var unreadPersistentIssueKeys: Set<PersistentIssueNotificationKey> = []
+    private var suppressesTorrentChangePublication = false
+    private var torrentRowPresentationModelsByID: [UUID: TorrentRowPresentationModel] = [:]
 
     private struct PersistentIssueNotificationKey: Hashable {
         var torrentID: UUID
@@ -185,6 +214,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
             resolvedPreferences.isAddTorrentReviewDiagnosticsLoggingEnabled
         )
+        refreshTorrentPresentations()
 
         externalOpenRouter.attach { [weak self] url in
             self?.handleIncomingURL(url)
@@ -223,6 +253,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
+    func torrentRowPresentationModel(for id: UUID) -> TorrentRowPresentationModel? {
+        torrentRowPresentationModelsByID[id]
+    }
+
     func torrentRowIDs(matching searchQuery: String) -> [UUID] {
         let normalizedQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedQuery.isEmpty else { return torrentRowIDs }
@@ -255,6 +289,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func rowState(for id: UUID) -> TorrentRowState? {
         guard let record = torrents.first(where: { $0.id == id }) else { return nil }
 
+        return makeRowState(for: record)
+    }
+
+    private func makeRowState(for record: TorrentRecord) -> TorrentRowState {
+
         let isSelected = selectedTorrentID == record.id
         let isExpanded = expandedTorrentID == record.id
         let errorState = TorrentRowErrorState(record.errorState, localeOverride: preferences.localeOverride)
@@ -265,20 +304,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 localeOverride: preferences.localeOverride
             )
             : nil
-        let compactMetrics = errorState == nil
-            ? TorrentPresentation.compactMetrics(
-                for: record,
-                mode: preferences.metricsMode,
-                localeOverride: preferences.localeOverride
-            )
-            : []
-        let expandedMetrics = errorState == nil && isExpanded
-            ? TorrentPresentation.expandedMetrics(
-                for: record,
-                mode: preferences.metricsMode,
-                localeOverride: preferences.localeOverride
-            )
-            : []
         let expandedMetricGroups = errorState == nil && isExpanded
             ? TorrentPresentation.expandedMetricGroups(
                 for: record,
@@ -302,16 +327,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             hasAlias: record.alias?.isEmpty == false,
             status: record.status,
             statusTitle: record.status.localizedTitle(localeOverride: preferences.localeOverride),
-            progress: record.progress,
-            downloadSpeedBytesPerSecond: record.metrics.downloadSpeedBytesPerSecond,
-            uploadSpeedBytesPerSecond: record.metrics.uploadSpeedBytesPerSecond,
-            visibleProgressPercent: record.visibleProgressPercent,
+            progress: presentedProgress(for: record),
+            hasActiveTransfer: hasActiveTransfer(for: record),
             compactTransferMetricSet: compactTransferMetricSet,
-            compactMetrics: compactMetrics,
-            expandedMetrics: expandedMetrics,
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
+            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
+            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
             errorState: errorState,
             isSelected: isSelected,
             isExpanded: isExpanded,
@@ -321,6 +344,46 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             navigationAvailabilityKey: navigationAvailabilityKey,
             localeOverride: preferences.localeOverride
         )
+    }
+
+    private func refreshTorrentPresentations() {
+        let currentIDs = Set(torrents.map(\.id))
+        torrentRowPresentationModelsByID = torrentRowPresentationModelsByID.filter {
+            currentIDs.contains($0.key)
+        }
+
+        for record in torrents {
+            let state = makeRowState(for: record)
+            if let model = torrentRowPresentationModelsByID[record.id] {
+                model.update(state: state)
+            } else {
+                torrentRowPresentationModelsByID[record.id] = TorrentRowPresentationModel(state: state)
+            }
+        }
+
+        let chips = bottomTransferChips
+        torrentTransferSummary.update(chips: chips)
+    }
+
+    private func presentedProgress(for record: TorrentRecord) -> Double {
+        let clampedProgress = min(max(record.progress, 0), 1)
+        if record.status == .completed || record.status == .seeding {
+            return 1
+        }
+
+        let percent = Int((clampedProgress * 100).rounded(.down))
+        return Double(percent) / 100
+    }
+
+    private func hasActiveTransfer(for record: TorrentRecord) -> Bool {
+        switch record.status {
+        case .downloading:
+            record.metrics.downloadSpeedBytesPerSecond > 0
+        case .seeding:
+            record.progress >= 1 && record.metrics.uploadSpeedBytesPerSecond > 1
+        case .stopped, .completed, .error, .checking:
+            false
+        }
     }
 
     func setPerformanceProfile(_ profile: AppPerformanceProfile) {
@@ -1735,15 +1798,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard !snapshots.isEmpty else { return }
 
         let snapshotsByID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
+        var updatedTorrents = torrents
         var shouldRefreshSelectedNavigationAvailability = false
         var shouldPersistDurableState = false
 
-        for index in torrents.indices {
-            guard let snapshot = snapshotsByID[torrents[index].id] else { continue }
+        for index in updatedTorrents.indices {
+            guard let snapshot = snapshotsByID[updatedTorrents[index].id] else { continue }
             traceTransition(
-                torrentID: torrents[index].id,
-                phase: detachedTorrentIDs.contains(torrents[index].id) ? "snapshot.ignored.detached" : "snapshot.received",
-                level: detachedTorrentIDs.contains(torrents[index].id) ? .notice : .debug,
+                torrentID: updatedTorrents[index].id,
+                phase: detachedTorrentIDs.contains(updatedTorrents[index].id) ? "snapshot.ignored.detached" : "snapshot.received",
+                level: detachedTorrentIDs.contains(updatedTorrents[index].id) ? .notice : .debug,
                 extra: [
                     "snapshotStatus": snapshot.status.rawValue,
                     "snapshotProgress": progressString(snapshot.progress),
@@ -1751,20 +1815,20 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 ]
             )
             logDiskDiagnosticSync(
-                detachedTorrentIDs.contains(torrents[index].id) ? "snapshot.ignored.detached" : "snapshot.received",
-                record: torrents[index],
+                detachedTorrentIDs.contains(updatedTorrents[index].id) ? "snapshot.ignored.detached" : "snapshot.received",
+                record: updatedTorrents[index],
                 extra: [
                     "snapshotStatus": snapshot.status.rawValue,
                     "snapshotProgress": progressString(snapshot.progress),
                     "snapshotHasError": boolString(snapshot.errorState != nil)
                 ]
             )
-            guard !detachedTorrentIDs.contains(torrents[index].id) else { continue }
-            let previousStatus = torrents[index].status
-            let previousProgress = torrents[index].progress
-            let previousMetrics = torrents[index].metrics
-            let wasFinishedForOpening = torrents[index].isFinishedForOpening
-            let torrentID = torrents[index].id
+            guard !detachedTorrentIDs.contains(updatedTorrents[index].id) else { continue }
+            let previousStatus = updatedTorrents[index].status
+            let previousProgress = updatedTorrents[index].progress
+            let previousMetrics = updatedTorrents[index].metrics
+            let wasFinishedForOpening = updatedTorrents[index].isFinishedForOpening
+            let torrentID = updatedTorrents[index].id
             let protectsRestoreProgress = shouldProtectRestoreProgress(
                 torrentID: torrentID,
                 snapshot: snapshot
@@ -1773,41 +1837,41 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             let resolvedProgress: Double
             if protectsRestoreProgress,
                let progressFloor = restoreProgressFloorByID[torrentID] {
-                resolvedProgress = max(torrents[index].lastKnownProgress, progressFloor, snapshot.progress)
+                resolvedProgress = max(updatedTorrents[index].lastKnownProgress, progressFloor, snapshot.progress)
                 requestRestoreRecheckIfNeeded(torrentID: torrentID, progressFloor: progressFloor)
             } else if snapshot.status == .checking,
-                      torrents[index].lastKnownProgress > snapshot.progress {
-                resolvedProgress = torrents[index].lastKnownProgress
+                      updatedTorrents[index].lastKnownProgress > snapshot.progress {
+                resolvedProgress = updatedTorrents[index].lastKnownProgress
             } else {
                 resolvedProgress = snapshot.progress
             }
             let resolvedStatus = protectsRestoreProgress ? TorrentStatus.checking : snapshot.status
 
-            if let desiredStatus = temporaryRecheckPostCheckStatusByID[torrents[index].id] {
+            if let desiredStatus = temporaryRecheckPostCheckStatusByID[updatedTorrents[index].id] {
                 if snapshot.status == .checking {
-                    torrents[index].status = .checking
-                    torrents[index].progress = resolvedProgress
-                    torrents[index].metrics = snapshot.metrics
-                    torrents[index].runtimeErrorState = snapshot.errorState
+                    updatedTorrents[index].status = .checking
+                    updatedTorrents[index].progress = resolvedProgress
+                    updatedTorrents[index].metrics = snapshot.metrics
+                    updatedTorrents[index].runtimeErrorState = snapshot.errorState
                 } else {
-                    torrents[index].status = desiredStatus
-                    torrents[index].progress = resolvedProgress
-                    torrents[index].lastKnownProgress = snapshot.progress
-                    torrents[index].metrics.downloadSpeedBytesPerSecond = 0
-                    torrents[index].metrics.uploadSpeedBytesPerSecond = 0
-                    torrents[index].metrics.etaSeconds = nil
+                    updatedTorrents[index].status = desiredStatus
+                    updatedTorrents[index].progress = resolvedProgress
+                    updatedTorrents[index].lastKnownProgress = snapshot.progress
+                    updatedTorrents[index].metrics.downloadSpeedBytesPerSecond = 0
+                    updatedTorrents[index].metrics.uploadSpeedBytesPerSecond = 0
+                    updatedTorrents[index].metrics.etaSeconds = nil
                     if desiredStatus.isSleeping {
-                        torrents[index].metrics.seeds = nil
-                        torrents[index].metrics.peers = nil
+                        updatedTorrents[index].metrics.seeds = nil
+                        updatedTorrents[index].metrics.peers = nil
                     } else {
-                        torrents[index].metrics.seeds = snapshot.metrics.seeds
-                        torrents[index].metrics.peers = snapshot.metrics.peers
+                        updatedTorrents[index].metrics.seeds = snapshot.metrics.seeds
+                        updatedTorrents[index].metrics.peers = snapshot.metrics.peers
                     }
-                    torrents[index].metrics.uploadedBytes = snapshot.metrics.uploadedBytes
-                    torrents[index].metrics.totalBytes = snapshot.metrics.totalBytes
-                    torrents[index].metrics.selectedBytes = snapshot.metrics.selectedBytes
-                    torrents[index].runtimeErrorState = nil
-                    pendingTemporaryRecheckDetachIDs.insert(torrents[index].id)
+                    updatedTorrents[index].metrics.uploadedBytes = snapshot.metrics.uploadedBytes
+                    updatedTorrents[index].metrics.totalBytes = snapshot.metrics.totalBytes
+                    updatedTorrents[index].metrics.selectedBytes = snapshot.metrics.selectedBytes
+                    updatedTorrents[index].runtimeErrorState = nil
+                    pendingTemporaryRecheckDetachIDs.insert(updatedTorrents[index].id)
                 }
 
                 logUploadCounterDiagnostics(
@@ -1816,31 +1880,31 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     previousStatus: previousStatus,
                     previousMetrics: previousMetrics,
                     snapshot: snapshot,
-                    appliedStatus: torrents[index].status,
-                    appliedProgress: torrents[index].progress,
-                    appliedMetrics: torrents[index].metrics
+                    appliedStatus: updatedTorrents[index].status,
+                    appliedProgress: updatedTorrents[index].progress,
+                    appliedMetrics: updatedTorrents[index].metrics
                 )
 
                 if selectedTorrentID == torrentID,
-                   wasFinishedForOpening != torrents[index].isFinishedForOpening {
+                   wasFinishedForOpening != updatedTorrents[index].isFinishedForOpening {
                     shouldRefreshSelectedNavigationAvailability = true
                 }
-                if registerDurableSnapshotChange(previousStatus: previousStatus, record: torrents[index]) {
+                if registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index]) {
                     shouldPersistDurableState = true
                 }
                 continue
             }
 
-            torrents[index].status = resolvedStatus
-            torrents[index].progress = resolvedProgress
+            updatedTorrents[index].status = resolvedStatus
+            updatedTorrents[index].progress = resolvedProgress
             if snapshot.status != .checking, !protectsRestoreProgress {
-                torrents[index].lastKnownProgress = snapshot.progress
+                updatedTorrents[index].lastKnownProgress = snapshot.progress
             }
-            torrents[index].metrics = snapshot.metrics
-            torrents[index].runtimeErrorState = snapshot.errorState
+            updatedTorrents[index].metrics = snapshot.metrics
+            updatedTorrents[index].runtimeErrorState = snapshot.errorState
             clearRestoreProgressFloorIfSatisfied(torrentID: torrentID, snapshot: snapshot)
             notifyDownloadCompletionIfNeeded(
-                torrent: torrents[index],
+                torrent: updatedTorrents[index],
                 previousStatus: previousStatus,
                 previousProgress: previousProgress,
                 resolvedStatus: resolvedStatus,
@@ -1854,50 +1918,55 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 previousStatus: previousStatus,
                 previousMetrics: previousMetrics,
                 snapshot: snapshot,
-                appliedStatus: torrents[index].status,
-                appliedProgress: torrents[index].progress,
-                appliedMetrics: torrents[index].metrics
+                appliedStatus: updatedTorrents[index].status,
+                appliedProgress: updatedTorrents[index].progress,
+                appliedMetrics: updatedTorrents[index].metrics
             )
 
-            if torrents[index].persistentIssue == nil {
+            if updatedTorrents[index].persistentIssue == nil {
                 if resolvedStatus == .checking || resolvedStatus.isActive {
-                    detachedTorrentIDs.remove(torrents[index].id)
+                    detachedTorrentIDs.remove(updatedTorrents[index].id)
                 } else if resolvedStatus.isSleeping {
-                    detachedTorrentIDs.insert(torrents[index].id)
+                    detachedTorrentIDs.insert(updatedTorrents[index].id)
                     if previousStatus == .checking || previousStatus.isActive {
-                        pendingSleepingDetachIDs.insert(torrents[index].id)
+                        pendingSleepingDetachIDs.insert(updatedTorrents[index].id)
                     }
 
                     if resolvedStatus == .completed
-                        && torrents[index].stopAfterDownload
+                        && updatedTorrents[index].stopAfterDownload
                         && snapshot.progress >= 1.0
                         && previousStatus.isActive {
-                        torrents[index].stopAfterDownload = false
+                        updatedTorrents[index].stopAfterDownload = false
                     }
                 }
             }
 
             traceTransition(
-                torrentID: torrents[index].id,
+                torrentID: updatedTorrents[index].id,
                 phase: "snapshot.applied",
                 level: .debug,
                 extra: [
                     "previousStatus": previousStatus.rawValue,
-                    "status": torrents[index].status.rawValue,
-                    "progress": progressString(torrents[index].progress),
-                    "runtimeError": torrents[index].runtimeErrorState?.title ?? "none"
+                    "status": updatedTorrents[index].status.rawValue,
+                    "progress": progressString(updatedTorrents[index].progress),
+                    "runtimeError": updatedTorrents[index].runtimeErrorState?.title ?? "none"
                 ]
             )
 
             if selectedTorrentID == torrentID,
-               wasFinishedForOpening != torrents[index].isFinishedForOpening {
+               wasFinishedForOpening != updatedTorrents[index].isFinishedForOpening {
                 shouldRefreshSelectedNavigationAvailability = true
             }
-            if registerDurableSnapshotChange(previousStatus: previousStatus, record: torrents[index]) {
+            if registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index]) {
                 shouldPersistDurableState = true
             }
         }
 
+        if updatedTorrents != torrents {
+            suppressesTorrentChangePublication = true
+            torrents = updatedTorrents
+            suppressesTorrentChangePublication = false
+        }
         if shouldRefreshSelectedNavigationAvailability {
             refreshSelectedTorrentNavigationAvailability()
         }
@@ -1905,6 +1974,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             saveCriticalState()
         }
     }
+
+    #if DEBUG
+    func applySnapshotsForTesting(_ snapshots: [EngineTorrentSnapshot]) {
+        applySnapshots(snapshots)
+    }
+    #endif
 
     private func registerDurableSnapshotChange(
         previousStatus: TorrentStatus,
@@ -2274,7 +2349,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         phase: String,
         level: ShatlLogLevel = .debug,
         flush: Bool = false,
-        extra: [String: String] = [:]
+        extra: @autoclosure () -> [String: String] = [:]
     ) {
         guard let context = transitionTracesByTorrentID[torrentID] else { return }
         emitTransition(
@@ -2284,7 +2359,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             phase: phase,
             level: level,
             flush: flush,
-            extra: extra
+            extra: extra()
         )
     }
 
@@ -2338,6 +2413,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         appliedProgress: Double,
         appliedMetrics: TorrentMetrics
     ) {
+        guard ShatlFileLogger.shared.loggingEnabled else { return }
+
         let snapshotUploadSpeed = snapshot.metrics.uploadSpeedBytesPerSecond
         let snapshotUploaded = snapshot.metrics.uploadedBytes
         let appliedUploadSpeed = appliedMetrics.uploadSpeedBytesPerSecond
@@ -2529,12 +2606,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func logDiskDiagnosticSync(
         _ event: String,
         record: TorrentRecord,
-        extra: [String: String] = [:]
+        extra: @autoclosure () -> [String: String] = [:]
     ) {
         guard ShatlDiskDiagnosticsLog.isEnabled else { return }
 
         var fields = baseDiskDiagnosticFields(torrentID: record.id, record: record)
-        fields.merge(extra) { _, new in new }
+        fields.merge(extra()) { _, new in new }
         ShatlDiskDiagnosticsLog.event(event, fields: fields)
     }
 

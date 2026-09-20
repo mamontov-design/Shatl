@@ -6,6 +6,22 @@ import XCTest
 @testable import Shatl
 
 final class ShatlFileLoggerTests: XCTestCase {
+    func testDisabledHighLevelLoggerDoesNotEvaluateMessage() {
+        let wasEnabled = ShatlFileLogger.shared.loggingEnabled
+        ShatlFileLogger.shared.setEnabled(false)
+        defer { ShatlFileLogger.shared.setEnabled(wasEnabled) }
+
+        var evaluationCount = 0
+        let logger = ShatlLog(category: "Tests")
+
+        logger.criticalDebug({
+            evaluationCount += 1
+            return "should not be evaluated"
+        }())
+
+        XCTAssertEqual(evaluationCount, 0)
+    }
+
     func testDisabledLoggerDoesNotCreateLogFile() throws {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("ShatlFileLogger-\(UUID().uuidString)", isDirectory: true)

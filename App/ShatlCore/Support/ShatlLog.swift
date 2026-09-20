@@ -176,8 +176,13 @@ nonisolated enum ShatlDiskDiagnosticsLog {
         ShatlFileLogger.diskDiagnostics.setEnabled(enabled)
     }
 
-    static func event(_ name: String, fields: [String: String] = [:], flush: Bool = true) {
+    static func event(
+        _ name: String,
+        fields: @autoclosure () -> [String: String] = [:],
+        flush: Bool = true
+    ) {
         guard isEnabled else { return }
+        let fields = fields()
 
         var orderedFields: [(String, String)] = [("event", name)]
         for key in fields.keys.sorted() {
@@ -220,8 +225,13 @@ nonisolated enum ShatlMetricAnimationDiagnosticsLog {
         ShatlFileLogger.metricAnimationDiagnostics.setEnabled(enabled)
     }
 
-    static func event(_ name: String, fields: [String: String] = [:], flush: Bool = false) {
+    static func event(
+        _ name: String,
+        fields: @autoclosure () -> [String: String] = [:],
+        flush: Bool = false
+    ) {
         guard isEnabled else { return }
+        let fields = fields()
 
         var orderedFields: [(String, String)] = [("event", name)]
         for key in fields.keys.sorted() {
@@ -264,8 +274,13 @@ nonisolated enum ShatlSnapshotDiagnosticsLog {
         ShatlFileLogger.snapshotDiagnostics.setEnabled(enabled)
     }
 
-    static func event(_ name: String, fields: [String: String] = [:], flush: Bool = true) {
+    static func event(
+        _ name: String,
+        fields: @autoclosure () -> [String: String] = [:],
+        flush: Bool = true
+    ) {
         guard isEnabled else { return }
+        let fields = fields()
 
         var orderedFields: [(String, String)] = [("event", name)]
         for key in fields.keys.sorted() {
@@ -308,8 +323,13 @@ nonisolated enum ShatlAddTorrentReviewDiagnosticsLog {
         ShatlFileLogger.addTorrentReviewDiagnostics.setEnabled(enabled)
     }
 
-    static func event(_ name: String, fields: [String: String] = [:], flush: Bool = false) {
+    static func event(
+        _ name: String,
+        fields: @autoclosure () -> [String: String] = [:],
+        flush: Bool = false
+    ) {
         guard isEnabled else { return }
+        let fields = fields()
 
         var orderedFields: [(String, String)] = [("event", name)]
         for key in fields.keys.sorted() {
@@ -359,39 +379,44 @@ nonisolated struct ShatlLog: Sendable {
     }
 
     func debug(_ message: @autoclosure () -> String) {
-        emit(level: .debug, message())
+        emit(level: .debug, message)
     }
 
     func criticalDebug(_ message: @autoclosure () -> String) {
-        emit(level: .debug, message(), flush: true)
+        emit(level: .debug, message, flush: true)
     }
 
     func info(_ message: @autoclosure () -> String) {
-        emit(level: .info, message())
+        emit(level: .info, message)
     }
 
     func criticalInfo(_ message: @autoclosure () -> String) {
-        emit(level: .info, message(), flush: true)
+        emit(level: .info, message, flush: true)
     }
 
     func notice(_ message: @autoclosure () -> String) {
-        emit(level: .notice, message())
+        emit(level: .notice, message)
     }
 
     func criticalNotice(_ message: @autoclosure () -> String) {
-        emit(level: .notice, message(), flush: true)
+        emit(level: .notice, message, flush: true)
     }
 
     func error(_ message: @autoclosure () -> String) {
-        emit(level: .error, message())
+        emit(level: .error, message)
     }
 
     func criticalError(_ message: @autoclosure () -> String) {
-        emit(level: .error, message(), flush: true)
+        emit(level: .error, message, flush: true)
     }
 
-    private func emit(level: ShatlLogLevel, _ message: String, flush: Bool = false) {
+    private func emit(
+        level: ShatlLogLevel,
+        _ message: () -> String,
+        flush: Bool = false
+    ) {
         guard ShatlFileLogger.shared.loggingEnabled else { return }
+        let message = message()
 
         switch level {
         case .debug:

@@ -97,8 +97,6 @@ struct MainWindowView: View {
     }
 
     var body: some View {
-        let bottomTransferChips = store.bottomTransferChips
-
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if restoreStatusPhase.isVisible {
@@ -112,12 +110,10 @@ struct MainWindowView: View {
                     .zIndex(1)
                 }
 
-                contentView(
-                    bottomListPadding: bottomListPadding(chips: bottomTransferChips)
-                )
+                contentView
             }
 
-            bottomInfoChipLayer(chips: bottomTransferChips)
+            TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
         }
         .background(WindowChromeConfigurator(isTitleVisible: contentMode != .empty))
         .toolbar {
@@ -266,7 +262,7 @@ struct MainWindowView: View {
     }
 
     @ViewBuilder
-    private func contentView(bottomListPadding: CGFloat) -> some View {
+    private var contentView: some View {
         ZStack(alignment: .topLeading) {
             switch contentMode {
             case .loadingInitialSession:
@@ -283,51 +279,15 @@ struct MainWindowView: View {
                     .transition(ShatlMotion.mainContent)
                     .zIndex(1)
             case .list:
-                TorrentListView(
-                    searchText: searchText,
-                    bottomContentPadding: bottomListPadding
+                TorrentListViewport(
+                    summaryVisibility: store.torrentTransferSummary.visibility,
+                    searchText: searchText
                 )
                     .transition(ShatlMotion.mainContent)
                     .zIndex(0)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private func bottomInfoChipLayer(chips: [BottomTransferChipPresentation]) -> some View {
-        HStack(alignment: .bottom) {
-            if let downloadChip = chips.first(where: { $0.kind == .download }) {
-                ShatlInfoBottomSpeedChip(item: downloadChip.item)
-                    .transition(ShatlMotion.appearFromTop)
-            }
-
-            Spacer(minLength: 0)
-
-            if let uploadChip = chips.first(where: { $0.kind == .upload }) {
-                ShatlInfoBottomSpeedChip(item: uploadChip.item)
-                    .transition(ShatlMotion.appearFromTop)
-            }
-        }
-        .padding(.horizontal, bottomChipEdgePadding)
-        .padding(.bottom, bottomChipEdgePadding)
-        .frame(maxWidth: .infinity, alignment: .bottom)
-        .animation(ShatlMotion.mainContentMode, value: chips)
-    }
-
-    private var bottomChipEdgePadding: CGFloat {
-        if #available(macOS 27.0, *) {
-            return ShatlBottomChipLayout.modernEdgePadding
-        }
-
-        return ShatlBottomChipLayout.legacyEdgePadding
-    }
-
-    private func bottomListPadding(chips: [BottomTransferChipPresentation]) -> CGFloat {
-        if #available(macOS 27.0, *), !chips.isEmpty {
-            return ShatlBottomChipLayout.modernListBottomPadding
-        }
-
-        return ShatlBottomChipLayout.standardListBottomPadding
     }
 
     private var restoreStatusTransition: AnyTransition {
@@ -515,6 +475,58 @@ struct MainWindowView: View {
         store.setDefaultDownloadLocation(url, bookmarkData: bookmarkData)
     }
 
+}
+
+private struct TorrentListViewport: View {
+    @ObservedObject var summaryVisibility: TorrentTransferSummaryVisibilityModel
+    let searchText: String
+
+    var body: some View {
+        TorrentListView(
+            searchText: searchText,
+            bottomContentPadding: bottomListPadding
+        )
+    }
+
+    private var bottomListPadding: CGFloat {
+        if #available(macOS 27.0, *), summaryVisibility.hasChips {
+            return ShatlBottomChipLayout.modernListBottomPadding
+        }
+
+        return ShatlBottomChipLayout.standardListBottomPadding
+    }
+}
+
+private struct TorrentTransferSummaryLayer: View {
+    @ObservedObject var model: TorrentTransferSummaryModel
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            if let downloadChip = model.chips.first(where: { $0.kind == .download }) {
+                ShatlInfoBottomSpeedChip(item: downloadChip.item)
+                    .transition(ShatlMotion.appearFromTop)
+            }
+
+            Spacer(minLength: 0)
+
+            if let uploadChip = model.chips.first(where: { $0.kind == .upload }) {
+                ShatlInfoBottomSpeedChip(item: uploadChip.item)
+                    .transition(ShatlMotion.appearFromTop)
+            }
+        }
+        .padding(.horizontal, edgePadding)
+        .padding(.bottom, edgePadding)
+        .frame(maxWidth: .infinity, alignment: .bottom)
+        .animation(ShatlMotion.mainContentMode, value: model.chips)
+    }
+
+    private var edgePadding: CGFloat {
+        if #available(macOS 27.0, *) {
+            return ShatlBottomChipLayout.modernEdgePadding
+        }
+
+        return ShatlBottomChipLayout.legacyEdgePadding
+    }
 }
 
 /// Reusable inline message shown above the main content. It intentionally has
