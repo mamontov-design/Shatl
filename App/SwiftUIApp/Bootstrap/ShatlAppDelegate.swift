@@ -54,15 +54,16 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let terminationHandler, !isPreparingForTermination else {
+        guard let terminationHandler else {
             return .terminateNow
         }
+        guard !isPreparingForTermination else { return .terminateLater }
 
         isPreparingForTermination = true
         Task { [weak self, weak sender] in
-            await terminationHandler.prepareForTermination()
+            let shouldTerminate = await terminationHandler.prepareForTermination()
             self?.isPreparingForTermination = false
-            sender?.reply(toApplicationShouldTerminate: true)
+            sender?.reply(toApplicationShouldTerminate: shouldTerminate)
         }
 
         return .terminateLater

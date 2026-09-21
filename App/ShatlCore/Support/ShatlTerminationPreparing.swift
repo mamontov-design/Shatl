@@ -5,7 +5,8 @@ import Foundation
 
 @MainActor
 protocol ShatlTerminationPreparing: AnyObject {
-    func prepareForTermination() async
+    /// Returns `true` only when the durable session state is safe to close.
+    func prepareForTermination() async -> Bool
 }
 
 @MainActor

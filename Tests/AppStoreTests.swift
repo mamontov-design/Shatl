@@ -1283,8 +1283,9 @@ final class AppStoreTests: XCTestCase {
 
         await engine.setHandleActive(true, for: activeRecord.id)
 
-        await bundle.store.prepareForTermination()
+        let shouldTerminate = await bundle.store.prepareForTermination()
 
+        XCTAssertTrue(shouldTerminate)
         let checkpointedIDs = await engine.recordedCheckpointedTorrentIDs()
         XCTAssertEqual(checkpointedIDs, [activeRecord.id])
 
@@ -1296,6 +1297,57 @@ final class AppStoreTests: XCTestCase {
         XCTAssertNotNil(persistedActiveRecord?.resumeCheckpointedAt)
         XCTAssertNil(persistedSleepingRecord?.resumeCheckpointProgress)
         XCTAssertNil(persistedSleepingRecord?.resumeCheckpointedAt)
+    }
+
+    func testPrepareForTerminationCommitFailureKeepsAppOpenAndRetrySucceeds() async throws {
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let record = makeTestRecord(status: .downloading, progress: 0.42)
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        await engine.setHandleActive(true, for: record.id)
+        writer.failNextWrite()
+
+        let shouldTerminateAfterFailure = await bundle.store.prepareForTermination()
+
+        XCTAssertFalse(shouldTerminateAfterFailure)
+        XCTAssertTrue(bundle.store.canAddTorrent)
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.message,
+            L10n.string(
+                "session.persistence.quit_failed.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Shatl остался открытым, потому что не смог сохранить состояние загрузок. Проверьте свободное место и доступ к диску, затем повторите выход."
+            )
+        )
+
+        let shouldTerminateAfterRetry = await bundle.store.prepareForTermination()
+
+        XCTAssertTrue(shouldTerminateAfterRetry)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertEqual(persistedSnapshot.torrents.first?.resumeCheckpointProgress, 0.42)
+        XCTAssertNotNil(persistedSnapshot.torrents.first?.resumeCheckpointedAt)
     }
 
     func testRemoveTorrentPersistsDeletionAndCleansRestoreArtifacts() async throws {
@@ -3374,8 +3426,9 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(preparedSources.isEmpty)
         XCTAssertEqual(progressSaveOutcome, .blocked)
 
-        await bundle.store.prepareForTermination()
+        let shouldTerminate = await bundle.store.prepareForTermination()
 
+        XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), corruptSessionData)
         for (url, originalData) in zip(artifactURLs, originalArtifactData) {
             XCTAssertEqual(try Data(contentsOf: url), originalData)
@@ -3489,8 +3542,9 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), corruptSessionData)
 
         await reader.release()
-        await terminationTask.value
+        let shouldTerminate = await terminationTask.value
 
+        XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(bundle.store.sessionLoadIssue, .unreadable)
         let bootCallCount = await engine.bootCallCount()
         XCTAssertEqual(bootCallCount, 0)

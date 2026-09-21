@@ -47,6 +47,7 @@
 "session.persistence.remove_failed.message" = "Torrentとそのファイルは削除されていません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.stop_failed.message" = "Shatlが状態を保存できなかったため、ダウンロードは停止されませんでした。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.recheck_failed.message" = "Shatlが状態を保存できなかったため、再チェックはキャンセルされました。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"session.persistence.quit_failed.message" = "ダウンロードの状態を保存できなかったため、Shatlは終了せず開いたままです。空き容量とディスクへのアクセスを確認して、もう一度終了してください。";
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";

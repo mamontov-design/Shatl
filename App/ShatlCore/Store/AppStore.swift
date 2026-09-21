@@ -624,13 +624,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return UsageTelemetryWeek.identifier(for: lastSentAt) != payload.week
     }
 
-    func prepareForTermination() async {
-        guard !isPreparingForTermination else { return }
+    func prepareForTermination() async -> Bool {
+        guard !isPreparingForTermination else { return false }
         isPreparingForTermination = true
 
+        let shouldResumeRuntimeLoop = runtimeTask != nil
         runtimeTask?.cancel()
-        draftPreparationTask?.cancel()
-        performanceApplyTask?.cancel()
+        runtimeTask = nil
 
         if let initialSessionLoadTask {
             let result = await initialSessionLoadTask.value
@@ -643,12 +643,29 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         guard !didBootstrap || (didCompleteRuntimeBootstrap && sessionLoadIssue == nil) else {
-            return
+            return true
         }
 
         await refreshActiveSnapshots()
-        await checkpointActiveTorrentsForTermination()
-        await persistCriticalState()
+        let candidateTorrents = await checkpointedTorrentsForTermination()
+        let saveOutcome = await commitCriticalState(candidateTorrents)
+        guard saveOutcome == .saved else {
+            isPreparingForTermination = false
+            if shouldResumeRuntimeLoop {
+                startRuntimeLoop()
+            }
+            presentSessionPersistenceFailure(
+                messageKey: "session.persistence.quit_failed.message",
+                defaultMessage: "Shatl остался открытым, потому что не смог сохранить состояние загрузок. Проверьте свободное место и доступ к диску, затем повторите выход."
+            )
+            return false
+        }
+
+        torrents = candidateTorrents
+        sessionPersistenceAlert = nil
+        draftPreparationTask?.cancel()
+        performanceApplyTask?.cancel()
+        return true
     }
 
     /// The toolbar must not offer removal actions for cards with persistent issues.
@@ -2091,13 +2108,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    private func checkpointActiveTorrentsForTermination() async {
-        let candidates = torrents.filter {
+    private func checkpointedTorrentsForTermination() async -> [TorrentRecord] {
+        var checkpointedTorrents = torrents
+        let candidates = checkpointedTorrents.filter {
             $0.persistentIssue == nil
                 && $0.status.isActive
                 && !detachedTorrentIDs.contains($0.id)
         }
-        guard !candidates.isEmpty else { return }
+        guard !candidates.isEmpty else { return checkpointedTorrents }
 
         let progressByID = Dictionary(
             uniqueKeysWithValues: candidates.map {
@@ -2109,17 +2127,19 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         for result in results {
             guard case .saved = result.status,
-                  let index = torrents.firstIndex(where: { $0.id == result.id }) else {
+                  let index = checkpointedTorrents.firstIndex(where: { $0.id == result.id }) else {
                 continue
             }
 
-            torrents[index].resumeCheckpointedAt = checkpointedAt
-            torrents[index].resumeCheckpointProgress = progressByID[result.id]
-            torrents[index].lastKnownProgress = max(
-                torrents[index].lastKnownProgress,
-                progressByID[result.id] ?? torrents[index].progress
+            checkpointedTorrents[index].resumeCheckpointedAt = checkpointedAt
+            checkpointedTorrents[index].resumeCheckpointProgress = progressByID[result.id]
+            checkpointedTorrents[index].lastKnownProgress = max(
+                checkpointedTorrents[index].lastKnownProgress,
+                progressByID[result.id] ?? checkpointedTorrents[index].progress
             )
         }
+
+        return checkpointedTorrents
     }
 
     private func startRuntimeLoop() {
