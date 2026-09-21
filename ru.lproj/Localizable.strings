@@ -43,6 +43,8 @@
 "session.load.missing.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
 "session.load.unsupported.title" = "Не удалось открыть сохранённую сессию.";
 "session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
+"session.persistence.save_failed.title" = "Не удалось сохранить список загрузок";
+"session.persistence.remove_failed.message" = "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите.";
 
 "onboarding.action.next" = "Далее";
 "onboarding.action.not_now" = "Не сейчас";

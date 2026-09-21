@@ -93,6 +93,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
     @Published var payloadDeletionAlert: PayloadDeletionAlert?
+    @Published var sessionPersistenceAlert: SessionPersistenceAlert?
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
@@ -1263,8 +1264,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             Self.logger.error(
                 "Remove blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
             )
+            sessionPersistenceAlert = SessionPersistenceAlert(
+                title: L10n.string(
+                    "session.persistence.save_failed.title",
+                    localeOverride: preferences.localeOverride,
+                    defaultValue: "Не удалось сохранить список загрузок"
+                ),
+                message: L10n.string(
+                    "session.persistence.remove_failed.message",
+                    localeOverride: preferences.localeOverride,
+                    defaultValue: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
+                )
+            )
             return
         }
+        sessionPersistenceAlert = nil
 
         detachedTorrentIDs.remove(id)
         clearUnreadUserEvents(for: id)

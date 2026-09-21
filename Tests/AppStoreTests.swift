@@ -1336,6 +1336,109 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
     }
 
+    func testRemoveTorrentCommitFailurePreservesEverythingAndRetrySucceeds() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "Movie.mkv", sizeBytes: 4_096, fileIndex: 0),
+        ])
+        let writer = ControllableSessionDataWriter()
+
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RemoveCommitFailure-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+
+        let payloadFileURL = saveRoot.appendingPathComponent("Movie.mkv", isDirectory: false)
+        try Data("payload".utf8).write(to: payloadFileURL, options: .atomic)
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            status: .completed,
+            progress: 1.0
+        )
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+        let bookmarkURL = bundle.directories.bookmarksDirectoryURL
+            .appendingPathComponent("\(record.id.uuidString).bookmark", isDirectory: false)
+        let resumeDataURL = bundle.directories.resumeDataDirectoryURL
+            .appendingPathComponent("\(record.id.uuidString).fastresume", isDirectory: false)
+        try Data("resume".utf8).write(to: resumeDataURL, options: .atomic)
+
+        bundle.store.selectedTorrentID = record.id
+        bundle.store.expandedTorrentID = record.id
+        writer.failNextWrite()
+
+        await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(bundle.store.selectedTorrentID, record.id)
+        XCTAssertEqual(bundle.store.expandedTorrentID, record.id)
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+        XCTAssertTrue(FileManager.default.fileExists(atPath: payloadFileURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: archiveURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bookmarkURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: resumeDataURL.path))
+        let failedRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertTrue(failedRemoveCalls.isEmpty)
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.title,
+            L10n.string(
+                "session.persistence.save_failed.title",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Не удалось сохранить список загрузок"
+            )
+        )
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.message,
+            L10n.string(
+                "session.persistence.remove_failed.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
+            )
+        )
+
+        bundle.store.sessionPersistenceAlert = nil
+        await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+        XCTAssertNil(bundle.store.selectedTorrentID)
+        XCTAssertNil(bundle.store.expandedTorrentID)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: payloadFileURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: resumeDataURL.path))
+        let retryRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertTrue(persistedSnapshot.torrents.isEmpty)
+    }
+
     func testRemoveTorrentWithFilesDeletesManagedPayloadAndUsesEngineWithoutDeleteData() async throws {
         let engine = FakeTorrentEngine()
         await engine.setInspectContents([

@@ -348,6 +348,36 @@ final class SpyTorrentUserEventBadgeDisplay: TorrentUserEventBadgeDisplaying {
     }
 }
 
+nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
+    enum WriteError: Error {
+        case injectedFailure
+    }
+
+    private let lock = NSLock()
+    private var remainingFailureCount = 0
+
+    func failNextWrite() {
+        lock.lock()
+        remainingFailureCount += 1
+        lock.unlock()
+    }
+
+    func write(_ data: Data, to url: URL) throws {
+        lock.lock()
+        let shouldFail = remainingFailureCount > 0
+        if shouldFail {
+            remainingFailureCount -= 1
+        }
+        lock.unlock()
+
+        if shouldFail {
+            throw WriteError.injectedFailure
+        }
+
+        try data.write(to: url, options: .atomic)
+    }
+}
+
 struct TestStoreBundle {
     var rootURL: URL
     var directories: ShatlDirectories
@@ -374,6 +404,9 @@ func makeTestStoreBundle(
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
+    },
+    sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
+        try data.write(to: url, options: .atomic)
     }
 ) -> TestStoreBundle {
     let rootURL = FileManager.default.temporaryDirectory
@@ -392,7 +425,8 @@ func makeTestStoreBundle(
         resumeDataStore: resumeDataStore,
         startupMode: sessionStoreStartupMode,
         initialRecords: torrents,
-        readSessionData: sessionReadData
+        readSessionData: sessionReadData,
+        writeSessionData: sessionWriteData
     )
     let coordinator = SessionRestoreCoordinator(
         engine: engine,
@@ -457,6 +491,9 @@ func makeTestStoreBundle(
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
+    },
+    sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
+        try data.write(to: url, options: .atomic)
     }
 ) -> TestStoreBundle {
     makeTestStoreBundle(
@@ -469,7 +506,8 @@ func makeTestStoreBundle(
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
         sessionStoreStartupMode: sessionStoreStartupMode,
-        sessionReadData: sessionReadData
+        sessionReadData: sessionReadData,
+        sessionWriteData: sessionWriteData
     )
 }
 

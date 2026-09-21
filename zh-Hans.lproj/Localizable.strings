@@ -43,6 +43,8 @@
 "session.load.missing.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
 "session.load.unsupported.title" = "无法打开已保存的会话。";
 "session.load.unsupported.message" = "该会话由其他版本的 Shatl 创建，暂时无法打开。此前运行时下载的文件仍保留在磁盘上。";
+"session.persistence.save_failed.title" = "无法保存下载列表";
+"session.persistence.remove_failed.message" = "Torrent 及其文件未被删除。请检查可用空间和磁盘访问权限，然后重试。";
 
 "onboarding.action.next" = "下一步";
 "onboarding.action.not_now" = "暂不";

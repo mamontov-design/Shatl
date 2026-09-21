@@ -53,6 +53,7 @@ actor SessionStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let readSessionData: @Sendable (URL) async throws -> Data
+    private let writeSessionData: @Sendable (Data, URL) throws -> Void
     private var persistenceState: PersistenceState
     private var canonicalTorrentRecords: [SessionTorrentRecord]
     private var lastPersistedTorrentRecords: [SessionTorrentRecord]?
@@ -70,6 +71,9 @@ actor SessionStore {
         initialRecords: [TorrentRecord] = [],
         readSessionData: @escaping @Sendable (URL) async throws -> Data = { url in
             try Data(contentsOf: url)
+        },
+        writeSessionData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
+            try data.write(to: url, options: .atomic)
         }
     ) {
         self.directories = directories
@@ -78,6 +82,7 @@ actor SessionStore {
         self.resumeDataStore = resumeDataStore
         self.fileManager = fileManager
         self.readSessionData = readSessionData
+        self.writeSessionData = writeSessionData
         self.persistenceState = startupMode == .alreadyInitialized ? .writable : .awaitingInitialLoad
         self.canonicalTorrentRecords = initialRecords.map {
             Self.makeSessionRecord(from: $0, archiveStore: archiveStore)
@@ -341,7 +346,7 @@ actor SessionStore {
 
         do {
             let data = try encoder.encode(snapshot)
-            try data.write(to: directories.sessionSnapshotURL, options: .atomic)
+            try writeSessionData(data, directories.sessionSnapshotURL)
             canonicalTorrentRecords = records
             lastPersistedTorrentRecords = snapshot.torrents
             return .saved

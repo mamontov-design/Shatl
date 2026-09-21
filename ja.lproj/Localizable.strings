@@ -43,6 +43,8 @@
 "session.load.missing.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 "session.load.unsupported.title" = "保存されたセッションを開けませんでした。";
 "session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
+"session.persistence.save_failed.title" = "ダウンロードリストを保存できませんでした";
+"session.persistence.remove_failed.message" = "Torrentとそのファイルは削除されていません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";

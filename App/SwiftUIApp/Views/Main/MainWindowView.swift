@@ -72,6 +72,10 @@ struct MainWindowView: View {
                 return .addTorrentEntry(addTorrentEntryAlert)
             }
 
+            if let sessionPersistenceAlert = store.sessionPersistenceAlert {
+                return .sessionPersistence(sessionPersistenceAlert)
+            }
+
             if let payloadDeletionAlert = store.payloadDeletionAlert {
                 return .payloadDeletion(payloadDeletionAlert)
             }
@@ -80,6 +84,7 @@ struct MainWindowView: View {
         } set: { newValue in
             if newValue == nil {
                 addTorrentEntryAlert = nil
+                store.sessionPersistenceAlert = nil
                 store.payloadDeletionAlert = nil
             }
         }
@@ -822,12 +827,15 @@ private struct ShatlToolbarButton: View {
 
 private enum MainWindowAlert: Identifiable {
     case addTorrentEntry(TorrentErrorState)
+    case sessionPersistence(SessionPersistenceAlert)
     case payloadDeletion(PayloadDeletionAlert)
 
     var id: String {
         switch self {
         case let .addTorrentEntry(errorState):
             "add-torrent-entry-\(errorState.id.uuidString)"
+        case let .sessionPersistence(alert):
+            "session-persistence-\(alert.id.uuidString)"
         case let .payloadDeletion(alert):
             "payload-deletion-\(alert.id.uuidString)"
         }
@@ -837,6 +845,8 @@ private enum MainWindowAlert: Identifiable {
         switch self {
         case let .addTorrentEntry(errorState):
             errorState.title
+        case let .sessionPersistence(alert):
+            alert.title
         case let .payloadDeletion(alert):
             alert.title
         }
@@ -846,6 +856,8 @@ private enum MainWindowAlert: Identifiable {
         switch self {
         case let .addTorrentEntry(errorState):
             errorState.message
+        case let .sessionPersistence(alert):
+            alert.message
         case let .payloadDeletion(alert):
             alert.message
         }

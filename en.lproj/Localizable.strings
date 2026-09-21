@@ -43,6 +43,8 @@
 "session.load.missing.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
 "session.load.unsupported.title" = "Couldn’t Open the Saved Session.";
 "session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
+"session.persistence.save_failed.title" = "Couldn’t save the download list";
+"session.persistence.remove_failed.message" = "The torrent and its files were not removed. Check free space and disk access, then try again.";
 
 "onboarding.action.next" = "Next";
 "onboarding.action.not_now" = "Not now";
