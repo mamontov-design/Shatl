@@ -48,6 +48,7 @@
 "session.persistence.stop_failed.message" = "Le téléchargement n’a pas été arrêté, car Shatl n’a pas pu enregistrer son état. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
 "session.persistence.recheck_failed.message" = "La vérification a été annulée, car Shatl n’a pas pu enregistrer son état. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
 "session.persistence.quit_failed.message" = "Shatl est resté ouvert, car l’état des téléchargements n’a pas pu être enregistré. Vérifiez l’espace libre et l’accès au disque, puis essayez à nouveau de quitter l’app.";
+"session.persistence.redownload_failed.message" = "Le téléchargement n’a pas redémarré, car Shatl n’a pas pu enregistrer son état. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
 
 "onboarding.action.next" = "Suivant";
 "onboarding.action.not_now" = "Pas maintenant";

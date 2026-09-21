@@ -3077,6 +3077,159 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(restoreEntries.first?.selectedFileIndices, record.selectedFileIndices)
     }
 
+    func testRedownloadCommitFailureRollsBackEngineAndPreservesOldAttempt() async throws {
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        await engine.setInspectContents([
+            TorrentContentFileDescriptor(relativePath: "test-file.bin", sizeBytes: 1_024, fileIndex: 0),
+        ])
+
+        let oldSaveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OldCommitFailureSavePath-\(UUID().uuidString)", isDirectory: true)
+        let newSaveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NewCommitFailureSavePath-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: newSaveRoot, withIntermediateDirectories: true)
+
+        let record = makeTestRecord(
+            savePath: oldSaveRoot.path,
+            status: .error,
+            progress: 0.42,
+            persistentIssue: TorrentPersistentIssue(
+                kind: .savePathUnavailable,
+                detectedAt: Date(),
+                statusBeforeIssue: .downloading,
+                debugReason: "External disk unavailable"
+            )
+        )
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: oldSaveRoot)
+            try? FileManager.default.removeItem(at: newSaveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        writer.failNextWrite()
+
+        bundle.store.redownloadTorrent(id: record.id, toSaveLocation: newSaveRoot, bookmarkData: nil)
+
+        let didRollback = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.sessionPersistenceAlert != nil
+        }
+        XCTAssertTrue(didRollback)
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+        let firstRestoreCount = await engine.restoreSessionCallCount()
+        XCTAssertEqual(firstRestoreCount, 1)
+        let rollbackRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.message,
+            L10n.string(
+                "session.persistence.redownload_failed.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Повторная загрузка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+            )
+        )
+
+        bundle.store.redownloadTorrent(id: record.id, toSaveLocation: newSaveRoot, bookmarkData: nil)
+
+        let didSucceedOnRetry = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.torrents.first?.persistentIssue == nil
+        }
+        XCTAssertTrue(didSucceedOnRetry)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        let updatedRecord = try XCTUnwrap(bundle.store.torrents.first)
+        XCTAssertEqual(updatedRecord.canonicalSavePath, newSaveRoot.path)
+        XCTAssertNotEqual(updatedRecord.attemptID, record.attemptID)
+        let finalRestoreCount = await engine.restoreSessionCallCount()
+        XCTAssertEqual(finalRestoreCount, 2)
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertEqual(persistedSnapshot.torrents.first?.attemptID, updatedRecord.attemptID)
+        XCTAssertEqual(persistedSnapshot.torrents.first?.canonicalSavePath, newSaveRoot.path)
+    }
+
+    func testRedownloadPathFailureIsPublishedOnlyAfterSessionCommit() async throws {
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let missingSaveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MissingRedownloadSavePath-\(UUID().uuidString)", isDirectory: true)
+        let record = makeTestRecord(
+            savePath: missingSaveRoot.path,
+            status: .error,
+            progress: 0.42,
+            persistentIssue: TorrentPersistentIssue(
+                kind: .missingContent,
+                detectedAt: Date(),
+                statusBeforeIssue: .downloading,
+                debugReason: "Missing payload"
+            )
+        )
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: missingSaveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        writer.failNextWrite()
+
+        bundle.store.redownloadTorrent(id: record.id)
+
+        let didRejectIssueChange = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.sessionPersistenceAlert != nil
+        }
+        XCTAssertTrue(didRejectIssueChange)
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+
+        bundle.store.redownloadTorrent(id: record.id)
+
+        let didCommitIssueOnRetry = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.torrents.first?.persistentIssue?.kind == .savePathUnavailable
+        }
+        XCTAssertTrue(didCommitIssueOnRetry)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        let restoreCallCount = await engine.restoreSessionCallCount()
+        XCTAssertEqual(restoreCallCount, 0)
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertEqual(persistedSnapshot.torrents.first?.persistentIssue?.kind, .savePathUnavailable)
+    }
+
     func testSavePathUnavailableRedownloadToAnotherFolderFailureKeepsOldIssueAndPath() async throws {
         let engine = FakeTorrentEngine()
         await engine.setRestoreSessionErrors([

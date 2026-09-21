@@ -48,6 +48,7 @@
 "session.persistence.stop_failed.message" = "由于 Shatl 无法保存其状态，下载未停止。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.recheck_failed.message" = "由于 Shatl 无法保存其状态，重新检查已取消。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.quit_failed.message" = "由于 Shatl 无法保存下载状态，应用仍保持打开。请检查可用空间和磁盘访问权限，然后再次尝试退出。";
+"session.persistence.redownload_failed.message" = "由于 Shatl 无法保存下载状态，下载未重新开始。请检查可用空间和磁盘访问权限，然后重试。";
 
 "onboarding.action.next" = "下一步";
 "onboarding.action.not_now" = "暂不";

@@ -48,6 +48,7 @@
 "session.persistence.stop_failed.message" = "The download was not stopped because Shatl couldn’t save its state. Check free space and disk access, then try again.";
 "session.persistence.recheck_failed.message" = "The recheck was canceled because Shatl couldn’t save its state. Check free space and disk access, then try again.";
 "session.persistence.quit_failed.message" = "Shatl stayed open because it couldn’t save the download state. Check free space and disk access, then try quitting again.";
+"session.persistence.redownload_failed.message" = "The download was not restarted because Shatl couldn’t save its state. Check free space and disk access, then try again.";
 
 "onboarding.action.next" = "Next";
 "onboarding.action.not_now" = "Not now";

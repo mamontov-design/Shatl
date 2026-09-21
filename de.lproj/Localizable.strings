@@ -48,6 +48,7 @@
 "session.persistence.stop_failed.message" = "Der Download wurde nicht gestoppt, weil Shatl seinen Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 "session.persistence.recheck_failed.message" = "Die Überprüfung wurde abgebrochen, weil Shatl ihren Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 "session.persistence.quit_failed.message" = "Shatl blieb geöffnet, weil der Downloadstatus nicht gespeichert werden konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche erneut, die App zu beenden.";
+"session.persistence.redownload_failed.message" = "Der Download wurde nicht neu gestartet, weil Shatl seinen Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 
 "onboarding.action.next" = "Weiter";
 "onboarding.action.not_now" = "Nicht jetzt";

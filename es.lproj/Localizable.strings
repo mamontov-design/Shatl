@@ -48,6 +48,7 @@
 "session.persistence.stop_failed.message" = "La descarga no se detuvo porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 "session.persistence.recheck_failed.message" = "La comprobación se canceló porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 "session.persistence.quit_failed.message" = "Shatl permaneció abierto porque no pudo guardar el estado de las descargas. Comprueba el espacio libre y el acceso al disco e intenta salir de nuevo.";
+"session.persistence.redownload_failed.message" = "La descarga no se reinició porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 
 "onboarding.action.next" = "Siguiente";
 "onboarding.action.not_now" = "Ahora no";

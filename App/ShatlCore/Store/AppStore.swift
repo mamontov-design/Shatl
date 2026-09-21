@@ -1533,25 +1533,35 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func redownloadTorrent(id: UUID) {
         guard let record = torrents.first(where: { $0.id == id }),
-              record.persistentIssue?.kind == .missingContent else { return }
+              record.persistentIssue?.kind == .missingContent,
+              !transitioningTorrentIDs.contains(id) else { return }
+
+        transitioningTorrentIDs.insert(id)
 
         Task { [weak self] in
             guard let self else { return }
+            defer { self.transitioningTorrentIDs.remove(id) }
 
             guard let saveURL = await self.bookmarkStore.resolveURL(
                 for: record.id,
                 fallbackPath: record.canonicalSavePath
             ) else {
-                self.applyPersistentIssue(
-                    TorrentPersistentIssue(
-                        kind: .savePathUnavailable,
-                        detectedAt: Date(),
-                        statusBeforeIssue: record.persistentIssue?.statusBeforeIssue ?? record.status,
-                        debugReason: "Не удалось разрешить путь для повторной загрузки."
-                    ),
-                    to: record.id
+                let issue = TorrentPersistentIssue(
+                    kind: .savePathUnavailable,
+                    detectedAt: Date(),
+                    statusBeforeIssue: record.persistentIssue?.statusBeforeIssue ?? record.status,
+                    debugReason: "Не удалось разрешить путь для повторной загрузки."
                 )
-                self.saveCriticalState()
+                guard await self.commitPersistentIssue(issue, to: record.id) else {
+                    self.presentSessionPersistenceFailure(
+                        messageKey: "session.persistence.redownload_failed.message",
+                        defaultMessage: "Повторная загрузка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+                    )
+                    return
+                }
+
+                self.sessionPersistenceAlert = nil
+                self.applyPersistentIssue(issue, to: record.id)
                 return
             }
 
@@ -1561,10 +1571,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func redownloadTorrent(id: UUID, toSaveLocation saveURL: URL, bookmarkData: Data?) {
         guard let record = torrents.first(where: { $0.id == id }),
-              record.persistentIssue?.kind == .savePathUnavailable else { return }
+              record.persistentIssue?.kind == .savePathUnavailable,
+              !transitioningTorrentIDs.contains(id) else { return }
+
+        transitioningTorrentIDs.insert(id)
 
         Task { [weak self] in
             guard let self else { return }
+            defer { self.transitioningTorrentIDs.remove(id) }
 
             await self.redownloadTorrent(record: record, saveURL: saveURL, bookmarkData: bookmarkData)
         }
@@ -1672,19 +1686,44 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         do {
             let snapshots = try await engine.restoreSession([restoreEntry])
-            detachedTorrentIDs.remove(record.id)
+            var candidateRecord = record
+            candidateRecord.attemptID = restoreEntry.attemptID
+            candidateRecord.canonicalSavePath = normalizedSavePath
+            candidateRecord.status = .downloading
+            candidateRecord.progress = 0
+            candidateRecord.lastKnownProgress = 0
+            candidateRecord.materializedSelectionFootprint = baselineFootprint
+            candidateRecord.persistentIssue = nil
+            candidateRecord.runtimeErrorState = nil
 
-            if let index = torrents.firstIndex(where: { $0.id == record.id }) {
-                torrents[index].attemptID = restoreEntry.attemptID
-                torrents[index].canonicalSavePath = normalizedSavePath
-                torrents[index].status = .downloading
-                torrents[index].progress = 0
-                torrents[index].lastKnownProgress = 0
-                torrents[index].materializedSelectionFootprint = baselineFootprint
-                torrents[index].persistentIssue = nil
-                torrents[index].runtimeErrorState = nil
+            let saveOutcome = await sessionStore.commitAttemptTransition(
+                candidateRecord,
+                replacingAttemptID: record.attemptID
+            )
+            guard saveOutcome == .saved else {
+                detachedTorrentIDs.insert(record.id)
+                do {
+                    try await engine.removeTorrent(id: record.id, deleteData: false)
+                } catch {
+                    let engineError = TorrentEngineError.normalized(from: error)
+                    if engineError.kind != .torrentNotFound {
+                        Self.logger.error(
+                            "Redownload rollback failed for torrent id=\(record.id.uuidString) kind=\(engineError.kind.rawValue) reason=\(engineError.debugReason ?? "-")"
+                        )
+                    }
+                }
+                presentSessionPersistenceFailure(
+                    messageKey: "session.persistence.redownload_failed.message",
+                    defaultMessage: "Повторная загрузка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+                )
+                return
             }
 
+            sessionPersistenceAlert = nil
+            detachedTorrentIDs.remove(record.id)
+            if let index = torrents.firstIndex(where: { $0.id == record.id }) {
+                torrents[index] = candidateRecord
+            }
             if let bookmarkData {
                 await bookmarkStore.saveBookmarkData(for: record.id, data: bookmarkData)
             } else if normalizedSavePath != record.canonicalSavePath {
@@ -1692,15 +1731,26 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
 
             applySnapshots(snapshots)
-            if let updatedRecord = torrents.first(where: { $0.id == record.id }) {
-                _ = await sessionStore.commitAttemptTransition(
-                    updatedRecord,
-                    replacingAttemptID: record.attemptID
-                )
-            }
         } catch {
             applyEngineError(error, to: record.id)
         }
+    }
+
+    private func commitPersistentIssue(
+        _ issue: TorrentPersistentIssue,
+        to torrentID: UUID
+    ) async -> Bool {
+        guard let index = torrents.firstIndex(where: { $0.id == torrentID }) else {
+            return false
+        }
+
+        var candidateRecord = torrents[index]
+        candidateRecord.persistentIssue = normalizedPersistentIssue(issue, for: candidateRecord)
+        candidateRecord.runtimeErrorState = nil
+        candidateRecord.status = .error
+        var candidateTorrents = torrents
+        candidateTorrents[index] = candidateRecord
+        return await commitCriticalState(candidateTorrents) == .saved
     }
 
     func confirmDraft() {
