@@ -45,6 +45,8 @@
 "session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
 "session.persistence.save_failed.title" = "Не удалось сохранить список загрузок";
 "session.persistence.remove_failed.message" = "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите.";
+"session.persistence.stop_failed.message" = "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите.";
+"session.persistence.recheck_failed.message" = "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите.";
 
 "onboarding.action.next" = "Далее";
 "onboarding.action.not_now" = "Не сейчас";

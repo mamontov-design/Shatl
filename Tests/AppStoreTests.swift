@@ -1759,6 +1759,94 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(bundle.store.selectedTorrent?.status, .error)
     }
 
+    func testStopCommitFailureLeavesTorrentRunningAndRetrySucceeds() async throws {
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StopCommitFailure-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        try Data("payload".utf8).write(
+            to: saveRoot.appendingPathComponent("test-file.bin", isDirectory: false),
+            options: .atomic
+        )
+
+        var record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            status: .downloading,
+            progress: 0.25
+        )
+        record.metrics = TorrentMetrics(
+            downloadSpeedBytesPerSecond: 4_096,
+            uploadSpeedBytesPerSecond: 1_024,
+            etaSeconds: 120,
+            seeds: 3,
+            peers: 7
+        )
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+        await engine.setHandleActive(true, for: record.id)
+        writer.failNextWrite()
+
+        bundle.store.stopTorrent(id: record.id)
+
+        let didRejectStop = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.sessionPersistenceAlert != nil
+        }
+        XCTAssertTrue(didRejectStop)
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+        let failedRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertTrue(failedRemoveCalls.isEmpty)
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.message,
+            L10n.string(
+                "session.persistence.stop_failed.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+            )
+        )
+
+        bundle.store.sessionPersistenceAlert = nil
+        bundle.store.stopTorrent(id: record.id)
+
+        let didStopOnRetry = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.torrents.first?.status == .stopped
+        }
+        XCTAssertTrue(didStopOnRetry)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        let retryRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertEqual(persistedSnapshot.torrents.first?.status, .stopped)
+    }
+
     func testStartIsBlockedWhileStopTransitionIsStillRunning() async throws {
         let engine = FakeTorrentEngine()
         await engine.setRemoveDelay(nanoseconds: 300_000_000)
@@ -2031,6 +2119,90 @@ final class AppStoreTests: XCTestCase {
         let restoreEntries = await engine.recordedRestoreSessionEntries()
         XCTAssertEqual(restoreEntries.last?.torrentID, record.id)
         XCTAssertEqual(restoreEntries.last?.shouldStart, true)
+    }
+
+    func testRecheckCommitFailureRollsBackEngineAndRetrySucceeds() async throws {
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RecheckCommitFailure-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+        try Data("payload".utf8).write(
+            to: saveRoot.appendingPathComponent("test-file.bin", isDirectory: false),
+            options: .atomic
+        )
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            status: .stopped,
+            progress: 0.4
+        )
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            torrents: [record],
+            sessionWriteData: { data, url in
+                try writer.write(data, to: url)
+            }
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
+        XCTAssertEqual(initialSaveOutcome, .saved)
+        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+        writer.failNextWrite()
+
+        bundle.store.forceRecheckTorrent(id: record.id)
+
+        let didRollbackRecheck = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.sessionPersistenceAlert != nil
+        }
+        XCTAssertTrue(didRollbackRecheck)
+        XCTAssertEqual(bundle.store.torrents, [record])
+        XCTAssertEqual(
+            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
+            originalSessionData
+        )
+        let failedRecheckCalls = await engine.recordedRecheckCallIDs()
+        XCTAssertEqual(failedRecheckCalls, [record.id])
+        let rollbackRemoveCalls = await engine.recordedRemoveCalls()
+        XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(
+            bundle.store.sessionPersistenceAlert?.message,
+            L10n.string(
+                "session.persistence.recheck_failed.message",
+                localeOverride: bundle.store.preferences.localeOverride,
+                defaultValue: "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+            )
+        )
+
+        bundle.store.sessionPersistenceAlert = nil
+        bundle.store.forceRecheckTorrent(id: record.id)
+
+        let didStartRecheckOnRetry = await waitForCondition {
+            !bundle.store.transitioningTorrentIDs.contains(record.id)
+                && bundle.store.torrents.first?.status == .checking
+        }
+        XCTAssertTrue(didStartRecheckOnRetry)
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        let retryRecheckCalls = await engine.recordedRecheckCallIDs()
+        XCTAssertEqual(retryRecheckCalls, [record.id, record.id])
+        let restoreCallCount = await engine.restoreSessionCallCount()
+        XCTAssertEqual(restoreCallCount, 2)
+        let persistedSnapshot = try JSONDecoder().decode(
+            SessionSnapshot.self,
+            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        )
+        XCTAssertEqual(persistedSnapshot.torrents.first?.status, .checking)
     }
 
     func testForceRecheckReturnsSleepingTorrentToStoppedAfterCheckCompletes() async throws {

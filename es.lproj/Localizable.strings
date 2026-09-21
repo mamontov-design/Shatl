@@ -45,6 +45,8 @@
 "session.load.unsupported.message" = "La sesión se creó con otra versión de Shatl y todavía no se puede abrir. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
 "session.persistence.save_failed.title" = "No se pudo guardar la lista de descargas";
 "session.persistence.remove_failed.message" = "El torrent y sus archivos no se eliminaron. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.stop_failed.message" = "La descarga no se detuvo porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.recheck_failed.message" = "La comprobación se canceló porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 
 "onboarding.action.next" = "Siguiente";
 "onboarding.action.not_now" = "Ahora no";

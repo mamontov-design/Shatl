@@ -45,6 +45,8 @@
 "session.load.unsupported.message" = "Die Sitzung wurde mit einer anderen Version von Shatl erstellt und kann noch nicht geöffnet werden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 "session.persistence.save_failed.title" = "Downloadliste konnte nicht gespeichert werden";
 "session.persistence.remove_failed.message" = "Der Torrent und seine Dateien wurden nicht entfernt. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
+"session.persistence.stop_failed.message" = "Der Download wurde nicht gestoppt, weil Shatl seinen Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
+"session.persistence.recheck_failed.message" = "Die Überprüfung wurde abgebrochen, weil Shatl ihren Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 
 "onboarding.action.next" = "Weiter";
 "onboarding.action.not_now" = "Nicht jetzt";

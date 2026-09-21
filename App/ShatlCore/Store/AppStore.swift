@@ -920,11 +920,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 self.transitioningTorrentIDs.remove(id)
                 self.endTransitionTrace(torrentID: id, outcome: transitionOutcome)
             }
-            guard let currentRecord = self.torrents.first(where: { $0.id == id }) else { return }
+            guard let validationRecord = self.torrents.first(where: { $0.id == id }) else { return }
 
             self.traceTransition(torrentID: id, phase: "validation.begin", extra: [:])
-            let validation = await self.diskIssueDetector.validateAfterUserAction(for: currentRecord)
-            self.applyValidationResult(validation, to: id)
+            let validation = await self.diskIssueDetector.validateAfterUserAction(for: validationRecord)
             self.traceTransition(
                 torrentID: id,
                 phase: "validation.result",
@@ -932,11 +931,75 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 extra: self.validationFields(for: validation)
             )
 
+            guard let currentIndex = self.torrents.firstIndex(where: { $0.id == id }) else { return }
+            var candidateRecord = self.torrents[currentIndex]
+            if let footprint = validation.footprint {
+                candidateRecord.materializedSelectionFootprint = footprint
+            }
+
+            if let issue = validation.issue {
+                candidateRecord.persistentIssue = self.normalizedPersistentIssue(
+                    issue,
+                    for: candidateRecord
+                )
+                candidateRecord.runtimeErrorState = nil
+                candidateRecord.status = .error
+            } else {
+                // When a completed torrent merely stops seeding, keep the user-facing
+                // state as completed instead of changing it to stopped.
+                candidateRecord.status = candidateRecord.progress >= 1.0
+                    || candidateRecord.status == .seeding
+                    || candidateRecord.status == .completed
+                    ? .completed
+                    : .stopped
+                candidateRecord.runtimeErrorState = nil
+                candidateRecord.metrics.downloadSpeedBytesPerSecond = 0
+                candidateRecord.metrics.uploadSpeedBytesPerSecond = 0
+                candidateRecord.metrics.etaSeconds = nil
+                candidateRecord.metrics.seeds = nil
+                candidateRecord.metrics.peers = nil
+            }
+
+            var candidateTorrents = self.torrents
+            candidateTorrents[currentIndex] = candidateRecord
+            self.traceTransition(
+                torrentID: id,
+                phase: "session.commit.begin",
+                level: .notice,
+                flush: true
+            )
+            let sessionSaveOutcome = await self.commitCriticalState(candidateTorrents)
+            guard sessionSaveOutcome == .saved else {
+                Self.logger.error(
+                    "Stop blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
+                )
+                self.traceTransition(
+                    torrentID: id,
+                    phase: "session.commit.failed",
+                    level: .error,
+                    flush: true,
+                    extra: ["outcome": String(describing: sessionSaveOutcome)]
+                )
+                self.presentSessionPersistenceFailure(
+                    messageKey: "session.persistence.stop_failed.message",
+                    defaultMessage: "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+                )
+                transitionOutcome = "blocked.session-commit"
+                return
+            }
+            self.sessionPersistenceAlert = nil
+            self.traceTransition(
+                torrentID: id,
+                phase: "session.commit.end",
+                level: .notice,
+                flush: true
+            )
+
             if validation.issue != nil {
+                self.applyValidationResult(validation, to: id)
                 Self.logger.notice("Stop converted into persistent issue for torrent id=\(id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
                 self.detachedTorrentIDs.insert(id)
                 transitionOutcome = "converted.persistent-issue"
-                await self.persistCriticalState()
 
                 do {
                     let engineCallStartedAt = DispatchTime.now().uptimeNanoseconds
@@ -978,21 +1041,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             self.detachedTorrentIDs.insert(id)
 
             if let index = self.torrents.firstIndex(where: { $0.id == id }) {
-                // When a completed torrent merely stops seeding, keep the user-facing
-                // state as completed instead of changing it to stopped.
-                let nextStatus: TorrentStatus = self.torrents[index].progress >= 1.0
-                    || self.torrents[index].status == .seeding
-                    || self.torrents[index].status == .completed
-                    ? .completed
-                    : .stopped
-
-                self.torrents[index].status = nextStatus
-                self.torrents[index].runtimeErrorState = nil
-                self.torrents[index].metrics.downloadSpeedBytesPerSecond = 0
-                self.torrents[index].metrics.uploadSpeedBytesPerSecond = 0
-                self.torrents[index].metrics.etaSeconds = nil
-                self.torrents[index].metrics.seeds = nil
-                self.torrents[index].metrics.peers = nil
+                self.torrents[index] = candidateRecord
             }
 
             self.traceTransition(
@@ -1001,8 +1050,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 level: .debug,
                 extra: self.transitionStateSnapshot(for: id)
             )
-            await self.persistCriticalState()
-
             do {
                 let engineCallStartedAt = DispatchTime.now().uptimeNanoseconds
                 self.traceTransition(torrentID: id, phase: "engine.remove.begin", level: .notice, flush: true)
@@ -1075,7 +1122,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
             self.traceTransition(torrentID: id, phase: "validation.begin", extra: [:])
             let validation = await self.diskIssueDetector.validateAfterUserAction(for: record)
-            self.applyValidationResult(validation, to: id)
             self.traceTransition(
                 torrentID: id,
                 phase: "validation.result",
@@ -1083,11 +1129,41 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 extra: self.validationFields(for: validation)
             )
 
-            if validation.issue != nil {
+            if let issue = validation.issue {
+                guard let currentIndex = self.torrents.firstIndex(where: { $0.id == id }) else {
+                    return
+                }
+                var candidateRecord = self.torrents[currentIndex]
+                if let footprint = validation.footprint {
+                    candidateRecord.materializedSelectionFootprint = footprint
+                }
+                candidateRecord.persistentIssue = self.normalizedPersistentIssue(
+                    issue,
+                    for: candidateRecord
+                )
+                candidateRecord.runtimeErrorState = nil
+                candidateRecord.status = .error
+
+                var candidateTorrents = self.torrents
+                candidateTorrents[currentIndex] = candidateRecord
+                let sessionSaveOutcome = await self.commitCriticalState(candidateTorrents)
+                guard sessionSaveOutcome == .saved else {
+                    Self.logger.error(
+                        "Recheck issue could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
+                    )
+                    self.presentSessionPersistenceFailure(
+                        messageKey: "session.persistence.recheck_failed.message",
+                        defaultMessage: "Проверка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+                    )
+                    transitionOutcome = "blocked.session-commit"
+                    return
+                }
+
+                self.sessionPersistenceAlert = nil
+                self.applyValidationResult(validation, to: id)
                 Self.logger.notice("Recheck blocked by persistent issue for torrent id=\(id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
                 self.detachedTorrentIDs.insert(id)
                 transitionOutcome = "blocked.persistent-issue"
-                await self.persistCriticalState()
 
                 if record.status.isActive {
                     try? await self.engine.removeTorrent(id: id, deleteData: false)
@@ -1206,16 +1282,63 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     }
                 }
 
-                self.detachedTorrentIDs.remove(id)
+                guard let currentIndex = self.torrents.firstIndex(where: { $0.id == id }) else {
+                    throw TorrentEngineError(
+                        kind: .torrentNotFound,
+                        debugReason: "Карточка торрента исчезла во время запуска проверки."
+                    )
+                }
 
+                var candidateRecord = self.torrents[currentIndex]
+                if let footprint = validation.footprint {
+                    candidateRecord.materializedSelectionFootprint = footprint
+                }
+                candidateRecord.status = .checking
+                candidateRecord.runtimeErrorState = nil
+                var candidateTorrents = self.torrents
+                candidateTorrents[currentIndex] = candidateRecord
+
+                let sessionSaveOutcome = await self.commitCriticalState(candidateTorrents)
+                guard sessionSaveOutcome == .saved else {
+                    self.temporarilyRestoredRecheckTorrentIDs.remove(id)
+                    self.temporaryRecheckPostCheckStatusByID[id] = nil
+                    self.pendingTemporaryRecheckDetachIDs.remove(id)
+                    self.detachedTorrentIDs.insert(id)
+
+                    do {
+                        try await self.engine.removeTorrent(id: id, deleteData: false)
+                    } catch {
+                        let engineError = TorrentEngineError.normalized(from: error)
+                        if engineError.kind != .torrentNotFound {
+                            self.traceTransition(
+                                torrentID: id,
+                                phase: "engine.recheck.rollback.failed",
+                                level: .error,
+                                flush: true,
+                                extra: self.engineErrorFields(error)
+                            )
+                        }
+                    }
+
+                    Self.logger.error(
+                        "Recheck rolled back because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
+                    )
+                    self.presentSessionPersistenceFailure(
+                        messageKey: "session.persistence.recheck_failed.message",
+                        defaultMessage: "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
+                    )
+                    transitionOutcome = "rolled-back.session-commit"
+                    return
+                }
+
+                self.sessionPersistenceAlert = nil
+                self.detachedTorrentIDs.remove(id)
                 if let index = self.torrents.firstIndex(where: { $0.id == id }) {
-                    self.torrents[index].status = .checking
-                    self.torrents[index].runtimeErrorState = nil
+                    self.torrents[index] = candidateRecord
                 }
 
                 Self.logger.notice("Recheck started for torrent id=\(id.uuidString)")
                 transitionOutcome = "started"
-                await self.persistCriticalState()
                 await self.refreshActiveSnapshots()
             } catch {
                 if restoredTemporaryHandle {
@@ -1264,17 +1387,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             Self.logger.error(
                 "Remove blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
             )
-            sessionPersistenceAlert = SessionPersistenceAlert(
-                title: L10n.string(
-                    "session.persistence.save_failed.title",
-                    localeOverride: preferences.localeOverride,
-                    defaultValue: "Не удалось сохранить список загрузок"
-                ),
-                message: L10n.string(
-                    "session.persistence.remove_failed.message",
-                    localeOverride: preferences.localeOverride,
-                    defaultValue: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
-                )
+            presentSessionPersistenceFailure(
+                messageKey: "session.persistence.remove_failed.message",
+                defaultMessage: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
             )
             return
         }
@@ -2372,7 +2487,29 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func persistCriticalState() async {
-        _ = await sessionStore.updateExisting(from: torrents)
+        _ = await commitCriticalState(torrents)
+    }
+
+    private func commitCriticalState(_ records: [TorrentRecord]) async -> SessionSaveOutcome {
+        await sessionStore.updateExisting(from: records)
+    }
+
+    private func presentSessionPersistenceFailure(
+        messageKey: String,
+        defaultMessage: String
+    ) {
+        sessionPersistenceAlert = SessionPersistenceAlert(
+            title: L10n.string(
+                "session.persistence.save_failed.title",
+                localeOverride: preferences.localeOverride,
+                defaultValue: "Не удалось сохранить список загрузок"
+            ),
+            message: L10n.string(
+                messageKey,
+                localeOverride: preferences.localeOverride,
+                defaultValue: defaultMessage
+            )
+        )
     }
 
     private func persistRestoreArtifacts(for record: TorrentRecord, draft: AddTorrentDraft) async throws {
