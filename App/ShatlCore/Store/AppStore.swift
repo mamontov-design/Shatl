@@ -3297,6 +3297,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return
         }
 
+        let progressFloor = max(record.progress, record.lastKnownProgress)
+        restoreRecheckRequestedIDs.remove(record.id)
+        restoreProgressFloorByID[record.id] = progressFloor > 0 ? progressFloor : nil
+
         let restoreEntry = SessionRestoreEntry(
             torrentID: record.id,
             attemptID: record.attemptID,
@@ -3396,6 +3400,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
+        restoreProgressFloorByID[record.id] = nil
+        restoreRecheckRequestedIDs.remove(record.id)
         if let lastError {
             applyEngineError(lastError, to: record.id)
         }

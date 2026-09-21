@@ -72,7 +72,7 @@ namespace aux {
 
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
-		, string_view element);
+		, string_view element, bool force_element = false);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
 	struct internal_drained_state
@@ -115,12 +115,25 @@ namespace aux {
 		// The URL of the web seed
 		std::string url;
 
-		// Optional authentication. If this is set, it's passed
-		// in as HTTP basic auth to the web seed. The format is:
-		// username:password.
+		// Optional authentication. If set, this string is sent verbatim as the
+		// value of the HTTP ``Authorization`` header, and it overrides any
+		// credentials embedded in the URL. It is not transformed in any way, so
+		// it must be the complete header value. For HTTP basic authentication
+		// that means ``"Basic "`` followed by the base64 encoding of
+		// ``username:password``.
+		// For security, this value (as well as any credentials embedded in the
+		// URL as "username:password@host") is only sent to the origin of the
+		// web seed URL. If the web seed responds with a redirect to a different
+		// origin (a different scheme, host or port), it is *not* forwarded to
+		// the new origin.
 		std::string auth;
 
-		// Any extra HTTP headers that need to be passed to the web seed
+		// Any extra HTTP headers that need to be passed to the web seed.
+		// Warning: unlike ``auth``, these headers are sent verbatim with
+		// every request, including requests to a different origin that the web
+		// seed may redirect to. Do not put sensitive credentials (such as an
+		// ``Authorization`` or ``Cookie`` header) here unless you trust every
+		// host the web seed might redirect to.
 		headers_t extra_headers;
 
 		// The type of web seed (see type_t)
@@ -329,10 +342,13 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
 		//
-		// The ``extern_auth`` argument can be used for other authorization
-		// schemes than basic HTTP authorization. If set, it will override any
-		// username and password found in the URL itself. The string will be sent
-		// as the HTTP authorization header's value (without specifying "Basic").
+		// The ``extern_auth`` argument sets the ``auth`` field of the
+		// web_seed_entry. If set, it overrides any username and password found
+		// in the URL itself, and it is sent verbatim as the value of the HTTP
+		// ``Authorization`` header (it is not transformed in any way). For HTTP
+		// basic authentication the value must therefore be ``"Basic "`` followed
+		// by the base64 encoding of ``username:password``. See web_seed_entry
+		// for the security implications of this field across redirects.
 		//
 		// The ``extra_headers`` argument defaults to an empty list, but can be
 		// used to insert custom HTTP headers in the requests to a specific web
@@ -340,7 +356,7 @@ TORRENT_VERSION_NAMESPACE_3
 		//
 		// See http-seeding_ for more information.
 		void add_url_seed(std::string const& url
-			, std::string const& ext_auth = std::string()
+			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
@@ -505,6 +521,18 @@ TORRENT_VERSION_NAMESPACE_3
 		// except for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
 
+		// returns the piece size appropriate for computing request lengths.
+		// for v2-only torrents, pieces at the end of files may be shorter than
+		// the main piece size. For v1 and hybrid torrents, piece sizes must be
+		// full (except for the last piece) in order to correctly compute the
+		// piece hash.
+		int piece_size_for_req(piece_index_t index) const
+		{
+			return v1()
+				? m_files.piece_size(index)
+				: m_files.piece_size2(index);
+		}
+
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.
@@ -659,14 +687,15 @@ TORRENT_VERSION_NAMESPACE_3
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif
 
+		// hidden
+		void resolve_duplicate_filenames();
+
 	private:
 
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec, int piece_limit);
-
-		void resolve_duplicate_filenames();
 
 		// the slow path, in case we detect/suspect a name collision
 		void resolve_duplicate_filenames_slow();

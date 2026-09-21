@@ -3,12 +3,40 @@
 
 import Foundation
 
+nonisolated enum MetricWidthAnimationPattern {
+    static func forText(_ text: String) -> String {
+        String(text.map { $0.isNumber ? "#" : $0 })
+    }
+}
+
 nonisolated struct MetricItemPresentation: Identifiable, Equatable, Sendable {
     var id: String
     var iconName: String?
     var number: String?
     var unit: String?
     var usesAccentIcon: Bool
+
+    var widthAnimationSignature: MetricItemWidthAnimationSignature {
+        MetricItemWidthAnimationSignature(
+            id: id,
+            iconName: iconName,
+            numberPattern: number.map(MetricWidthAnimationPattern.forText),
+            unit: unit
+        )
+    }
+}
+
+nonisolated struct MetricItemWidthAnimationSignature: Equatable, Sendable {
+    var id: String
+    var iconName: String?
+    var numberPattern: String?
+    var unit: String?
+}
+
+nonisolated extension Array where Element == MetricItemPresentation {
+    var metricWidthAnimationSignature: [MetricItemWidthAnimationSignature] {
+        map(\.widthAnimationSignature)
+    }
 }
 
 nonisolated struct CompactTransferMetricSet: Equatable, Sendable {
@@ -19,6 +47,26 @@ nonisolated struct MetricGroupPresentation: Identifiable, Equatable, Sendable {
     var id: String
     var title: String
     var items: [MetricItemPresentation]
+
+    var widthAnimationSignature: MetricGroupWidthAnimationSignature {
+        MetricGroupWidthAnimationSignature(
+            id: id,
+            title: title,
+            items: items.metricWidthAnimationSignature
+        )
+    }
+}
+
+nonisolated struct MetricGroupWidthAnimationSignature: Equatable, Sendable {
+    var id: String
+    var title: String
+    var items: [MetricItemWidthAnimationSignature]
+}
+
+nonisolated extension Array where Element == MetricGroupPresentation {
+    var groupWidthAnimationSignature: [MetricGroupWidthAnimationSignature] {
+        map(\.widthAnimationSignature)
+    }
 }
 
 nonisolated struct ExpandedMetricGroupsPresentation: Equatable, Sendable {

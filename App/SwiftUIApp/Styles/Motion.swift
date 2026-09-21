@@ -75,13 +75,6 @@ enum ShatlMotion {
     /// Native blur-replace animation for the torrent card's external status label.
     static let progressStatusReplace = Animation.smooth(duration: 0.48)
 
-    /// Native SF Symbols wiggle options for the download icon in the progress group.
-    /// `continuous` keeps the effect active while `speed` lowers its intensity,
-    /// producing gentle motion without turning the icon into a distracting indicator.
-    static let progressDownloadSymbolEffectOptions = SymbolEffectOptions
-        .repeat(.continuous)
-        .speed(0.7)
-
     /// Local animation for trailing control icons in a card.
     static let cardControlSlide = Animation.smooth(duration: 0.24)
 

@@ -60,21 +60,21 @@ public:
 		m_password = password;
 	}
 
-	void set_dst_name(std::string const& host)
+	void set_host(std::string const& host)
 	{
-		m_dst_name = host;
+		m_host = host;
 	}
 
 	void close(error_code& ec)
 	{
-		m_dst_name.clear();
+		m_host.clear();
 		proxy_base::close(ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
-		m_dst_name.clear();
+		m_host.clear();
 		proxy_base::close();
 	}
 #endif
@@ -127,8 +127,17 @@ private:
 
 		// send CONNECT
 		std::back_insert_iterator<std::vector<char>> p(m_buffer);
-		std::string const endpoint = print_endpoint(m_remote_endpoint);
-		write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
+		// if we were given the original host (domain or IP), prefer using it so
+		// the proxy can resolve domains; otherwise fall back to the resolved
+		// endpoint.
+		std::string const remote_host = m_host.empty()
+			? print_endpoint(m_remote_endpoint)
+			: format_host_for_connect(m_host, m_remote_endpoint.port());
+
+		write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
+		// Host header is required for HTTP/1.1 (RFC 9110 Section 7.2 / RFC 9112
+		// Section 3.2). For CONNECT it must match the request-target authority.
+		write_string("Host: " + remote_host + "\r\n", p);
 		if (!m_user.empty())
 		{
 			write_string("Proxy-Authorization: Basic " + base64encode(
@@ -218,7 +227,7 @@ private:
 	// proxy authentication
 	std::string m_user;
 	std::string m_password;
-	std::string m_dst_name;
+	std::string m_host;
 
 	// this is true if the connection is HTTP based and
 	// want to talk directly to the proxy

@@ -3,9 +3,56 @@
 
 import SwiftUI
 
-private enum TorrentCardLayout {
+enum TorrentCardLayout {
     static let compactExpandedMetricsWidth: CGFloat = 480
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
+}
+
+private struct CompactTransferMetricAnimationKey: Equatable {
+    var widthSignature: [MetricItemWidthAnimationSignature]?
+    var colorizesDownloadSpeed: Bool
+}
+
+private struct ExpandedMetricAnimationKey: Equatable {
+    var dynamicGroups: [MetricGroupWidthAnimationSignature]
+    var sizeGroup: MetricGroupWidthAnimationSignature
+}
+
+private struct ProgressGroupResizeAnimationKey: Equatable {
+    var iconName: String
+    var textWidthPattern: String?
+}
+
+private struct TorrentProgressFillShape: Shape {
+    var progress: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let horizontalInset: CGFloat = 3
+        let fillHeight: CGFloat = 4
+        let innerWidth = max(0, rect.width - horizontalInset * 2)
+        let clampedProgress = min(max(progress, 0), 1)
+        let fillWidth = min(innerWidth, max(4, innerWidth * clampedProgress))
+        let fillRect = CGRect(
+            x: rect.minX + horizontalInset,
+            y: rect.midY - fillHeight / 2,
+            width: fillWidth,
+            height: fillHeight
+        )
+
+        return RoundedRectangle(cornerRadius: 2, style: .continuous)
+            .path(in: fillRect)
+    }
+}
+
+private enum TorrentCardOutlineState: Equatable {
+    case normal
+    case selected
+    case error
 }
 
 enum TorrentCardPresentationMode {
@@ -42,17 +89,17 @@ struct TorrentCardView: View, Equatable {
     var usesProductionProgressColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
+    var usesCompactExpandedMetricsLayout = false
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @State private var isHovered = false
     @State private var isExpandButtonHovered = false
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
-    @State private var cardWidth: CGFloat = 0
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
+            && lhs.usesCompactExpandedMetricsLayout == rhs.usesCompactExpandedMetricsLayout
     }
 
     var body: some View {
@@ -83,7 +130,6 @@ struct TorrentCardView: View, Equatable {
         .background {
             cardBackground
         }
-        .background(cardWidthReader)
         .background {
             if row.enablesCardLayoutDiagnostics {
                 TorrentCardLayoutDiagnosticsProbe(
@@ -98,26 +144,10 @@ struct TorrentCardView: View, Equatable {
         .animation(ShatlMotion.cardState, value: row.isSelected)
         .animation(ShatlMotion.cardState, value: row.errorState != nil)
         .overlay {
-            if let cardOutlineColorOverride {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(cardOutlineColorOverride, lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(selectedOutlineColor, lineWidth: 1)
-                .opacity(row.isSelected && row.errorState == nil ? 1 : 0)
+                .strokeBorder(cardOutlineColor, lineWidth: cardOutlineLineWidth)
                 .allowsHitTesting(false)
-                .animation(ShatlMotion.cardState, value: row.isSelected)
-                .animation(ShatlMotion.cardState, value: row.errorState != nil)
-        }
-        .overlay {
-            if row.errorState != nil {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(ShatlColor.cerisePink, lineWidth: 1)
-                    .transition(.opacity)
-            }
+                .animation(ShatlMotion.cardState, value: cardOutlineState)
         }
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .contextMenu {
@@ -127,10 +157,6 @@ struct TorrentCardView: View, Equatable {
         }
         .task(id: row.navigationAvailabilityKey) {
             await refreshNavigationAvailability()
-        }
-        .onPreferenceChange(TorrentCardWidthPreferenceKey.self) { width in
-            guard let width, abs(width - cardWidth) >= 0.5 else { return }
-            cardWidth = width
         }
         .onHover { isHovered in
             guard presentationMode.allowsHoverEffects else { return }
@@ -282,16 +308,29 @@ struct TorrentCardView: View, Equatable {
     private var primaryMetricContainer: some View {
         HStack(spacing: 8) {
             statusBadge
+            compactTransferMetricContainer
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
-            Spacer(minLength: 8)
-
+    private var compactTransferMetricContainer: some View {
+        ZStack(alignment: .trailing) {
             if let transferMetricSet = row.compactTransferMetricSet {
                 transferMetricSetView(transferMetricSet)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .geometryGroup()
                     .transition(ShatlMotion.appearFromTop)
             }
         }
-        .animation(ShatlMotion.metricResize, value: row.compactTransferMetricSet)
-        .animation(ShatlMotion.metricResize, value: row.colorizesDownloadSpeed)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .animation(ShatlMotion.metricResize, value: compactTransferMetricAnimationKey)
+    }
+
+    private var compactTransferMetricAnimationKey: CompactTransferMetricAnimationKey {
+        CompactTransferMetricAnimationKey(
+            widthSignature: row.compactTransferMetricSet?.items.metricWidthAnimationSignature,
+            colorizesDownloadSpeed: row.colorizesDownloadSpeed
+        )
     }
 
     private var statusBadge: some View {
@@ -331,10 +370,17 @@ struct TorrentCardView: View, Equatable {
     }
 
     private func extraMetric(_ metricGroups: ExpandedMetricGroupsPresentation) -> some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if !metricGroups.dynamicGroups.isEmpty {
+        let dynamicGroups = compactedDynamicMetricGroups(metricGroups.dynamicGroups)
+        let sizeGroup = compactedMetricGroup(metricGroups.sizeGroup)
+        let animationKey = ExpandedMetricAnimationKey(
+            dynamicGroups: dynamicGroups.groupWidthAnimationSignature,
+            sizeGroup: sizeGroup.widthAnimationSignature
+        )
+
+        return HStack(alignment: .bottom, spacing: 0) {
+            if !dynamicGroups.isEmpty {
                 ShatlMetricGroupSet(
-                    groups: compactedDynamicMetricGroups(metricGroups.dynamicGroups),
+                    groups: dynamicGroups,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
                     diagnosticsContext: metricDiagnosticsContext(source: "expandedDynamic")
@@ -347,22 +393,20 @@ struct TorrentCardView: View, Equatable {
             }
 
             ShatlMetricGroup(
-                group: compactedMetricGroup(metricGroups.sizeGroup),
+                group: sizeGroup,
                 metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                 metricSetOutlineColorOverride: metricSetOutlineColorOverride,
                 diagnosticsContext: metricDiagnosticsContext(source: "expandedSize")
             )
                 .layoutPriority(1)
         }
-        .animation(ShatlMotion.metricResize, value: metricGroups.dynamicGroups.isEmpty)
-        .animation(ShatlMotion.metricResize, value: metricGroups.dynamicGroups)
-        .animation(ShatlMotion.metricResize, value: hidesExpandedMetricIcons)
+        .geometryGroup()
+        .animation(ShatlMotion.metricResize, value: animationKey)
     }
 
     private var hidesExpandedMetricIcons: Bool {
         row.metricsMode == .detailed
-            && cardWidth > 0
-            && cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
+            && usesCompactExpandedMetricsLayout
     }
 
     private func metricDiagnosticsContext(source: String) -> MetricSetDiagnosticsContext? {
@@ -417,10 +461,16 @@ struct TorrentCardView: View, Equatable {
 
     private var progressGroup: some View {
         progressGroupContent
-        .animation(ShatlMotion.progressGroupResize, value: progressIconName)
-        .animation(ShatlMotion.progressGroupResize, value: progressText)
+        .animation(ShatlMotion.progressGroupResize, value: progressGroupResizeAnimationKey)
         .animation(ShatlMotion.cardState, value: statusKind)
         .animation(ShatlMotion.cardState, value: usesHoverStatusPalette)
+    }
+
+    private var progressGroupResizeAnimationKey: ProgressGroupResizeAnimationKey {
+        ProgressGroupResizeAnimationKey(
+            iconName: progressIconName,
+            textWidthPattern: progressText.map(MetricWidthAnimationPattern.forText)
+        )
     }
 
     private var progressGroupContent: some View {
@@ -429,11 +479,6 @@ struct TorrentCardView: View, Equatable {
                 .shatlTypography(ShatlTypography.metricSemibold)
                 .foregroundStyle(progressGroupForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
-                .symbolEffect(
-                    progressIconSymbolEffect,
-                    options: ShatlMotion.progressDownloadSymbolEffectOptions,
-                    isActive: showsProgressIconActivity
-                )
                 .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
 
             if let progressText {
@@ -524,18 +569,6 @@ struct TorrentCardView: View, Equatable {
         Int((clampedProgress * 100).rounded(.down))
     }
 
-    private var progressIconSymbolEffect: WiggleSymbolEffect {
-        statusKind == .seeding ? .wiggle.up.byLayer : .wiggle.down.byLayer
-    }
-
-    private var showsProgressIconActivity: Bool {
-        hasActiveTransfer && !reduceMotion
-    }
-
-    private var hasActiveTransfer: Bool {
-        row.hasActiveTransfer
-    }
-
     private var progressGroupColor: Color {
         if let progressGroupBackgroundColorOverride {
             return progressGroupBackgroundColorOverride
@@ -620,8 +653,27 @@ struct TorrentCardView: View, Equatable {
         presentationMode == .onboardingDemo && colorScheme == .dark ? ShatlColor.backgroundPrimary : nil
     }
 
-    private var selectedOutlineColor: Color {
-        ShatlColor.accent
+    private var cardOutlineState: TorrentCardOutlineState {
+        if row.errorState != nil {
+            return .error
+        }
+
+        return row.isSelected ? .selected : .normal
+    }
+
+    private var cardOutlineColor: Color {
+        switch cardOutlineState {
+        case .normal:
+            cardOutlineColorOverride ?? ShatlColor.outlinePrimary
+        case .selected:
+            ShatlColor.accent
+        case .error:
+            ShatlColor.cerisePink
+        }
+    }
+
+    private var cardOutlineLineWidth: CGFloat {
+        cardOutlineState == .selected ? 1 : 0.5
     }
 
     private var originalTitleLine: some View {
@@ -644,27 +696,18 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressBar: some View {
-        GeometryReader { proxy in
-            let outerWidth = max(0, proxy.size.width)
-            let innerPadding: CGFloat = 3
-            let innerWidth = max(0, outerWidth - innerPadding * 2)
-            let fillWidth = min(innerWidth, max(4, innerWidth * CGFloat(clampedProgress)))
+        ZStack {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(ShatlColor.backgroundTertiary)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(ShatlColor.outlinePrimary, lineWidth: 1)
+                }
 
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(ShatlColor.backgroundTertiary)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .strokeBorder(ShatlColor.outlinePrimary, lineWidth: 1)
-                    }
-
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(progressBarFillColor)
-                    .frame(width: fillWidth, height: 4)
-                    .padding(.leading, innerPadding)
-                    .animation(ShatlMotion.progressBarFill, value: fillWidth)
-                    .animation(ShatlMotion.progressBarFill, value: isProgressBarComplete)
-            }
+            TorrentProgressFillShape(progress: CGFloat(clampedProgress))
+                .fill(progressBarFillColor)
+                .animation(ShatlMotion.progressBarFill, value: clampedProgress)
+                .animation(ShatlMotion.progressBarFill, value: isProgressBarComplete)
         }
         .frame(height: 10)
     }
@@ -735,45 +778,9 @@ struct TorrentCardView: View, Equatable {
         return isHovered ? ShatlColor.cardHover : ShatlColor.cardDefault
     }
 
-    @ViewBuilder
     private var cardBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-
-        if presentationMode == .onboardingDemo {
-            shape.fill(backgroundColor)
-        } else if
-            let appearance = ShatlShadow.torrentCardInner.appearance(for: colorScheme),
-            let secondary = appearance.secondary
-        {
-            shape.fill(
-                backgroundColor
-                    .shadow(
-                        .inner(
-                            color: ShatlColor.shadowKeyColor.opacity(appearance.primary.opacity),
-                            radius: appearance.primary.radius,
-                            x: appearance.primary.x,
-                            y: appearance.primary.y
-                        )
-                    )
-                    .shadow(
-                        .inner(
-                            color: ShatlColor.shadowKeyColor.opacity(secondary.opacity),
-                            radius: secondary.radius,
-                            x: secondary.x,
-                            y: secondary.y
-                        )
-                    )
-            )
-        } else {
-            shape.fill(backgroundColor)
-        }
-    }
-
-    private var cardWidthReader: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .preference(key: TorrentCardWidthPreferenceKey.self, value: proxy.size.width)
-        }
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(backgroundColor)
     }
 
     private var layoutSignature: TorrentCardLayoutSignature {
@@ -916,14 +923,6 @@ private struct TorrentCardLayoutSignature: Equatable {
     var expandedDynamicGroupIDs: [String]
     var hasError: Bool
     var hasAlias: Bool
-}
-
-private struct TorrentCardWidthPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat? = nil
-
-    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) {
-        value = nextValue() ?? value
-    }
 }
 
 private func formatLayoutNumber(_ value: CGFloat) -> String {

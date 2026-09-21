@@ -203,6 +203,11 @@ namespace libtorrent {
 			num_read_ops,
 			num_read_back,
 
+			file_pool_hits,
+			file_pool_misses,
+			file_pool_thread_stall,
+			file_pool_race,
+
 			disk_read_time,
 			disk_write_time,
 			disk_hash_time,
@@ -409,6 +414,7 @@ namespace libtorrent {
 			num_writing_threads,
 			num_running_threads,
 			blocked_disk_jobs,
+			file_pool_size,
 			queued_write_bytes,
 			num_unchoke_slots,
 
@@ -460,7 +466,7 @@ namespace libtorrent {
 			num_queued_tracker_announces,
 
 			num_counters,
-			num_gauges_counters = num_counters - num_stats_counters
+			num_gauges_counters = num_counters - static_cast<int>(num_stats_counters)
 		};
 #ifdef ATOMIC_LLONG_LOCK_FREE
 #define TORRENT_COUNTER_NOEXCEPT noexcept

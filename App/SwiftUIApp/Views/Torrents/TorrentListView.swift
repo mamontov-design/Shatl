@@ -10,6 +10,8 @@ struct TorrentListView: View {
     let bottomContentPadding: CGFloat
 
     private static let maximumDisplayedSearchQueryLength = 32
+    private static let horizontalContentPadding: CGFloat = 8
+    @State private var usesCompactExpandedMetricsLayout = false
 
     private var visibleTorrentIDs: [UUID] {
         store.torrentRowIDs(matching: searchText)
@@ -111,7 +113,8 @@ struct TorrentListView: View {
 
                                         await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
                                     }
-                                }
+                                },
+                                usesCompactExpandedMetricsLayout: usesCompactExpandedMetricsLayout
                             )
                             .equatable()
                         }
@@ -120,7 +123,7 @@ struct TorrentListView: View {
                 }
             }
             .padding(.top, 8)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, Self.horizontalContentPadding)
             .padding(.bottom, bottomContentPadding)
             .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
             .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
@@ -136,6 +139,12 @@ struct TorrentListView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onGeometryChange(for: Bool.self) { proxy in
+            let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
+            return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
+        } action: { newValue in
+            usesCompactExpandedMetricsLayout = newValue
+        }
         .background {
             Color.clear
                 .contentShape(Rectangle())

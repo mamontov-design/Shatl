@@ -273,15 +273,6 @@ enum ShatlShadow {
         )
     )
 
-    /// Inner shadow of the main torrent card in the light theme.
-    static let torrentCardInner = ShatlShadowToken(
-        light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.08, radius: 0.5),
-            secondary: ShatlShadowLayer(opacity: 0.08, radius: 3)
-        ),
-        dark: nil
-    )
-
     /// Shadow for the pinned folder row in the add-torrent file tree.
     static let addTorrentStickyRow = ShatlShadowToken(
         light: ShatlShadowAppearance(

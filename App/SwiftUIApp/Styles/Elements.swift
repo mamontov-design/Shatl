@@ -951,7 +951,9 @@ struct TorrentCardPreviewView: View {
             progressGroupForegroundColorOverride: progressGroupForegroundColorOverride,
             usesProductionProgressColors: usesProductionProgressColors,
             cardBackgroundColorOverride: cardBackgroundColorOverride,
-            cardOutlineColorOverride: cardOutlineColorOverride
+            cardOutlineColorOverride: cardOutlineColorOverride,
+            usesCompactExpandedMetricsLayout: (cardWidth ?? .infinity)
+                < TorrentCardLayout.compactExpandedMetricsWidth
         )
     }
 
@@ -1187,7 +1189,9 @@ struct ShatlMetricItem: View {
             .fixedSize(horizontal: true, vertical: false)
 
         if animationMode == .lively, !reduceMotion {
-            text.contentTransition(.numericText())
+            text
+                .contentTransition(.numericText())
+                .animation(ShatlMotion.metricResize, value: number)
         } else {
             text
         }
@@ -1276,7 +1280,6 @@ struct ShatlMetricSet: View {
     @Environment(\.shatlMetricSetBounceEnabled) private var metricSetBounceEnabled
     @Environment(\.shatlMetricSetOutlinePulseColor) private var metricSetOutlinePulseColor
     @Environment(\.shatlMetricSetOutlineFlashColor) private var metricSetOutlineFlashColor
-    @Namespace private var metricSetNamespace
     @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
@@ -1318,7 +1321,6 @@ struct ShatlMetricSet: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .frame(height: ShatlMetricLayout.containerHeight)
-        .matchedGeometryEffect(id: "metricSet", in: metricSetNamespace, properties: .frame)
         .keyframeAnimator(
             initialValue: MetricSetBounceValues(),
             trigger: bounceTrigger
@@ -1381,8 +1383,6 @@ struct ShatlMetricSet: View {
             }
         }
         .metricSetDiagnostics(items: items, context: diagnosticsContext)
-        .animation(ShatlMotion.metricResize, value: items)
-        .animation(ShatlMotion.metricResize, value: usesColoredDownloadSpeed)
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
             guard metricSetBounceEnabled else { return }
             guard hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
@@ -1760,7 +1760,7 @@ struct ShatlInfoBottomSpeedChip: View {
                     )
                 )
                 .fixedSize()
-                .animation(ShatlMotion.metricResize, value: item)
+                .animation(ShatlMotion.metricResize, value: item.widthAnimationSignature)
         } else {
             chipContent
                 .fixedSize()
@@ -1773,7 +1773,7 @@ struct ShatlInfoBottomSpeedChip: View {
                 .contentShape(Capsule())
                 .onHover { isHovered = $0 }
                 .animation(ShatlMotion.mainContentMode, value: isHovered)
-                .animation(ShatlMotion.metricResize, value: item)
+                .animation(ShatlMotion.metricResize, value: item.widthAnimationSignature)
         }
     }
 
@@ -1831,7 +1831,9 @@ private struct ShatlInfoBottomMetricItem: View {
             .fixedSize(horizontal: true, vertical: false)
 
         if animationMode == .lively, !reduceMotion {
-            text.contentTransition(.numericText())
+            text
+                .contentTransition(.numericText())
+                .animation(ShatlMotion.metricResize, value: number)
         } else {
             text
         }
@@ -1871,7 +1873,6 @@ struct ShatlMetricGroup: View {
             )
         }
         .layoutPriority(1)
-        .animation(ShatlMotion.metricResize, value: group)
     }
 }
 
@@ -1897,7 +1898,6 @@ struct ShatlMetricGroupSet: View {
             }
         }
         .layoutPriority(1)
-        .animation(ShatlMotion.metricResize, value: groups)
     }
 }
 

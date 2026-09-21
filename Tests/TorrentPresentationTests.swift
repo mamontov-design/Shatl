@@ -165,6 +165,90 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(metricSet?.items.last?.unit, "мин")
     }
 
+    func testMetricWidthSignatureIgnoresSameWidthDigitChanges() {
+        let oldItem = MetricItemPresentation(
+            id: "download-speed",
+            iconName: "figure.run",
+            number: "98",
+            unit: "МБ/с",
+            usesAccentIcon: true
+        )
+        var newItem = oldItem
+        newItem.number = "99"
+
+        var oldDecimalItem = oldItem
+        oldDecimalItem.number = "4,2"
+        var newDecimalItem = oldDecimalItem
+        newDecimalItem.number = "4,3"
+
+        XCTAssertEqual(oldItem.widthAnimationSignature, newItem.widthAnimationSignature)
+        XCTAssertEqual(oldDecimalItem.widthAnimationSignature, newDecimalItem.widthAnimationSignature)
+    }
+
+    func testMetricWidthSignatureChangesWhenNumberWidthChanges() {
+        let oldItem = MetricItemPresentation(
+            id: "download-speed",
+            iconName: "figure.run",
+            number: "99",
+            unit: "МБ/с",
+            usesAccentIcon: true
+        )
+        var newItem = oldItem
+        newItem.number = "100"
+
+        XCTAssertNotEqual(oldItem.widthAnimationSignature, newItem.widthAnimationSignature)
+    }
+
+    func testMetricWidthSignaturePreservesSeparatorsUnitsAndIcons() {
+        let baseItem = MetricItemPresentation(
+            id: "download-speed",
+            iconName: "figure.run",
+            number: "9,9",
+            unit: "МБ/с",
+            usesAccentIcon: true
+        )
+        var changedSeparatorPattern = baseItem
+        changedSeparatorPattern.number = "10"
+        var changedUnit = baseItem
+        changedUnit.unit = "КБ/с"
+        var changedIcon = baseItem
+        changedIcon.iconName = "hare.fill"
+
+        XCTAssertNotEqual(baseItem.widthAnimationSignature, changedSeparatorPattern.widthAnimationSignature)
+        XCTAssertNotEqual(baseItem.widthAnimationSignature, changedUnit.widthAnimationSignature)
+        XCTAssertNotEqual(baseItem.widthAnimationSignature, changedIcon.widthAnimationSignature)
+    }
+
+    func testMetricWidthAnimationPatternOnlyChangesWhenTextStructureChanges() {
+        XCTAssertEqual(
+            MetricWidthAnimationPattern.forText("5%"),
+            MetricWidthAnimationPattern.forText("6%")
+        )
+        XCTAssertNotEqual(
+            MetricWidthAnimationPattern.forText("9%"),
+            MetricWidthAnimationPattern.forText("10%")
+        )
+    }
+
+    func testMetricGroupWidthSignatureIgnoresSameWidthNumberChanges() {
+        let item = MetricItemPresentation(
+            id: "upload-speed",
+            iconName: "figure.walk",
+            number: "1,1",
+            unit: "МБ/с",
+            usesAccentIcon: false
+        )
+        let oldGroup = MetricGroupPresentation(
+            id: "upload-speed",
+            title: "Раздача",
+            items: [item]
+        )
+        var newGroup = oldGroup
+        newGroup.items[0].number = "1,2"
+
+        XCTAssertEqual(oldGroup.widthAnimationSignature, newGroup.widthAnimationSignature)
+    }
+
     func testDownloadAndUploadSpeedMetricsUseDistinctSymbolStylesAtEveryThreshold() {
         let cases: [(speed: Int64, downloadIcon: String, uploadIcon: String)] = [
             (1, "tortoise.fill", "tortoise"),

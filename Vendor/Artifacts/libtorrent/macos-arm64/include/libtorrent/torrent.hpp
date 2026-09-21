@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -258,6 +259,36 @@ namespace libtorrent {
 		web_seed_t& operator=(web_seed_t const&) = default;
 		web_seed_t(web_seed_t const&) = default;
 #endif
+	};
+
+	// tracks the total time some condition has held (e.g. "this torrent is
+	// seeding"), as an accumulated duration plus an anchor timestamp for
+	// the current live segment, if any. All transitions go through
+	// set_live(), which is the only place that flushes the live segment
+	// into the accumulator and re-anchors it. Callers just report
+	// whether the condition holds.
+	struct accrued_time
+	{
+		seconds32 get(time_point32 const now) const
+		{
+			return m_live ? m_total + duration_cast<seconds32>(now - m_anchor) : m_total;
+		}
+
+		void set_live(bool const live, time_point32 const now)
+		{
+			if (live == m_live) return;
+			if (m_live) m_total += duration_cast<seconds32>(now - m_anchor);
+			else m_anchor = now;
+			m_live = live;
+		}
+
+		// only meant for initializing from resume data
+		void set_total(seconds32 const t) { m_total = t; }
+
+	private:
+		seconds32 m_total{0};
+		time_point32 m_anchor{aux::time_now32()};
+		bool m_live = false;
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
@@ -532,6 +563,7 @@ namespace libtorrent {
 		void maybe_connect_web_seeds();
 
 		std::string name() const;
+		aux::allocation_slot name_idx(aux::stack_allocator& a);
 
 		stat statistics() const { return m_stat; }
 		boost::optional<std::int64_t> bytes_left() const;
@@ -575,9 +607,8 @@ namespace libtorrent {
 
 		void stop_when_ready(bool b);
 
-		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause(bool was_paused = false);
+		void do_pause();
 		void do_resume();
 
 		seconds32 finished_time() const;
@@ -605,6 +636,8 @@ namespace libtorrent {
 			m_need_save_resume_data |= flag;
 			state_updated();
 		}
+
+		add_torrent_params get_resume_data(resume_data_flags_t flags) const;
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
@@ -753,6 +786,7 @@ namespace libtorrent {
 		bool ban_peer(torrent_peer* tp);
 		void update_peer_port(int port, torrent_peer* p, peer_source_flags_t src);
 		void set_seed(torrent_peer* p, bool s);
+		void set_upload_only(torrent_peer* p, bool s);
 		void clear_failcount(torrent_peer* p);
 		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
 
@@ -824,7 +858,7 @@ namespace libtorrent {
 		// forcefully sets next_announce to the current time
 		void force_tracker_request(time_point, int tracker_idx, reannounce_flags_t flags);
 		void scrape_tracker(int idx, bool user_triggered);
-		void announce_with_tracker(event_t = event_t::none);
+		void announce_with_tracker(event_t = event_t::none, bool high_priority = false);
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
@@ -930,6 +964,23 @@ namespace libtorrent {
 		void disconnect_all(error_code const& ec, operation_t op);
 		int disconnect_peers(int num, error_code const& ec);
 
+		// every write to m_have_all must go through here: is_seed() and
+		// is_finished() depend on it, and both feed update_state_timers()
+		void set_have_all(bool b);
+
+		// re-evaluates whether each of m_active_timer/m_seeding_timer/
+		// m_finished_timer should be live right now, and updates them
+		// accordingly. Must be called any time is_paused(), m_abort,
+		// is_seed() or is_finished() may have changed
+		void update_state_timers();
+
+		// overloads for callers that already have "now" at hand and want to
+		// query more than one of these in a row without re-reading the clock
+		// each time
+		seconds32 finished_time(time_point32 now) const { return m_finished_timer.get(now); }
+		seconds32 active_time(time_point32 now) const { return m_active_timer.get(now); }
+		seconds32 seeding_time(time_point32 now) const { return m_seeding_timer.get(now); }
+
 		// called every time a block is marked as finished in the
 		// piece picker. We might have completed the torrent and
 		// we can delete the piece picker
@@ -943,6 +994,14 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		void on_i2p_resolve(error_code const& ec, char const* dest);
 		bool is_i2p() const { return m_i2p; }
+
+		// returns true if this tracker URL is compatible with the torrent's
+		// i2p mode. Used to keep announce_with_tracker() and
+		// update_tracker_timer() in sync about which trackers will be
+		// contacted. If they disagree, the timer may schedule an immediate
+		// re-announce for a tracker that announce_with_tracker() will then
+		// skip, causing a CPU spin.
+		bool i2p_compatible_tracker(std::string const& url) const;
 #endif
 
 		// this is the asio callback that is called when a name
@@ -1410,6 +1469,7 @@ namespace libtorrent {
 #endif
 
 		std::string m_save_path;
+		aux::cached_slot m_name_idx;
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		// this is a list of all pieces that we have announced
@@ -1468,7 +1528,7 @@ namespace libtorrent {
 		// in this swarm
 		std::time_t m_swarm_last_seen_complete = 0;
 
-		// keep a copy if the info-hash here, so it can be accessed from multiple
+		// keep a copy of the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client
 		info_hash_t m_info_hash;
 
@@ -1490,18 +1550,19 @@ namespace libtorrent {
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
 
-		// if this torrent is running, this was the time
-		// when it was started. This is used to have a
-		// bias towards keeping seeding torrents that
-		// recently was started, to avoid oscillation
-		// this is specified at a second granularity
-		time_point32 m_started = aux::time_now32();
+		// total time we've been active on this torrent, i.e. either (trying
+		// to) download or seed, not counting time paused or stopped. Used
+		// to have a bias towards keeping recently-started seeding torrents,
+		// to avoid oscillation
+		accrued_time m_active_timer;
 
-		// if we're a seed, this is the timestamp of when we became one
-		time_point32 m_became_seed = aux::time_now32();
+		// total time we've been available as a seed on this torrent, not
+		// counting time paused or stopped
+		accrued_time m_seeding_timer;
 
-		// if we're finished, this is the timestamp of when we finished
-		time_point32 m_became_finished = aux::time_now32();
+		// total time we've been finished with this torrent, not counting
+		// time paused or stopped
+		accrued_time m_finished_timer;
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1603,21 +1664,10 @@ namespace libtorrent {
 
 // ----
 
-		// total time we've been active on this torrent. i.e. either (trying to)
-		// download or seed. does not count time when the torrent is stopped or
-		// paused. specified in seconds. This only track time _before_ we started
-		// the torrent this last time. When the torrent is paused, this counter is
-		// incremented to include this current session.
-		seconds32 m_active_time{0};
-
 		// the index to the last tracker that worked
 		std::int8_t m_last_working_tracker = -1;
 
 // ----
-
-		// total time we've been finished with this torrent.
-		// does not count when the torrent is stopped or paused.
-		seconds32 m_finished_time{0};
 
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep
@@ -1653,15 +1703,6 @@ namespace libtorrent {
 		bool m_enable_lsd:1;
 
 		bool m_i2p:1;
-// ----
-
-		// total time we've been available as a seed on this torrent.
-		// does not count when the torrent is stopped or paused. This value only
-		// accounts for the time prior to the current start of the torrent. When
-		// the torrent is paused, this counter is incremented to account for the
-		// additional seeding time.
-		seconds32 m_seeding_time{0};
-
 // ----
 
 		// the maximum number of uploads for this torrent

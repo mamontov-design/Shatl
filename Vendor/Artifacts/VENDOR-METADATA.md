@@ -1,11 +1,12 @@
 # Vendored Artifacts
 
-Last updated: 2026-04-11 19:55:44 +0700
+Last updated: 2026-09-21 13:12:41 +0700
 
 ## libtorrent
 
-- Version: 2.0.11
-- Source: https://github.com/arvidn/libtorrent/releases/download/v2.0.11/libtorrent-rasterbar-2.0.11.tar.gz
+- Version: 2.0.14
+- Source: https://github.com/arvidn/libtorrent/releases/download/v2.0.14/libtorrent-rasterbar-2.0.14.tar.gz
+- Source SHA-256: 1b0b21b9755b5fbec23ca9ba2d2d10434ecb6711c39f37f5fc9d5aa25cf369c9
 - Linkage: static
 - Artifact: `Vendor/Artifacts/libtorrent/macos-arm64/lib/libtorrent-rasterbar.a`
 

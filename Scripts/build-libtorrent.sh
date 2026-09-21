@@ -10,9 +10,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-LIBTORRENT_VERSION="2.0.11"
+LIBTORRENT_VERSION="2.0.14"
 LIBTORRENT_ARCHIVE_NAME="libtorrent-rasterbar-${LIBTORRENT_VERSION}.tar.gz"
 LIBTORRENT_SOURCE_URL="https://github.com/arvidn/libtorrent/releases/download/v${LIBTORRENT_VERSION}/${LIBTORRENT_ARCHIVE_NAME}"
+LIBTORRENT_ARCHIVE_SHA256="1b0b21b9755b5fbec23ca9ba2d2d10434ecb6711c39f37f5fc9d5aa25cf369c9"
 
 SOURCE_ARCHIVE_PATH="${ROOT_DIR}/Vendor/Sources/${LIBTORRENT_ARCHIVE_NAME}"
 SOURCE_ROOT_DIR="${ROOT_DIR}/.build/vendor-src"
@@ -101,6 +102,15 @@ download_sources_if_needed() {
   curl -L "${LIBTORRENT_SOURCE_URL}" -o "${SOURCE_ARCHIVE_PATH}"
 }
 
+verify_source_archive() {
+  local actual_sha256
+  actual_sha256="$(shasum -a 256 "${SOURCE_ARCHIVE_PATH}" | awk '{print $1}')"
+  if [[ "${actual_sha256}" != "${LIBTORRENT_ARCHIVE_SHA256}" ]]; then
+    echo "Unexpected libtorrent source archive SHA-256: ${actual_sha256}" >&2
+    exit 1
+  fi
+}
+
 extract_sources() {
   log "Extracting sources"
   rm -rf "${SOURCE_DIR}" "${BUILD_DIR}"
@@ -120,6 +130,7 @@ configure_and_build() {
     -DCMAKE_MAKE_PROGRAM="${ninja_bin}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES=arm64 \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=26.0 \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
     -DBUILD_SHARED_LIBS=OFF \
     -Dpython-bindings=OFF \
@@ -139,6 +150,8 @@ configure_and_build() {
 
 write_metadata() {
   log "Updating vendored artifact metadata"
+  local openssl_version
+  openssl_version="$(sed -n 's/^- Version: //p' "${OPENSSL_INSTALL_DIR}/BUILD-METADATA.md" | head -n 1)"
   cat > "${ROOT_DIR}/Vendor/Artifacts/VENDOR-METADATA.md" <<EOF
 # Vendored Artifacts
 
@@ -148,11 +161,13 @@ Last updated: $(date '+%Y-%m-%d %H:%M:%S %z')
 
 - Version: ${LIBTORRENT_VERSION}
 - Source: ${LIBTORRENT_SOURCE_URL}
+- Source SHA-256: ${LIBTORRENT_ARCHIVE_SHA256}
 - Linkage: static
 - Artifact: \`Vendor/Artifacts/libtorrent/macos-arm64/lib/libtorrent-rasterbar.a\`
 
 ## OpenSSL
 
+- Version: ${openssl_version}
 - Source: vendored static build produced by \`Scripts/build-openssl.sh\`
 - Artifact root: \`Vendor/Artifacts/openssl/macos-arm64\`
 - Artifacts:
@@ -178,6 +193,7 @@ main() {
 
   build_openssl_if_needed
   download_sources_if_needed
+  verify_source_archive
   extract_sources
   configure_and_build "${cmake_bin}" "${ninja_bin}"
   write_metadata

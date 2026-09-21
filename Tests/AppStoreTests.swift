@@ -1669,6 +1669,17 @@ final class AppStoreTests: XCTestCase {
             status: .downloading,
             progress: 0.25
         )
+        await engine.setRestoreSnapshot(
+            EngineTorrentSnapshot(
+                id: record.id,
+                status: .downloading,
+                progress: 0.25,
+                metrics: TorrentMetrics(),
+                errorState: nil,
+                resumeDataStatus: .loaded
+            ),
+            for: record.id
+        )
 
         let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
         addTeardownBlock {
@@ -1716,6 +1727,76 @@ final class AppStoreTests: XCTestCase {
 
         let restoreCallsAfterStop = await engine.restoreSessionCallCount()
         XCTAssertEqual(restoreCallsAfterStop, 1)
+    }
+
+    func testManualStartProtectsDurableProgressWhenStoppedDuringRestoreRecheck() async throws {
+        let engine = FakeTorrentEngine()
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ManualStartStaleRestore-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+
+        let record = makeTestRecord(
+            infoHash: "manual-start-stale-restore",
+            savePath: saveRoot.path,
+            status: .stopped,
+            progress: 0.52
+        )
+        await engine.setRestoreSnapshot(
+            EngineTorrentSnapshot(
+                id: record.id,
+                status: .downloading,
+                progress: 0.37,
+                metrics: TorrentMetrics(),
+                errorState: nil,
+                resumeDataStatus: .loaded
+            ),
+            for: record.id
+        )
+
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        try Data("partial payload".utf8).write(
+            to: saveRoot.appendingPathComponent("test-file.bin", isDirectory: false),
+            options: .atomic
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        bundle.store.startTorrent(id: record.id)
+
+        let didRequestRecheck = await waitForAsyncCondition(timeoutNanoseconds: 2_000_000_000) {
+            await engine.recordedRecheckCallIDs() == [record.id]
+        }
+        let didEnterProtectedRecheck = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            bundle.store.torrents.first?.status == .checking
+                && bundle.store.torrents.first?.progress == 0.52
+                && !bundle.store.transitioningTorrentIDs.contains(record.id)
+        }
+
+        XCTAssertTrue(didRequestRecheck)
+        XCTAssertTrue(didEnterProtectedRecheck)
+        guard didRequestRecheck, didEnterProtectedRecheck else { return }
+
+        bundle.store.stopTorrent(id: record.id)
+
+        let didStop = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            bundle.store.torrents.first?.status == .stopped
+                && !bundle.store.transitioningTorrentIDs.contains(record.id)
+        }
+        XCTAssertTrue(didStop)
+        let stoppedRecord = try XCTUnwrap(bundle.store.torrents.first)
+        XCTAssertEqual(stoppedRecord.progress, 0.52, accuracy: 0.0001)
+        XCTAssertEqual(stoppedRecord.lastKnownProgress, 0.52, accuracy: 0.0001)
+
+        let persistedSnapshot = await bundle.sessionStore.load().snapshot
+        let persistedRecord = try XCTUnwrap(persistedSnapshot?.torrents.first)
+        XCTAssertEqual(persistedRecord.status, .stopped)
+        XCTAssertEqual(persistedRecord.progress, 0.52, accuracy: 0.0001)
     }
 
     func testRestoreAndStartRetriesTemporaryDuplicateAfterStop() async throws {

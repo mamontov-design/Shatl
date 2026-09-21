@@ -539,7 +539,11 @@ private struct TorrentTransferSummaryLayer: View {
         .padding(.horizontal, edgePadding)
         .padding(.bottom, edgePadding)
         .frame(maxWidth: .infinity, alignment: .bottom)
-        .animation(ShatlMotion.mainContentMode, value: model.chips)
+        .animation(ShatlMotion.mainContentMode, value: chipStructureAnimationKey)
+    }
+
+    private var chipStructureAnimationKey: [String] {
+        model.chips.map(\.kind.id)
     }
 
     private var edgePadding: CGFloat {
