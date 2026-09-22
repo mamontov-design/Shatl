@@ -1088,6 +1088,7 @@ struct AddTorrentReviewView: View {
                 onDebouncedChange: applySearchText
             )
         )
+        .disabled(!areSettingsControlsEnabled)
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
@@ -1168,6 +1169,9 @@ struct AddTorrentReviewView: View {
         .padding(AddTorrentReviewLayout.settingsColumnPadding)
         .frame(width: AddTorrentReviewLayout.settingsColumnWidth)
         .frame(maxHeight: .infinity, alignment: .topLeading)
+        .blur(radius: areSettingsControlsEnabled ? 0 : 8)
+        .allowsHitTesting(areSettingsControlsEnabled)
+        .animation(ShatlMotion.interface, value: areSettingsControlsEnabled)
     }
 
     private var draft: AddTorrentDraft? {
@@ -1277,20 +1281,18 @@ struct AddTorrentReviewView: View {
         )
     }
 
-    @ViewBuilder
     private var invalidReviewContent: some View {
-        if let errorState = draft?.errorState {
-            invalidErrorLabelGroup(title: errorState.title, message: errorState.message)
-        } else {
-            invalidErrorLabelGroup(
-                title: L10n.string(
-                    "add_torrent.review.invalid_placeholder",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Не удалось подготовить загрузку."
-                ),
-                message: ""
-            )
-        }
+        let errorState = draft?.errorState
+        let message = errorState?.message
+        return ShatlMessageBlockPrimary(
+            title: errorState?.title ?? L10n.string(
+                "add_torrent.review.invalid_placeholder",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Не удалось подготовить загрузку."
+            ),
+            message: (message?.isEmpty ?? true) ? nil : message,
+            background: ShatlColor.backgroundSecondary
+        )
     }
 
     @ViewBuilder
@@ -2291,7 +2293,6 @@ struct AddTorrentReviewView: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .disabled(!areSettingsControlsEnabled)
             }
 
             parameterDivider
@@ -2321,7 +2322,6 @@ struct AddTorrentReviewView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .focused($isAliasFocused)
-                .disabled(!areSettingsControlsEnabled)
                 .onKeyPress(.escape) {
                     guard isAliasFocused else { return .ignored }
                     isAliasFocused = false
@@ -2349,7 +2349,7 @@ struct AddTorrentReviewView: View {
                 defaultValue: "Скачать"
             ),
             role: .borderedColored,
-            isDisabled: draft?.reviewState != .ready || filePresentation.selectedFileCount == 0
+            isDisabled: !areSettingsControlsEnabled || filePresentation.selectedFileCount == 0
         ) {
             isAliasFocused = false
             store.confirmDraft()
@@ -2373,30 +2373,6 @@ struct AddTorrentReviewView: View {
     private var displayedFolderPath: String {
         let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return path.isEmpty ? folderNotSelectedTitle : path
-    }
-
-    private func invalidErrorLabelGroup(title: String, message: String) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 36, weight: .regular))
-                .foregroundStyle(Color.red)
-
-            Text(title)
-                .shatlTypography(ShatlTypography.subheadlineBold)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if !message.isEmpty {
-                Text(message)
-                    .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(ShatlColor.typographySecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.horizontal, 24)
-        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var displayedFolderName: String {

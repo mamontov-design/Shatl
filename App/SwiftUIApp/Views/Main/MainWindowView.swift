@@ -640,50 +640,22 @@ private struct SessionLoadBlockingView: View {
     }
 
     private var recoveryCard: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-
-        return VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(ShatlColor.typographyTertiary)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(title)
-                        .shatlTypography(ShatlTypography.bodySemibold)
-                        .foregroundStyle(ShatlColor.typographyPrimary)
-
-                    if let message {
-                        Text(message)
-                            .shatlTypography(ShatlTypography.bodyRegular)
-                            .foregroundStyle(ShatlColor.typographySecondary)
-                    }
-
-                }
+        ShatlMessageBlockPrimary(
+            title: title,
+            message: message,
+            primaryButton: ShatlMessageBlockPrimaryButton(
+                title: L10n.string(
+                    "session.recovery.open_empty",
+                    localeOverride: localeOverride,
+                    defaultValue: "Запуск с пустым списком"
+                ),
+                role: .borderedColored,
+                isDisabled: store.isResolvingSessionRecovery,
+                lineLimit: nil
+            ) {
+                store.openWithEmptyDownloadList()
             }
-            .padding(8)
-
-            VStack(spacing: 6) {
-                HStack {
-                    ShatlButton(
-                        localizedTitle: "session.recovery.open_empty",
-                        role: .borderedColored,
-                        isDisabled: store.isResolvingSessionRecovery,
-                        lineLimit: nil
-                    ) {
-                        store.openWithEmptyDownloadList()
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-        }
-        .padding(10)
-        .frame(width: 340, alignment: .leading)
-        .background(ShatlColor.backgroundTertiary)
-        .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(ShatlColor.outlineTertiary, lineWidth: 0.5)
-        }
+        )
     }
 
     private var title: String {

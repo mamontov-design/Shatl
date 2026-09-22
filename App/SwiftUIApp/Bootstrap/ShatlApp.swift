@@ -168,6 +168,10 @@ private struct AddTorrentReviewWindowRoot: View {
             )
         }
 
+        if case .invalid = draft.reviewState {
+            return ""
+        }
+
         return draft.originalName
     }
 
