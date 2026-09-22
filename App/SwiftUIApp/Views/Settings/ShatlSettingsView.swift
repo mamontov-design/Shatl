@@ -745,9 +745,33 @@ private struct PerformanceProfileDemo: View {
     }
 
     private var progressFillStyle: AnyShapeStyle {
-        accentState.isUsingAppAccent
-            ? AnyShapeStyle(ShatlColor.neonBlue)
-            : AnyShapeStyle(accentState.systemAccentColor)
+        guard accentState.isUsingAppAccent else {
+            return AnyShapeStyle(accentState.systemAccentColor)
+        }
+
+        return AnyShapeStyle(
+            AngularGradient(
+                gradient: Gradient(stops: progressGradientStops),
+                center: .center,
+                startAngle: .degrees(90),
+                endAngle: .degrees(450)
+            )
+        )
+    }
+
+    private var progressGradientStops: [Gradient.Stop] {
+        let lighterPurple = Color(red: 190 / 255, green: 154 / 255, blue: 255 / 255)
+        let darkerPurple = Color(red: 136 / 255, green: 95 / 255, blue: 255 / 255)
+
+        return colorScheme == .dark
+            ? [
+                Gradient.Stop(color: darkerPurple, location: 0.08),
+                Gradient.Stop(color: lighterPurple, location: 0.92),
+            ]
+            : [
+                Gradient.Stop(color: lighterPurple, location: 0.08),
+                Gradient.Stop(color: darkerPurple, location: 0.92),
+            ]
     }
 
     private var arrowRotation: Double {

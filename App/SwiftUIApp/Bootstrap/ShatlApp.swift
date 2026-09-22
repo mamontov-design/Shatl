@@ -189,25 +189,44 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
         Coordinator(onClose: onClose)
     }
 
-    func makeNSView(context: Context) -> NSView {
-        NSView(frame: .zero)
+    func makeNSView(context: Context) -> ChromeNSView {
+        let view = ChromeNSView()
+        view.coordinator = context.coordinator
+        view.title = title
+        view.subtitle = subtitle
+        return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: ChromeNSView, context: Context) {
         context.coordinator.onClose = onClose
-        DispatchQueue.main.async {
-            guard let window = nsView.window else { return }
-            context.coordinator.observe(window)
+        nsView.title = title
+        nsView.subtitle = subtitle
+        nsView.applyToWindowIfAttached()
+    }
+
+    static func dismantleNSView(_ nsView: ChromeNSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
+    }
+
+    final class ChromeNSView: NSView {
+        var title = ""
+        var subtitle = ""
+        weak var coordinator: Coordinator?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            applyToWindowIfAttached()
+        }
+
+        func applyToWindowIfAttached() {
+            guard let window else { return }
+            coordinator?.observe(window)
             window.title = title
             window.subtitle = subtitle
             window.titleVisibility = .visible
             window.toolbarStyle = .unified
             window.titlebarSeparatorStyle = .line
         }
-    }
-
-    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
-        coordinator.stopObserving()
     }
 
     @MainActor

@@ -134,6 +134,7 @@ struct ShatlTabButton: View {
 struct ShatlButton: View {
     let title: ShatlTextContent?
     var systemImage: String?
+    var iconSize: CGFloat = ShatlIconSize.small
     let role: ShatlButtonRole
     var isDisabled = false
     var fillsWidth = false
@@ -176,6 +177,7 @@ struct ShatlButton: View {
 
     init(
         systemImage: String,
+        iconSize: CGFloat = ShatlIconSize.small,
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
@@ -184,6 +186,7 @@ struct ShatlButton: View {
     ) {
         self.title = nil
         self.systemImage = systemImage
+        self.iconSize = iconSize
         self.role = role
         self.isDisabled = isDisabled
         self.fillsWidth = fillsWidth
@@ -198,6 +201,7 @@ struct ShatlButton: View {
                     Image(systemName: systemImage)
                         .resizable()
                         .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
                         .frame(width: ShatlIconSize.small, height: ShatlIconSize.small, alignment: .center)
                 }
 

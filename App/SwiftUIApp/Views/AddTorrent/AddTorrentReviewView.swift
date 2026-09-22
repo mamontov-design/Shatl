@@ -1169,9 +1169,7 @@ struct AddTorrentReviewView: View {
         .padding(AddTorrentReviewLayout.settingsColumnPadding)
         .frame(width: AddTorrentReviewLayout.settingsColumnWidth)
         .frame(maxHeight: .infinity, alignment: .topLeading)
-        .blur(radius: areSettingsControlsEnabled ? 0 : 8)
-        .allowsHitTesting(areSettingsControlsEnabled)
-        .animation(ShatlMotion.interface, value: areSettingsControlsEnabled)
+        .opacity(areSettingsControlsEnabled ? 1 : 0.5)
     }
 
     private var draft: AddTorrentDraft? {
