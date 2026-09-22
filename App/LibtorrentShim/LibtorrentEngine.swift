@@ -6,8 +6,12 @@ import Foundation
 /// Keeps the Swift domain model separate from the Objective-C++ bridge.
 /// This allows the store and UI to evolve without spreading C++ across the project.
 actor LibtorrentEngine: TorrentEngine {
-    private let bridge = LibtorrentSessionBridge()
+    private let bridge: LibtorrentSessionBridge
     private let bridgeErrorDomain = "mamontov.design.shatl.libtorrent"
+
+    init(directories: ShatlDirectories) {
+        bridge = LibtorrentSessionBridge(resumeDataDirectoryURL: directories.resumeDataDirectoryURL)
+    }
 
     private enum BridgeErrorCode: Int {
         case sessionNotBooted = 1

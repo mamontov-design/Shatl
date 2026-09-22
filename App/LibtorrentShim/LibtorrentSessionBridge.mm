@@ -80,22 +80,6 @@ static NSString *LTSourceKey(NSString *sourceKind, NSString *rawValue) {
     return [NSString stringWithFormat:@"%@::%@", sourceKind, rawValue];
 }
 
-static NSURL *LTResumeDataDirectoryURL(void) {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSURL *baseURL = [fileManager URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask].firstObject
-        ?: [fileManager.homeDirectoryForCurrentUser URLByAppendingPathComponent:@"Library/Application Support" isDirectory:YES];
-    NSURL *resumeDirectoryURL = [[[[baseURL
-        URLByAppendingPathComponent:@"Shatl" isDirectory:YES]
-        URLByAppendingPathComponent:@"Session" isDirectory:YES]
-        URLByAppendingPathComponent:@"ResumeData" isDirectory:YES]
-        URLByStandardizingPath];
-    [fileManager createDirectoryAtURL:resumeDirectoryURL
-           withIntermediateDirectories:YES
-                            attributes:nil
-                                 error:nil];
-    return resumeDirectoryURL;
-}
-
 static void LTApplyNetworkDiscoverySettings(lt::settings_pack& pack, bool enableLSD) {
     pack.set_bool(lt::settings_pack::enable_dht, true);
     pack.set_bool(lt::settings_pack::enable_lsd, enableLSD);
@@ -540,6 +524,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 @end
 
 @interface LibtorrentSessionBridge () {
+    NSURL *_resumeDataDirectoryURL;
     std::unique_ptr<lt::session> _session;
     std::map<std::string, lt::torrent_handle> _handlesByRecordID;
     // libtorrent provides magnet metadata through a weak/shared pointer to const
@@ -554,27 +539,75 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @implementation LibtorrentSessionBridge
 
-- (instancetype)init {
+- (instancetype)initWithResumeDataDirectoryURL:(NSURL *)resumeDataDirectoryURL {
     self = [super init];
     if (self != nil) {
+        _resumeDataDirectoryURL = [resumeDataDirectoryURL copy];
         _performanceProfile = LTPerformanceProfileBalanced;
         _snapshotTickCounter = 0;
     }
     return self;
 }
 
-- (std::string)resumeDataFilePathForRecordIdentifier:(NSString *)recordIdentifier {
-    NSString *fileName = [recordIdentifier stringByAppendingPathExtension:@"fastresume"];
-    NSString *path = [[LTResumeDataDirectoryURL() URLByAppendingPathComponent:fileName isDirectory:NO] path];
-    return LTToStdString(path);
++ (BOOL)writeResumeData:(NSData *)data
+              toFileURL:(NSURL *)fileURL
+                  error:(NSError * _Nullable __autoreleasing *)error {
+    NSError *writeError = nil;
+    if (![[NSFileManager defaultManager] createDirectoryAtURL:[fileURL URLByDeletingLastPathComponent]
+                                  withIntermediateDirectories:YES
+                                                   attributes:nil
+                                                        error:&writeError]) {
+        if (error != nullptr) {
+            *error = writeError ?: LTMakeError(
+                ShatlLibtorrentErrorCodeEngineFailure,
+                @"Не удалось подготовить папку для fastresume-файла."
+            );
+        }
+        return NO;
+    }
+
+    // An atomic write goes through a temporary file and a rename, so the
+    // previous fast-resume file survives a failed or interrupted write.
+    if (![data writeToURL:fileURL options:NSDataWritingAtomic error:&writeError]) {
+        if (error != nullptr) {
+            *error = writeError ?: LTMakeError(
+                ShatlLibtorrentErrorCodeEngineFailure,
+                @"Не удалось сохранить fastresume-файл."
+            );
+        }
+        return NO;
+    }
+
+    return YES;
 }
 
-- (void)persistResumeDataFromParams:(lt::add_torrent_params const&)params
-                forRecordIdentifier:(NSString *)recordIdentifier {
-    std::vector<char> buffer = lt::write_resume_data_buf(params);
-    std::string path = [self resumeDataFilePathForRecordIdentifier:recordIdentifier];
-    std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    out.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+- (NSURL *)resumeDataFileURLForRecordIdentifier:(NSString *)recordIdentifier {
+    NSString *fileName = [recordIdentifier stringByAppendingPathExtension:@"fastresume"];
+    return [_resumeDataDirectoryURL URLByAppendingPathComponent:fileName isDirectory:NO];
+}
+
+- (BOOL)persistResumeDataFromParams:(lt::add_torrent_params const&)params
+                forRecordIdentifier:(NSString *)recordIdentifier
+                              error:(NSError * _Nullable __autoreleasing *)error {
+    NSData *data = nil;
+    try {
+        std::vector<char> buffer = lt::write_resume_data_buf(params);
+        data = [NSData dataWithBytes:buffer.data() length:buffer.size()];
+    } catch (std::exception const& exception) {
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
+        }
+        return NO;
+    } catch (...) {
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, @"write_resume_data_buf-throw");
+        }
+        return NO;
+    }
+
+    return [LibtorrentSessionBridge writeResumeData:data
+                                          toFileURL:[self resumeDataFileURLForRecordIdentifier:recordIdentifier]
+                                              error:error];
 }
 
 - (LTResumeCheckpoint *)checkpointResultForRecordIdentifier:(NSString *)recordIdentifier
@@ -629,11 +662,22 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
                     continue;
                 }
 
-                try {
-                    [self persistResumeDataFromParams:resumeAlert->params
-                                  forRecordIdentifier:recordIdentifier];
-                } catch (...) {
-                    // ignore resume persistence errors
+                // Detach still proceeds: the atomic write keeps the previous
+                // fast-resume file, so a failure costs a recheck, not data.
+                NSError *persistError = nil;
+                if (![self persistResumeDataFromParams:resumeAlert->params
+                                   forRecordIdentifier:recordIdentifier
+                                                 error:&persistError]) {
+                    LTDiagnosticsBridgeLog(
+                        @"resume.persist.failed",
+                        recordIdentifier,
+                        @{
+                            @"resumeWaitMs": LTMillisecondsString(startedAt),
+                            @"reason": persistError.localizedDescription ?: @"unknown"
+                        },
+                        YES
+                    );
+                    return;
                 }
                 LTDiagnosticsBridgeLog(
                     @"resume.alert.received",
@@ -1142,7 +1186,10 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
     NSString *resumeDataStatus = @"missing";
 
     {
-        std::ifstream in([self resumeDataFilePathForRecordIdentifier:recordIdentifier], std::ios::binary);
+        std::ifstream in(
+            LTToStdString([self resumeDataFileURLForRecordIdentifier:recordIdentifier].path),
+            std::ios::binary
+        );
         if (in.good()) {
             std::vector<char> data((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
             lt::error_code resumeError;
@@ -1432,19 +1479,22 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
                     }
 
                     NSString *recordIdentifier = LTToNSString(iterator->first);
-                    try {
-                        [self persistResumeDataFromParams:resumeAlert->params
-                                      forRecordIdentifier:recordIdentifier];
-                    } catch (...) {
-                        // Resume persistence errors are reported as failed checkpoints,
-                        // but they should not abort the whole batch.
+                    NSError *persistError = nil;
+                    if (![self persistResumeDataFromParams:resumeAlert->params
+                                       forRecordIdentifier:recordIdentifier
+                                                     error:&persistError]) {
+                        // A checkpoint is `saved` only after the file write is
+                        // confirmed; one failure must not abort the whole batch.
                         [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                                               status:@"failed"
                                                                         errorMessage:@"resume-persist-failed"]];
                         LTDiagnosticsBridgeLog(
                             @"resume.persist.failed",
                             recordIdentifier,
-                            @{ @"resumeWaitMs": LTMillisecondsString(startedAt) },
+                            @{
+                                @"resumeWaitMs": LTMillisecondsString(startedAt),
+                                @"reason": persistError.localizedDescription ?: @"unknown"
+                            },
                             YES
                         );
                         pending.erase(iterator);

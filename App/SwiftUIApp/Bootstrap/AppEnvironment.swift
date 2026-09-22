@@ -26,7 +26,7 @@ struct AppEnvironment {
         let bookmarkStore = BookmarkStore(directories: directories)
         let resumeDataStore = ResumeDataStore(directories: directories)
         let preferencesStore = livePreferencesStore
-        let engine = LibtorrentEngine()
+        let engine = LibtorrentEngine(directories: directories)
         let payloadLocator = TorrentPayloadLocator(
             engine: engine,
             archiveStore: archiveStore,

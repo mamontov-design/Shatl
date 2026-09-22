@@ -141,6 +141,18 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 /// All implementation details of `libtorrent` remain inside it.
 @interface LibtorrentSessionBridge : NSObject
 
+/// The resume directory comes from `ShatlDirectories` so the bridge never
+/// derives durable storage paths on its own.
+- (instancetype)initWithResumeDataDirectoryURL:(NSURL *)resumeDataDirectoryURL NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+/// Replaces a fast-resume file only after the new bytes are fully written,
+/// so a failed write keeps the previous checkpoint intact.
++ (BOOL)writeResumeData:(NSData *)data
+              toFileURL:(NSURL *)fileURL
+                  error:(NSError * _Nullable * _Nullable)error;
+
 - (BOOL)boot:(NSError * _Nullable * _Nullable)error;
 
 - (BOOL)applyPerformanceProfile:(LTPerformanceProfile)profile
