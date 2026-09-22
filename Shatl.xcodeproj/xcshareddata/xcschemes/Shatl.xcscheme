@@ -68,7 +68,6 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "4FBD3B732F5EA8CF000486BA"
             BuildableName = "Shatl.app"
-            BlueprintName = "Shatl"
             ReferencedContainer = "container:Shatl.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
