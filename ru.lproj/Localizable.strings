@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "Черновик загрузки пока не создан.";
 "add_torrent.review.alias_caption" = "Псевдоним будет отображаться в карточке торрента вместо оригинального названия раздачи. Оригинальное название раздачи можно посмотреть, переведя карточку торрента в расширенный вид.";
 "add_torrent.review.download_to_folder" = "Загрузить в «%@»";
+"add_torrent.review.set_as_default_folder" = "Сделать по умолчанию";
 "add_torrent.review.folder_not_selected" = "Папка не выбрана";
 "add_torrent.review.stop_after_download" = "Остановить раздачу после завершения загрузки";
-"add_torrent.review.use_alias" = "Использовать псевдоним";
-"add_torrent.review.alias_placeholder" = "Укажите псевдоним";
+"add_torrent.review.use_alias" = "Псевдоним";
+"add_torrent.review.alias_placeholder" = "Назовите загрузку…";
 "add_torrent.review.confirm" = "Скачать";
 "add_torrent.review.summary.selected_files" = "Выбрано файлов";
 "add_torrent.review.summary.size" = "Размер";

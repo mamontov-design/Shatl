@@ -134,6 +134,7 @@ struct ShatlTabButton: View {
 struct ShatlButton: View {
     let title: ShatlTextContent?
     var systemImage: String?
+    var iconSize: CGFloat = ShatlIconSize.small
     let role: ShatlButtonRole
     var isDisabled = false
     var fillsWidth = false
@@ -176,6 +177,7 @@ struct ShatlButton: View {
 
     init(
         systemImage: String,
+        iconSize: CGFloat = ShatlIconSize.small,
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
@@ -184,6 +186,7 @@ struct ShatlButton: View {
     ) {
         self.title = nil
         self.systemImage = systemImage
+        self.iconSize = iconSize
         self.role = role
         self.isDisabled = isDisabled
         self.fillsWidth = fillsWidth
@@ -198,6 +201,7 @@ struct ShatlButton: View {
                     Image(systemName: systemImage)
                         .resizable()
                         .scaledToFit()
+                        .frame(width: iconSize, height: iconSize)
                         .frame(width: ShatlIconSize.small, height: ShatlIconSize.small, alignment: .center)
                 }
 
@@ -364,6 +368,110 @@ struct ShatlMessageBlock: View {
             .foregroundStyle(ShatlColor.typographySecondary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var messageBlockShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+}
+
+struct ShatlMessageBlockPrimaryButton {
+    let title: String
+    let role: ShatlButtonRole
+    var isDisabled = false
+    var lineLimit: Int?
+    let action: () -> Void
+
+    init(
+        title: String,
+        role: ShatlButtonRole,
+        isDisabled: Bool = false,
+        lineLimit: Int? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.role = role
+        self.isDisabled = isDisabled
+        self.lineLimit = lineLimit
+        self.action = action
+    }
+}
+
+struct ShatlMessageBlockPrimary: View {
+    var systemImage = "exclamationmark.circle"
+    let title: String
+    var message: String?
+    var background: Color = ShatlColor.backgroundTertiary
+    var primaryButton: ShatlMessageBlockPrimaryButton?
+    var secondaryButton: ShatlMessageBlockPrimaryButton?
+
+    private let cornerRadius: CGFloat = 18
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            labelGroup
+
+            if primaryButton != nil || secondaryButton != nil {
+                buttonStack
+            }
+        }
+        .padding(10)
+        .frame(width: 340, alignment: .leading)
+        .background(background)
+        .clipShape(messageBlockShape)
+        .overlay {
+            messageBlockShape
+                .strokeBorder(ShatlColor.outlineTertiary, lineWidth: 0.5)
+        }
+    }
+
+    private var labelGroup: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(ShatlColor.typographyTertiary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .shatlTypography(ShatlTypography.bodySemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+
+                if let message {
+                    Text(message)
+                        .shatlTypography(ShatlTypography.bodyRegular)
+                        .foregroundStyle(ShatlColor.typographySecondary)
+                }
+            }
+        }
+        .padding(8)
+    }
+
+    @ViewBuilder
+    private var buttonStack: some View {
+        if let secondaryButton {
+            VStack(spacing: 6) {
+                if let primaryButton {
+                    button(primaryButton, fillsWidth: true)
+                }
+                button(secondaryButton, fillsWidth: true)
+            }
+        } else if let primaryButton {
+            HStack {
+                button(primaryButton, fillsWidth: false)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func button(_ button: ShatlMessageBlockPrimaryButton, fillsWidth: Bool) -> some View {
+        ShatlButton(
+            title: button.title,
+            role: button.role,
+            isDisabled: button.isDisabled,
+            fillsWidth: fillsWidth,
+            lineLimit: button.lineLimit,
+            action: button.action
+        )
     }
 
     private var messageBlockShape: RoundedRectangle {
@@ -992,10 +1100,8 @@ struct TorrentCardPreviewView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.linear(duration: 0.85)) {
-                    demoProgress = demoProgress >= 0.99 ? 0.01 : min(0.99, demoProgress + 0.01)
-                    demoTick += 1
-                }
+                demoProgress = demoProgress >= 0.99 ? 0.01 : min(0.99, demoProgress + 0.01)
+                demoTick += 1
             }
         }
     }

@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "ダウンロードの下書きはまだ作成されていません。";
 "add_torrent.review.alias_caption" = "エイリアスはTorrentカードで元のTorrent名の代わりに表示されます。元のTorrent名はカードを展開すると確認できます。";
 "add_torrent.review.download_to_folder" = "「%@」にダウンロード";
+"add_torrent.review.set_as_default_folder" = "デフォルトに設定";
 "add_torrent.review.folder_not_selected" = "フォルダが選択されていません";
 "add_torrent.review.stop_after_download" = "ダウンロード完了後にシードを停止";
-"add_torrent.review.use_alias" = "エイリアスを使用";
-"add_torrent.review.alias_placeholder" = "エイリアスを入力";
+"add_torrent.review.use_alias" = "エイリアス";
+"add_torrent.review.alias_placeholder" = "ダウンロード名を入力…";
 "add_torrent.review.confirm" = "ダウンロード";
 "add_torrent.review.summary.selected_files" = "選択したファイル";
 "add_torrent.review.summary.size" = "サイズ";

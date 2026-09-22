@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "Download draft has not been created yet.";
 "add_torrent.review.alias_caption" = "The alias will be shown on the torrent card instead of the original torrent name. You can see the original torrent name by expanding the torrent card.";
 "add_torrent.review.download_to_folder" = "Download to “%@”";
+"add_torrent.review.set_as_default_folder" = "Make Default";
 "add_torrent.review.folder_not_selected" = "No folder selected";
 "add_torrent.review.stop_after_download" = "Stop seeding after download completes";
-"add_torrent.review.use_alias" = "Use alias";
-"add_torrent.review.alias_placeholder" = "Enter an alias";
+"add_torrent.review.use_alias" = "Alias";
+"add_torrent.review.alias_placeholder" = "Name your download…";
 "add_torrent.review.confirm" = "Download";
 "add_torrent.review.summary.selected_files" = "Files selected";
 "add_torrent.review.summary.size" = "Size";

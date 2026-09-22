@@ -59,14 +59,11 @@ struct AddTorrentEntryView: View {
         case .emptyState:
             windowContent
         case .modal:
-            VStack(spacing: 6) {
-                HStack {
-                    Spacer()
-                    closeButton
-                }
-
-                windowContent
+            VStack(alignment: .leading, spacing: 24) {
+                modalHeader
+                modalActionBox
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -244,10 +241,108 @@ struct AddTorrentEntryView: View {
         .padding(.horizontal, 4)
     }
 
-    private var closeButton: some View {
-        ShatlModalCloseButton {
-            store.dismissModal()
+    private var modalHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 24, weight: .regular))
+                .foregroundStyle(ShatlColor.typographyTertiary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .shatlTypography(ShatlTypography.headlineSemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(subtitle)
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.typographySecondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var modalActionBox: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                TextField("magnet:?xt=…", text: $magnetInput)
+                    .controlSize(.large)
+                    .focused($isMagnetFieldFocused)
+                    .onSubmit {
+                        continueWithMagnet()
+                    }
+
+                ShatlButton(
+                    systemImage: "arrow.forward",
+                    iconSize: 14,
+                    role: hasMagnetInput ? .borderedColored : .borderedNeutral,
+                    isDisabled: !hasMagnetInput
+                ) {
+                    continueWithMagnet()
+                }
+                .keyboardShortcut(.defaultAction)
+                .accessibilityLabel(
+                    Text(
+                        L10n.string(
+                            "add_torrent.entry.continue",
+                            localeOverride: store.preferences.localeOverride,
+                            defaultValue: "Продолжить"
+                        )
+                    )
+                )
+            }
+
+            modalOrDivider
+
+            ShatlButton(
+                title: L10n.string(
+                    "add_torrent.entry.choose_file",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Выбрать .torrent-файл…"
+                ),
+                role: hasMagnetInput ? .borderedNeutral : .borderedColored,
+                fillsWidth: true
+            ) {
+                presentTorrentFilePicker()
+            }
+
+            ShatlButton(
+                title: L10n.string(
+                    "onboarding.action.close",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Закрыть"
+                ),
+                role: .borderedNeutral,
+                fillsWidth: true
+            ) {
+                store.dismissModal()
+            }
+        }
+    }
+
+    private var modalOrDivider: some View {
+        HStack(spacing: 8) {
+            Rectangle()
+                .fill(ShatlColor.outlineSecondary)
+                .frame(height: 1)
+
+            Text(
+                L10n.string(
+                    "common.or",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Или"
+                )
+            )
+                .shatlTypography(ShatlTypography.captionRegular)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+
+            Rectangle()
+                .fill(ShatlColor.outlineSecondary)
+                .frame(height: 1)
+        }
+        .padding(.horizontal, 4)
     }
 
     /// The first vertical slice must accept a real torrent file,

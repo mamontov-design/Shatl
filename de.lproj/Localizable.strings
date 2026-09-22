@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "Download-Entwurf wurde noch nicht erstellt.";
 "add_torrent.review.alias_caption" = "Der Alias wird auf der Torrent-Karte anstelle des ursprünglichen Torrent-Namens angezeigt. Den ursprünglichen Namen sehen Sie in der erweiterten Torrent-Karte.";
 "add_torrent.review.download_to_folder" = "In „%@“ laden";
+"add_torrent.review.set_as_default_folder" = "Als Standard festlegen";
 "add_torrent.review.folder_not_selected" = "Kein Ordner ausgewählt";
 "add_torrent.review.stop_after_download" = "Seeding nach Abschluss des Downloads stoppen";
-"add_torrent.review.use_alias" = "Alias verwenden";
-"add_torrent.review.alias_placeholder" = "Alias eingeben";
+"add_torrent.review.use_alias" = "Alias";
+"add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";
 "add_torrent.review.summary.size" = "Größe";
