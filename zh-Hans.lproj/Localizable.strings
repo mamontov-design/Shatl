@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "下载草稿尚未创建。";
 "add_torrent.review.alias_caption" = "别名会显示在 Torrent 卡片上，替代原始 Torrent 名称。展开 Torrent 卡片即可查看原始名称。";
 "add_torrent.review.download_to_folder" = "下载到“%@”";
+"add_torrent.review.set_as_default_folder" = "设为默认";
 "add_torrent.review.folder_not_selected" = "未选择文件夹";
 "add_torrent.review.stop_after_download" = "下载完成后停止做种";
-"add_torrent.review.use_alias" = "使用别名";
-"add_torrent.review.alias_placeholder" = "输入别名";
+"add_torrent.review.use_alias" = "别名";
+"add_torrent.review.alias_placeholder" = "为下载命名…";
 "add_torrent.review.confirm" = "下载";
 "add_torrent.review.summary.selected_files" = "已选文件";
 "add_torrent.review.summary.size" = "大小";

@@ -988,6 +988,70 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
     }
 }
 
+private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentable {
+    let onWindowWillClose: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onWindowWillClose: onWindowWillClose)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.onWindowWillClose = onWindowWillClose
+        DispatchQueue.main.async { [weak nsView] in
+            guard let window = nsView?.window else { return }
+            context.coordinator.observe(window)
+        }
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
+    }
+
+    @MainActor
+    final class Coordinator {
+        var onWindowWillClose: () -> Void
+        private weak var observedWindow: NSWindow?
+        private var closeObservation: NSObjectProtocol?
+
+        init(onWindowWillClose: @escaping () -> Void) {
+            self.onWindowWillClose = onWindowWillClose
+        }
+
+        func observe(_ window: NSWindow) {
+            guard observedWindow !== window else { return }
+            stopObserving()
+            observedWindow = window
+            closeObservation = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.onWindowWillClose()
+                }
+            }
+        }
+
+        func stopObserving() {
+            if let closeObservation {
+                NotificationCenter.default.removeObserver(closeObservation)
+            }
+            closeObservation = nil
+            observedWindow = nil
+        }
+
+        deinit {
+            if let closeObservation {
+                NotificationCenter.default.removeObserver(closeObservation)
+            }
+        }
+    }
+}
+
 struct AddTorrentReviewView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.shatlTypographyProfile) private var typographyProfile
@@ -999,7 +1063,6 @@ struct AddTorrentReviewView: View {
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
     @State private var filesScrollGeneration = 0
     @State private var pendingCollapsedFolderID: String?
-    @State private var isAliasEnabled = false
     @State private var renderedDraft: AddTorrentDraft?
     @State private var appliedSearchText = ""
     @State private var filePresentation = AddTorrentReviewFilePresentation.empty
@@ -1038,9 +1101,14 @@ struct AddTorrentReviewView: View {
             )
             .frame(width: 0, height: 0)
         }
+        .background {
+            AddTorrentReviewAliasFocusWindowCloseObserver {
+                isAliasFocused = false
+            }
+            .frame(width: 0, height: 0)
+        }
         .onAppear {
             renderedDraft = store.currentAddTorrentDraft
-            syncAliasToggleWithDraft()
             if let draft {
                 rebuildFilePresentation(
                     draft: draft,
@@ -1061,7 +1129,6 @@ struct AddTorrentReviewView: View {
                 filesScrollGeneration += 1
             }
             renderedDraft = newDraft
-            syncAliasToggleWithDraft()
             rebuildFilePresentation(
                 draft: newDraft,
                 expandsTopLevelFolders: isNewDraft || becameReady
@@ -2135,16 +2202,19 @@ struct AddTorrentReviewView: View {
                 .padding(.horizontal, 12)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .onAppear(perform: syncAliasToggleWithDraft)
     }
 
     private var areSettingsControlsEnabled: Bool {
         draft?.reviewState == .ready
     }
 
+    private var isSuggestedSavePathDefault: Bool {
+        (draft?.suggestedSavePath ?? "") == store.preferences.defaultDownloadPath
+    }
+
     private var parametersGroup: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(
                         L10n.format(
@@ -2168,16 +2238,31 @@ struct AddTorrentReviewView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                ShatlButton(
-                    title: L10n.string(
-                        "common.change",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "Сменить"
-                    ),
-                    role: .borderedNeutral,
-                    isDisabled: !areSettingsControlsEnabled
-                ) {
-                    presentSavePathPicker()
+                HStack(spacing: 8) {
+                    ShatlButton(
+                        title: L10n.string(
+                            "common.change",
+                            localeOverride: store.preferences.localeOverride,
+                            defaultValue: "Сменить"
+                        ),
+                        role: .borderedNeutral,
+                        isDisabled: !areSettingsControlsEnabled,
+                        fillsWidth: true
+                    ) {
+                        presentSavePathPicker()
+                    }
+
+                    ShatlButton(
+                        title: L10n.string(
+                            "add_torrent.review.set_as_default_folder",
+                            localeOverride: store.preferences.localeOverride,
+                            defaultValue: "Сделать по умолчанию"
+                        ),
+                        role: .borderedNeutral,
+                        isDisabled: !areSettingsControlsEnabled || isSuggestedSavePathDefault
+                    ) {
+                        setSuggestedSavePathAsDefault()
+                    }
                 }
             }
 
@@ -2194,6 +2279,7 @@ struct AddTorrentReviewView: View {
                     .shatlTypography(ShatlTypography.bodyRegular)
                     .foregroundStyle(ShatlColor.typographyPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Toggle(
                     "",
@@ -2211,50 +2297,37 @@ struct AddTorrentReviewView: View {
             parameterDivider
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 12) {
-                    Text(
-                        L10n.string(
-                            "add_torrent.review.use_alias",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: "Использовать псевдоним"
-                        )
+                Text(
+                    L10n.string(
+                        "add_torrent.review.use_alias",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Псевдоним"
                     )
-                        .shatlTypography(ShatlTypography.bodyRegular)
-                        .foregroundStyle(ShatlColor.typographyPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                )
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Toggle(
-                        "",
-                        isOn: Binding(
-                            get: { isAliasEnabled },
-                            set: { setAliasEnabled($0) }
-                        )
+                TextField(
+                    L10n.string(
+                        "add_torrent.review.alias_placeholder",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Назовите загрузку…"
+                    ),
+                    text: Binding(
+                        get: { draft?.alias ?? "" },
+                        set: { store.updateDraftAlias($0) }
                     )
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .disabled(!areSettingsControlsEnabled)
-                }
-
-                if isAliasEnabled {
-                    TextField(
-                        L10n.string(
-                            "add_torrent.review.alias_placeholder",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: "Укажите псевдоним"
-                        ),
-                        text: Binding(
-                            get: { draft?.alias ?? "" },
-                            set: { store.updateDraftAlias($0) }
-                        )
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .focused($isAliasFocused)
-                    .disabled(!areSettingsControlsEnabled)
-                    .transition(ShatlMotion.appearFromTop)
+                )
+                .textFieldStyle(.roundedBorder)
+                .focused($isAliasFocused)
+                .disabled(!areSettingsControlsEnabled)
+                .onKeyPress(.escape) {
+                    guard isAliasFocused else { return .ignored }
+                    isAliasFocused = false
+                    return .handled
                 }
             }
-            .animation(ShatlMotion.interface, value: isAliasEnabled)
         }
         .padding(12)
         .frame(maxWidth: .infinity)
@@ -2278,6 +2351,7 @@ struct AddTorrentReviewView: View {
             role: .borderedColored,
             isDisabled: draft?.reviewState != .ready || filePresentation.selectedFileCount == 0
         ) {
+            isAliasFocused = false
             store.confirmDraft()
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -2341,23 +2415,13 @@ struct AddTorrentReviewView: View {
         )
     }
 
-    private func setAliasEnabled(_ isEnabled: Bool) {
-        withAnimation(ShatlMotion.interface) {
-            isAliasEnabled = isEnabled
-        }
+    private func setSuggestedSavePathAsDefault() {
+        guard let draft, !isSuggestedSavePathDefault else { return }
 
-        if isEnabled {
-            Task { @MainActor in
-                isAliasFocused = true
-            }
-        } else {
-            store.updateDraftAlias("")
-            isAliasFocused = false
-        }
-    }
-
-    private func syncAliasToggleWithDraft() {
-        isAliasEnabled = draft?.alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        store.setDefaultDownloadLocation(
+            URL(fileURLWithPath: draft.suggestedSavePath, isDirectory: true),
+            bookmarkData: draft.savePathBookmarkData
+        )
     }
 
     private func refreshAvailableCapacity() async {

@@ -148,10 +148,11 @@
 "add_torrent.review.no_draft" = "Le brouillon de téléchargement n’a pas encore été créé.";
 "add_torrent.review.alias_caption" = "L’alias sera affiché sur la carte du torrent à la place du nom original. Vous pouvez voir le nom original en développant la carte du torrent.";
 "add_torrent.review.download_to_folder" = "Télécharger dans « %@ »";
+"add_torrent.review.set_as_default_folder" = "Définir par défaut";
 "add_torrent.review.folder_not_selected" = "Aucun dossier choisi";
 "add_torrent.review.stop_after_download" = "Arrêter l’envoi une fois le téléchargement terminé";
-"add_torrent.review.use_alias" = "Utiliser un alias";
-"add_torrent.review.alias_placeholder" = "Saisir un alias";
+"add_torrent.review.use_alias" = "Alias";
+"add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
 "add_torrent.review.summary.size" = "Taille";

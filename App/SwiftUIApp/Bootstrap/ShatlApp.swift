@@ -199,7 +199,6 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
             window.titleVisibility = .visible
             window.toolbarStyle = .unified
             window.titlebarSeparatorStyle = .line
-            window.setFrameAutosaveName(AppWindowID.addTorrentReview)
         }
     }
 
@@ -221,6 +220,7 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
             guard observedWindow !== window else { return }
             stopObserving()
             observedWindow = window
+            window.setFrameAutosaveName(AppWindowID.addTorrentReview)
             closeObservation = NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
                 object: window,
