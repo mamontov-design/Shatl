@@ -1100,10 +1100,8 @@ struct TorrentCardPreviewView: View {
             guard !Task.isCancelled else { return }
 
             await MainActor.run {
-                withAnimation(.linear(duration: 0.85)) {
-                    demoProgress = demoProgress >= 0.99 ? 0.01 : min(0.99, demoProgress + 0.01)
-                    demoTick += 1
-                }
+                demoProgress = demoProgress >= 0.99 ? 0.01 : min(0.99, demoProgress + 0.01)
+                demoTick += 1
             }
         }
     }

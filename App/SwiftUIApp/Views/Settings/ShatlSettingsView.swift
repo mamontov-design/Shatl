@@ -419,7 +419,7 @@ struct DataCollectionInfo: View {
 
             DataCollectionCard(
                 group: .doesNotCollect,
-                iconColor: ShatlColor.slate
+                iconColor: doesNotCollectIconColor
             )
             .padding(.horizontal, style == .onboarding ? 16 : 0)
         }
@@ -430,6 +430,12 @@ struct DataCollectionInfo: View {
         accentState.isUsingAppAccent
             ? ShatlColor.neonBlue
             : accentState.systemAccentColor
+    }
+
+    private var doesNotCollectIconColor: Color {
+        accentState.isUsingAppAccent
+            ? ShatlColor.neonBlue
+            : ShatlColor.slate
     }
 }
 
