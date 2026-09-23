@@ -355,6 +355,7 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
 
     private let lock = NSLock()
     private var remainingFailureCount = 0
+    private var failsAllWrites = false
 
     func failNextWrite() {
         lock.lock()
@@ -362,10 +363,17 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Simulates storage that stays broken, such as a full disk.
+    func setFailsAllWrites(_ fails: Bool) {
+        lock.lock()
+        failsAllWrites = fails
+        lock.unlock()
+    }
+
     func write(_ data: Data, to url: URL) throws {
         lock.lock()
-        let shouldFail = remainingFailureCount > 0
-        if shouldFail {
+        let shouldFail = failsAllWrites || remainingFailureCount > 0
+        if shouldFail, !failsAllWrites {
             remainingFailureCount -= 1
         }
         lock.unlock()

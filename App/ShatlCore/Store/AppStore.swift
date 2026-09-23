@@ -93,7 +93,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
     @Published var payloadDeletionAlert: PayloadDeletionAlert?
-    @Published var sessionPersistenceAlert: SessionPersistenceAlert?
+    @Published private(set) var sessionPersistenceIssue: SessionPersistenceIssue?
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
@@ -134,6 +134,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var draftPreparationTask: Task<Void, Never>?
     private var performanceApplyTask: Task<Void, Never>?
     private var usageTelemetrySendTask: Task<Void, Never>?
+    private var sessionPersistenceCheckTask: Task<Void, Never>?
+    private var sessionPersistenceIssueGeneration = 0
+    private var isSessionPersistenceIssueHidden = false
     private var lastRequestedPerformanceSettings: EnginePerformanceSettings?
     private var didBootstrap = false
     private var didResolveInitialSessionLoad = false
@@ -660,7 +663,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         torrents = candidateTorrents
-        sessionPersistenceAlert = nil
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         return true
@@ -995,14 +997,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     flush: true,
                     extra: ["outcome": String(describing: sessionSaveOutcome)]
                 )
-                self.presentSessionPersistenceFailure(
-                    messageKey: "session.persistence.stop_failed.message",
-                    defaultMessage: "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-                )
+                self.reportSessionPersistenceFailure(.stop)
                 transitionOutcome = "blocked.session-commit"
                 return
             }
-            self.sessionPersistenceAlert = nil
             self.traceTransition(
                 torrentID: id,
                 phase: "session.commit.end",
@@ -1166,15 +1164,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     Self.logger.error(
                         "Recheck issue could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
                     )
-                    self.presentSessionPersistenceFailure(
-                        messageKey: "session.persistence.recheck_failed.message",
-                        defaultMessage: "Проверка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-                    )
+                    self.reportSessionPersistenceFailure(.recheck)
                     transitionOutcome = "blocked.session-commit"
                     return
                 }
 
-                self.sessionPersistenceAlert = nil
                 self.applyValidationResult(validation, to: id)
                 Self.logger.notice("Recheck blocked by persistent issue for torrent id=\(id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
                 self.detachedTorrentIDs.insert(id)
@@ -1338,15 +1332,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     Self.logger.error(
                         "Recheck rolled back because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
                     )
-                    self.presentSessionPersistenceFailure(
-                        messageKey: "session.persistence.recheck_failed.message",
-                        defaultMessage: "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-                    )
+                    self.reportSessionPersistenceFailure(.recheck)
                     transitionOutcome = "rolled-back.session-commit"
                     return
                 }
 
-                self.sessionPersistenceAlert = nil
                 self.detachedTorrentIDs.remove(id)
                 if let index = self.torrents.firstIndex(where: { $0.id == id }) {
                     self.torrents[index] = candidateRecord
@@ -1398,17 +1388,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         defer { transitioningTorrentIDs.remove(id) }
 
         let sessionSaveOutcome = await sessionStore.commitRemoval(torrentID: id)
+        recordSessionSaveOutcome(sessionSaveOutcome)
         guard sessionSaveOutcome == .saved else {
             Self.logger.error(
                 "Remove blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
             )
-            presentSessionPersistenceFailure(
-                messageKey: "session.persistence.remove_failed.message",
-                defaultMessage: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
+            reportSessionPersistenceFailure(
+                resolvedPolicy == .removeFromListAndDeleteFiles ? .removeWithFiles : .removeFromList
             )
             return
         }
-        sessionPersistenceAlert = nil
 
         detachedTorrentIDs.remove(id)
         clearUnreadUserEvents(for: id)
@@ -1551,14 +1540,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     debugReason: "Не удалось разрешить путь для повторной загрузки."
                 )
                 guard await self.commitPersistentIssue(issue, to: record.id) else {
-                    self.presentSessionPersistenceFailure(
-                        messageKey: "session.persistence.redownload_failed.message",
-                        defaultMessage: "Повторная загрузка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-                    )
+                    self.reportSessionPersistenceFailure(.redownload)
                     return
                 }
 
-                self.sessionPersistenceAlert = nil
                 self.applyPersistentIssue(issue, to: record.id)
                 return
             }
@@ -1698,6 +1683,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 candidateRecord,
                 replacingAttemptID: record.attemptID
             )
+            recordSessionSaveOutcome(saveOutcome)
             guard saveOutcome == .saved else {
                 detachedTorrentIDs.insert(record.id)
                 do {
@@ -1710,14 +1696,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                         )
                     }
                 }
-                presentSessionPersistenceFailure(
-                    messageKey: "session.persistence.redownload_failed.message",
-                    defaultMessage: "Повторная загрузка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-                )
+                reportSessionPersistenceFailure(.redownload)
                 return
             }
 
-            sessionPersistenceAlert = nil
             detachedTorrentIDs.remove(record.id)
             if let index = torrents.firstIndex(where: { $0.id == record.id }) {
                 torrents[index] = candidateRecord
@@ -1821,6 +1803,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
 
             let saveOutcome = await sessionStore.commitAdd(record, lease: addLease)
+            recordSessionSaveOutcome(saveOutcome)
             guard saveOutcome == .saved else {
                 let persistenceError = TorrentEngineError(
                     kind: .engineFailure,
@@ -1870,6 +1853,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     ) async {
         if isCommitted {
             let removalOutcome = await sessionStore.commitRemoval(torrentID: record.id)
+            recordSessionSaveOutcome(removalOutcome)
             guard removalOutcome == .saved else {
                 Self.logger.error(
                     "Pending add cancellation could not be committed for torrent id=\(record.id.uuidString) outcome=\(String(describing: removalOutcome))"
@@ -2559,25 +2543,77 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func commitCriticalState(_ records: [TorrentRecord]) async -> SessionSaveOutcome {
-        await sessionStore.updateExisting(from: records)
+        let outcome = await sessionStore.updateExisting(from: records)
+        recordSessionSaveOutcome(outcome)
+        return outcome
     }
 
-    private func presentSessionPersistenceFailure(
-        messageKey: String,
-        defaultMessage: String
-    ) {
-        sessionPersistenceAlert = SessionPersistenceAlert(
-            title: L10n.string(
-                "session.persistence.save_failed.title",
-                localeOverride: preferences.localeOverride,
-                defaultValue: "Не удалось сохранить список загрузок"
-            ),
-            message: L10n.string(
-                messageKey,
-                localeOverride: preferences.localeOverride,
-                defaultValue: defaultMessage
-            )
-        )
+    /// Hides the line message until storage recovers. A later failed user
+    /// action shows it again, because that action did not happen.
+    func hideSessionPersistenceIssue() {
+        guard sessionPersistenceIssue != nil else { return }
+        sessionPersistenceIssue = nil
+        isSessionPersistenceIssueHidden = true
+    }
+
+    func recheckSessionPersistence() {
+        guard sessionPersistenceIssue != nil else { return }
+        scheduleSessionPersistenceCheck(refreshesIssueOnFailure: true)
+    }
+
+    #if DEBUG
+    func waitForSessionPersistenceCheckForTesting() async {
+        await sessionPersistenceCheckTask?.value
+    }
+    #endif
+
+    /// A failed user action always surfaces, even after the message was hidden.
+    private func reportSessionPersistenceFailure(_ kind: SessionPersistenceIssue.Kind) {
+        sessionPersistenceIssueGeneration += 1
+        isSessionPersistenceIssueHidden = false
+        sessionPersistenceIssue = SessionPersistenceIssue(kind: kind)
+    }
+
+    private func recordSessionSaveOutcome(_ outcome: SessionSaveOutcome) {
+        switch outcome {
+        case .saved:
+            noteSessionSaveSucceeded()
+        case .failed:
+            // Background saves keep a more specific action message and respect Hide.
+            guard sessionPersistenceIssue == nil, !isSessionPersistenceIssueHidden else { return }
+            sessionPersistenceIssueGeneration += 1
+            sessionPersistenceIssue = SessionPersistenceIssue(kind: .background)
+        case .blocked:
+            // A blocked initial load already has its own recovery screen.
+            break
+        }
+    }
+
+    private func noteSessionSaveSucceeded() {
+        guard sessionPersistenceIssue != nil || isSessionPersistenceIssueHidden else { return }
+        scheduleSessionPersistenceCheck(refreshesIssueOnFailure: false)
+    }
+
+    /// A `.saved` commit may skip the write when nothing changed, so the
+    /// message is cleared only after `verifyWritable()` really writes. The
+    /// check runs outside the caller so it never splits a user transition.
+    private func scheduleSessionPersistenceCheck(refreshesIssueOnFailure: Bool) {
+        guard sessionPersistenceCheckTask == nil else { return }
+        let generation = sessionPersistenceIssueGeneration
+        sessionPersistenceCheckTask = Task { [weak self] in
+            guard let self else { return }
+            let outcome = await self.sessionStore.verifyWritable()
+            self.sessionPersistenceCheckTask = nil
+            guard generation == self.sessionPersistenceIssueGeneration else { return }
+
+            if outcome == .saved {
+                self.sessionPersistenceIssue = nil
+                self.isSessionPersistenceIssueHidden = false
+            } else if refreshesIssueOnFailure {
+                // A new identity lets the line message announce the failed check.
+                self.sessionPersistenceIssue?.id = UUID()
+            }
+        }
     }
 
     private func persistRestoreArtifacts(for record: TorrentRecord, draft: AddTorrentDraft) async throws {

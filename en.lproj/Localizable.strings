@@ -43,16 +43,19 @@
 "session.load.missing.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
 "session.load.unsupported.title" = "Couldn’t Open the Saved Session.";
 "session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
-"session.persistence.save_failed.title" = "Couldn’t save the download list";
-"session.persistence.remove_failed.message" = "The torrent and its files were not removed. Check free space and disk access, then try again.";
-"session.persistence.stop_failed.message" = "The download was not stopped because Shatl couldn’t save its state. Check free space and disk access, then try again.";
-"session.persistence.recheck_failed.message" = "The recheck was canceled because Shatl couldn’t save its state. Check free space and disk access, then try again.";
-"session.persistence.quit_dialog.title" = "Couldn’t save the download state";
+"session.persistence.save_failed.title" = "Couldn’t save the download state";
+"session.persistence.background_failed.message" = "Shatl can’t write data to the disk. Check free space and disk access, then click Check Again.";
+"session.persistence.line.check_again" = "Check Again";
+"session.persistence.line.hide" = "Hide";
+"session.persistence.remove_from_list_failed.message" = "The torrent wasn’t removed from the list: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
+"session.persistence.remove_with_files_failed.message" = "The torrent and its files weren’t deleted: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
+"session.persistence.stop_failed.message" = "The download wasn’t stopped: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
+"session.persistence.recheck_failed.message" = "The recheck wasn’t started: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 "session.persistence.quit_dialog.message" = "Most likely, the disk is full or Shatl can’t access its data folder. If you quit now, recent progress and status changes won’t be saved, and Shatl may recheck some downloaded data the next time it opens. Your downloaded files and download list won’t be affected.";
 "session.persistence.quit_dialog.retry" = "Try Again";
 "session.persistence.quit_dialog.return" = "Return to Shatl";
 "session.persistence.quit_dialog.quit" = "Quit Without Saving";
-"session.persistence.redownload_failed.message" = "The download was not restarted because Shatl couldn’t save its state. Check free space and disk access, then try again.";
+"session.persistence.redownload_failed.message" = "The download wasn’t restarted: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 
 "onboarding.action.next" = "Next";
 "onboarding.action.not_now" = "Not now";

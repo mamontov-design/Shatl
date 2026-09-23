@@ -122,7 +122,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
             try Data(contentsOf: bundle.directories.sessionSnapshotURL),
             originalSessionData
         )
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .background)
     }
 }
 

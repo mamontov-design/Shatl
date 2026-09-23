@@ -296,6 +296,14 @@ actor SessionStore {
         persistCandidate(canonicalTorrentRecords)
     }
 
+    /// Rewrites the last committed snapshot even when nothing changed. A
+    /// `.saved` result from other commits may skip the write, so only this
+    /// proves that session storage accepts writes again.
+    @discardableResult
+    func verifyWritable() -> SessionSaveOutcome {
+        persistCandidate(canonicalTorrentRecords, forceWrite: true)
+    }
+
     /// Directory-wide reconciliation is a maintenance operation, never part of
     /// progress/status persistence. Call it only while user mutations are blocked.
     @discardableResult
@@ -329,7 +337,10 @@ actor SessionStore {
     }
     #endif
 
-    private func persistCandidate(_ records: [SessionTorrentRecord]) -> SessionSaveOutcome {
+    private func persistCandidate(
+        _ records: [SessionTorrentRecord],
+        forceWrite: Bool = false
+    ) -> SessionSaveOutcome {
         guard persistenceState == .writable else { return .blocked }
 
         do {
@@ -339,7 +350,7 @@ actor SessionStore {
         }
 
         let snapshot = makeSnapshot(from: records)
-        if snapshot.torrents == lastPersistedTorrentRecords {
+        if !forceWrite, snapshot.torrents == lastPersistedTorrentRecords {
             canonicalTorrentRecords = records
             return .saved
         }

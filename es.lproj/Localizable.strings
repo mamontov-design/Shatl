@@ -43,16 +43,19 @@
 "session.load.missing.message" = "Se produjo un error al restaurar las descargas. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
 "session.load.unsupported.title" = "No se pudo abrir la sesión guardada.";
 "session.load.unsupported.message" = "La sesión se creó con otra versión de Shatl y todavía no se puede abrir. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
-"session.persistence.save_failed.title" = "No se pudo guardar la lista de descargas";
-"session.persistence.remove_failed.message" = "El torrent y sus archivos no se eliminaron. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
-"session.persistence.stop_failed.message" = "La descarga no se detuvo porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
-"session.persistence.recheck_failed.message" = "La comprobación se canceló porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
-"session.persistence.quit_dialog.title" = "No se pudo guardar el estado de las descargas";
+"session.persistence.save_failed.title" = "No se pudo guardar el estado de las descargas";
+"session.persistence.background_failed.message" = "Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco y pulsa «Comprobar de nuevo».";
+"session.persistence.line.check_again" = "Comprobar de nuevo";
+"session.persistence.line.hide" = "Ocultar";
+"session.persistence.remove_from_list_failed.message" = "El torrent no se quitó de la lista: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.remove_with_files_failed.message" = "El torrent y sus archivos no se eliminaron: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.stop_failed.message" = "La descarga no se detuvo: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.recheck_failed.message" = "La comprobación no se inició: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 "session.persistence.quit_dialog.message" = "Lo más probable es que el disco esté lleno o que Shatl no tenga acceso a su carpeta de datos. Si sales ahora, no se guardarán los últimos cambios de progreso y estado, y la próxima vez que abras Shatl es posible que vuelva a comprobar parte de los datos descargados. Tus archivos descargados y la lista de descargas no se verán afectados.";
 "session.persistence.quit_dialog.retry" = "Reintentar";
 "session.persistence.quit_dialog.return" = "Volver a Shatl";
 "session.persistence.quit_dialog.quit" = "Salir sin guardar";
-"session.persistence.redownload_failed.message" = "La descarga no se reinició porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
+"session.persistence.redownload_failed.message" = "La descarga no se reinició: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 
 "onboarding.action.next" = "Siguiente";
 "onboarding.action.not_now" = "Ahora no";

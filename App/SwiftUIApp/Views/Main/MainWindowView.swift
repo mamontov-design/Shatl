@@ -39,6 +39,7 @@ struct MainWindowView: View {
     @State private var showsRestoreCompletionText = false
     @State private var restoreStatusShownAt: Date?
     @State private var restoreStatusTask: Task<Void, Never>?
+    @State private var displayedSessionPersistenceIssue: SessionPersistenceIssue?
     @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
 
@@ -72,10 +73,6 @@ struct MainWindowView: View {
                 return .addTorrentEntry(addTorrentEntryAlert)
             }
 
-            if let sessionPersistenceAlert = store.sessionPersistenceAlert {
-                return .sessionPersistence(sessionPersistenceAlert)
-            }
-
             if let payloadDeletionAlert = store.payloadDeletionAlert {
                 return .payloadDeletion(payloadDeletionAlert)
             }
@@ -84,7 +81,6 @@ struct MainWindowView: View {
         } set: { newValue in
             if newValue == nil {
                 addTorrentEntryAlert = nil
-                store.sessionPersistenceAlert = nil
                 store.payloadDeletionAlert = nil
             }
         }
@@ -104,7 +100,11 @@ struct MainWindowView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
-                if restoreStatusPhase.isVisible {
+                if let displayedSessionPersistenceIssue {
+                    sessionPersistenceMessageBar(for: displayedSessionPersistenceIssue)
+                        .transition(restoreStatusTransition)
+                        .zIndex(1)
+                } else if restoreStatusPhase.isVisible {
                     SessionRestoreStatusBar(
                         isSpinnerActive: isRestoreStatusSpinnerActive,
                         showsCompletionIcon: showsRestoreCompletionIcon,
@@ -193,6 +193,9 @@ struct MainWindowView: View {
         }
         .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
             updateRestoreStatus(isRestoringSession: isRestoringSession)
+        }
+        .onChange(of: store.sessionPersistenceIssue, initial: true) { _, newIssue in
+            updateSessionPersistenceMessage(to: newIssue)
         }
         .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
             isOnboardingPresented = true
@@ -413,6 +416,93 @@ struct MainWindowView: View {
         }
     }
 
+    private func updateSessionPersistenceMessage(to newIssue: SessionPersistenceIssue?) {
+        // Only appearing and disappearing animate; a new text stays in place.
+        if (displayedSessionPersistenceIssue == nil) != (newIssue == nil) {
+            withAnimation(ShatlMotion.sessionRestoreStatusBar) {
+                displayedSessionPersistenceIssue = newIssue
+            }
+        } else {
+            displayedSessionPersistenceIssue = newIssue
+        }
+
+        // VoiceOver reads alerts on its own, but not an inline line message.
+        if let newIssue {
+            AccessibilityNotification.Announcement(
+                "\(sessionPersistenceTitle). \(sessionPersistenceMessage(for: newIssue.kind))"
+            ).post()
+        }
+    }
+
+    private func sessionPersistenceMessageBar(for issue: SessionPersistenceIssue) -> some View {
+        ShatlLineMessageBar(
+            title: sessionPersistenceTitle,
+            message: sessionPersistenceMessage(for: issue.kind),
+            primaryButtonTitle: L10n.string(
+                "session.persistence.line.check_again",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Проверить снова"
+            ),
+            closeButtonTitle: L10n.string(
+                "session.persistence.line.hide",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Скрыть"
+            ),
+            primaryAction: { store.recheckSessionPersistence() },
+            closeAction: { store.hideSessionPersistenceIssue() }
+        )
+    }
+
+    private var sessionPersistenceTitle: String {
+        L10n.string(
+            "session.persistence.save_failed.title",
+            localeOverride: store.preferences.localeOverride,
+            defaultValue: "Не удалось сохранить состояние загрузок"
+        )
+    }
+
+    private func sessionPersistenceMessage(for kind: SessionPersistenceIssue.Kind) -> String {
+        let localeOverride = store.preferences.localeOverride
+        switch kind {
+        case .background:
+            return L10n.string(
+                "session.persistence.background_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова»."
+            )
+        case .stop:
+            return L10n.string(
+                "session.persistence.stop_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
+            )
+        case .recheck:
+            return L10n.string(
+                "session.persistence.recheck_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Проверка не запущена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
+            )
+        case .removeFromList:
+            return L10n.string(
+                "session.persistence.remove_from_list_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
+            )
+        case .removeWithFiles:
+            return L10n.string(
+                "session.persistence.remove_with_files_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
+            )
+        case .redownload:
+            return L10n.string(
+                "session.persistence.redownload_failed.message",
+                localeOverride: localeOverride,
+                defaultValue: "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
+            )
+        }
+    }
+
     private func presentAddTorrentEntryAlert(_ errorState: TorrentErrorState) {
         addTorrentEntryAlert = errorState
     }
@@ -560,8 +650,8 @@ private struct TorrentTransferSummaryLayer: View {
     }
 }
 
-/// Reusable inline message shown above the main content. It intentionally has
-/// no live caller while the product scenario is being reconsidered.
+/// Reusable inline message shown above the main content, used for session
+/// persistence failures that last until storage accepts writes again.
 struct ShatlLineMessageBar: View {
     let title: String
     let message: String
@@ -799,15 +889,12 @@ private struct ShatlToolbarButton: View {
 
 private enum MainWindowAlert: Identifiable {
     case addTorrentEntry(TorrentErrorState)
-    case sessionPersistence(SessionPersistenceAlert)
     case payloadDeletion(PayloadDeletionAlert)
 
     var id: String {
         switch self {
         case let .addTorrentEntry(errorState):
             "add-torrent-entry-\(errorState.id.uuidString)"
-        case let .sessionPersistence(alert):
-            "session-persistence-\(alert.id.uuidString)"
         case let .payloadDeletion(alert):
             "payload-deletion-\(alert.id.uuidString)"
         }
@@ -817,8 +904,6 @@ private enum MainWindowAlert: Identifiable {
         switch self {
         case let .addTorrentEntry(errorState):
             errorState.title
-        case let .sessionPersistence(alert):
-            alert.title
         case let .payloadDeletion(alert):
             alert.title
         }
@@ -828,8 +913,6 @@ private enum MainWindowAlert: Identifiable {
         switch self {
         case let .addTorrentEntry(errorState):
             errorState.message
-        case let .sessionPersistence(alert):
-            alert.message
         case let .payloadDeletion(alert):
             alert.message
         }

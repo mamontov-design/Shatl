@@ -1329,14 +1329,14 @@ final class AppStoreTests: XCTestCase {
             try Data(contentsOf: bundle.directories.sessionSnapshotURL),
             originalSessionData
         )
-        // The quit dialog owns this failure; the main window must not queue
-        // a second alert behind it.
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        // If the user returns to Shatl, the line message keeps the failure visible.
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .background)
 
         let shouldTerminateAfterRetry = await bundle.store.prepareForTermination()
 
         XCTAssertTrue(shouldTerminateAfterRetry)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        await bundle.store.waitForSessionPersistenceCheckForTesting()
+        XCTAssertNil(bundle.store.sessionPersistenceIssue)
         let persistedSnapshot = try JSONDecoder().decode(
             SessionSnapshot.self,
             from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
@@ -1449,30 +1449,15 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: resumeDataURL.path))
         let failedRemoveCalls = await engine.recordedRemoveCalls()
         XCTAssertTrue(failedRemoveCalls.isEmpty)
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.title,
-            L10n.string(
-                "session.persistence.save_failed.title",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Не удалось сохранить список загрузок"
-            )
-        )
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.message,
-            L10n.string(
-                "session.persistence.remove_failed.message",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите."
-            )
-        )
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .removeWithFiles)
 
-        bundle.store.sessionPersistenceAlert = nil
         await bundle.store.removeTorrent(id: record.id, policy: .removeFromListAndDeleteFiles)
 
         XCTAssertTrue(bundle.store.torrents.isEmpty)
         XCTAssertNil(bundle.store.selectedTorrentID)
         XCTAssertNil(bundle.store.expandedTorrentID)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        await bundle.store.waitForSessionPersistenceCheckForTesting()
+        XCTAssertNil(bundle.store.sessionPersistenceIssue)
         XCTAssertFalse(FileManager.default.fileExists(atPath: payloadFileURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
@@ -1857,7 +1842,7 @@ final class AppStoreTests: XCTestCase {
 
         let didRejectStop = await waitForCondition {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.sessionPersistenceAlert != nil
+                && bundle.store.sessionPersistenceIssue != nil
         }
         XCTAssertTrue(didRejectStop)
         XCTAssertEqual(bundle.store.torrents, [record])
@@ -1867,24 +1852,16 @@ final class AppStoreTests: XCTestCase {
         )
         let failedRemoveCalls = await engine.recordedRemoveCalls()
         XCTAssertTrue(failedRemoveCalls.isEmpty)
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.message,
-            L10n.string(
-                "session.persistence.stop_failed.message",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-            )
-        )
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .stop)
 
-        bundle.store.sessionPersistenceAlert = nil
         bundle.store.stopTorrent(id: record.id)
 
         let didStopOnRetry = await waitForCondition {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
                 && bundle.store.torrents.first?.status == .stopped
+                && bundle.store.sessionPersistenceIssue == nil
         }
         XCTAssertTrue(didStopOnRetry)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
         let retryRemoveCalls = await engine.recordedRemoveCalls()
         XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
         let persistedSnapshot = try JSONDecoder().decode(
@@ -2211,7 +2188,7 @@ final class AppStoreTests: XCTestCase {
 
         let didRollbackRecheck = await waitForCondition {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.sessionPersistenceAlert != nil
+                && bundle.store.sessionPersistenceIssue != nil
         }
         XCTAssertTrue(didRollbackRecheck)
         XCTAssertEqual(bundle.store.torrents, [record])
@@ -2223,24 +2200,16 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(failedRecheckCalls, [record.id])
         let rollbackRemoveCalls = await engine.recordedRemoveCalls()
         XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.message,
-            L10n.string(
-                "session.persistence.recheck_failed.message",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-            )
-        )
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .recheck)
 
-        bundle.store.sessionPersistenceAlert = nil
         bundle.store.forceRecheckTorrent(id: record.id)
 
         let didStartRecheckOnRetry = await waitForCondition {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
                 && bundle.store.torrents.first?.status == .checking
+                && bundle.store.sessionPersistenceIssue == nil
         }
         XCTAssertTrue(didStartRecheckOnRetry)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
         let retryRecheckCalls = await engine.recordedRecheckCallIDs()
         XCTAssertEqual(retryRecheckCalls, [record.id, record.id])
         let restoreCallCount = await engine.restoreSessionCallCount()
@@ -3120,7 +3089,7 @@ final class AppStoreTests: XCTestCase {
 
         let didRollback = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.sessionPersistenceAlert != nil
+                && bundle.store.sessionPersistenceIssue != nil
         }
         XCTAssertTrue(didRollback)
         XCTAssertEqual(bundle.store.torrents, [record])
@@ -3132,14 +3101,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(firstRestoreCount, 1)
         let rollbackRemoveCalls = await engine.recordedRemoveCalls()
         XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.message,
-            L10n.string(
-                "session.persistence.redownload_failed.message",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Повторная загрузка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите."
-            )
-        )
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .redownload)
 
         bundle.store.redownloadTorrent(id: record.id, toSaveLocation: newSaveRoot, bookmarkData: nil)
 
@@ -3148,7 +3110,8 @@ final class AppStoreTests: XCTestCase {
                 && bundle.store.torrents.first?.persistentIssue == nil
         }
         XCTAssertTrue(didSucceedOnRetry)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        await bundle.store.waitForSessionPersistenceCheckForTesting()
+        XCTAssertNil(bundle.store.sessionPersistenceIssue)
         let updatedRecord = try XCTUnwrap(bundle.store.torrents.first)
         XCTAssertEqual(updatedRecord.canonicalSavePath, newSaveRoot.path)
         XCTAssertNotEqual(updatedRecord.attemptID, record.attemptID)
@@ -3199,9 +3162,10 @@ final class AppStoreTests: XCTestCase {
 
         let didRejectIssueChange = await waitForCondition {
             !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.sessionPersistenceAlert != nil
+                && bundle.store.sessionPersistenceIssue != nil
         }
         XCTAssertTrue(didRejectIssueChange)
+        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .redownload)
         XCTAssertEqual(bundle.store.torrents, [record])
         XCTAssertEqual(
             try Data(contentsOf: bundle.directories.sessionSnapshotURL),
@@ -3215,7 +3179,8 @@ final class AppStoreTests: XCTestCase {
                 && bundle.store.torrents.first?.persistentIssue?.kind == .savePathUnavailable
         }
         XCTAssertTrue(didCommitIssueOnRetry)
-        XCTAssertNil(bundle.store.sessionPersistenceAlert)
+        await bundle.store.waitForSessionPersistenceCheckForTesting()
+        XCTAssertNil(bundle.store.sessionPersistenceIssue)
         let restoreCallCount = await engine.restoreSessionCallCount()
         XCTAssertEqual(restoreCallCount, 0)
         let persistedSnapshot = try JSONDecoder().decode(

@@ -43,16 +43,19 @@
 "session.load.missing.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
 "session.load.unsupported.title" = "Не удалось открыть сохранённую сессию.";
 "session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
-"session.persistence.save_failed.title" = "Не удалось сохранить список загрузок";
-"session.persistence.remove_failed.message" = "Торрент и его файлы не удалены. Проверьте свободное место и доступ к диску, затем повторите.";
-"session.persistence.stop_failed.message" = "Загрузка не остановлена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите.";
-"session.persistence.recheck_failed.message" = "Проверка отменена, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите.";
-"session.persistence.quit_dialog.title" = "Не удалось сохранить состояние загрузок";
+"session.persistence.save_failed.title" = "Не удалось сохранить состояние загрузок";
+"session.persistence.background_failed.message" = "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова».";
+"session.persistence.line.check_again" = "Проверить снова";
+"session.persistence.line.hide" = "Скрыть";
+"session.persistence.remove_from_list_failed.message" = "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.remove_with_files_failed.message" = "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.stop_failed.message" = "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.recheck_failed.message" = "Проверка не запущена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
 "session.persistence.quit_dialog.message" = "Скорее всего, на диске закончилось место или у Shatl нет доступа к папке с данными. Если выйти сейчас, последние изменения прогресса и статусов не сохранятся, и при следующем запуске Shatl может заново проверить часть скачанных данных. Скачанные файлы и список загрузок не пострадают.";
 "session.persistence.quit_dialog.retry" = "Повторить";
 "session.persistence.quit_dialog.return" = "Вернуться в Shatl";
 "session.persistence.quit_dialog.quit" = "Выйти без сохранения";
-"session.persistence.redownload_failed.message" = "Повторная загрузка не начата, потому что Shatl не смог сохранить её состояние. Проверьте свободное место и доступ к диску, затем повторите.";
+"session.persistence.redownload_failed.message" = "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
 
 "onboarding.action.next" = "Далее";
 "onboarding.action.not_now" = "Не сейчас";

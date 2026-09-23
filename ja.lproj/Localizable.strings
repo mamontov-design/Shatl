@@ -43,16 +43,19 @@
 "session.load.missing.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 "session.load.unsupported.title" = "保存されたセッションを開けませんでした。";
 "session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.persistence.save_failed.title" = "ダウンロードリストを保存できませんでした";
-"session.persistence.remove_failed.message" = "Torrentとそのファイルは削除されていません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.stop_failed.message" = "Shatlが状態を保存できなかったため、ダウンロードは停止されませんでした。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.recheck_failed.message" = "Shatlが状態を保存できなかったため、再チェックはキャンセルされました。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.quit_dialog.title" = "ダウンロードの状態を保存できませんでした";
+"session.persistence.save_failed.title" = "ダウンロードの状態を保存できませんでした";
+"session.persistence.background_failed.message" = "Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、「再確認」をクリックしてください。";
+"session.persistence.line.check_again" = "再確認";
+"session.persistence.line.hide" = "非表示";
+"session.persistence.remove_from_list_failed.message" = "Torrentはリストから削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"session.persistence.remove_with_files_failed.message" = "Torrentとそのファイルは削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"session.persistence.stop_failed.message" = "ダウンロードは停止されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"session.persistence.recheck_failed.message" = "再チェックは開始されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.quit_dialog.message" = "ディスクの空き容量が不足しているか、Shatlがデータフォルダにアクセスできない可能性があります。今すぐ終了すると、進行状況とステータスの最新の変更は保存されず、次回の起動時にダウンロード済みのデータの一部が再確認される場合があります。ダウンロード済みのファイルとダウンロードリストには影響しません。";
 "session.persistence.quit_dialog.retry" = "再試行";
 "session.persistence.quit_dialog.return" = "Shatlに戻る";
 "session.persistence.quit_dialog.quit" = "保存せずに終了";
-"session.persistence.redownload_failed.message" = "Shatlが状態を保存できなかったため、ダウンロードは再開されませんでした。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"session.persistence.redownload_failed.message" = "再ダウンロードは開始されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";

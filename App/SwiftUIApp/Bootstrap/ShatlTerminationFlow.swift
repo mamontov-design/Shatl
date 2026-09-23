@@ -94,7 +94,7 @@ final class ShatlTerminationAlertPresenter: ShatlTerminationFailurePresenting {
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = L10n.string(
-            "session.persistence.quit_dialog.title",
+            "session.persistence.save_failed.title",
             localeOverride: localeOverride,
             defaultValue: "Не удалось сохранить состояние загрузок"
         )
