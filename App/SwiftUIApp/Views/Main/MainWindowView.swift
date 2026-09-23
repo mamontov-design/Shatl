@@ -40,6 +40,7 @@ struct MainWindowView: View {
     @State private var restoreStatusShownAt: Date?
     @State private var restoreStatusTask: Task<Void, Never>?
     @State private var displayedSessionPersistenceIssue: SessionPersistenceIssue?
+    @State private var isCheckingSessionPersistence = false
     @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
 
@@ -417,6 +418,13 @@ struct MainWindowView: View {
     }
 
     private func updateSessionPersistenceMessage(to newIssue: SessionPersistenceIssue?) {
+        // A successful Check Again hides the bar itself after the minimum busy time.
+        if newIssue == nil, isCheckingSessionPersistence { return }
+
+        if displayedSessionPersistenceIssue == nil, newIssue != nil {
+            isCheckingSessionPersistence = false
+        }
+
         // Only appearing and disappearing animate; a new text stays in place.
         if (displayedSessionPersistenceIssue == nil) != (newIssue == nil) {
             withAnimation(ShatlMotion.sessionRestoreStatusBar) {
@@ -443,14 +451,46 @@ struct MainWindowView: View {
                 localeOverride: store.preferences.localeOverride,
                 defaultValue: "Проверить снова"
             ),
+            primaryBusyTitle: L10n.string(
+                "session.persistence.line.checking",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Проверка…"
+            ),
+            isPrimaryBusy: isCheckingSessionPersistence,
             closeButtonTitle: L10n.string(
                 "session.persistence.line.hide",
                 localeOverride: store.preferences.localeOverride,
                 defaultValue: "Скрыть"
             ),
-            primaryAction: { store.recheckSessionPersistence() },
+            primaryAction: checkSessionPersistenceAgain,
             closeAction: { store.hideSessionPersistenceIssue() }
         )
+    }
+
+    private func checkSessionPersistenceAgain() {
+        guard !isCheckingSessionPersistence else { return }
+        isCheckingSessionPersistence = true
+
+        Task {
+            let clock = ContinuousClock()
+            let startedAt = clock.now
+            await store.recheckSessionPersistence()
+
+            // The check takes milliseconds; a minimum busy time avoids a flicker.
+            let remaining = ShatlMotion.busyButtonMinimumDuration - startedAt.duration(to: clock.now)
+            if remaining > .zero {
+                try? await Task.sleep(for: remaining)
+            }
+
+            if store.sessionPersistenceIssue == nil {
+                // The bar leaves while its button still reads "Checking…".
+                withAnimation(ShatlMotion.sessionRestoreStatusBar) {
+                    displayedSessionPersistenceIssue = nil
+                }
+            } else {
+                isCheckingSessionPersistence = false
+            }
+        }
     }
 
     private var sessionPersistenceTitle: String {
@@ -656,6 +696,10 @@ struct ShatlLineMessageBar: View {
     let title: String
     let message: String
     let primaryButtonTitle: String
+    var primaryBusyTitle: String?
+    /// While the primary action runs, both buttons stay blocked and the close
+    /// button looks disabled, so neither can interrupt the running check.
+    var isPrimaryBusy = false
     let closeButtonTitle: String
     let primaryAction: () -> Void
     let closeAction: () -> Void
@@ -677,6 +721,8 @@ struct ShatlLineMessageBar: View {
             HStack(spacing: 8) {
                 ShatlButton(
                     title: primaryButtonTitle,
+                    busyTitle: primaryBusyTitle,
+                    isBusy: isPrimaryBusy,
                     role: .lineMessage,
                     action: primaryAction
                 )
@@ -684,9 +730,14 @@ struct ShatlLineMessageBar: View {
                 ShatlButton(
                     title: closeButtonTitle,
                     role: .lineMessage,
+                    isDisabled: isPrimaryBusy,
                     action: closeAction
                 )
             }
+            // The close button slides with the resizing primary button,
+            // like neighbors in the expanded metric row.
+            .geometryGroup()
+            .animation(ShatlMotion.metricResize, value: isPrimaryBusy)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

@@ -131,8 +131,14 @@ struct ShatlTabButton: View {
     }
 }
 
+/// While `isBusy`, the button shows `busyTitle`, ignores clicks without
+/// dimming, and resizes to the new title. Neighbors slide only when their
+/// container animates the same change, e.g. `.geometryGroup()` plus
+/// `.animation(ShatlMotion.metricResize, value:)`.
 struct ShatlButton: View {
     let title: ShatlTextContent?
+    var busyTitle: ShatlTextContent?
+    var isBusy = false
     var systemImage: String?
     var iconSize: CGFloat = ShatlIconSize.small
     let role: ShatlButtonRole
@@ -140,9 +146,12 @@ struct ShatlButton: View {
     var fillsWidth = false
     var lineLimit: Int? = 1
     let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         title: String,
+        busyTitle: String? = nil,
+        isBusy: Bool = false,
         role: ShatlButtonRole,
         isDisabled: Bool = false,
         fillsWidth: Bool = false,
@@ -150,6 +159,8 @@ struct ShatlButton: View {
         action: @escaping () -> Void
     ) {
         self.title = .verbatim(title)
+        self.busyTitle = busyTitle.map { .verbatim($0) }
+        self.isBusy = isBusy
         self.systemImage = nil
         self.role = role
         self.isDisabled = isDisabled
@@ -195,7 +206,11 @@ struct ShatlButton: View {
     }
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            // A busy button reports progress; repeated clicks must not restart it.
+            guard !isBusy else { return }
+            action()
+        } label: {
             HStack(spacing: 6) {
                 if let systemImage {
                     Image(systemName: systemImage)
@@ -205,12 +220,14 @@ struct ShatlButton: View {
                         .frame(width: ShatlIconSize.small, height: ShatlIconSize.small, alignment: .center)
                 }
 
-                if let title {
-                    title.text
+                if let displayedTitle {
+                    displayedTitle.text
                         .shatlTypography(ShatlTypography.bodyMedium)
                         .lineLimit(lineLimit)
                         .fixedSize(horizontal: lineLimit == 1, vertical: false)
                         .multilineTextAlignment(.center)
+                        .id(showsBusyTitle)
+                        .transition(titleTransition)
                 }
             }
             .foregroundStyle(foregroundColor)
@@ -218,11 +235,26 @@ struct ShatlButton: View {
             .padding(.vertical, verticalPadding)
             .frame(maxWidth: fillsWidth ? .infinity : nil)
             .background(backgroundColor)
+            // Clipping keeps the outgoing title inside the button while it resizes.
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .animation(ShatlMotion.metricResize, value: showsBusyTitle)
         }
         .buttonStyle(ShatlPressedButtonStyle())
+        .allowsHitTesting(!isBusy)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.5 : 1)
+    }
+
+    private var showsBusyTitle: Bool {
+        isBusy && busyTitle != nil
+    }
+
+    private var displayedTitle: ShatlTextContent? {
+        showsBusyTitle ? busyTitle : title
+    }
+
+    private var titleTransition: AnyTransition {
+        reduceMotion ? .opacity : AnyTransition(.blurReplace)
     }
 
     private var backgroundColor: Color {

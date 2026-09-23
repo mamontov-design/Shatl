@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "无法保存下载状态";
 "session.persistence.background_failed.message" = "Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后点击“再次检查”。";
 "session.persistence.line.check_again" = "再次检查";
+"session.persistence.line.checking" = "正在检查…";
 "session.persistence.line.hide" = "隐藏";
 "session.persistence.remove_from_list_failed.message" = "Torrent 未从列表中移除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.remove_with_files_failed.message" = "Torrent 及其文件未被删除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";

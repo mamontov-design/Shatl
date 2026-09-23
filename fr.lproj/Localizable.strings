@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "Impossible d’enregistrer l’état des téléchargements";
 "session.persistence.background_failed.message" = "Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis cliquez sur « Vérifier à nouveau ».";
 "session.persistence.line.check_again" = "Vérifier à nouveau";
+"session.persistence.line.checking" = "Vérification…";
 "session.persistence.line.hide" = "Masquer";
 "session.persistence.remove_from_list_failed.message" = "Le torrent n’a pas été retiré de la liste : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
 "session.persistence.remove_with_files_failed.message" = "Le torrent et ses fichiers n’ont pas été supprimés : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";

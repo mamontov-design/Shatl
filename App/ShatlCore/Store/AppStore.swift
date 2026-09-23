@@ -2556,9 +2556,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         isSessionPersistenceIssueHidden = true
     }
 
-    func recheckSessionPersistence() {
-        guard sessionPersistenceIssue != nil else { return }
+    /// Backs Check Again and returns whether session storage accepts writes again.
+    @discardableResult
+    func recheckSessionPersistence() async -> Bool {
+        guard sessionPersistenceIssue != nil else { return true }
         scheduleSessionPersistenceCheck(refreshesIssueOnFailure: true)
+        await sessionPersistenceCheckTask?.value
+        return sessionPersistenceIssue == nil
     }
 
     #if DEBUG

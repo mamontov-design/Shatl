@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "ダウンロードの状態を保存できませんでした";
 "session.persistence.background_failed.message" = "Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、「再確認」をクリックしてください。";
 "session.persistence.line.check_again" = "再確認";
+"session.persistence.line.checking" = "確認中…";
 "session.persistence.line.hide" = "非表示";
 "session.persistence.remove_from_list_failed.message" = "Torrentはリストから削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.remove_with_files_failed.message" = "Torrentとそのファイルは削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";

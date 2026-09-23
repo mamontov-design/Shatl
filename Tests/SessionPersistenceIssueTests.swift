@@ -43,16 +43,16 @@ final class SessionPersistenceIssueTests: XCTestCase {
         await context.store.removeTorrent(id: context.record.id, policy: .removeFromListOnly)
         let failedIssue = try XCTUnwrap(context.store.sessionPersistenceIssue)
 
-        context.store.recheckSessionPersistence()
-        await context.store.waitForSessionPersistenceCheckForTesting()
+        let recoveredWhileFailing = await context.store.recheckSessionPersistence()
 
+        XCTAssertFalse(recoveredWhileFailing)
         XCTAssertEqual(context.store.sessionPersistenceIssue?.kind, .removeFromList)
         XCTAssertNotEqual(context.store.sessionPersistenceIssue?.id, failedIssue.id)
 
         context.writer.setFailsAllWrites(false)
-        context.store.recheckSessionPersistence()
-        await context.store.waitForSessionPersistenceCheckForTesting()
+        let recoveredOnceWritable = await context.store.recheckSessionPersistence()
 
+        XCTAssertTrue(recoveredOnceWritable)
         XCTAssertNil(context.store.sessionPersistenceIssue)
         // Check Again only proves storage works; it never repeats the removal.
         XCTAssertEqual(context.store.torrents.map(\.id), [context.record.id])

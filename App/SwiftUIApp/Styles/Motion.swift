@@ -94,6 +94,10 @@ enum ShatlMotion {
     static let inputCardActivationPulseHoldDuration = Duration.milliseconds(100)
     static let inputCardActivationPulseOut = Animation.smooth(duration: 0.3)
 
+    /// A busy button keeps its progress title at least this long, so a fast
+    /// result does not flicker.
+    static let busyButtonMinimumDuration = Duration.seconds(1)
+
     /// Shared transition for elements inserted into an existing layout:
     /// the element shrinks and fades when hidden, then returns to full size and opacity.
     static let appearFromTop = AnyTransition

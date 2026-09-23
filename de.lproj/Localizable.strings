@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "Downloadstatus konnte nicht gespeichert werden";
 "session.persistence.background_failed.message" = "Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und klicken Sie dann auf „Erneut prüfen“.";
 "session.persistence.line.check_again" = "Erneut prüfen";
+"session.persistence.line.checking" = "Wird geprüft…";
 "session.persistence.line.hide" = "Ausblenden";
 "session.persistence.remove_from_list_failed.message" = "Der Torrent wurde nicht aus der Liste entfernt: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";
 "session.persistence.remove_with_files_failed.message" = "Der Torrent und seine Dateien wurden nicht gelöscht: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";

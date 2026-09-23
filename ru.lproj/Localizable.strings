@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "Не удалось сохранить состояние загрузок";
 "session.persistence.background_failed.message" = "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова».";
 "session.persistence.line.check_again" = "Проверить снова";
+"session.persistence.line.checking" = "Проверка…";
 "session.persistence.line.hide" = "Скрыть";
 "session.persistence.remove_from_list_failed.message" = "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
 "session.persistence.remove_with_files_failed.message" = "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";

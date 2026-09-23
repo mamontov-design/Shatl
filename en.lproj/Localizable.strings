@@ -46,6 +46,7 @@
 "session.persistence.save_failed.title" = "Couldn’t save the download state";
 "session.persistence.background_failed.message" = "Shatl can’t write data to the disk. Check free space and disk access, then click Check Again.";
 "session.persistence.line.check_again" = "Check Again";
+"session.persistence.line.checking" = "Checking…";
 "session.persistence.line.hide" = "Hide";
 "session.persistence.remove_from_list_failed.message" = "The torrent wasn’t removed from the list: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 "session.persistence.remove_with_files_failed.message" = "The torrent and its files weren’t deleted: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
