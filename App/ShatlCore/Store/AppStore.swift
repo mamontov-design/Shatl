@@ -143,6 +143,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var didCompleteRuntimeBootstrap = false
     private var isEngineReady = false
     private var lastPersistedProgressBucketByID: [UUID: Int] = [:]
+    private let progressSaveInterval: Duration
+    private var progressSaveTask: Task<Void, Never>?
+    private var lastProgressSaveAt: ContinuousClock.Instant?
     private var isPreparingForTermination = false
     private var pendingTorrentAdditions: [PendingTorrentAddition] = []
     private var pendingTorrentAdditionTasks: [UUID: Task<Void, Never>] = [:]
@@ -198,7 +201,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         usageTelemetrySender: (any UsageTelemetrySending)? = nil,
         torrents: [TorrentRecord] = [],
         preferences: AppPreferences? = nil,
-        hasLoadedInitialSession: Bool = false
+        hasLoadedInitialSession: Bool = false,
+        progressSaveInterval: Duration = .seconds(30)
     ) {
         self.preferencesStore = preferencesStore
         self.engine = engine
@@ -214,6 +218,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.userEventBadgeDisplay = userEventBadgeDisplay
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
+        self.progressSaveInterval = progressSaveInterval
         self.torrents = torrents
         self.lastPersistedProgressBucketByID = Dictionary(
             uniqueKeysWithValues: torrents.map {
@@ -251,6 +256,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         usageTelemetrySendTask?.cancel()
+        progressSaveTask?.cancel()
         for task in pendingTorrentAdditionTasks.values {
             task.cancel()
         }
@@ -634,6 +640,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let shouldResumeRuntimeLoop = runtimeTask != nil
         runtimeTask?.cancel()
         runtimeTask = nil
+        // The final commit below writes the latest progress itself.
+        progressSaveTask?.cancel()
+        progressSaveTask = nil
 
         if let initialSessionLoadTask {
             let result = await initialSessionLoadTask.value
@@ -2223,7 +2232,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let snapshotsByID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
         var updatedTorrents = torrents
         var shouldRefreshSelectedNavigationAvailability = false
-        var shouldPersistDurableState = false
+        var durableChange = DurableSnapshotChange.none
 
         for index in updatedTorrents.indices {
             guard let snapshot = snapshotsByID[updatedTorrents[index].id] else { continue }
@@ -2312,9 +2321,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                    wasFinishedForOpening != updatedTorrents[index].isFinishedForOpening {
                     shouldRefreshSelectedNavigationAvailability = true
                 }
-                if registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index]) {
-                    shouldPersistDurableState = true
-                }
+                durableChange = max(
+                    durableChange,
+                    registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index])
+                )
                 continue
             }
 
@@ -2380,9 +2390,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                wasFinishedForOpening != updatedTorrents[index].isFinishedForOpening {
                 shouldRefreshSelectedNavigationAvailability = true
             }
-            if registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index]) {
-                shouldPersistDurableState = true
-            }
+            durableChange = max(
+                durableChange,
+                registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index])
+            )
         }
 
         if updatedTorrents != torrents {
@@ -2393,7 +2404,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         if shouldRefreshSelectedNavigationAvailability {
             refreshSelectedTorrentNavigationAvailability()
         }
-        if shouldPersistDurableState {
+        switch durableChange {
+        case .none:
+            break
+        case .progress:
+            scheduleProgressSave()
+        case .status:
             saveCriticalState()
         }
     }
@@ -2402,17 +2418,45 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func applySnapshotsForTesting(_ snapshots: [EngineTorrentSnapshot]) {
         applySnapshots(snapshots)
     }
+
+    /// Runs one tick of the runtime loop without waiting for its timer.
+    func refreshActiveSnapshotsForTesting() async {
+        await refreshActiveSnapshots()
+    }
     #endif
+
+    private enum DurableSnapshotChange: Comparable {
+        case none
+        case progress
+        case status
+    }
 
     private func registerDurableSnapshotChange(
         previousStatus: TorrentStatus,
         record: TorrentRecord
-    ) -> Bool {
+    ) -> DurableSnapshotChange {
         let bucket = Self.progressPersistenceBucket(for: max(record.progress, record.lastKnownProgress))
         let previousBucket = lastPersistedProgressBucketByID[record.id]
-        guard previousStatus != record.status || previousBucket != bucket else { return false }
+        let didChangeStatus = previousStatus != record.status
+        guard didChangeStatus || previousBucket != bucket else { return .none }
         lastPersistedProgressBucketByID[record.id] = bucket
-        return true
+        return didChangeStatus ? .status : .progress
+    }
+
+    /// A new percent is written at most once per `progressSaveInterval`, while
+    /// status changes and user actions still save at once. The save reads
+    /// `torrents` when it runs, so it always writes the latest progress.
+    private func scheduleProgressSave() {
+        guard progressSaveTask == nil, !isPreparingForTermination else { return }
+
+        let delay = lastProgressSaveAt.map { max(.zero, $0 + progressSaveInterval - .now) } ?? .zero
+        progressSaveTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard let self, !Task.isCancelled else { return }
+            self.progressSaveTask = nil
+            self.lastProgressSaveAt = .now
+            await self.persistCriticalState()
+        }
     }
 
     private static func progressPersistenceBucket(for progress: Double) -> Int {

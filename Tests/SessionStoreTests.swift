@@ -279,6 +279,32 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(secondData, firstData)
     }
 
+    func testUnchangedDurableStateTouchesNothingOnDisk() async throws {
+        let fixture = try makeFixture()
+        let sessionStore = SessionStore(
+            directories: fixture.directories,
+            archiveStore: TorrentArchiveStore(directories: fixture.directories),
+            bookmarkStore: BookmarkStore(directories: fixture.directories),
+            resumeDataStore: ResumeDataStore(directories: fixture.directories),
+            startupMode: .alreadyInitialized
+        )
+        let record = makeTestRecord(status: .downloading, progress: 0.42)
+        let firstOutcome = await sessionStore.replaceAllRecordsForTesting(
+            from: [record],
+            reconcileOrphanedArtifacts: false
+        )
+        XCTAssertEqual(firstOutcome, .saved)
+        try FileManager.default.removeItem(at: fixture.directories.bookmarksDirectoryURL)
+
+        let unchangedOutcome = await sessionStore.updateExisting(from: [record])
+
+        XCTAssertEqual(unchangedOutcome, .saved)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: fixture.directories.bookmarksDirectoryURL.path),
+            "An unchanged commit recreated session directories"
+        )
+    }
+
     func testCleanFirstLaunchUnlocksOnlyAfterLoadIsAcceptedAndPersistsEmptySnapshot() async throws {
         let fixture = try makeFixture()
 

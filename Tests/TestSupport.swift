@@ -356,6 +356,14 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
     private let lock = NSLock()
     private var remainingFailureCount = 0
     private var failsAllWrites = false
+    private var writeCountValue = 0
+
+    /// Session files actually written to disk.
+    var writeCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return writeCountValue
+    }
 
     func failNextWrite() {
         lock.lock()
@@ -383,6 +391,9 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
         }
 
         try data.write(to: url, options: .atomic)
+        lock.lock()
+        writeCountValue += 1
+        lock.unlock()
     }
 }
 
@@ -415,7 +426,8 @@ func makeTestStoreBundle(
     },
     sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
         try data.write(to: url, options: .atomic)
-    }
+    },
+    progressSaveInterval: Duration = .seconds(30)
 ) -> TestStoreBundle {
     let rootURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("ShatlTests-\(UUID().uuidString)", isDirectory: true)
@@ -470,7 +482,8 @@ func makeTestStoreBundle(
         usageTelemetrySender: usageTelemetrySender,
         torrents: torrents,
         preferences: preferences,
-        hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized
+        hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
+        progressSaveInterval: progressSaveInterval
     )
 
     return TestStoreBundle(
@@ -502,7 +515,8 @@ func makeTestStoreBundle(
     },
     sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
         try data.write(to: url, options: .atomic)
-    }
+    },
+    progressSaveInterval: Duration = .seconds(30)
 ) -> TestStoreBundle {
     makeTestStoreBundle(
         engine: engine,
@@ -515,7 +529,8 @@ func makeTestStoreBundle(
         usageTelemetrySender: usageTelemetrySender,
         sessionStoreStartupMode: sessionStoreStartupMode,
         sessionReadData: sessionReadData,
-        sessionWriteData: sessionWriteData
+        sessionWriteData: sessionWriteData,
+        progressSaveInterval: progressSaveInterval
     )
 }
 

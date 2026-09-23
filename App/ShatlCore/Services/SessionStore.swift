@@ -343,16 +343,17 @@ actor SessionStore {
     ) -> SessionSaveOutcome {
         guard persistenceState == .writable else { return .blocked }
 
-        do {
-            try directories.ensureSessionDirectories()
-        } catch {
-            return .failed
-        }
-
+        // An unchanged commit touches nothing on disk.
         let snapshot = makeSnapshot(from: records)
         if !forceWrite, snapshot.torrents == lastPersistedTorrentRecords {
             canonicalTorrentRecords = records
             return .saved
+        }
+
+        do {
+            try directories.ensureSessionDirectories()
+        } catch {
+            return .failed
         }
 
         do {
