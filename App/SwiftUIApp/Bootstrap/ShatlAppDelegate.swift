@@ -7,6 +7,7 @@ import UserNotifications
 final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
     weak var terminationHandler: (any ShatlTerminationPreparing)?
     weak var userAttentionHandler: (any ShatlUserAttentionHandling)?
+    var terminationFailurePresenter: any ShatlTerminationFailurePresenting = ShatlTerminationAlertPresenter()
     private var isPreparingForTermination = false
     private var windowObserver: NSObjectProtocol?
     private let notificationCenterDelegate = ShatlUserNotificationCenterDelegate()
@@ -60,8 +61,14 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
         guard !isPreparingForTermination else { return .terminateLater }
 
         isPreparingForTermination = true
+        let source = ShatlTerminationRequestSource.current()
+        let presenter = terminationFailurePresenter
         Task { [weak self, weak sender] in
-            let shouldTerminate = await terminationHandler.prepareForTermination()
+            let shouldTerminate = await ShatlTerminationFlow.resolve(
+                handler: terminationHandler,
+                source: source,
+                presenter: presenter
+            )
             self?.isPreparingForTermination = false
             sender?.reply(toApplicationShouldTerminate: shouldTerminate)
         }

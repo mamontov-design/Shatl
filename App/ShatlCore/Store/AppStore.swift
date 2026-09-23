@@ -650,14 +650,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let candidateTorrents = await checkpointedTorrentsForTermination()
         let saveOutcome = await commitCriticalState(candidateTorrents)
         guard saveOutcome == .saved else {
+            // The app delegate owns the follow-up: it asks whether to retry,
+            // stay open, or quit with the last committed session on disk.
             isPreparingForTermination = false
             if shouldResumeRuntimeLoop {
                 startRuntimeLoop()
             }
-            presentSessionPersistenceFailure(
-                messageKey: "session.persistence.quit_failed.message",
-                defaultMessage: "Shatl остался открытым, потому что не смог сохранить состояние загрузок. Проверьте свободное место и доступ к диску, затем повторите выход."
-            )
             return false
         }
 

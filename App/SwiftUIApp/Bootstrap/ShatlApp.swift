@@ -74,6 +74,9 @@ struct ShatlApp: App {
                 .onAppear {
                     appDelegate.terminationHandler = store
                     appDelegate.userAttentionHandler = store
+                    appDelegate.terminationFailurePresenter = ShatlTerminationAlertPresenter { [weak store = store] in
+                        store?.preferences.localeOverride ?? .system
+                    }
                     store.setApplicationUserAttentionActive(NSApp.isActive)
                 }
                 .frame(minWidth:440, minHeight: 440)

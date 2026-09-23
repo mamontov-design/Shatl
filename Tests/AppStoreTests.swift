@@ -1329,14 +1329,9 @@ final class AppStoreTests: XCTestCase {
             try Data(contentsOf: bundle.directories.sessionSnapshotURL),
             originalSessionData
         )
-        XCTAssertEqual(
-            bundle.store.sessionPersistenceAlert?.message,
-            L10n.string(
-                "session.persistence.quit_failed.message",
-                localeOverride: bundle.store.preferences.localeOverride,
-                defaultValue: "Shatl остался открытым, потому что не смог сохранить состояние загрузок. Проверьте свободное место и доступ к диску, затем повторите выход."
-            )
-        )
+        // The quit dialog owns this failure; the main window must not queue
+        // a second alert behind it.
+        XCTAssertNil(bundle.store.sessionPersistenceAlert)
 
         let shouldTerminateAfterRetry = await bundle.store.prepareForTermination()
 

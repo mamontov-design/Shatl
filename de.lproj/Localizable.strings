@@ -47,7 +47,11 @@
 "session.persistence.remove_failed.message" = "Der Torrent und seine Dateien wurden nicht entfernt. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 "session.persistence.stop_failed.message" = "Der Download wurde nicht gestoppt, weil Shatl seinen Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 "session.persistence.recheck_failed.message" = "Die Überprüfung wurde abgebrochen, weil Shatl ihren Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
-"session.persistence.quit_failed.message" = "Shatl blieb geöffnet, weil der Downloadstatus nicht gespeichert werden konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche erneut, die App zu beenden.";
+"session.persistence.quit_dialog.title" = "Downloadstatus konnte nicht gespeichert werden";
+"session.persistence.quit_dialog.message" = "Wahrscheinlich ist der Datenträger voll oder Shatl hat keinen Zugriff auf seinen Datenordner. Wenn Sie Shatl jetzt beenden, werden die letzten Änderungen an Fortschritt und Status nicht gespeichert, und Shatl prüft beim nächsten Start möglicherweise einen Teil der bereits heruntergeladenen Daten erneut. Ihre heruntergeladenen Dateien und die Downloadliste sind davon nicht betroffen.";
+"session.persistence.quit_dialog.retry" = "Erneut versuchen";
+"session.persistence.quit_dialog.return" = "Zurück zu Shatl";
+"session.persistence.quit_dialog.quit" = "Ohne Speichern beenden";
 "session.persistence.redownload_failed.message" = "Der Download wurde nicht neu gestartet, weil Shatl seinen Status nicht speichern konnte. Prüfe den freien Speicherplatz und den Datenträgerzugriff und versuche es erneut.";
 
 "onboarding.action.next" = "Weiter";

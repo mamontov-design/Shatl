@@ -47,7 +47,11 @@
 "session.persistence.remove_failed.message" = "El torrent y sus archivos no se eliminaron. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 "session.persistence.stop_failed.message" = "La descarga no se detuvo porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 "session.persistence.recheck_failed.message" = "La comprobación se canceló porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
-"session.persistence.quit_failed.message" = "Shatl permaneció abierto porque no pudo guardar el estado de las descargas. Comprueba el espacio libre y el acceso al disco e intenta salir de nuevo.";
+"session.persistence.quit_dialog.title" = "No se pudo guardar el estado de las descargas";
+"session.persistence.quit_dialog.message" = "Lo más probable es que el disco esté lleno o que Shatl no tenga acceso a su carpeta de datos. Si sales ahora, no se guardarán los últimos cambios de progreso y estado, y la próxima vez que abras Shatl es posible que vuelva a comprobar parte de los datos descargados. Tus archivos descargados y la lista de descargas no se verán afectados.";
+"session.persistence.quit_dialog.retry" = "Reintentar";
+"session.persistence.quit_dialog.return" = "Volver a Shatl";
+"session.persistence.quit_dialog.quit" = "Salir sin guardar";
 "session.persistence.redownload_failed.message" = "La descarga no se reinició porque Shatl no pudo guardar su estado. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 
 "onboarding.action.next" = "Siguiente";
