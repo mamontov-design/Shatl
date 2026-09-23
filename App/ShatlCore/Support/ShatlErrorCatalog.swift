@@ -136,7 +136,7 @@ enum ShatlErrorCatalog {
                 message: L10n.string(
                     "add_torrent.error.draft_lost.message",
                     localeOverride: localeOverride,
-                    defaultValue: "Данные не сохранились. Нажмите «Повторить», чтобы попробовать снова."
+                    defaultValue: "Данные не сохранились. Закройте окно и добавьте торрент заново."
                 ),
                 recoveryOptions: [.retry, .dismiss]
             )

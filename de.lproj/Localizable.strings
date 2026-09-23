@@ -113,11 +113,11 @@
 "torrent.error.missing_content.title" = "Download-Dateien nicht verfügbar";
 "torrent.error.missing_content.message" = "Shatl konnte die Torrent-Daten am gespeicherten Ort nicht finden. Du kannst sie erneut laden oder den Eintrag aus der Liste entfernen.";
 "torrent.error.save_path_unavailable.title" = "Download-Ordner nicht verfügbar";
-"torrent.error.save_path_unavailable.message" = "Shatl konnte den Speicherordner nicht öffnen. Wähle einen anderen Ordner oder entferne den Torrent aus der Liste.";
+"torrent.error.save_path_unavailable.message" = "Shatl konnte den Speicherordner nicht öffnen. Wählen Sie einen anderen Ordner oder entfernen Sie den Torrent aus der Liste.";
 "torrent.error.not_found.title" = "Download nicht verfügbar";
-"torrent.error.not_found.message" = "Dieser Torrent wurde nicht gefunden. Füge ihn erneut hinzu.";
+"torrent.error.not_found.message" = "Dieser Torrent wurde nicht gefunden. Fügen Sie ihn erneut hinzu.";
 "torrent.error.action_failed.title" = "Aktion fehlgeschlagen";
-"torrent.error.action_failed.message" = "Etwas ist schiefgelaufen. Versuche es erneut.";
+"torrent.error.action_failed.message" = "Etwas ist schiefgelaufen. Versuchen Sie es erneut.";
 
 "remove_dialog.choice.title" = "„%@“ löschen?";
 "remove_dialog.choice.message.with_files" = "Du kannst nur den Listeneintrag entfernen oder ihn zusammen mit den geladenen Dateien löschen.";
@@ -179,7 +179,7 @@
 "add_torrent.error.metadata_timeout.title" = "Metadaten konnten nicht geladen werden";
 "add_torrent.error.metadata_timeout.message" = "Quellen haben die Daten nicht rechtzeitig gesendet. Versuchen Sie es später erneut.";
 "add_torrent.error.draft_lost.title" = "Download-Vorbereitung wurde unterbrochen";
-"add_torrent.error.draft_lost.message" = "Die Daten wurden nicht gespeichert. Klicken Sie auf „Wiederholen“, um es erneut zu versuchen.";
+"add_torrent.error.draft_lost.message" = "Die Daten wurden nicht gespeichert. Schließen Sie dieses Fenster und fügen Sie den Torrent erneut hinzu.";
 "add_torrent.error.duplicate.title" = "Dieser Download ist bereits vorhanden";
 "add_torrent.error.duplicate.message" = "Dieser Torrent ist bereits in der Liste.";
 "add_torrent.error.generic.title" = "Download konnte nicht vorbereitet werden";

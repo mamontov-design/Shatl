@@ -179,7 +179,7 @@
 "add_torrent.error.metadata_timeout.title" = "Could not fetch metadata";
 "add_torrent.error.metadata_timeout.message" = "Sources did not send the data in time. Try again later.";
 "add_torrent.error.draft_lost.title" = "Download preparation was interrupted";
-"add_torrent.error.draft_lost.message" = "The data was not saved. Click Retry to try again.";
+"add_torrent.error.draft_lost.message" = "The data was not saved. Close this window and add the torrent again.";
 "add_torrent.error.duplicate.title" = "This download is already added";
 "add_torrent.error.duplicate.message" = "This torrent is already in the list.";
 "add_torrent.error.generic.title" = "Could not prepare the download";

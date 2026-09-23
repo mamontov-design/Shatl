@@ -179,7 +179,7 @@
 "add_torrent.error.metadata_timeout.title" = "Impossible de récupérer les métadonnées";
 "add_torrent.error.metadata_timeout.message" = "Les sources n’ont pas envoyé les données à temps. Réessayez plus tard.";
 "add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue";
-"add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Cliquez sur Réessayer pour recommencer.";
+"add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Fermez cette fenêtre et ajoutez à nouveau le torrent.";
 "add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà";
 "add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste.";
 "add_torrent.error.generic.title" = "Impossible de préparer le téléchargement";

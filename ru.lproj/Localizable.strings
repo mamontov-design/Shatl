@@ -183,7 +183,7 @@
 "add_torrent.error.metadata_timeout.title" = "Не удалось получить метаданные";
 "add_torrent.error.metadata_timeout.message" = "Источники не успели передать данные. Попробуйте снова через некоторое время.";
 "add_torrent.error.draft_lost.title" = "Подготовка загрузки прервана";
-"add_torrent.error.draft_lost.message" = "Данные не сохранились. Нажмите «Повторить», чтобы попробовать снова.";
+"add_torrent.error.draft_lost.message" = "Данные не сохранились. Закройте окно и добавьте торрент заново.";
 "add_torrent.error.duplicate.title" = "Такая загрузка уже есть";
 "add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список.";
 "add_torrent.error.generic.title" = "Не удалось подготовить загрузку";

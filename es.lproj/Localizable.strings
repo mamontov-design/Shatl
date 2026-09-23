@@ -179,7 +179,7 @@
 "add_torrent.error.metadata_timeout.title" = "No se pudieron obtener los metadatos";
 "add_torrent.error.metadata_timeout.message" = "Las fuentes no enviaron los datos a tiempo. Inténtalo más tarde.";
 "add_torrent.error.draft_lost.title" = "La preparación de la descarga se interrumpió";
-"add_torrent.error.draft_lost.message" = "Los datos no se guardaron. Pulsa Reintentar para probar de nuevo.";
+"add_torrent.error.draft_lost.message" = "Los datos no se guardaron. Cierra esta ventana y vuelve a añadir el torrent.";
 "add_torrent.error.duplicate.title" = "Esta descarga ya está añadida";
 "add_torrent.error.duplicate.message" = "Este torrent ya está en la lista.";
 "add_torrent.error.generic.title" = "No se pudo preparar la descarga";

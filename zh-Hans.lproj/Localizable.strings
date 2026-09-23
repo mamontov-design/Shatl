@@ -177,7 +177,7 @@
 "add_torrent.error.metadata_timeout.title" = "无法获取元数据";
 "add_torrent.error.metadata_timeout.message" = "来源未及时发送数据。请稍后重试。";
 "add_torrent.error.draft_lost.title" = "下载准备已中断";
-"add_torrent.error.draft_lost.message" = "数据未保存。点击重试再试一次。";
+"add_torrent.error.draft_lost.message" = "数据未保存。请关闭此窗口，然后重新添加 Torrent。";
 "add_torrent.error.duplicate.title" = "此下载已添加";
 "add_torrent.error.duplicate.message" = "此 Torrent 已在列表中。";
 "add_torrent.error.generic.title" = "无法准备下载";

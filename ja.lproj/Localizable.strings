@@ -177,7 +177,7 @@
 "add_torrent.error.metadata_timeout.title" = "メタデータを取得できませんでした";
 "add_torrent.error.metadata_timeout.message" = "ソースから時間内にデータが送信されませんでした。後でもう一度試してください。";
 "add_torrent.error.draft_lost.title" = "ダウンロードの準備が中断されました";
-"add_torrent.error.draft_lost.message" = "データは保存されませんでした。再試行をクリックしてもう一度試してください。";
+"add_torrent.error.draft_lost.message" = "データは保存されませんでした。このウインドウを閉じて、Torrentをもう一度追加してください。";
 "add_torrent.error.duplicate.title" = "このダウンロードはすでに追加されています";
 "add_torrent.error.duplicate.message" = "このTorrentはすでにリストにあります。";
 "add_torrent.error.generic.title" = "ダウンロードを準備できませんでした";
