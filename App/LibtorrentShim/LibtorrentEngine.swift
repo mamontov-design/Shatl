@@ -8,9 +8,17 @@ import Foundation
 actor LibtorrentEngine: TorrentEngine {
     private let bridge: LibtorrentSessionBridge
     private let bridgeErrorDomain = "mamontov.design.shatl.libtorrent"
+    private let metadataTimeout: Duration
+    private let metadataPollInterval: Duration
 
-    init(directories: ShatlDirectories) {
+    init(
+        directories: ShatlDirectories,
+        metadataTimeout: Duration = .seconds(40),
+        metadataPollInterval: Duration = .milliseconds(250)
+    ) {
         bridge = LibtorrentSessionBridge(resumeDataDirectoryURL: directories.resumeDataDirectoryURL)
+        self.metadataTimeout = metadataTimeout
+        self.metadataPollInterval = metadataPollInterval
     }
 
     private enum BridgeErrorCode: Int {
@@ -48,14 +56,21 @@ actor LibtorrentEngine: TorrentEngine {
         _ = stopAfterDownload
 
         let preparedDraft: LTPreparedDraft
-        do {
-            preparedDraft = try bridge.prepareDraft(
-                withSourceKind: source.kind.rawValue,
+        if source.kind == .magnet {
+            preparedDraft = try await fetchMagnetMetadata(
                 rawValue: source.rawValue,
                 suggestedSavePath: suggestedSavePath
             )
-        } catch {
-            throw mapBridgeError(error)
+        } else {
+            do {
+                preparedDraft = try bridge.prepareDraft(
+                    withSourceKind: source.kind.rawValue,
+                    rawValue: source.rawValue,
+                    suggestedSavePath: suggestedSavePath
+                )
+            } catch {
+                throw mapBridgeError(error)
+            }
         }
 
         return AddTorrentDraft(
@@ -76,6 +91,62 @@ actor LibtorrentEngine: TorrentEngine {
             reviewState: mapDraftState(preparedDraft.reviewState, message: preparedDraft.invalidMessage),
             errorState: nil
         )
+    }
+
+    /// Waits for magnet metadata without holding the actor: every bridge call
+    /// is short and the task suspends between polls, so snapshots, Stop and
+    /// shutdown are served meanwhile. Cancellation removes the temporary torrent.
+    private func fetchMagnetMetadata(
+        rawValue: String,
+        suggestedSavePath: String
+    ) async throws -> LTPreparedDraft {
+        try Task.checkCancellation()
+
+        let token: String
+        do {
+            token = try bridge.beginMagnetMetadataFetch(
+                withRawValue: rawValue,
+                suggestedSavePath: suggestedSavePath
+            )
+        } catch {
+            throw mapBridgeError(error)
+        }
+
+        let deadline = ContinuousClock.now + metadataTimeout
+        while true {
+            let polledDraft: LTPreparedDraft
+            do {
+                polledDraft = try bridge.pollMagnetMetadataFetch(withToken: token)
+            } catch {
+                // A failed poll has already finished the fetch in the bridge.
+                try Task.checkCancellation()
+                throw mapBridgeError(error)
+            }
+
+            if polledDraft.reviewState != .loadingMetadata {
+                return polledDraft
+            }
+
+            guard ContinuousClock.now < deadline else {
+                bridge.cancelMagnetMetadataFetch(withToken: token)
+                throw TorrentEngineError(
+                    kind: .metadataTimeout,
+                    debugReason: "Не удалось получить метаданные magnet-ссылки вовремя."
+                )
+            }
+
+            do {
+                try await Task.sleep(for: metadataPollInterval)
+            } catch {
+                bridge.cancelMagnetMetadataFetch(withToken: token)
+                throw error
+            }
+        }
+    }
+
+    /// Temporary magnet torrents still in the session; tests use it to prove cleanup.
+    func temporaryTorrentCount() -> Int {
+        bridge.temporaryTorrentCount()
     }
 
     func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor] {

@@ -158,10 +158,32 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 - (BOOL)applyPerformanceProfile:(LTPerformanceProfile)profile
                            error:(NSError * _Nullable * _Nullable)error;
 
+/// Prepares `.torrent` sources. Magnet links use the metadata fetch below,
+/// because their metadata arrives from the network over seconds.
 - (nullable LTPreparedDraft *)prepareDraftWithSourceKind:(NSString *)sourceKind
                                                 rawValue:(NSString *)rawValue
                                        suggestedSavePath:(NSString *)suggestedSavePath
                                                   error:(NSError * _Nullable * _Nullable)error;
+
+/// Adds a temporary torrent that only receives metadata and returns a token
+/// for it. Every call of the fetch is short, so the caller can suspend between
+/// polls and other commands are served while the metadata is on its way.
+- (nullable NSString *)beginMagnetMetadataFetchWithRawValue:(NSString *)rawValue
+                                          suggestedSavePath:(NSString *)suggestedSavePath
+                                                      error:(NSError * _Nullable * _Nullable)error;
+
+/// Returns a `LoadingMetadata` draft while the metadata is missing and a ready
+/// draft once it arrived. A ready or failed fetch is finished: its temporary
+/// torrent is already removed from the session.
+- (nullable LTPreparedDraft *)pollMagnetMetadataFetchWithToken:(NSString *)token
+                                                         error:(NSError * _Nullable * _Nullable)error;
+
+/// Removes the temporary torrent of an unfinished fetch. Unknown tokens are ignored.
+- (void)cancelMagnetMetadataFetchWithToken:(NSString *)token;
+
+/// Torrents in the session that belong to no record, i.e. magnet metadata
+/// fetches. Tests use it to prove that a fetch leaves nothing behind.
+- (NSInteger)temporaryTorrentCount;
 
 - (nullable NSArray<LTPreparedFile *> *)inspectTorrentContentsAtPath:(NSString *)torrentFilePath
                                                                error:(NSError * _Nullable * _Nullable)error;

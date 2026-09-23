@@ -9,7 +9,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -523,10 +522,27 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @end
 
+/// A temporary upload-mode torrent that exists only to receive magnet metadata.
+struct LTMagnetMetadataFetch {
+    lt::torrent_handle handle;
+    lt::info_hash_t infoHashes;
+    std::string sourceKey;
+    std::string suggestedSavePath;
+    // Set when a record or a newer add took the same torrent: the temporary
+    // torrent is already gone and the next poll reports a duplicate.
+    bool isSuperseded = false;
+};
+
+static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t const& rhs) {
+    return (lhs.has_v1() && rhs.has_v1() && lhs.v1 == rhs.v1)
+        || (lhs.has_v2() && rhs.has_v2() && lhs.v2 == rhs.v2);
+}
+
 @interface LibtorrentSessionBridge () {
     NSURL *_resumeDataDirectoryURL;
     std::unique_ptr<lt::session> _session;
     std::map<std::string, lt::torrent_handle> _handlesByRecordID;
+    std::unordered_map<std::string, LTMagnetMetadataFetch> _magnetMetadataFetchesByToken;
     // libtorrent provides magnet metadata through a weak/shared pointer to const
     // torrent_info. Cache it as-is to avoid copying the heavy structure.
     std::unordered_map<std::string, std::shared_ptr<const lt::torrent_info>> _cachedTorrentInfoBySource;
@@ -763,13 +779,6 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
     NSString *normalizedSavePath = [suggestedSavePath stringByStandardizingPath];
     NSString *sourceKey = LTSourceKey(sourceKind, rawValue);
 
-    if ([sourceKind isEqualToString:@"magnet"]) {
-        return [self prepareMagnetDraftWithRawValue:rawValue
-                                          sourceKey:sourceKey
-                                  suggestedSavePath:normalizedSavePath
-                                              error:error];
-    }
-
     if ([sourceKind isEqualToString:@"torrentFile"] || [sourceKind isEqualToString:@"externalOpen"]) {
         return [self prepareTorrentFileDraftWithPath:rawValue
                                            sourceKey:sourceKey
@@ -783,10 +792,13 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
     return nil;
 }
 
-- (LTPreparedDraft *)prepareMagnetDraftWithRawValue:(NSString *)rawValue
-                                          sourceKey:(NSString *)sourceKey
-                                  suggestedSavePath:(NSString *)suggestedSavePath
-                                              error:(NSError * _Nullable __autoreleasing *)error {
+- (NSString *)beginMagnetMetadataFetchWithRawValue:(NSString *)rawValue
+                                 suggestedSavePath:(NSString *)suggestedSavePath
+                                             error:(NSError * _Nullable __autoreleasing *)error {
+    if (![self boot:error]) {
+        return nil;
+    }
+
     lt::error_code ec;
     lt::add_torrent_params params = lt::parse_magnet_uri(LTToStdString(rawValue), ec);
     if (ec) {
@@ -796,6 +808,10 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
         return nil;
     }
 
+    // A fetch left behind by a just-closed Review window must not turn the
+    // same magnet into a duplicate of itself when the window is reopened.
+    [self supersedeMagnetMetadataFetchesForInfoHashes:params.info_hashes];
+
     if (self->_session->find_torrent(params.info_hashes.get_best()).is_valid()) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
@@ -803,7 +819,8 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
         return nil;
     }
 
-    params.save_path = LTToStdString(suggestedSavePath);
+    NSString *normalizedSavePath = [suggestedSavePath stringByStandardizingPath];
+    params.save_path = LTToStdString(normalizedSavePath);
     params.flags &= ~lt::torrent_flags::paused;
     params.flags &= ~lt::torrent_flags::auto_managed;
     params.flags |= lt::torrent_flags::upload_mode;
@@ -818,46 +835,131 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
         return nil;
     }
 
-    LTPreparedDraft *preparedDraft = nil;
+    NSString *token = [NSUUID UUID].UUIDString;
+    LTMagnetMetadataFetch fetch;
+    fetch.handle = handle;
+    fetch.infoHashes = params.info_hashes;
+    fetch.sourceKey = LTToStdString(LTSourceKey(@"magnet", rawValue));
+    fetch.suggestedSavePath = LTToStdString(normalizedSavePath);
+    self->_magnetMetadataFetchesByToken[LTToStdString(token)] = fetch;
+    return token;
+}
 
-    for (NSInteger attempt = 0; attempt < 160; ++attempt) {
-        lt::torrent_status status = handle.status(LTMinimalStatusQueryFlags());
-
-        if (status.errc) {
-            self->_session->remove_torrent(handle);
-            if (error != nullptr) {
-                *error = LTMakeErrorFromCode(ShatlLibtorrentErrorCodeEngineFailure, status.errc, @"Получение метаданных завершилось с ошибкой.");
-            }
-            return nil;
+- (LTPreparedDraft *)pollMagnetMetadataFetchWithToken:(NSString *)token
+                                                error:(NSError * _Nullable __autoreleasing *)error {
+    std::string key = LTToStdString(token);
+    auto iterator = self->_magnetMetadataFetchesByToken.find(key);
+    if (iterator == self->_magnetMetadataFetchesByToken.end()) {
+        if (error != nullptr) {
+            *error = LTMakeError(
+                ShatlLibtorrentErrorCodeDraftPreparationLost,
+                @"Получение метаданных уже завершено или отменено."
+            );
         }
-
-        auto torrentInfo = status.torrent_file.lock();
-        if (status.has_metadata && torrentInfo) {
-            self->_cachedTorrentInfoBySource[LTToStdString(sourceKey)] = torrentInfo;
-
-            preparedDraft = [self makePreparedDraftFromTorrentInfo:torrentInfo
-                                                  suggestedSavePath:suggestedSavePath];
-
-            self->_session->remove_torrent(handle);
-            auto infoHash = torrentInfo->info_hashes().get_best();
-            for (NSInteger waitIteration = 0; waitIteration < 80; ++waitIteration) {
-                if (!self->_session->find_torrent(infoHash).is_valid()) {
-                    break;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(25));
-            }
-
-            return preparedDraft;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        return nil;
     }
 
-    self->_session->remove_torrent(handle);
-    if (error != nullptr) {
-        *error = LTMakeError(ShatlLibtorrentErrorCodeMetadataTimeout, @"Не удалось получить метаданные magnet-ссылки вовремя.");
+    LTMagnetMetadataFetch fetch = iterator->second;
+    if (fetch.isSuperseded) {
+        self->_magnetMetadataFetchesByToken.erase(iterator);
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
+        }
+        return nil;
     }
-    return nil;
+
+    lt::torrent_status status;
+    try {
+        status = fetch.handle.status(LTMinimalStatusQueryFlags());
+    } catch (std::exception const& exception) {
+        [self removeMagnetMetadataFetchWithKey:key];
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
+        }
+        return nil;
+    }
+
+    if (status.errc) {
+        [self removeMagnetMetadataFetchWithKey:key];
+        if (error != nullptr) {
+            *error = LTMakeErrorFromCode(ShatlLibtorrentErrorCodeEngineFailure, status.errc, @"Получение метаданных завершилось с ошибкой.");
+        }
+        return nil;
+    }
+
+    NSString *suggestedSavePath = LTToNSString(fetch.suggestedSavePath);
+    auto torrentInfo = status.torrent_file.lock();
+    if (!status.has_metadata || !torrentInfo) {
+        return [[LTPreparedDraft alloc] initWithOriginalName:@""
+                                                    infoHash:nil
+                                           suggestedSavePath:suggestedSavePath
+                                                       files:@[]
+                                                 reviewState:LTTorrentDraftStateLoadingMetadata
+                                              invalidMessage:nil];
+    }
+
+    self->_cachedTorrentInfoBySource[fetch.sourceKey] = torrentInfo;
+    LTPreparedDraft *preparedDraft = [self makePreparedDraftFromTorrentInfo:torrentInfo
+                                                          suggestedSavePath:suggestedSavePath];
+
+    // Session calls run in order on libtorrent's network thread, so the
+    // temporary torrent is gone before a later Confirm adds the real one.
+    [self removeMagnetMetadataFetchWithKey:key];
+    return preparedDraft;
+}
+
+- (void)cancelMagnetMetadataFetchWithToken:(NSString *)token {
+    [self removeMagnetMetadataFetchWithKey:LTToStdString(token)];
+}
+
+- (void)removeMagnetMetadataFetchWithKey:(std::string const&)key {
+    auto iterator = self->_magnetMetadataFetchesByToken.find(key);
+    if (iterator == self->_magnetMetadataFetchesByToken.end()) {
+        return;
+    }
+
+    if (self->_session != nullptr && iterator->second.handle.is_valid()) {
+        self->_session->remove_torrent(iterator->second.handle);
+    }
+    self->_magnetMetadataFetchesByToken.erase(iterator);
+}
+
+/// A record or a newer add always wins over a pending magnet fetch of the same
+/// torrent, so Start or Confirm never fails because a Review is still loading.
+- (void)supersedeMagnetMetadataFetchesForInfoHashes:(lt::info_hash_t const&)infoHashes {
+    for (auto& entry : self->_magnetMetadataFetchesByToken) {
+        LTMagnetMetadataFetch& fetch = entry.second;
+        if (fetch.isSuperseded || !LTInfoHashesOverlap(fetch.infoHashes, infoHashes)) {
+            continue;
+        }
+
+        if (self->_session != nullptr && fetch.handle.is_valid()) {
+            self->_session->remove_torrent(fetch.handle);
+        }
+        fetch.handle = lt::torrent_handle();
+        fetch.isSuperseded = true;
+    }
+}
+
+- (NSInteger)temporaryTorrentCount {
+    if (_session == nullptr) {
+        return 0;
+    }
+
+    NSInteger count = 0;
+    for (lt::torrent_handle const& handle : _session->get_torrents()) {
+        bool belongsToRecord = false;
+        for (auto const& entry : self->_handlesByRecordID) {
+            if (entry.second == handle) {
+                belongsToRecord = true;
+                break;
+            }
+        }
+        if (!belongsToRecord) {
+            count += 1;
+        }
+    }
+    return count;
 }
 
 - (LTPreparedDraft *)prepareTorrentFileDraftWithPath:(NSString *)path
@@ -873,6 +975,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
         return nil;
     }
 
+    [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     if (self->_session->find_torrent(torrentInfo->info_hashes().get_best()).is_valid()) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
@@ -979,6 +1082,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
     std::shared_ptr<const lt::torrent_info> torrentInfo = cachedInfoIterator->second;
     lt::sha1_hash bestHash = torrentInfo->info_hashes().get_best();
+    [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     if (self->_session->find_torrent(bestHash).is_valid()) {
         LTDiagnosticsBridgeLog(@"add.duplicate", recordIdentifier, nil, YES);
         if (error != nullptr) {
@@ -1251,6 +1355,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
             isSelected ? lt::default_priority : lt::dont_download;
     }
 
+    [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
         LTDiagnosticsBridgeLog(
