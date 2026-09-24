@@ -55,10 +55,13 @@ actor LibtorrentEngine: TorrentEngine {
     ) async throws -> AddTorrentDraft {
         _ = stopAfterDownload
 
+        // The bridge keeps the metadata under this ID until the draft is released.
+        let draftID = UUID()
         let preparedDraft: LTPreparedDraft
         if source.kind == .magnet {
             preparedDraft = try await fetchMagnetMetadata(
                 rawValue: source.rawValue,
+                draftID: draftID,
                 suggestedSavePath: suggestedSavePath
             )
         } else {
@@ -66,6 +69,7 @@ actor LibtorrentEngine: TorrentEngine {
                 preparedDraft = try bridge.prepareDraft(
                     withSourceKind: source.kind.rawValue,
                     rawValue: source.rawValue,
+                    draftIdentifier: draftID.uuidString,
                     suggestedSavePath: suggestedSavePath
                 )
             } catch {
@@ -74,6 +78,7 @@ actor LibtorrentEngine: TorrentEngine {
         }
 
         return AddTorrentDraft(
+            id: draftID,
             source: source,
             originalName: preparedDraft.originalName,
             infoHash: preparedDraft.infoHash,
@@ -98,6 +103,7 @@ actor LibtorrentEngine: TorrentEngine {
     /// shutdown are served meanwhile. Cancellation removes the temporary torrent.
     private func fetchMagnetMetadata(
         rawValue: String,
+        draftID: UUID,
         suggestedSavePath: String
     ) async throws -> LTPreparedDraft {
         try Task.checkCancellation()
@@ -106,6 +112,7 @@ actor LibtorrentEngine: TorrentEngine {
         do {
             token = try bridge.beginMagnetMetadataFetch(
                 withRawValue: rawValue,
+                draftIdentifier: draftID.uuidString,
                 suggestedSavePath: suggestedSavePath
             )
         } catch {
@@ -163,16 +170,24 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
-    func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws {
+    func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws {
         do {
             try bridge.exportPreparedTorrent(
-                withSourceKind: source.kind.rawValue,
-                rawValue: source.rawValue,
+                withDraftIdentifier: draftID.uuidString,
                 destinationPath: destinationPath
             )
         } catch {
             throw mapBridgeError(error)
         }
+    }
+
+    func releasePreparedDraft(id draftID: UUID) async {
+        bridge.releasePreparedDraft(withIdentifier: draftID.uuidString)
+    }
+
+    /// Drafts whose metadata the bridge still holds; tests use it to prove release.
+    func preparedDraftCount() -> Int {
+        bridge.preparedDraftCount()
     }
 
     func addTorrent(
@@ -192,7 +207,7 @@ actor LibtorrentEngine: TorrentEngine {
         do {
             addedTorrent = try bridge.addTorrent(
                 withSourceKind: draft.source.kind.rawValue,
-                rawValue: draft.source.rawValue,
+                draftIdentifier: draft.id.uuidString,
                 suggestedSavePath: draft.suggestedSavePath,
                 stopAfterDownload: draft.stopAfterDownload,
                 selectedFileIndices: selectedIndices,

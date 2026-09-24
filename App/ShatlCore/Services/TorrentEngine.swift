@@ -81,7 +81,10 @@ nonisolated protocol TorrentEngine: Sendable {
         stopAfterDownload: Bool
     ) async throws -> AddTorrentDraft
     func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor]
-    func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws
+    /// `prepareDraft` keeps the metadata of each draft under the draft `id`;
+    /// `addTorrent` and this export read it until `releasePreparedDraft` drops it.
+    func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws
+    func releasePreparedDraft(id draftID: UUID) async
     func addTorrent(
         using draft: AddTorrentDraft,
         recordID: UUID,

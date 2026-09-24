@@ -160,8 +160,10 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 /// Prepares `.torrent` sources. Magnet links use the metadata fetch below,
 /// because their metadata arrives from the network over seconds.
+/// The metadata is kept under `draftIdentifier` until the draft is released.
 - (nullable LTPreparedDraft *)prepareDraftWithSourceKind:(NSString *)sourceKind
                                                 rawValue:(NSString *)rawValue
+                                         draftIdentifier:(NSString *)draftIdentifier
                                        suggestedSavePath:(NSString *)suggestedSavePath
                                                   error:(NSError * _Nullable * _Nullable)error;
 
@@ -169,12 +171,14 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 /// for it. Every call of the fetch is short, so the caller can suspend between
 /// polls and other commands are served while the metadata is on its way.
 - (nullable NSString *)beginMagnetMetadataFetchWithRawValue:(NSString *)rawValue
+                                            draftIdentifier:(NSString *)draftIdentifier
                                           suggestedSavePath:(NSString *)suggestedSavePath
                                                       error:(NSError * _Nullable * _Nullable)error;
 
 /// Returns a `LoadingMetadata` draft while the metadata is missing and a ready
 /// draft once it arrived. A ready or failed fetch is finished: its temporary
-/// torrent is already removed from the session.
+/// torrent is already removed from the session, and a ready draft keeps the
+/// metadata under its draft identifier.
 - (nullable LTPreparedDraft *)pollMagnetMetadataFetchWithToken:(NSString *)token
                                                          error:(NSError * _Nullable * _Nullable)error;
 
@@ -189,7 +193,7 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
                                                                error:(NSError * _Nullable * _Nullable)error;
 
 - (nullable LTAddedTorrent *)addTorrentWithSourceKind:(NSString *)sourceKind
-                                             rawValue:(NSString *)rawValue
+                                      draftIdentifier:(NSString *)draftIdentifier
                                     suggestedSavePath:(NSString *)suggestedSavePath
                                      stopAfterDownload:(BOOL)stopAfterDownload
                                     selectedFileIndices:(NSArray<NSNumber *> *)selectedFileIndices
@@ -197,10 +201,16 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
                                       attemptIdentifier:(NSString *)attemptIdentifier
                                                   error:(NSError * _Nullable * _Nullable)error;
 
-- (BOOL)exportPreparedTorrentWithSourceKind:(NSString *)sourceKind
-                                   rawValue:(NSString *)rawValue
-                            destinationPath:(NSString *)destinationPath
-                                      error:(NSError * _Nullable * _Nullable)error;
+- (BOOL)exportPreparedTorrentWithDraftIdentifier:(NSString *)draftIdentifier
+                                 destinationPath:(NSString *)destinationPath
+                                           error:(NSError * _Nullable * _Nullable)error;
+
+/// Drops the metadata of a draft that was closed or finished adding.
+/// Unknown identifiers are ignored.
+- (void)releasePreparedDraftWithIdentifier:(NSString *)draftIdentifier;
+
+/// Drafts whose metadata is still held. Tests use it to prove release.
+- (NSInteger)preparedDraftCount;
 
 - (nullable LTTorrentSnapshot *)restoreTorrentWithTorrentFilePath:(NSString *)torrentFilePath
                                                 suggestedSavePath:(NSString *)suggestedSavePath

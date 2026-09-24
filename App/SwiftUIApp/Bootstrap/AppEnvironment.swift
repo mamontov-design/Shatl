@@ -199,7 +199,9 @@ private actor PreviewTorrentEngine: TorrentEngine {
         []
     }
 
-    func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws {}
+    func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws {}
+
+    func releasePreparedDraft(id draftID: UUID) async {}
 
     func addTorrent(
         using draft: AddTorrentDraft,

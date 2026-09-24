@@ -16,6 +16,11 @@ actor FakeTorrentEngine: TorrentEngine {
     private var suspendsAdd = false
     private var addContinuation: CheckedContinuation<Void, Never>?
     private var prepareSources: [AddTorrentSource] = []
+    private var suspendsPrepare = false
+    private var prepareContinuation: CheckedContinuation<Void, Never>?
+    private var heldPreparedDraftIDsValue: Set<UUID> = []
+    private var createdPreparedDraftIDsValue: [UUID] = []
+    private var requiresPreparedDrafts = false
     private var removeCallsValue: [RemovedTorrentCall] = []
     private var removeError: TorrentEngineError?
     private var removeDelayNanoseconds: UInt64 = 0
@@ -49,7 +54,17 @@ actor FakeTorrentEngine: TorrentEngine {
     ) async throws -> AddTorrentDraft {
         prepareSources.append(source)
 
+        if suspendsPrepare {
+            await withCheckedContinuation { continuation in
+                prepareContinuation = continuation
+            }
+        }
+
+        let draftID = UUID()
+        heldPreparedDraftIDsValue.insert(draftID)
+        createdPreparedDraftIDsValue.append(draftID)
         return AddTorrentDraft(
+            id: draftID,
             source: source,
             originalName: "Test Torrent",
             infoHash: "test-info-hash",
@@ -74,10 +89,20 @@ actor FakeTorrentEngine: TorrentEngine {
         return inspectContentsValue
     }
 
-    func exportPreparedTorrent(from source: AddTorrentSource, to destinationPath: String) async throws {
+    func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws {
+        try requirePreparedDraft(draftID)
         let data = Data("dummy torrent".utf8)
         try data.write(to: URL(fileURLWithPath: destinationPath), options: .atomic)
-        _ = source
+    }
+
+    func releasePreparedDraft(id draftID: UUID) async {
+        heldPreparedDraftIDsValue.remove(draftID)
+    }
+
+    /// Like the real bridge, fails when the metadata of the draft was released.
+    private func requirePreparedDraft(_ draftID: UUID) throws {
+        guard requiresPreparedDrafts, !heldPreparedDraftIDsValue.contains(draftID) else { return }
+        throw TorrentEngineError(kind: .draftPreparationLost, debugReason: "draft \(draftID) released")
     }
 
     func addTorrent(
@@ -93,6 +118,7 @@ actor FakeTorrentEngine: TorrentEngine {
             }
         }
 
+        try requirePreparedDraft(draft.id)
         if let addError {
             throw addError
         }
@@ -222,6 +248,32 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func recordedPrepareSources() async -> [AddTorrentSource] {
         prepareSources
+    }
+
+    /// Drafts whose metadata the engine still holds.
+    func heldPreparedDraftIDs() async -> Set<UUID> {
+        heldPreparedDraftIDsValue
+    }
+
+    /// Every draft `prepareDraft` returned, in order.
+    func createdPreparedDraftIDs() async -> [UUID] {
+        createdPreparedDraftIDsValue
+    }
+
+    /// Makes add and export fail for drafts that were never prepared or were
+    /// already released, as the real bridge does. Off by default because many
+    /// tests confirm hand-made drafts.
+    func setRequiresPreparedDrafts(_ isRequired: Bool) async {
+        requiresPreparedDrafts = isRequired
+    }
+
+    func setPrepareSuspended(_ isSuspended: Bool) async {
+        suspendsPrepare = isSuspended
+        if !isSuspended {
+            let continuation = prepareContinuation
+            prepareContinuation = nil
+            continuation?.resume()
+        }
     }
 
     func recordedPerformanceSettings() async -> [EnginePerformanceSettings] {

@@ -97,7 +97,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
-    @Published var currentAddTorrentDraft: AddTorrentDraft?
+    @Published var currentAddTorrentDraft: AddTorrentDraft? {
+        didSet {
+            guard let oldValue, oldValue.id != currentAddTorrentDraft?.id else { return }
+            releasePreparedDraftUnlessAdding(oldValue.id)
+        }
+    }
     @Published var isRestoringSession = false
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
@@ -1766,8 +1771,23 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let task = Task { [weak self] in
             guard let self else { return }
             await self.performPendingTorrentAddition(addition)
+            // The addition has owned the prepared metadata since Confirm.
+            await self.engine.releasePreparedDraft(id: addition.draft.id)
         }
         pendingTorrentAdditionTasks[addition.id] = task
+    }
+
+    /// The Review draft owns its prepared metadata until it is replaced or
+    /// closed. A confirmed draft hands it over to its pending addition instead.
+    private func releasePreparedDraftUnlessAdding(_ draftID: UUID) {
+        guard !pendingTorrentAdditions.contains(where: { $0.draft.id == draftID }) else { return }
+        releasePreparedDraft(draftID)
+    }
+
+    private func releasePreparedDraft(_ draftID: UUID) {
+        Task { [engine] in
+            await engine.releasePreparedDraft(id: draftID)
+        }
     }
 
     private func performPendingTorrentAddition(_ addition: PendingTorrentAddition) async {
@@ -2667,7 +2687,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func persistRestoreArtifacts(for record: TorrentRecord, draft: AddTorrentDraft) async throws {
         let archiveURL = try await torrentArchiveStore.destinationURL(for: record.id)
-        try await engine.exportPreparedTorrent(from: draft.source, to: archiveURL.path)
+        try await engine.exportPreparedTorrent(draftID: draft.id, to: archiveURL.path)
         if let bookmarkData = draft.savePathBookmarkData {
             await bookmarkStore.saveBookmarkData(for: record.id, data: bookmarkData)
         } else {
@@ -2729,12 +2749,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     stopAfterDownload: stopAfterDownload
                 )
 
-                guard !Task.isCancelled else { return }
-                guard self.currentAddTorrentDraft?.source == source else { return }
+                guard !Task.isCancelled,
+                      self.currentAddTorrentDraft?.source == source else {
+                    // Review was closed or moved on while the metadata loaded.
+                    self.releasePreparedDraft(draft.id)
+                    return
+                }
 
                 draft.alias = alias
                 draft.savePathBookmarkData = savePathBookmarkData
                 if self.isDuplicateDraft(draft) {
+                    self.releasePreparedDraft(draft.id)
                     self.presentDuplicateDraft(for: draft)
                 } else {
                     self.currentAddTorrentDraft = draft
