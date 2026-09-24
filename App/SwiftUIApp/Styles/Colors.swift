@@ -17,6 +17,10 @@ enum ShatlColor {
     static let cardHover = Color("cardHover")
     static let cardSelectedError = Color("cardSelectedError")
 
+    /// `backgroundTertiary` in light; 20% black in dark, so the empty part of
+    /// the bar does not read as a hole in the card.
+    static let progressBarTrack = Color("progressBarTrack")
+
     static let speedBadgeTortoise = Color("speedBadgeTortoise")
     static let speedIconTortoise = Color("speedIconTortoise")
     static let speedLabelTortoise = Color("speedLabelTortoise")

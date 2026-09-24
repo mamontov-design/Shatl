@@ -698,7 +698,7 @@ struct TorrentCardView: View, Equatable {
     private var progressBar: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(ShatlColor.backgroundTertiary)
+                .fill(ShatlColor.progressBarTrack)
                 .overlay {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
                         .strokeBorder(ShatlColor.outlinePrimary, lineWidth: 1)
