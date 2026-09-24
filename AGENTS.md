@@ -16,8 +16,8 @@
   rules. Views must not talk to libtorrent directly.
 - `App/LibtorrentShim`: the only libtorrent/C++ boundary.
 - `Tests`: XCTest regression suite for both product behavior and safety rules.
-- `Website` is a legacy landing snapshot. Do not publish or redesign it unless
-  the user explicitly puts it in scope.
+- The landing page is developed outside this repository. Do not add a landing
+  or Pages workflow here unless the user explicitly puts it in scope.
 
 ## Build and verification
 
