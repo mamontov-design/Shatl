@@ -12,20 +12,18 @@ struct ShatlApp: App {
     @StateObject private var updaterController: ShatlUpdaterController
 
     init() {
-        #if DEBUG
-        let isRunningInsideXcodePreview = Self.isRunningInsideXcodePreview
-        #else
-        let isRunningInsideXcodePreview = false
-        #endif
+        let launchMode = ShatlLaunchMode.current
 
         _updaterController = StateObject(
             wrappedValue: ShatlUpdaterController(
-                startingUpdater: !isRunningInsideXcodePreview
+                startingUpdater: launchMode == .live
             )
         )
 
         #if DEBUG
-        if isRunningInsideXcodePreview {
+        // Previews and the unit-test host get an inert store on temporary
+        // folders, so they never load, clean or rewrite the user's session.
+        if launchMode != .live {
             _store = StateObject(wrappedValue: AppEnvironment.previewStore())
             return
         }
@@ -52,33 +50,12 @@ struct ShatlApp: App {
         )
     }
 
-    #if DEBUG
-    private static var isRunningInsideXcodePreview: Bool {
-        let environment = ProcessInfo.processInfo.environment
-        return environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
-            || environment["XCODE_RUNNING_FOR_PLAYGROUNDS"] == "1"
-    }
-    #endif
-
     var body: some Scene {
         // Shatl must have exactly one main window.
         // WindowGroup can create new scene instances, but external torrent or magnet
         // opening would then produce multiple unwanted windows.
         Window("Shatl", id: "main") {
-            MainWindowView()
-                .environmentObject(store)
-                .environmentObject(accentState)
-                .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
-                .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
-                .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
-                .onAppear {
-                    appDelegate.terminationHandler = store
-                    appDelegate.userAttentionHandler = store
-                    appDelegate.terminationFailurePresenter = ShatlTerminationAlertPresenter { [weak store = store] in
-                        store?.preferences.localeOverride ?? .system
-                    }
-                    store.setApplicationUserAttentionActive(NSApp.isActive)
-                }
+            mainWindowContent
                 .frame(minWidth:440, minHeight: 440)
                 .windowFullScreenBehavior(.disabled)
         }
@@ -123,6 +100,30 @@ struct ShatlApp: App {
                 .windowFullScreenBehavior(.disabled)
         }
         .windowResizability(.contentSize)
+    }
+
+    /// The unit-test host shows an empty window: `MainWindowView` would
+    /// bootstrap the store, ask for notifications and present onboarding.
+    @ViewBuilder
+    private var mainWindowContent: some View {
+        if ShatlLaunchMode.current == .unitTestHost {
+            Color.clear
+        } else {
+            MainWindowView()
+                .environmentObject(store)
+                .environmentObject(accentState)
+                .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
+                .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
+                .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .onAppear {
+                    appDelegate.terminationHandler = store
+                    appDelegate.userAttentionHandler = store
+                    appDelegate.terminationFailurePresenter = ShatlTerminationAlertPresenter { [weak store = store] in
+                        store?.preferences.localeOverride ?? .system
+                    }
+                    store.setApplicationUserAttentionActive(NSApp.isActive)
+                }
+        }
     }
 }
 

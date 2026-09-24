@@ -3,6 +3,30 @@
 
 import Foundation
 
+/// How this process was started. Unit tests are hosted in `Shatl.app`, so a
+/// test run also runs `ShatlApp`; only `.live` may touch the user's session,
+/// preferences, telemetry and Sparkle.
+nonisolated enum ShatlLaunchMode: Equatable, Sendable {
+    case live
+    case xcodePreview
+    case unitTestHost
+
+    static let current = resolve(environment: ProcessInfo.processInfo.environment)
+
+    static func resolve(environment: [String: String]) -> ShatlLaunchMode {
+        #if DEBUG
+        if environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+            || environment["XCODE_RUNNING_FOR_PLAYGROUNDS"] == "1" {
+            return .xcodePreview
+        }
+        if environment["XCTestConfigurationFilePath"] != nil {
+            return .unitTestHost
+        }
+        #endif
+        return .live
+    }
+}
+
 /// Assembles the application's live dependencies in one place.
 struct AppEnvironment {
     var engine: any TorrentEngine

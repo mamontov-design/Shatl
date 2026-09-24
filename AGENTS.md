@@ -42,6 +42,10 @@ persistence, deletion, restore, or shared UI state.
 - `session.json`, archived torrents, bookmarks, and fastresume data are durable
   state, not cache. A failed initial load must stay fail-closed and must not be
   overwritten until the user explicitly starts with an empty list.
+- Unit tests are hosted in `Shatl.app`, so a test run also runs `ShatlApp`.
+  Under XCTest (`ShatlLaunchMode.unitTestHost`) the host must stay inert: no
+  `AppEnvironment.live()`, no bootstrap, no Sparkle, no telemetry. Otherwise
+  every test run touches the user's real session and preferences.
 - Keep the 1 Hz runtime loop free of filesystem walks and heavy SwiftUI work.
 - Preserve manual Start/Stop semantics; do not enable libtorrent `auto_managed`
   or add fake cache controls.
