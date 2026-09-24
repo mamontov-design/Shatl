@@ -1383,6 +1383,37 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
     }
 
+    func testRemoveTorrentForgetsTrackedFiles() async throws {
+        let engine = FakeTorrentEngine()
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RemoveForgetsFiles-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
+
+        let removedRecord = makeTestRecord(savePath: saveRoot.path)
+        let keptRecord = makeTestRecord(savePath: saveRoot.path)
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [removedRecord, keptRecord])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: [removedRecord, keptRecord])
+        for record in [removedRecord, keptRecord] {
+            let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+            try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+            _ = await bundle.diskIssueDetector.validateAfterUserAction(for: record)
+        }
+        let removedIsTracked = await bundle.diskIssueDetector.hasTrackedFiles(for: removedRecord.id)
+        XCTAssertTrue(removedIsTracked)
+
+        await bundle.store.removeTorrent(id: removedRecord.id, policy: .removeFromListOnly)
+
+        let removedIsStillTracked = await bundle.diskIssueDetector.hasTrackedFiles(for: removedRecord.id)
+        let keptIsTracked = await bundle.diskIssueDetector.hasTrackedFiles(for: keptRecord.id)
+        XCTAssertFalse(removedIsStillTracked)
+        XCTAssertTrue(keptIsTracked)
+    }
+
     func testRemoveTorrentCommitFailurePreservesEverythingAndRetrySucceeds() async throws {
         let engine = FakeTorrentEngine()
         await engine.setInspectContents([

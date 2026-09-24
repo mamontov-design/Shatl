@@ -1524,6 +1524,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
+        await diskIssueDetector.forgetTrackedFiles(for: id)
         await sessionStore.finalizeRemovalArtifacts(torrentID: id)
     }
 

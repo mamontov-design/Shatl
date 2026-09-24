@@ -407,6 +407,7 @@ struct TestStoreBundle {
     var resumeDataStore: ResumeDataStore
     var payloadLocator: TorrentPayloadLocator
     var payloadDeletionService: TorrentPayloadDeletionService
+    var diskIssueDetector: DiskIssueDetector
     var router: ExternalOpenRouter
 }
 
@@ -496,6 +497,7 @@ func makeTestStoreBundle(
         resumeDataStore: resumeDataStore,
         payloadLocator: payloadLocator,
         payloadDeletionService: payloadDeletionService,
+        diskIssueDetector: diskIssueDetector,
         router: router
     )
 }
