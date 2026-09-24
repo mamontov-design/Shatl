@@ -41,9 +41,9 @@
         "color-space" : "srgb",
         "components" : {
           "alpha" : "1.000",
-          "blue" : "0.584",
-          "green" : "0.114",
-          "red" : "0.298"
+          "blue" : "0.835",
+          "green" : "0.165",
+          "red" : "0.427"
         }
       },
       "idiom" : "mac"
