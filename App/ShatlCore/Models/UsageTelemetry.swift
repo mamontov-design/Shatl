@@ -6,6 +6,10 @@ import Foundation
 nonisolated struct UsageTelemetryPayload: Codable, Equatable, Sendable {
     var installID: String
     var week: String
+    /// Launches in `week` up to the moment the report was built. One report is
+    /// sent per ISO week, at the first launch or when Shatl keeps running into
+    /// a new week, so the value is usually 1 and can be 0. The report itself
+    /// marks the install as active in that week.
     var launchCount: Int
     var locale: String
     var appVersion: String

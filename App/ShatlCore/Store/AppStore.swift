@@ -139,6 +139,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var draftPreparationTask: Task<Void, Never>?
     private var performanceApplyTask: Task<Void, Never>?
     private var usageTelemetrySendTask: Task<Void, Never>?
+    private var usageTelemetryWeekMonitorTask: Task<Void, Never>?
+    private let usageTelemetryWeekCheckInterval: Duration
     private var sessionPersistenceCheckTask: Task<Void, Never>?
     private var sessionPersistenceIssueGeneration = 0
     private var isSessionPersistenceIssueHidden = false
@@ -207,7 +209,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         torrents: [TorrentRecord] = [],
         preferences: AppPreferences? = nil,
         hasLoadedInitialSession: Bool = false,
-        progressSaveInterval: Duration = .seconds(30)
+        progressSaveInterval: Duration = .seconds(30),
+        usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
     ) {
         self.preferencesStore = preferencesStore
         self.engine = engine
@@ -224,6 +227,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
         self.progressSaveInterval = progressSaveInterval
+        self.usageTelemetryWeekCheckInterval = usageTelemetryWeekCheckInterval
         self.torrents = torrents
         self.lastPersistedProgressBucketByID = Dictionary(
             uniqueKeysWithValues: torrents.map {
@@ -252,6 +256,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         recordUsageTelemetryLaunchIfNeeded()
+        startUsageTelemetryWeekMonitor()
     }
 
     deinit {
@@ -261,6 +266,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         usageTelemetrySendTask?.cancel()
+        usageTelemetryWeekMonitorTask?.cancel()
         progressSaveTask?.cancel()
         for task in pendingTorrentAdditionTasks.values {
             task.cancel()
@@ -618,7 +624,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 try await usageTelemetrySender.send(payload)
                 await MainActor.run {
                     guard let self else { return }
-                    self.preferences.lastUsageStatisticsSentAt = Date()
+                    self.preferences.lastUsageStatisticsSentAt = self.usageTelemetryCoordinator?.currentDate ?? Date()
                 }
             } catch is CancellationError {
                 return
@@ -635,7 +641,52 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return true
         }
 
-        return UsageTelemetryWeek.identifier(for: lastSentAt) != payload.week
+        let lastSentWeek = usageTelemetryCoordinator?.weekIdentifier(for: lastSentAt)
+            ?? UsageTelemetryWeek.identifier(for: lastSentAt)
+        return lastSentWeek != payload.week
+    }
+
+    /// Shatl often keeps running for weeks, so a new week is reported even
+    /// without a launch. The check runs apart from the 1 Hz loop, and its
+    /// continuous-clock sleep fires right away when the Mac wakes after the
+    /// deadline.
+    private func startUsageTelemetryWeekMonitor() {
+        guard usageTelemetryCoordinator != nil, usageTelemetrySender != nil else { return }
+
+        let interval = usageTelemetryWeekCheckInterval
+        usageTelemetryWeekMonitorTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: interval, tolerance: interval / 6)
+                guard !Task.isCancelled, let self else { return }
+                self.sendUsageTelemetryForNewWeekIfNeeded()
+            }
+        }
+    }
+
+    private func sendUsageTelemetryForNewWeekIfNeeded() {
+        guard preferences.canSendAnonymousUsageStatistics,
+              let usageTelemetryCoordinator else { return }
+
+        // Already reported this week: nothing to read or send.
+        if let lastSentAt = preferences.lastUsageStatisticsSentAt,
+           usageTelemetryCoordinator.weekIdentifier(for: lastSentAt)
+            == usageTelemetryCoordinator.weekIdentifier(for: usageTelemetryCoordinator.currentDate) {
+            return
+        }
+
+        do {
+            guard let payload = try usageTelemetryCoordinator.currentWeekPayloadIfEnabled(
+                isEnabled: true,
+                localeIdentifier: usageTelemetryLocaleIdentifier,
+                appVersion: appVersion
+            ) else {
+                return
+            }
+
+            sendUsageTelemetryIfNeeded(payload)
+        } catch {
+            Self.logger.error("Failed to prepare weekly usage telemetry: \(error.localizedDescription)")
+        }
     }
 
     func prepareForTermination() async -> Bool {

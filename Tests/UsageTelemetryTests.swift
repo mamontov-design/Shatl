@@ -127,6 +127,66 @@ final class UsageTelemetryTests: XCTestCase {
         XCTAssertEqual(nextWeekPayload?.launchCount, 1)
     }
 
+    func testCurrentWeekPayloadRollsOverWithoutCountingALaunch() throws {
+        var currentDate = try date(year: 2026, month: 6, day: 3)
+        let bundle = try makeTelemetryBundle(now: { currentDate })
+        for _ in 0..<2 {
+            _ = try bundle.coordinator.recordLaunchIfEnabled(
+                isEnabled: true,
+                localeIdentifier: "ru",
+                appVersion: "1.0"
+            )
+        }
+
+        let sameWeekPayload = try bundle.coordinator.currentWeekPayloadIfEnabled(
+            isEnabled: true,
+            localeIdentifier: "ru",
+            appVersion: "1.0"
+        )
+        XCTAssertEqual(sameWeekPayload?.week, "2026-W23")
+        XCTAssertEqual(sameWeekPayload?.launchCount, 2)
+        XCTAssertEqual(try bundle.store.loadState()?.launchCount, 2)
+
+        currentDate = try date(year: 2026, month: 6, day: 10)
+        let nextWeekPayload = try bundle.coordinator.currentWeekPayloadIfEnabled(
+            isEnabled: true,
+            localeIdentifier: "ru",
+            appVersion: "1.0"
+        )
+        XCTAssertEqual(
+            nextWeekPayload,
+            UsageTelemetryPayload(
+                installID: "fixed-install-id",
+                week: "2026-W24",
+                launchCount: 0,
+                locale: "ru",
+                appVersion: "1.0"
+            )
+        )
+        XCTAssertEqual(try bundle.store.readInspectablePayload(), nextWeekPayload)
+
+        let launchPayload = try bundle.coordinator.recordLaunchIfEnabled(
+            isEnabled: true,
+            localeIdentifier: "ru",
+            appVersion: "1.0"
+        )
+        XCTAssertEqual(launchPayload?.week, "2026-W24")
+        XCTAssertEqual(launchPayload?.launchCount, 1)
+    }
+
+    func testCurrentWeekPayloadIsNilWhenTelemetryIsDisabled() throws {
+        let bundle = try makeTelemetryBundle()
+
+        let payload = try bundle.coordinator.currentWeekPayloadIfEnabled(
+            isEnabled: false,
+            localeIdentifier: "ru",
+            appVersion: "1.0"
+        )
+
+        XCTAssertNil(payload)
+        XCTAssertNil(try bundle.store.loadState())
+    }
+
     func testSendStatusKeepsLastSentDateWhenTelemetryIsDisabled() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
@@ -198,6 +258,110 @@ final class UsageTelemetryTests: XCTestCase {
         let sentPayload = await sender.sentPayloads.first
         XCTAssertEqual(sentPayload?.installID, "fixed-install-id")
         XCTAssertEqual(sentPayload?.launchCount, 1)
+    }
+
+    /// One report per week: a later launch in the same week is counted
+    /// locally but not sent.
+    @MainActor
+    func testSecondLaunchInSameWeekIsCountedButNotSent() async throws {
+        let bundle = try makeTelemetryBundle()
+        let sender = SpyUsageTelemetrySender()
+        var preferences = AppPreferences.defaultValue
+        preferences.sendsAnonymousUsageStatistics = true
+        preferences.hasAnsweredUsageStatisticsOnboarding = true
+
+        let firstLaunch = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: preferences,
+            usageTelemetryCoordinator: bundle.coordinator,
+            usageTelemetrySender: sender
+        )
+        let didSendFirst = await waitForCondition {
+            firstLaunch.store.preferences.lastUsageStatisticsSentAt != nil
+        }
+        XCTAssertTrue(didSendFirst)
+
+        let secondLaunch = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: firstLaunch.store.preferences,
+            usageTelemetryCoordinator: bundle.coordinator,
+            usageTelemetrySender: sender
+        )
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertNotNil(secondLaunch.store.preferences.lastUsageStatisticsSentAt)
+
+        let sentPayloads = await sender.sentPayloads
+        XCTAssertEqual(sentPayloads.map(\.launchCount), [1])
+        XCTAssertEqual(try bundle.store.loadState()?.launchCount, 2)
+    }
+
+    /// Shatl that keeps running into a new week reports that week without a
+    /// launch, once, with the same install ID.
+    @MainActor
+    func testRunningAppStoreReportsNewWeekOnceWithoutLaunch() async throws {
+        let clock = TelemetryTestClock(date: try date(year: 2026, month: 6, day: 3))
+        let bundle = try makeTelemetryBundle(now: { clock.date })
+        let sender = SpyUsageTelemetrySender()
+        var preferences = AppPreferences.defaultValue
+        preferences.sendsAnonymousUsageStatistics = true
+        preferences.hasAnsweredUsageStatisticsOnboarding = true
+
+        let storeBundle = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: preferences,
+            usageTelemetryCoordinator: bundle.coordinator,
+            usageTelemetrySender: sender,
+            usageTelemetryWeekCheckInterval: .milliseconds(50)
+        )
+        let didSendLaunch = await waitForAsyncCondition {
+            await sender.sentPayloadCount == 1
+        }
+        XCTAssertTrue(didSendLaunch)
+
+        // Checks within the same week send nothing more.
+        try await Task.sleep(for: .milliseconds(300))
+        let sameWeekCount = await sender.sentPayloadCount
+        XCTAssertEqual(sameWeekCount, 1)
+
+        clock.date = try date(year: 2026, month: 6, day: 10)
+        let didSendNewWeek = await waitForAsyncCondition {
+            await sender.sentPayloadCount == 2
+        }
+        XCTAssertTrue(didSendNewWeek)
+        try await Task.sleep(for: .milliseconds(300))
+
+        let sentPayloads = await sender.sentPayloads
+        XCTAssertEqual(sentPayloads.map(\.week), ["2026-W23", "2026-W24"])
+        XCTAssertEqual(sentPayloads.map(\.launchCount), [1, 0])
+        XCTAssertEqual(Set(sentPayloads.map(\.installID)), ["fixed-install-id"])
+        let lastSentAt = try XCTUnwrap(storeBundle.store.preferences.lastUsageStatisticsSentAt)
+        XCTAssertEqual(bundle.coordinator.weekIdentifier(for: lastSentAt), "2026-W24")
+    }
+
+    @MainActor
+    func testRunningAppStoreDoesNotReportNewWeekWhenStatisticsAreOff() async throws {
+        let clock = TelemetryTestClock(date: try date(year: 2026, month: 6, day: 3))
+        let bundle = try makeTelemetryBundle(now: { clock.date })
+        let sender = SpyUsageTelemetrySender()
+        var preferences = AppPreferences.defaultValue
+        preferences.sendsAnonymousUsageStatistics = false
+        preferences.hasAnsweredUsageStatisticsOnboarding = true
+
+        let storeBundle = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            preferences: preferences,
+            usageTelemetryCoordinator: bundle.coordinator,
+            usageTelemetrySender: sender,
+            usageTelemetryWeekCheckInterval: .milliseconds(50)
+        )
+        clock.date = try date(year: 2026, month: 6, day: 10)
+        try await Task.sleep(for: .milliseconds(300))
+
+        // Using the store after the wait keeps it running through the checks.
+        XCTAssertFalse(storeBundle.store.preferences.canSendAnonymousUsageStatistics)
+        let sentPayloadCount = await sender.sentPayloadCount
+        XCTAssertEqual(sentPayloadCount, 0)
+        XCTAssertNil(try bundle.store.loadState())
     }
 
     @MainActor
@@ -312,6 +476,21 @@ private actor SpyUsageTelemetrySender: UsageTelemetrySending {
 
     func send(_ payload: UsageTelemetryPayload) async throws {
         payloads.append(payload)
+    }
+}
+
+/// A clock the test moves forward while the store keeps running.
+private final class TelemetryTestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var currentDate: Date
+
+    init(date: Date) {
+        currentDate = date
+    }
+
+    var date: Date {
+        get { lock.withLock { currentDate } }
+        set { lock.withLock { currentDate = newValue } }
     }
 }
 

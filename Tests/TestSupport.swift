@@ -480,7 +480,8 @@ func makeTestStoreBundle(
     sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
         try data.write(to: url, options: .atomic)
     },
-    progressSaveInterval: Duration = .seconds(30)
+    progressSaveInterval: Duration = .seconds(30),
+    usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
 ) -> TestStoreBundle {
     let rootURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("ShatlTests-\(UUID().uuidString)", isDirectory: true)
@@ -536,7 +537,8 @@ func makeTestStoreBundle(
         torrents: torrents,
         preferences: preferences,
         hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
-        progressSaveInterval: progressSaveInterval
+        progressSaveInterval: progressSaveInterval,
+        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval
     )
 
     return TestStoreBundle(
@@ -570,7 +572,8 @@ func makeTestStoreBundle(
     sessionWriteData: @escaping @Sendable (Data, URL) throws -> Void = { data, url in
         try data.write(to: url, options: .atomic)
     },
-    progressSaveInterval: Duration = .seconds(30)
+    progressSaveInterval: Duration = .seconds(30),
+    usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
 ) -> TestStoreBundle {
     makeTestStoreBundle(
         engine: engine,
@@ -584,7 +587,8 @@ func makeTestStoreBundle(
         sessionStoreStartupMode: sessionStoreStartupMode,
         sessionReadData: sessionReadData,
         sessionWriteData: sessionWriteData,
-        progressSaveInterval: progressSaveInterval
+        progressSaveInterval: progressSaveInterval,
+        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval
     )
 }
 

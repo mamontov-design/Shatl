@@ -105,6 +105,16 @@ final class UsageTelemetryLocalCoordinator: @unchecked Sendable {
         store.payloadURL
     }
 
+    /// The telemetry clock. The store dates sends with it, so the week of the
+    /// last send and the week of a report always come from the same clock.
+    var currentDate: Date {
+        now()
+    }
+
+    func weekIdentifier(for date: Date) -> String {
+        UsageTelemetryWeek.identifier(for: date, calendar: calendar)
+    }
+
     func setStatisticsEnabled(
         _ isEnabled: Bool,
         localeIdentifier: String,
@@ -146,6 +156,42 @@ final class UsageTelemetryLocalCoordinator: @unchecked Sendable {
         return payload
     }
 
+    /// Builds the report of the current week without counting a launch, for a
+    /// Shatl that keeps running into a new week. A new week resets the launch
+    /// count, so such a report can carry 0 launches. Within the same week the
+    /// state is only read.
+    func currentWeekPayloadIfEnabled(
+        isEnabled: Bool,
+        localeIdentifier: String,
+        appVersion: String
+    ) throws -> UsageTelemetryPayload? {
+        guard isEnabled else {
+            return nil
+        }
+
+        let currentDate = now()
+        let storedState = try store.loadState()
+        if let storedState, storedState.currentWeek == weekIdentifier(for: currentDate) {
+            return UsageTelemetryPayloadBuilder.payload(
+                from: storedState,
+                localeIdentifier: localeIdentifier,
+                appVersion: appVersion
+            )
+        }
+
+        var state = activeState(from: storedState, for: currentDate)
+        state.lastPayloadGeneratedAt = currentDate
+        try store.saveState(state)
+
+        let payload = UsageTelemetryPayloadBuilder.payload(
+            from: state,
+            localeIdentifier: localeIdentifier,
+            appVersion: appVersion
+        )
+        try store.writeInspectablePayload(payload)
+        return payload
+    }
+
     func ensureInspectablePayloadIfAvailable(
         isEnabled: Bool,
         localeIdentifier: String,
@@ -169,9 +215,13 @@ final class UsageTelemetryLocalCoordinator: @unchecked Sendable {
     }
 
     private func activeState(for date: Date) throws -> UsageTelemetryState {
-        let currentWeek = UsageTelemetryWeek.identifier(for: date, calendar: calendar)
+        activeState(from: try store.loadState(), for: date)
+    }
 
-        guard var state = try store.loadState() else {
+    private func activeState(from storedState: UsageTelemetryState?, for date: Date) -> UsageTelemetryState {
+        let currentWeek = weekIdentifier(for: date)
+
+        guard var state = storedState else {
             return UsageTelemetryState(
                 anonymousInstallID: makeInstallID(),
                 currentWeek: currentWeek,
