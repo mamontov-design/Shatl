@@ -75,10 +75,6 @@ static NSError *LTMakeErrorFromCode(ShatlLibtorrentErrorCode code, lt::error_cod
     return LTMakeError(code, message);
 }
 
-static NSString *LTSourceKey(NSString *sourceKind, NSString *rawValue) {
-    return [NSString stringWithFormat:@"%@::%@", sourceKind, rawValue];
-}
-
 static void LTApplyNetworkDiscoverySettings(lt::settings_pack& pack, bool enableLSD) {
     pack.set_bool(lt::settings_pack::enable_dht, true);
     pack.set_bool(lt::settings_pack::enable_lsd, enableLSD);
@@ -526,7 +522,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 struct LTMagnetMetadataFetch {
     lt::torrent_handle handle;
     lt::info_hash_t infoHashes;
-    std::string sourceKey;
+    std::string draftIdentifier;
     std::string suggestedSavePath;
     // Set when a record or a newer add took the same torrent: the temporary
     // torrent is already gone and the next poll reports a duplicate.
@@ -543,9 +539,12 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     std::unique_ptr<lt::session> _session;
     std::map<std::string, lt::torrent_handle> _handlesByRecordID;
     std::unordered_map<std::string, LTMagnetMetadataFetch> _magnetMetadataFetchesByToken;
+    // Metadata of prepared drafts, kept until Swift releases the draft after
+    // closing Review or finishing the add. Each draft owns its entry, so a
+    // Review and an add of the same source never drop each other's metadata.
     // libtorrent provides magnet metadata through a weak/shared pointer to const
-    // torrent_info. Cache it as-is to avoid copying the heavy structure.
-    std::unordered_map<std::string, std::shared_ptr<const lt::torrent_info>> _cachedTorrentInfoBySource;
+    // torrent_info. Keep it as-is to avoid copying the heavy structure.
+    std::unordered_map<std::string, std::shared_ptr<const lt::torrent_info>> _preparedTorrentInfoByDraftID;
     std::unordered_map<std::string, bool> _stopAfterDownloadByRecordID;
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
     LTPerformanceProfile _performanceProfile;
@@ -770,6 +769,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
 - (LTPreparedDraft *)prepareDraftWithSourceKind:(NSString *)sourceKind
                                        rawValue:(NSString *)rawValue
+                                draftIdentifier:(NSString *)draftIdentifier
                               suggestedSavePath:(NSString *)suggestedSavePath
                                          error:(NSError * _Nullable __autoreleasing *)error {
     if (![self boot:error]) {
@@ -777,11 +777,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     NSString *normalizedSavePath = [suggestedSavePath stringByStandardizingPath];
-    NSString *sourceKey = LTSourceKey(sourceKind, rawValue);
 
     if ([sourceKind isEqualToString:@"torrentFile"] || [sourceKind isEqualToString:@"externalOpen"]) {
         return [self prepareTorrentFileDraftWithPath:rawValue
-                                           sourceKey:sourceKey
+                                     draftIdentifier:draftIdentifier
                                    suggestedSavePath:normalizedSavePath
                                                error:error];
     }
@@ -793,6 +792,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 }
 
 - (NSString *)beginMagnetMetadataFetchWithRawValue:(NSString *)rawValue
+                                   draftIdentifier:(NSString *)draftIdentifier
                                  suggestedSavePath:(NSString *)suggestedSavePath
                                              error:(NSError * _Nullable __autoreleasing *)error {
     if (![self boot:error]) {
@@ -839,7 +839,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     LTMagnetMetadataFetch fetch;
     fetch.handle = handle;
     fetch.infoHashes = params.info_hashes;
-    fetch.sourceKey = LTToStdString(LTSourceKey(@"magnet", rawValue));
+    fetch.draftIdentifier = LTToStdString(draftIdentifier);
     fetch.suggestedSavePath = LTToStdString(normalizedSavePath);
     self->_magnetMetadataFetchesByToken[LTToStdString(token)] = fetch;
     return token;
@@ -898,7 +898,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                               invalidMessage:nil];
     }
 
-    self->_cachedTorrentInfoBySource[fetch.sourceKey] = torrentInfo;
+    self->_preparedTorrentInfoByDraftID[fetch.draftIdentifier] = torrentInfo;
     LTPreparedDraft *preparedDraft = [self makePreparedDraftFromTorrentInfo:torrentInfo
                                                           suggestedSavePath:suggestedSavePath];
 
@@ -963,7 +963,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 }
 
 - (LTPreparedDraft *)prepareTorrentFileDraftWithPath:(NSString *)path
-                                           sourceKey:(NSString *)sourceKey
+                                     draftIdentifier:(NSString *)draftIdentifier
                                    suggestedSavePath:(NSString *)suggestedSavePath
                                                error:(NSError * _Nullable __autoreleasing *)error {
     lt::error_code ec;
@@ -983,7 +983,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         return nil;
     }
 
-    self->_cachedTorrentInfoBySource[LTToStdString(sourceKey)] = torrentInfo;
+    self->_preparedTorrentInfoByDraftID[LTToStdString(draftIdentifier)] = torrentInfo;
     return [self makePreparedDraftFromTorrentInfo:torrentInfo suggestedSavePath:suggestedSavePath];
 }
 
@@ -1042,7 +1042,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 }
 
 - (LTAddedTorrent *)addTorrentWithSourceKind:(NSString *)sourceKind
-                                    rawValue:(NSString *)rawValue
+                             draftIdentifier:(NSString *)draftIdentifier
                            suggestedSavePath:(NSString *)suggestedSavePath
                             stopAfterDownload:(BOOL)stopAfterDownload
                            selectedFileIndices:(NSArray<NSNumber *> *)selectedFileIndices
@@ -1067,9 +1067,8 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         YES
     );
 
-    NSString *sourceKey = LTSourceKey(sourceKind, rawValue);
-    auto cachedInfoIterator = self->_cachedTorrentInfoBySource.find(LTToStdString(sourceKey));
-    if (cachedInfoIterator == self->_cachedTorrentInfoBySource.end()) {
+    auto cachedInfoIterator = self->_preparedTorrentInfoByDraftID.find(LTToStdString(draftIdentifier));
+    if (cachedInfoIterator == self->_preparedTorrentInfoByDraftID.end()) {
         LTDiagnosticsBridgeLog(@"add.draft-missing", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(
@@ -1184,13 +1183,11 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                              totalFileCount:fileStorage.num_files()];
 }
 
-- (BOOL)exportPreparedTorrentWithSourceKind:(NSString *)sourceKind
-                                   rawValue:(NSString *)rawValue
-                            destinationPath:(NSString *)destinationPath
-                                      error:(NSError * _Nullable __autoreleasing *)error {
-    NSString *sourceKey = LTSourceKey(sourceKind, rawValue);
-    auto cachedInfoIterator = self->_cachedTorrentInfoBySource.find(LTToStdString(sourceKey));
-    if (cachedInfoIterator == self->_cachedTorrentInfoBySource.end()) {
+- (BOOL)exportPreparedTorrentWithDraftIdentifier:(NSString *)draftIdentifier
+                                 destinationPath:(NSString *)destinationPath
+                                           error:(NSError * _Nullable __autoreleasing *)error {
+    auto cachedInfoIterator = self->_preparedTorrentInfoByDraftID.find(LTToStdString(draftIdentifier));
+    if (cachedInfoIterator == self->_preparedTorrentInfoByDraftID.end()) {
         if (error != nullptr) {
             *error = LTMakeError(
                 ShatlLibtorrentErrorCodeDraftPreparationLost,
@@ -1236,6 +1233,14 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     return YES;
+}
+
+- (void)releasePreparedDraftWithIdentifier:(NSString *)draftIdentifier {
+    self->_preparedTorrentInfoByDraftID.erase(LTToStdString(draftIdentifier));
+}
+
+- (NSInteger)preparedDraftCount {
+    return static_cast<NSInteger>(self->_preparedTorrentInfoByDraftID.size());
 }
 
 - (LTTorrentSnapshot *)restoreTorrentWithTorrentFilePath:(NSString *)torrentFilePath

@@ -52,6 +52,17 @@ actor DiskIssueDetector {
         await evaluateRecord(for: record)
     }
 
+    /// Drops the cached file list of a torrent that left the list, so removed
+    /// torrents do not keep their selected paths in memory until quit.
+    func forgetTrackedFiles(for torrentID: UUID) {
+        trackedFilesCache[torrentID] = nil
+    }
+
+    /// Whether the file list of a torrent is cached; tests use it to prove cleanup.
+    func hasTrackedFiles(for torrentID: UUID) -> Bool {
+        trackedFilesCache[torrentID] != nil
+    }
+
     func captureCurrentFootprint(for record: TorrentRecord) async -> MaterializedSelectionFootprint? {
         guard let saveURL = await bookmarkStore.resolveURL(
             for: record.id,
