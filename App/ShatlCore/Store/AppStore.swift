@@ -864,6 +864,41 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return true
     }
 
+    /// Stops libtorrent once the quit is decided. The engine caps its own wait;
+    /// this cap also covers a command still running on the engine, so a
+    /// logout or restart is never held up for long.
+    func finishTermination() async {
+        await finishTermination(timeout: .seconds(3))
+    }
+
+    func finishTermination(timeout: Duration) async {
+        runtimeTask?.cancel()
+        runtimeTask = nil
+        let engine = engine
+        let gate = ResumeOnce()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            gate.continuation = continuation
+            Task {
+                await engine.shutdown()
+                gate.resume()
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                gate.resume()
+            }
+        }
+    }
+
+    /// Lets whichever finishes first, the shutdown or the timeout, end the wait.
+    private final class ResumeOnce {
+        var continuation: CheckedContinuation<Void, Never>?
+
+        func resume() {
+            continuation?.resume()
+            continuation = nil
+        }
+    }
+
     /// The toolbar must not offer removal actions for cards with persistent issues.
     var canAddTorrent: Bool {
         guard hasLoadedInitialSession,

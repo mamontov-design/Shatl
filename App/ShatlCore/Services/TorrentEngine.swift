@@ -122,8 +122,11 @@ nonisolated protocol TorrentEngine: Sendable {
     func reconcileSleepingTorrents(_ records: [TorrentRecord]) async throws -> [EngineTorrentSnapshot]
     /// The open-file budget of the running engine; `nil` before boot.
     func resourceBudget() async -> EngineResourceBudget?
+    /// Stops the engine before the app exits; it accepts no commands afterwards.
+    func shutdown() async
 }
 
 extension TorrentEngine {
     nonisolated func resourceBudget() async -> EngineResourceBudget? { nil }
+    nonisolated func shutdown() async {}
 }

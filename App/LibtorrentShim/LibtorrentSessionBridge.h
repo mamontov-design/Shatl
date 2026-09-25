@@ -182,6 +182,12 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 - (BOOL)boot:(NSError * _Nullable * _Nullable)error;
 
+/// Stops libtorrent the way it expects before the app exits: trackers hear
+/// `stopped`, pending writes reach the disk, sockets close. Waits at most
+/// `timeout` seconds; the shutdown may finish on its own thread after that.
+/// The bridge accepts no commands afterwards.
+- (void)shutdownWithTimeout:(NSTimeInterval)timeout;
+
 - (BOOL)applyPerformanceProfile:(LTPerformanceProfile)profile
                            error:(NSError * _Nullable * _Nullable)error;
 

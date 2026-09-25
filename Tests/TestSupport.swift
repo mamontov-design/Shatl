@@ -28,6 +28,8 @@ actor FakeTorrentEngine: TorrentEngine {
         TorrentContentFileDescriptor(relativePath: "test-file.bin", sizeBytes: 1_024, fileIndex: 0),
     ]
     private var inspectCallCountValue = 0
+    private var shutdownCallCountValue = 0
+    private var hangsOnShutdown = false
     private var restoreSessionCallCountValue = 0
     private var restoreSessionEntriesValue: [SessionRestoreEntry] = []
     private var restoreSnapshotsByTorrentID: [UUID: EngineTorrentSnapshot] = [:]
@@ -91,6 +93,22 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func inspectCallCount() -> Int {
         inspectCallCountValue
+    }
+
+    func shutdown() async {
+        shutdownCallCountValue += 1
+        if hangsOnShutdown {
+            try? await Task.sleep(for: .seconds(30))
+        }
+    }
+
+    func shutdownCallCount() -> Int {
+        shutdownCallCountValue
+    }
+
+    /// Stands for an engine busy with a long command when the app quits.
+    func setHangsOnShutdown(_ hangs: Bool) {
+        hangsOnShutdown = hangs
     }
 
     func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws {

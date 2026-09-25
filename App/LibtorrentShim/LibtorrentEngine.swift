@@ -48,6 +48,12 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
+    /// Trackers hear `stopped` and pending writes reach the disk; the wait is
+    /// capped so a quit, logout or restart is never held up for long.
+    func shutdown() async {
+        bridge.shutdown(withTimeout: 2)
+    }
+
     func resourceBudget() async -> EngineResourceBudget? {
         guard let budget = bridge.currentResourceBudget() else { return nil }
         return EngineResourceBudget(

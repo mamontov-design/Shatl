@@ -52,7 +52,20 @@ protocol ShatlTerminationFailurePresenting: AnyObject {
 enum ShatlTerminationFlow {
     /// A failed session save must not trap the user in the app: they can
     /// retry, stay in Shatl, or quit with the last committed session on disk.
+    /// A decided quit finishes with `finishTermination`, which stops the engine.
     static func resolve(
+        handler: any ShatlTerminationPreparing,
+        source: ShatlTerminationRequestSource,
+        presenter: any ShatlTerminationFailurePresenting
+    ) async -> Bool {
+        let shouldTerminate = await decide(handler: handler, source: source, presenter: presenter)
+        if shouldTerminate {
+            await handler.finishTermination()
+        }
+        return shouldTerminate
+    }
+
+    private static func decide(
         handler: any ShatlTerminationPreparing,
         source: ShatlTerminationRequestSource,
         presenter: any ShatlTerminationFailurePresenting

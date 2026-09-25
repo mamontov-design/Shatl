@@ -14,6 +14,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <thread>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -680,6 +681,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
     LTPerformanceProfile _performanceProfile;
     int _initialOpenFileLimit;
+    BOOL _isShutDown;
     uint64_t _snapshotTickCounter;
 }
 @end
@@ -864,6 +866,13 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     if (_session != nullptr) {
         return YES;
     }
+    // Commands arriving while the app quits must not start a new session.
+    if (_isShutDown) {
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeSessionNotBooted, @"Сессия libtorrent уже остановлена.");
+        }
+        return NO;
+    }
 
     _initialOpenFileLimit = LTCurrentOpenFileLimit();
     LTRaiseOpenFileLimit();
@@ -892,6 +901,47 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         );
     }
     return YES;
+}
+
+- (void)shutdownWithTimeout:(NSTimeInterval)timeout {
+    _isShutDown = YES;
+    if (_session == nullptr) {
+        return;
+    }
+
+    // Trackers get a second to hear `stopped` instead of the default five.
+    lt::settings_pack pack;
+    pack.set_int(lt::settings_pack::stop_tracker_timeout, 1);
+    _session->apply_settings(pack);
+
+    // With the proxy alive the session's destructor does not wait; the
+    // proxy's destructor waits for trackers, pending writes and sockets.
+    lt::session_proxy proxy = _session->abort();
+    _session.reset();
+    _handlesByRecordID.clear();
+    _magnetMetadataFetchesByToken.clear();
+    _stopAfterDownloadByRecordID.clear();
+    _lastSnapshotStatusByRecordID.clear();
+
+    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+    std::thread([proxy = std::move(proxy), finished]() mutable {
+        {
+            lt::session_proxy lastReference = std::move(proxy);
+        }
+        dispatch_semaphore_signal(finished);
+    }).detach();
+    long const timedOut = dispatch_semaphore_wait(
+        finished,
+        dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(timeout * NSEC_PER_SEC))
+    );
+    if (LTDiagnosticsLoggingEnabled()) {
+        LTDiagnosticsLog(
+            @"Bridge",
+            @"INFO",
+            timedOut == 0 ? @"phase=shutdown.finished" : @"phase=shutdown.timed-out",
+            YES
+        );
+    }
 }
 
 - (BOOL)applyPerformanceProfile:(LTPerformanceProfile)profile

@@ -19,6 +19,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
 
         XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(presenter.presentationCount, 0)
+        XCTAssertEqual(handler.finishCount, 1)
     }
 
     func testRetryQuitsOnceSaveSucceeds() async {
@@ -34,6 +35,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
         XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(handler.callCount, 2)
         XCTAssertEqual(presenter.presentationCount, 1)
+        XCTAssertEqual(handler.finishCount, 1)
     }
 
     func testRepeatedFailureKeepsAskingUntilUserReturnsToApp() async {
@@ -49,6 +51,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
         XCTAssertFalse(shouldTerminate)
         XCTAssertEqual(handler.callCount, 3)
         XCTAssertEqual(presenter.presentationCount, 3)
+        XCTAssertEqual(handler.finishCount, 0, "Returning to Shatl must keep the engine running")
     }
 
     func testQuitWithoutSavingEndsFailedQuit() async {
@@ -63,6 +66,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
 
         XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(handler.callCount, 1)
+        XCTAssertEqual(handler.finishCount, 1)
     }
 
     func testSystemQuitNeverShowsDialogOrCancelsMacOS() async {
@@ -78,6 +82,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
         XCTAssertTrue(shouldTerminate)
         XCTAssertEqual(handler.callCount, 1)
         XCTAssertEqual(presenter.presentationCount, 0)
+        XCTAssertEqual(handler.finishCount, 1)
     }
 
     func testQuitReasonSeparatesSystemRequestsFromUserQuit() {
@@ -129,6 +134,7 @@ final class ShatlTerminationFlowTests: XCTestCase {
 private final class ScriptedTerminationHandler: ShatlTerminationPreparing {
     private var results: [Bool]
     private(set) var callCount = 0
+    private(set) var finishCount = 0
 
     init(results: [Bool]) {
         self.results = results
@@ -137,6 +143,10 @@ private final class ScriptedTerminationHandler: ShatlTerminationPreparing {
     func prepareForTermination() async -> Bool {
         callCount += 1
         return results.isEmpty ? true : results.removeFirst()
+    }
+
+    func finishTermination() async {
+        finishCount += 1
     }
 }
 
