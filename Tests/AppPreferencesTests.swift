@@ -30,6 +30,27 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertEqual(decoded, .defaultValue)
     }
 
+    /// Existing users get the router port opened too, like new ones: other
+    /// clients do it by default, and the switch in Settings turns it off.
+    func testRouterPortOpensByDefaultForNewAndExistingPreferences() throws {
+        XCTAssertTrue(AppPreferences.defaultValue.opensRouterPortAutomatically)
+        XCTAssertTrue(AppPreferences.defaultValue.enginePerformanceSettings.opensRouterPort)
+        let data = try JSONEncoder().encode(AppPreferences.defaultValue)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        legacy.removeValue(forKey: "opensRouterPortAutomatically")
+        let decoded = try JSONDecoder().decode(
+            AppPreferences.self,
+            from: JSONSerialization.data(withJSONObject: legacy)
+        )
+        XCTAssertTrue(decoded.opensRouterPortAutomatically)
+
+        var disabled = AppPreferences.defaultValue
+        disabled.opensRouterPortAutomatically = false
+        let roundTrip = try JSONDecoder().decode(AppPreferences.self, from: JSONEncoder().encode(disabled))
+        XCTAssertFalse(roundTrip.opensRouterPortAutomatically)
+        XCTAssertFalse(roundTrip.enginePerformanceSettings.opensRouterPort)
+    }
+
     func testDefaultBrandMarkUsesWordmark() {
         XCTAssertEqual(AppPreferences.defaultValue.preferredBrandMark, .wordmark)
     }

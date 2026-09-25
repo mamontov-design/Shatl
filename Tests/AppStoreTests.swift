@@ -1265,11 +1265,37 @@ final class AppStoreTests: XCTestCase {
         bundle.store.setPerformanceProfile(.maximum)
 
         let didApplyMaximum = await waitForAsyncCondition {
-            await engine.recordedPerformanceSettings().last == EnginePerformanceSettings(mode: .maximum)
+            await engine.recordedPerformanceSettings().last
+                == EnginePerformanceSettings(mode: .maximum, opensRouterPort: true)
         }
 
         XCTAssertTrue(didApplyMaximum)
         XCTAssertEqual(bundle.store.preferences.performanceProfile, .maximum)
+    }
+
+    func testRouterPortSwitchAppliesEngineSettingsAndKeepsTheProfile() async {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(engine: engine)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.setOpensRouterPortAutomatically(false)
+
+        let didApplyOff = await waitForAsyncCondition {
+            await engine.recordedPerformanceSettings().last
+                == EnginePerformanceSettings(mode: .balanced, opensRouterPort: false)
+        }
+        XCTAssertTrue(didApplyOff)
+        XCTAssertFalse(bundle.store.preferences.opensRouterPortAutomatically)
+
+        bundle.store.setPerformanceProfile(.maximum)
+
+        let didKeepOff = await waitForAsyncCondition {
+            await engine.recordedPerformanceSettings().last
+                == EnginePerformanceSettings(mode: .maximum, opensRouterPort: false)
+        }
+        XCTAssertTrue(didKeepOff, "A profile switch must not turn the router port back on")
     }
 
     func testPrepareForTerminationCheckpointsOnlyActiveTorrentsAndPersistsResumeMetadata() async throws {

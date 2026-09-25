@@ -234,6 +234,9 @@
 "settings.downloads.performance.caption.main" = "Shatlは、選択したモードに応じて低速にも高速にも動作できます。高いモードほどダウンロードとシードが活発になり、Macへの負荷も増えます。";
 "settings.downloads.performance.caption.economical" = "Haloモードでは、バッテリーを節約するためにダウンロードとアップロードの速度も抑えます。";
 "settings.downloads.folder.section" = "ダウンロードフォルダ";
+"settings.downloads.network.section" = "ネットワーク";
+"settings.downloads.network.port_forwarding" = "ルーターのポートを自動的に開く";
+"settings.downloads.network.port_forwarding.caption" = "ほかのピアが Shatl に直接接続できるようになり、通常はダウンロードとアップロードが速くなります。";
 
 "settings.appearance.theme.section" = "テーマ";
 "settings.appearance.theme.system" = "システムに合わせる";
@@ -283,6 +286,9 @@
 "settings.debug.performance.budget" = "デバッグ：開いているファイルの上限は%1$@です（macOSの初期値：%2$@）。接続は最大%3$@、ファイルは最大%4$@。サービス接続を含む合計：%5$@。";
 "settings.debug.performance.budget_reduced" = "デバッグ：開いているファイルの上限は%1$@で、macOSはそれ以上を許可しませんでした（初期値：%2$@）。接続は%4$@ではなく最大%3$@、ファイルは%6$@ではなく最大%5$@。サービス接続を含む合計：%7$@。";
 "settings.debug.performance.engine_not_started" = "デバッグ：エンジンはまだ起動していません。";
+"settings.debug.network.port.searching" = "デバッグ：ルーターからまだ応答がありません。";
+"settings.debug.network.port.mapped" = "デバッグ：ルーターがポート %1$@ を開きました（%2$@）。";
+"settings.debug.network.port.failed" = "デバッグ：ルーターはポートを開きませんでした（%1$@：%2$@）。";
 
 "notification.download_completed.title" = "ダウンロード完了";
 "notification.download_completed.body" = "%@のダウンロードが完了しました。";

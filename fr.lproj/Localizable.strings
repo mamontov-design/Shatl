@@ -236,6 +236,9 @@
 "settings.downloads.performance.caption.main" = "Shatl peut fonctionner plus lentement ou plus rapidement selon le mode choisi. Les modes plus élevés rendent le téléchargement et l’envoi plus actifs et augmentent la charge du Mac.";
 "settings.downloads.performance.caption.economical" = "Le mode Halo réduit aussi les vitesses de téléchargement et d’envoi afin d’économiser la batterie.";
 "settings.downloads.folder.section" = "Dossier de téléchargement";
+"settings.downloads.network.section" = "Réseau";
+"settings.downloads.network.port_forwarding" = "Ouvrir automatiquement un port sur le routeur";
+"settings.downloads.network.port_forwarding.caption" = "Les autres pairs pourront se connecter eux-mêmes à Shatl, ce qui accélère généralement le téléchargement et l’envoi.";
 
 "settings.appearance.theme.section" = "Thème";
 "settings.appearance.theme.system" = "Comme le système";
@@ -285,6 +288,9 @@
 "settings.debug.performance.budget" = "Débogage : limite de fichiers ouverts : %1$@ (macOS en a attribué %2$@). Jusqu’à %3$@ connexions et %4$@ fichiers. Ouverts au total, connexions de service comprises : %5$@.";
 "settings.debug.performance.budget_reduced" = "Débogage : limite de fichiers ouverts : %1$@, macOS n’en a pas autorisé davantage (attribué : %2$@). Jusqu’à %3$@ connexions au lieu de %4$@ et %5$@ fichiers au lieu de %6$@. Ouverts au total, connexions de service comprises : %7$@.";
 "settings.debug.performance.engine_not_started" = "Débogage : le moteur n’a pas encore démarré.";
+"settings.debug.network.port.searching" = "Débogage : le routeur n’a pas encore répondu.";
+"settings.debug.network.port.mapped" = "Débogage : le routeur a ouvert le port %1$@ (%2$@).";
+"settings.debug.network.port.failed" = "Débogage : le routeur n’a pas ouvert de port (%1$@ : %2$@).";
 
 "notification.download_completed.title" = "Téléchargement terminé";
 "notification.download_completed.body" = "%@ a terminé son téléchargement.";

@@ -128,6 +128,8 @@ nonisolated enum EnginePerformanceMode: Int, Equatable, Sendable {
 
 nonisolated struct EnginePerformanceSettings: Equatable, Sendable {
     var mode: EnginePerformanceMode
+    /// Asks the router to open the listen port, so peers can connect to Shatl.
+    var opensRouterPort = false
 }
 
 nonisolated enum ShatlBrandMark: String, Codable, Sendable {
@@ -159,6 +161,8 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var lastUsageStatisticsSentAt: Date?
     var hasCompletedOnboarding: Bool
     var preferredBrandMark: ShatlBrandMark = .wordmark
+    /// Settings → Downloads → Network. On by default, like other torrent clients.
+    var opensRouterPortAutomatically = true
 }
 
 extension AppPreferences {
@@ -185,6 +189,7 @@ extension AppPreferences {
         case lastUsageStatisticsSentAt
         case hasCompletedOnboarding
         case preferredBrandMark
+        case opensRouterPortAutomatically
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -252,6 +257,10 @@ extension AppPreferences {
             ShatlBrandMark.self,
             forKey: .preferredBrandMark
         ) ?? .wordmark
+        opensRouterPortAutomatically = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .opensRouterPortAutomatically
+        ) ?? true
     }
 }
 
@@ -324,13 +333,11 @@ extension AppPreferences {
     }
 
     nonisolated var enginePerformanceSettings: EnginePerformanceSettings {
-        switch performanceProfile {
-        case .economical:
-            return EnginePerformanceSettings(mode: .economical)
-        case .balanced:
-            return EnginePerformanceSettings(mode: .balanced)
-        case .maximum:
-            return EnginePerformanceSettings(mode: .maximum)
+        let mode: EnginePerformanceMode = switch performanceProfile {
+        case .economical: .economical
+        case .balanced: .balanced
+        case .maximum: .maximum
         }
+        return EnginePerformanceSettings(mode: mode, opensRouterPort: opensRouterPortAutomatically)
     }
 }

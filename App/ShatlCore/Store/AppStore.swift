@@ -638,10 +638,22 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         schedulePerformanceSettingsApply()
     }
 
+    func setOpensRouterPortAutomatically(_ isEnabled: Bool) {
+        guard preferences.opensRouterPortAutomatically != isEnabled else { return }
+
+        preferences.opensRouterPortAutomatically = isEnabled
+        schedulePerformanceSettingsApply()
+    }
+
     #if DEBUG
     /// Debug Settings shows the engine's open-file limit and how many files are open.
     func engineResourceBudget() async -> EngineResourceBudget? {
         await engine.resourceBudget()
+    }
+
+    /// Debug Settings shows whether the router opened a port.
+    func enginePortMappingStatus() async -> EnginePortMappingStatus? {
+        await engine.portMappingStatus()
     }
     #endif
 

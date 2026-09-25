@@ -43,6 +43,7 @@ actor LibtorrentEngine: TorrentEngine {
     func applyPerformanceSettings(_ settings: EnginePerformanceSettings) async throws {
         do {
             try bridge.apply(mapPerformanceProfile(settings.mode))
+            try bridge.applyPortForwarding(settings.opensRouterPort)
         } catch {
             throw mapBridgeError(error)
         }
@@ -65,6 +66,22 @@ actor LibtorrentEngine: TorrentEngine {
             requestedFilePoolSize: budget.requestedFilePoolSize,
             openFileCount: LibtorrentSessionBridge.openFileDescriptorCount()
         )
+    }
+
+    func portMappingStatus() async -> EnginePortMappingStatus? {
+        let status = bridge.currentPortMappingStatus()
+        switch status.state {
+        case .off:
+            return .off
+        case .searching:
+            return .searching
+        case .mapped:
+            return .mapped(externalPort: status.externalPort, transport: status.transport ?? "")
+        case .failed:
+            return .failed(transport: status.transport, reason: status.errorMessage)
+        @unknown default:
+            return nil
+        }
     }
 
     func prepareDraft(

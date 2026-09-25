@@ -236,6 +236,9 @@
 "settings.downloads.performance.caption.main" = "Shatl can work slower or faster depending on the selected mode. Higher modes make downloading and seeding more active and increase the load on your Mac.";
 "settings.downloads.performance.caption.economical" = "Halo mode also lowers download and upload speeds to save battery power.";
 "settings.downloads.folder.section" = "Downloads folder";
+"settings.downloads.network.section" = "Network";
+"settings.downloads.network.port_forwarding" = "Open a port on the router automatically";
+"settings.downloads.network.port_forwarding.caption" = "Other peers will be able to connect to Shatl on their own — this usually speeds up downloads and uploads.";
 
 "settings.appearance.theme.section" = "Theme";
 "settings.appearance.theme.system" = "System";
@@ -285,6 +288,9 @@
 "settings.debug.performance.budget" = "Debug: open file limit is %1$@ (macOS gave %2$@). Up to %3$@ connections and %4$@ files. Open in total, including service connections: %5$@.";
 "settings.debug.performance.budget_reduced" = "Debug: open file limit is %1$@, macOS allowed no more (it gave %2$@). Up to %3$@ connections instead of %4$@ and %5$@ files instead of %6$@. Open in total, including service connections: %7$@.";
 "settings.debug.performance.engine_not_started" = "Debug: the engine has not started yet.";
+"settings.debug.network.port.searching" = "Debug: the router has not answered yet.";
+"settings.debug.network.port.mapped" = "Debug: the router opened port %1$@ (%2$@).";
+"settings.debug.network.port.failed" = "Debug: the router did not open a port (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Download complete";
 "notification.download_completed.body" = "%@ has finished downloading.";

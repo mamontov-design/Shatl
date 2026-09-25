@@ -240,6 +240,9 @@
 "settings.downloads.performance.caption.main" = "Shatl может работать медленнее или быстрее в зависимости от выбранного режима. Чем выше режим, тем активнее загрузка и раздача, и тем больше нагрузка на Mac.";
 "settings.downloads.performance.caption.economical" = "Режим Halo дополнительно снижает скорость загрузки и раздачи для экономии заряда батареи.";
 "settings.downloads.folder.section" = "Папка загрузки";
+"settings.downloads.network.section" = "Сеть";
+"settings.downloads.network.port_forwarding" = "Открывать порт на роутере автоматически";
+"settings.downloads.network.port_forwarding.caption" = "Другие участники смогут подключаться к Shatl сами — обычно это ускоряет загрузку и раздачу.";
 
 "settings.appearance.theme.section" = "Тема";
 "settings.appearance.theme.system" = "Как в системе";
@@ -289,6 +292,9 @@
 "settings.debug.performance.budget" = "Отладка: лимит открытых файлов — %1$@ (macOS выдала %2$@). Соединений до %3$@, файлов до %4$@. Всего открыто, включая служебные соединения: %5$@.";
 "settings.debug.performance.budget_reduced" = "Отладка: лимит открытых файлов — %1$@, выше macOS не дала (выдала %2$@). Соединений до %3$@ вместо %4$@, файлов до %5$@ вместо %6$@. Всего открыто, включая служебные соединения: %7$@.";
 "settings.debug.performance.engine_not_started" = "Отладка: движок ещё не запущен.";
+"settings.debug.network.port.searching" = "Отладка: роутер пока не ответил.";
+"settings.debug.network.port.mapped" = "Отладка: роутер открыл порт %1$@ (%2$@).";
+"settings.debug.network.port.failed" = "Отладка: роутер не открыл порт (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Загрузка завершена";
 "notification.download_completed.body" = "«%@» загружен.";

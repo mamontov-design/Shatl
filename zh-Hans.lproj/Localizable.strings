@@ -234,6 +234,9 @@
 "settings.downloads.performance.caption.main" = "Shatl 可根据所选模式更慢或更快地工作。模式越高，下载和做种越活跃，对 Mac 的负载也越大。";
 "settings.downloads.performance.caption.economical" = "Halo 模式还会降低下载和上传速度，以节省电池电量。";
 "settings.downloads.folder.section" = "下载文件夹";
+"settings.downloads.network.section" = "网络";
+"settings.downloads.network.port_forwarding" = "自动在路由器上打开端口";
+"settings.downloads.network.port_forwarding.caption" = "其他节点将能够主动连接到 Shatl，这通常会加快下载和上传。";
 
 "settings.appearance.theme.section" = "主题";
 "settings.appearance.theme.system" = "跟随系统";
@@ -283,6 +286,9 @@
 "settings.debug.performance.budget" = "调试：打开文件上限为 %1$@（macOS 初始值：%2$@）。最多 %3$@ 个连接和 %4$@ 个文件。合计已打开（含服务连接）：%5$@。";
 "settings.debug.performance.budget_reduced" = "调试：打开文件上限为 %1$@，macOS 不允许更高（初始值：%2$@）。最多 %3$@ 个连接（而非 %4$@）和 %5$@ 个文件（而非 %6$@）。合计已打开（含服务连接）：%7$@。";
 "settings.debug.performance.engine_not_started" = "调试：引擎尚未启动。";
+"settings.debug.network.port.searching" = "调试：路由器尚未响应。";
+"settings.debug.network.port.mapped" = "调试：路由器已打开端口 %1$@（%2$@）。";
+"settings.debug.network.port.failed" = "调试：路由器未打开端口（%1$@：%2$@）。";
 
 "notification.download_completed.title" = "下载完成";
 "notification.download_completed.body" = "%@ 已下载完成。";

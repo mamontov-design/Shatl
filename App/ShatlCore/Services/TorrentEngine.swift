@@ -51,6 +51,15 @@ nonisolated struct EngineResourceBudget: Equatable, Sendable {
     }
 }
 
+/// Whether the router opened a port for incoming connections. Only Debug
+/// Settings shows it.
+nonisolated enum EnginePortMappingStatus: Equatable, Sendable {
+    case off
+    case searching
+    case mapped(externalPort: Int, transport: String)
+    case failed(transport: String?, reason: String?)
+}
+
 nonisolated struct TorrentContentFileDescriptor: Equatable, Sendable {
     var relativePath: String
     var sizeBytes: Int64
@@ -122,11 +131,14 @@ nonisolated protocol TorrentEngine: Sendable {
     func reconcileSleepingTorrents(_ records: [TorrentRecord]) async throws -> [EngineTorrentSnapshot]
     /// The open-file budget of the running engine; `nil` before boot.
     func resourceBudget() async -> EngineResourceBudget?
+    /// What the router answered to port forwarding; `nil` for engines without it.
+    func portMappingStatus() async -> EnginePortMappingStatus?
     /// Stops the engine before the app exits; it accepts no commands afterwards.
     func shutdown() async
 }
 
 extension TorrentEngine {
     nonisolated func resourceBudget() async -> EngineResourceBudget? { nil }
+    nonisolated func portMappingStatus() async -> EnginePortMappingStatus? { nil }
     nonisolated func shutdown() async {}
 }

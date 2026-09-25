@@ -85,11 +85,11 @@ static NSError *LTMakeErrorFromCode(ShatlLibtorrentErrorCode code, lt::error_cod
     return LTMakeError(code, message);
 }
 
+/// UPnP and NAT-PMP follow the user's preference, not the profile: see
+/// `LTMakeSessionSettingsPack`.
 static void LTApplyNetworkDiscoverySettings(lt::settings_pack& pack, bool enableLSD) {
     pack.set_bool(lt::settings_pack::enable_dht, true);
     pack.set_bool(lt::settings_pack::enable_lsd, enableLSD);
-    pack.set_bool(lt::settings_pack::enable_upnp, false);
-    pack.set_bool(lt::settings_pack::enable_natpmp, false);
 }
 
 /// What a profile asks for. The session gets it only through
@@ -578,6 +578,26 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @end
 
+@implementation LTPortMappingStatus
+
+- (instancetype)initWithState:(LTPortMappingState)state
+                 externalPort:(NSInteger)externalPort
+                    transport:(NSString *)transport
+                 errorMessage:(NSString *)errorMessage {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _state = state;
+    _externalPort = externalPort;
+    _transport = [transport copy];
+    _errorMessage = [errorMessage copy];
+    return self;
+}
+
+@end
+
 /// The soft open-file limit, capped like libtorrent's own `max_open_files()`.
 static int LTCurrentOpenFileLimit() {
     int const unlimited = 10000000;
@@ -642,14 +662,35 @@ static LTDescriptorBudget LTFitProfileIntoOpenFileLimit(lt::settings_pack const&
     return {connectionsLimit, filePoolSize};
 }
 
+/// Alert categories the session posts. Router answers are posted only while
+/// port forwarding is on; tracker replies, peer connections and listen sockets
+/// only while the log is on, so a quiet session queues no alerts nobody reads.
+static int LTSessionAlertMask(BOOL diagnostics, BOOL portForwarding) {
+    lt::alert_category_t mask = lt::alert_category::error;
+    if (portForwarding) {
+        mask |= lt::alert_category::port_mapping;
+    }
+    if (diagnostics) {
+        mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
+    }
+    return static_cast<int>(static_cast<std::uint32_t>(mask));
+}
+
 /// The only settings the session gets, at boot and on every profile switch.
 /// libtorrent caps connections to the limit only when the session is created,
-/// and never caps the file pool.
-static lt::settings_pack LTMakeSessionSettingsPack(LTPerformanceProfile profile, int openFileLimit) {
+/// and never caps the file pool. A profile pack alone would also reset port
+/// forwarding and the alert mask: `default_settings()` turns UPnP on.
+static lt::settings_pack LTMakeSessionSettingsPack(LTPerformanceProfile profile,
+                                                   int openFileLimit,
+                                                   BOOL portForwarding,
+                                                   BOOL diagnostics) {
     lt::settings_pack pack = LTMakePerformanceSettingsPack(profile);
     LTDescriptorBudget const budget = LTFitProfileIntoOpenFileLimit(pack, openFileLimit);
     pack.set_int(lt::settings_pack::connections_limit, budget.connectionsLimit);
     pack.set_int(lt::settings_pack::file_pool_size, budget.filePoolSize);
+    pack.set_bool(lt::settings_pack::enable_upnp, portForwarding);
+    pack.set_bool(lt::settings_pack::enable_natpmp, portForwarding);
+    pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(diagnostics, portForwarding));
     return pack;
 }
 
@@ -669,16 +710,21 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         || (lhs.has_v2() && rhs.has_v2() && lhs.v2 == rhs.v2);
 }
 
-/// Alert categories the session posts. Tracker replies, peer connections and
-/// listen sockets are posted only while the log is on, so a quiet session does
-/// not queue alerts nobody reads.
-static int LTSessionAlertMask(BOOL diagnostics) {
-    lt::alert_category_t mask = lt::alert_category::error;
-    if (diagnostics) {
-        mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
-    }
-    return static_cast<int>(static_cast<std::uint32_t>(mask));
+static NSString *LTPortMappingTransportName(lt::portmap_transport transport) {
+    return transport == lt::portmap_transport::upnp ? @"UPnP" : @"NAT-PMP";
 }
+
+/// What the router answered since port forwarding was switched on. libtorrent
+/// asks it over UPnP and NAT-PMP for every listen socket; one opened port is
+/// enough for peers to reach Shatl.
+struct LTPortMappingSummary {
+    bool hasMapping = false;
+    int externalPort = 0;
+    std::string transport;
+    int failureCount = 0;
+    std::string lastError;
+    std::string lastErrorTransport;
+};
 
 /// A tracker URL reduced to its scheme and host: private trackers keep the
 /// user's passkey in the path or the query, and the log must not carry it.
@@ -829,6 +875,8 @@ struct LTPeerEventCounts {
     std::unordered_map<std::string, LTPeerEventCounts> _peerEventsByRecordID;
     std::chrono::steady_clock::time_point _peerEventsWindowStartedAt;
     BOOL _diagnosticAlertsEnabled;
+    BOOL _portForwardingEnabled;
+    LTPortMappingSummary _portMapping;
     LTPerformanceProfile _performanceProfile;
     int _initialOpenFileLimit;
     BOOL _isShutDown;
@@ -954,7 +1002,7 @@ struct LTPeerEventCounts {
 
         std::vector<lt::alert *> alerts;
         _session->pop_alerts(&alerts);
-        [self logDiagnosticAlerts:alerts];
+        [self noteAlerts:alerts];
 
         for (lt::alert *alert : alerts) {
             if (auto *resumeAlert = lt::alert_cast<lt::save_resume_data_alert>(alert)) {
@@ -1028,9 +1076,13 @@ struct LTPeerEventCounts {
     _initialOpenFileLimit = LTCurrentOpenFileLimit();
     LTRaiseOpenFileLimit();
     int const openFileLimit = LTCurrentOpenFileLimit();
-    lt::settings_pack pack = LTMakeSessionSettingsPack(_performanceProfile, openFileLimit);
     _diagnosticAlertsEnabled = LTDiagnosticsLoggingEnabled();
-    pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled));
+    lt::settings_pack pack = LTMakeSessionSettingsPack(
+        _performanceProfile,
+        openFileLimit,
+        _portForwardingEnabled,
+        _diagnosticAlertsEnabled
+    );
     _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
 
     try {
@@ -1109,10 +1161,12 @@ struct LTPeerEventCounts {
     }
 
     try {
-        // A full profile pack would reset the alert mask to its default.
-        lt::settings_pack pack = LTMakeSessionSettingsPack(profile, LTCurrentOpenFileLimit());
-        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled));
-        _session->apply_settings(pack);
+        _session->apply_settings(LTMakeSessionSettingsPack(
+            profile,
+            LTCurrentOpenFileLimit(),
+            _portForwardingEnabled,
+            _diagnosticAlertsEnabled
+        ));
     } catch (std::exception const& exception) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
@@ -1151,6 +1205,65 @@ struct LTPeerEventCounts {
                requestedFilePoolSize:requested.get_int(lt::settings_pack::file_pool_size)
                     connectionsLimit:applied.get_int(lt::settings_pack::connections_limit)
                         filePoolSize:applied.get_int(lt::settings_pack::file_pool_size)];
+}
+
+- (BOOL)applyPortForwarding:(BOOL)enabled error:(NSError * _Nullable __autoreleasing *)error {
+    if (enabled == _portForwardingEnabled) {
+        return YES;
+    }
+    _portForwardingEnabled = enabled;
+    _portMapping = LTPortMappingSummary();
+
+    if (_session == nullptr) {
+        return YES;
+    }
+
+    try {
+        // Switching it off also removes the mappings from the router.
+        lt::settings_pack pack;
+        pack.set_bool(lt::settings_pack::enable_upnp, enabled);
+        pack.set_bool(lt::settings_pack::enable_natpmp, enabled);
+        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled, enabled));
+        _session->apply_settings(pack);
+    } catch (std::exception const& exception) {
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
+        }
+        return NO;
+    }
+
+    return YES;
+}
+
++ (BOOL)sessionSettingsForwardPortForProfile:(LTPerformanceProfile)profile
+                              portForwarding:(BOOL)portForwarding {
+    lt::settings_pack const pack = LTMakeSessionSettingsPack(profile, OPEN_MAX, portForwarding, NO);
+    return pack.get_bool(lt::settings_pack::enable_upnp) && pack.get_bool(lt::settings_pack::enable_natpmp);
+}
+
+- (LTPortMappingStatus *)currentPortMappingStatus {
+    if (!_portForwardingEnabled) {
+        return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateOff
+                                             externalPort:0
+                                                transport:nil
+                                             errorMessage:nil];
+    }
+    if (_portMapping.hasMapping) {
+        return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateMapped
+                                             externalPort:_portMapping.externalPort
+                                                transport:LTToNSString(_portMapping.transport)
+                                             errorMessage:nil];
+    }
+    if (_portMapping.failureCount > 0) {
+        return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateFailed
+                                             externalPort:0
+                                                transport:LTToNSString(_portMapping.lastErrorTransport)
+                                             errorMessage:LTToNSString(_portMapping.lastError)];
+    }
+    return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateSearching
+                                         externalPort:0
+                                            transport:nil
+                                         errorMessage:nil];
 }
 
 + (NSInteger)openFileDescriptorCount {
@@ -1934,7 +2047,7 @@ struct LTPeerEventCounts {
 
         std::vector<lt::alert *> alerts;
         _session->pop_alerts(&alerts);
-        [self logDiagnosticAlerts:alerts];
+        [self noteAlerts:alerts];
 
         for (lt::alert *alert : alerts) {
             if (auto *resumeAlert = lt::alert_cast<lt::save_resume_data_alert>(alert)) {
@@ -2066,25 +2179,29 @@ struct LTPeerEventCounts {
     return YES;
 }
 
-/// Keeps the alert mask in step with the log, which can be switched on while
-/// the session runs, and reads the alerts nothing else waits for.
-- (void)drainDiagnosticAlerts {
-    BOOL const enabled = LTDiagnosticsLoggingEnabled();
-    if (enabled != _diagnosticAlertsEnabled) {
-        _diagnosticAlertsEnabled = enabled;
+/// Reads the alerts nothing else waits for: router answers while port
+/// forwarding is on, diagnostics while the log is on. Keeps the alert mask in
+/// step with the log, which can be switched on while the session runs.
+- (void)drainAlerts {
+    BOOL const diagnostics = LTDiagnosticsLoggingEnabled();
+    if (diagnostics != _diagnosticAlertsEnabled) {
+        _diagnosticAlertsEnabled = diagnostics;
         lt::settings_pack pack;
-        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(enabled));
+        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(diagnostics, _portForwardingEnabled));
         _session->apply_settings(pack);
         _peerEventsByRecordID.clear();
         _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
     }
-    if (!enabled) {
+    if (!diagnostics && !_portForwardingEnabled) {
         return;
     }
 
     std::vector<lt::alert *> alerts;
     _session->pop_alerts(&alerts);
-    [self logDiagnosticAlerts:alerts];
+    [self noteAlerts:alerts];
+    if (!diagnostics) {
+        return;
+    }
 
     auto const now = std::chrono::steady_clock::now();
     if (now - _peerEventsWindowStartedAt >= std::chrono::seconds(10)) {
@@ -2093,8 +2210,33 @@ struct LTPeerEventCounts {
     }
 }
 
-/// Tracker replies and listen sockets go to the log one by one. Peer
-/// connections are only counted: a busy swarm makes hundreds a second.
+- (void)noteAlerts:(std::vector<lt::alert *> const&)alerts {
+    [self notePortMappingAlerts:alerts];
+    [self logDiagnosticAlerts:alerts];
+}
+
+- (void)notePortMappingAlerts:(std::vector<lt::alert *> const&)alerts {
+    if (!_portForwardingEnabled) {
+        return;
+    }
+    for (lt::alert *alert : alerts) {
+        if (auto *mapped = lt::alert_cast<lt::portmap_alert>(alert)) {
+            // Peers connect over TCP first; its port is the one to show.
+            if (!_portMapping.hasMapping || mapped->map_protocol == lt::portmap_protocol::tcp) {
+                _portMapping.hasMapping = true;
+                _portMapping.externalPort = mapped->external_port;
+                _portMapping.transport = LTToStdString(LTPortMappingTransportName(mapped->map_transport));
+            }
+        } else if (auto *failed = lt::alert_cast<lt::portmap_error_alert>(alert)) {
+            _portMapping.failureCount += 1;
+            _portMapping.lastError = failed->error.message();
+            _portMapping.lastErrorTransport = LTToStdString(LTPortMappingTransportName(failed->map_transport));
+        }
+    }
+}
+
+/// Tracker replies, router answers and listen sockets go to the log one by
+/// one. Peer connections are only counted: a busy swarm makes hundreds a second.
 - (void)logDiagnosticAlerts:(std::vector<lt::alert *> const&)alerts {
     if (alerts.empty() || !LTDiagnosticsLoggingEnabled()) {
         return;
@@ -2210,6 +2352,29 @@ struct LTPeerEventCounts {
                     @"port": [NSString stringWithFormat:@"%d", listenFailed->port],
                     @"type": LTToNSString(lt::socket_type_name(listenFailed->socket_type)),
                     @"via": interfaces.labelFor(listenFailed->address)
+                }),
+                YES
+            );
+        } else if (auto *mapped = lt::alert_cast<lt::portmap_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"portmap.mapped",
+                @"-",
+                (@{
+                    @"externalPort": [NSString stringWithFormat:@"%d", mapped->external_port],
+                    @"protocol": mapped->map_protocol == lt::portmap_protocol::tcp ? @"TCP" : @"UDP",
+                    @"transport": LTPortMappingTransportName(mapped->map_transport),
+                    @"via": interfaces.labelFor(mapped->local_address)
+                }),
+                YES
+            );
+        } else if (auto *failed = lt::alert_cast<lt::portmap_error_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"portmap.failed",
+                @"-",
+                (@{
+                    @"error": LTToNSString(failed->error.message()),
+                    @"transport": LTPortMappingTransportName(failed->map_transport),
+                    @"via": interfaces.labelFor(failed->local_address)
                 }),
                 YES
             );
@@ -2338,7 +2503,7 @@ struct LTPeerEventCounts {
         return nil;
     }
 
-    [self drainDiagnosticAlerts];
+    [self drainAlerts];
 
     uint64_t tickID = ++self->_snapshotTickCounter;
     auto tickStartedAt = std::chrono::steady_clock::now();

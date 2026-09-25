@@ -106,6 +106,27 @@ struct ShatlSettingsView: View {
                 }
             }
 
+            ShatlSettingsParameterHeader(localizedTitle: "settings.downloads.network.section")
+
+            ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.downloads.network.port_forwarding",
+                    isOn: Binding(
+                        get: { store.preferences.opensRouterPortAutomatically },
+                        set: { store.setOpensRouterPortAutomatically($0) }
+                    )
+                )
+            }
+
+            VStack(spacing: 4) {
+                ShatlSettingsParameterCaption(localizedText: "settings.downloads.network.port_forwarding.caption")
+
+                #if DEBUG
+                if store.preferences.opensRouterPortAutomatically {
+                    PortMappingStatusCaption()
+                }
+                #endif
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 0)
@@ -287,6 +308,51 @@ private struct EngineResourceBudgetCaption: View {
             number(budget.filePoolSize),
             number(budget.openFileCount)
         )
+    }
+}
+#endif
+
+#if DEBUG
+/// Debug builds only: whether the router opened a port, refreshed every 2 s
+/// while the Downloads tab is shown.
+private struct PortMappingStatusCaption: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var status: EnginePortMappingStatus?
+
+    var body: some View {
+        ShatlSettingsParameterCaption(text: text)
+            .task {
+                while !Task.isCancelled {
+                    status = await store.enginePortMappingStatus()
+                    try? await Task.sleep(for: .seconds(2))
+                }
+            }
+    }
+
+    private var text: String {
+        let localeOverride = store.preferences.localeOverride
+        switch status {
+        case nil, .off:
+            return L10n.string("settings.debug.performance.engine_not_started", localeOverride: localeOverride)
+        case .searching:
+            return L10n.string("settings.debug.network.port.searching", localeOverride: localeOverride)
+        case .mapped(let externalPort, let transport):
+            return L10n.format(
+                "settings.debug.network.port.mapped",
+                localeOverride: localeOverride,
+                defaultValue: "%1$@ %2$@",
+                String(externalPort),
+                transport
+            )
+        case .failed(let transport, let reason):
+            return L10n.format(
+                "settings.debug.network.port.failed",
+                localeOverride: localeOverride,
+                defaultValue: "%1$@ %2$@",
+                transport ?? "—",
+                reason ?? "—"
+            )
+        }
     }
 }
 #endif

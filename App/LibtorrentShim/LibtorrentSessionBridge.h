@@ -26,6 +26,17 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
     LTPerformanceProfileMaximum = 2,
 };
 
+typedef NS_ENUM(NSInteger, LTPortMappingState) {
+    /// Port forwarding is off.
+    LTPortMappingStateOff = 0,
+    /// It is on and the router has not answered yet.
+    LTPortMappingStateSearching = 1,
+    /// The router opened a port for incoming connections.
+    LTPortMappingStateMapped = 2,
+    /// The router answered only with errors so far.
+    LTPortMappingStateFailed = 3,
+};
+
 /// A file entry used by the add flow.
 /// Kept separate so Swift does not depend on libtorrent C++ types.
 @interface LTPreparedFile : NSObject
@@ -164,6 +175,27 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 @end
 
+/// Whether the router opened a port for incoming connections. Debug Settings
+/// shows it; users see only the switch.
+@interface LTPortMappingStatus : NSObject
+
+@property (nonatomic, readonly) LTPortMappingState state;
+/// The port the router opened, for `Mapped`.
+@property (nonatomic, readonly) NSInteger externalPort;
+/// `UPnP` or `NAT-PMP`, for `Mapped` and `Failed`.
+@property (nonatomic, readonly, nullable) NSString *transport;
+/// The last error from the router, for `Failed`.
+@property (nonatomic, readonly, nullable) NSString *errorMessage;
+
+- (instancetype)initWithState:(LTPortMappingState)state
+                 externalPort:(NSInteger)externalPort
+                    transport:(nullable NSString *)transport
+                 errorMessage:(nullable NSString *)errorMessage NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+@end
+
 /// The single entry point into the Objective-C++ layer.
 /// All implementation details of `libtorrent` remain inside it.
 @interface LibtorrentSessionBridge : NSObject
@@ -202,6 +234,20 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 /// Descriptors the process has open right now.
 + (NSInteger)openFileDescriptorCount;
+
+/// Asks the router over UPnP and NAT-PMP to open the listen port, so peers can
+/// connect to Shatl. Off until the app turns it on from its preferences, so
+/// test sessions never touch the router.
+- (BOOL)applyPortForwarding:(BOOL)enabled
+                      error:(NSError * _Nullable * _Nullable)error;
+
+/// Whether the settings a profile switch gives the session keep UPnP and
+/// NAT-PMP as the preference says.
++ (BOOL)sessionSettingsForwardPortForProfile:(LTPerformanceProfile)profile
+                              portForwarding:(BOOL)portForwarding;
+
+/// What the router answered since port forwarding was switched on.
+- (LTPortMappingStatus *)currentPortMappingStatus;
 
 /// Prepares `.torrent` sources. Magnet links use the metadata fetch below,
 /// because their metadata arrives from the network over seconds.
