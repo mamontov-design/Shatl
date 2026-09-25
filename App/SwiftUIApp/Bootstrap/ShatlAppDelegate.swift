@@ -9,6 +9,9 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
     weak var userAttentionHandler: (any ShatlUserAttentionHandling)?
     var terminationFailurePresenter: any ShatlTerminationFailurePresenting = ShatlTerminationAlertPresenter()
     private var isPreparingForTermination = false
+    /// Set once the quit is decided and Shatl has left the screen.
+    private var isLeaving = false
+    private var relaunchRequest = ShatlRelaunchRequest()
     private var windowObserver: NSObjectProtocol?
     private let notificationCenterDelegate = ShatlUserNotificationCenterDelegate()
 
@@ -69,11 +72,15 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
             let shouldTerminate = await ShatlTerminationFlow.resolve(
                 handler: terminationHandler,
                 source: source,
-                presenter: presenter
+                presenter: presenter,
+                willFinish: { self?.leaveScreen() }
             )
             self?.isPreparingForTermination = false
-            if !shouldTerminate {
+            if shouldTerminate {
+                await self?.relaunchIfRequested(after: source)
+            } else {
                 ShatlSingleInstance.setClosing(false)
+                self?.deliverHeldOpens()
             }
             sender?.reply(toApplicationShouldTerminate: shouldTerminate)
         }
@@ -81,8 +88,34 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
         return .terminateLater
     }
 
+    /// The session is saved by now; libtorrent keeps closing its connections
+    /// for up to two seconds, and the user need not watch it.
+    private func leaveScreen() {
+        isLeaving = true
+        NSApp.windows.forEach { $0.orderOut(nil) }
+        NSApp.setActivationPolicy(.prohibited)
+    }
+
+    private func relaunchIfRequested(after source: ShatlTerminationRequestSource) async {
+        guard relaunchRequest.shouldRelaunch(after: source) else { return }
+        await ShatlRelauncher.relaunch(with: relaunchRequest.urls)
+    }
+
+    /// Opens held while the quit was undecided belong to this copy after all.
+    private func deliverHeldOpens() {
+        let urls = relaunchRequest.urls
+        relaunchRequest = ShatlRelaunchRequest()
+        guard !urls.isEmpty else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        ExternalOpenRouter.shared.receive(urls: urls)
+    }
+
     /// Clicking the Dock icon should restore the main window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if isLeaving {
+            relaunchRequest.noteReopen()
+            return false
+        }
         userAttentionHandler?.clearUserEventBadge()
 
         if !flag {
@@ -94,15 +127,23 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        NSApp.activate(ignoringOtherApps: true)
-        ExternalOpenRouter.shared.receive(urls: urls)
+        receiveOpened(urls)
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
-        NSApp.activate(ignoringOtherApps: true)
-        let urls = filenames.map { URL(fileURLWithPath: $0) }
-        ExternalOpenRouter.shared.receive(urls: urls)
+        receiveOpened(filenames.map { URL(fileURLWithPath: $0) })
         sender.reply(toOpenOrPrint: .success)
+    }
+
+    /// While a quit runs, torrents wait for its outcome: the next copy gets
+    /// them, or this one does if the user returns to Shatl.
+    private func receiveOpened(_ urls: [URL]) {
+        if isPreparingForTermination || isLeaving {
+            relaunchRequest.note(urls)
+            return
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        ExternalOpenRouter.shared.receive(urls: urls)
     }
 
     static func configureWindowChrome(_ window: NSWindow) {

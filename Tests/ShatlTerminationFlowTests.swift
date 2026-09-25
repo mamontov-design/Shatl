@@ -85,6 +85,65 @@ final class ShatlTerminationFlowTests: XCTestCase {
         XCTAssertEqual(handler.finishCount, 1)
     }
 
+    /// Shatl leaves the screen as soon as the quit is decided; libtorrent then
+    /// closes its connections behind it for up to two seconds.
+    func testDecidedQuitLeavesTheScreenBeforeTheEngineStops() async {
+        var events: [String] = []
+        let handler = ScriptedTerminationHandler(results: [true]) { events.append("engine stopped") }
+        let presenter = ScriptedFailurePresenter(choices: [])
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: handler,
+            source: .user,
+            presenter: presenter,
+            willFinish: { events.append("left screen") }
+        )
+
+        XCTAssertTrue(shouldTerminate)
+        XCTAssertEqual(events, ["left screen", "engine stopped"])
+    }
+
+    func testReturningToShatlKeepsItOnScreen() async {
+        var leftScreen = false
+        let handler = ScriptedTerminationHandler(results: [false])
+        let presenter = ScriptedFailurePresenter(choices: [.returnToApp])
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: handler,
+            source: .user,
+            presenter: presenter,
+            willFinish: { leftScreen = true }
+        )
+
+        XCTAssertFalse(shouldTerminate)
+        XCTAssertFalse(leftScreen)
+    }
+
+    /// macOS hands a launch to the quitting copy instead of starting a new
+    /// one, so the quitting copy starts the next one only when asked to.
+    func testQuitRelaunchesOnlyWhenShatlWasOpenedDuringIt() {
+        let torrent = URL(fileURLWithPath: "/tmp/a.torrent")
+        let magnet = URL(string: "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567")!
+
+        XCTAssertFalse(ShatlRelaunchRequest().shouldRelaunch(after: .user))
+
+        var reopened = ShatlRelaunchRequest()
+        reopened.noteReopen()
+        XCTAssertTrue(reopened.shouldRelaunch(after: .user))
+        XCTAssertEqual(reopened.urls, [])
+
+        var opened = ShatlRelaunchRequest()
+        opened.note([])
+        XCTAssertFalse(opened.shouldRelaunch(after: .user))
+        opened.note([torrent])
+        opened.note([magnet])
+        XCTAssertTrue(opened.shouldRelaunch(after: .user))
+        XCTAssertEqual(opened.urls, [torrent, magnet])
+
+        // A logout or restart must not be held up by a new copy.
+        XCTAssertFalse(opened.shouldRelaunch(after: .system))
+    }
+
     func testQuitReasonSeparatesSystemRequestsFromUserQuit() {
         for reason in [kAELogOut, kAEReallyLogOut, kAEShowRestartDialog, kAERestart, kAEShowShutdownDialog, kAEShutDown] {
             XCTAssertEqual(ShatlTerminationRequestSource(quitReason: OSType(reason)), .system)
@@ -133,11 +192,13 @@ final class ShatlTerminationFlowTests: XCTestCase {
 
 private final class ScriptedTerminationHandler: ShatlTerminationPreparing {
     private var results: [Bool]
+    private let onFinish: () -> Void
     private(set) var callCount = 0
     private(set) var finishCount = 0
 
-    init(results: [Bool]) {
+    init(results: [Bool], onFinish: @escaping () -> Void = {}) {
         self.results = results
+        self.onFinish = onFinish
     }
 
     func prepareForTermination() async -> Bool {
@@ -147,6 +208,7 @@ private final class ScriptedTerminationHandler: ShatlTerminationPreparing {
 
     func finishTermination() async {
         finishCount += 1
+        onFinish()
     }
 }
 

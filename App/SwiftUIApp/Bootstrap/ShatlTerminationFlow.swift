@@ -52,14 +52,17 @@ protocol ShatlTerminationFailurePresenting: AnyObject {
 enum ShatlTerminationFlow {
     /// A failed session save must not trap the user in the app: they can
     /// retry, stay in Shatl, or quit with the last committed session on disk.
-    /// A decided quit finishes with `finishTermination`, which stops the engine.
+    /// A decided quit runs `willFinish`, which takes Shatl off the screen, then
+    /// `finishTermination`, which stops the engine for up to two seconds.
     static func resolve(
         handler: any ShatlTerminationPreparing,
         source: ShatlTerminationRequestSource,
-        presenter: any ShatlTerminationFailurePresenting
+        presenter: any ShatlTerminationFailurePresenting,
+        willFinish: () -> Void = {}
     ) async -> Bool {
         let shouldTerminate = await decide(handler: handler, source: source, presenter: presenter)
         if shouldTerminate {
+            willFinish()
             await handler.finishTermination()
         }
         return shouldTerminate
@@ -89,6 +92,77 @@ enum ShatlTerminationFlow {
             case .quitWithoutSaving:
                 return true
             }
+        }
+    }
+}
+
+/// A click on the Dock or Finder icon, a torrent file or a magnet link that
+/// reaches Shatl while it quits. macOS hands them to the quitting copy instead
+/// of starting a new one, so once the engine stops this copy starts the next
+/// one, which waits for the data folder (`SingleInstanceGate`).
+struct ShatlRelaunchRequest: Equatable {
+    private(set) var isRequested = false
+    private(set) var urls: [URL] = []
+
+    mutating func noteReopen() {
+        isRequested = true
+    }
+
+    mutating func note(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
+        isRequested = true
+        self.urls.append(contentsOf: urls)
+    }
+
+    /// A logout or restart follows a system quit; a new copy would hold it up.
+    func shouldRelaunch(after source: ShatlTerminationRequestSource) -> Bool {
+        isRequested && source == .user
+    }
+}
+
+/// Starts a new copy of Shatl, with the opens the quitting copy received.
+@MainActor
+enum ShatlRelauncher {
+    /// The quit goes on even if LaunchServices never answers.
+    static let launchTimeout: TimeInterval = 3
+
+    static func relaunch(with urls: [URL]) async {
+        let configuration = NSWorkspace.OpenConfiguration()
+        // Without it LaunchServices hands the launch back to this copy.
+        configuration.createsNewApplicationInstance = true
+        configuration.activates = true
+        let applicationURL = Bundle.main.bundleURL
+        let gate = LaunchGate()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            gate.continuation = continuation
+            let completion: (NSRunningApplication?, (any Error)?) -> Void = { _, _ in
+                DispatchQueue.main.async { gate.resume() }
+            }
+            if urls.isEmpty {
+                NSWorkspace.shared.openApplication(
+                    at: applicationURL,
+                    configuration: configuration,
+                    completionHandler: completion
+                )
+            } else {
+                NSWorkspace.shared.open(
+                    urls,
+                    withApplicationAt: applicationURL,
+                    configuration: configuration,
+                    completionHandler: completion
+                )
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + launchTimeout) { gate.resume() }
+        }
+    }
+
+    /// Lets whichever comes first, the launch or the timeout, end the wait.
+    private final class LaunchGate {
+        var continuation: CheckedContinuation<Void, Never>?
+
+        func resume() {
+            continuation?.resume()
+            continuation = nil
         }
     }
 }
