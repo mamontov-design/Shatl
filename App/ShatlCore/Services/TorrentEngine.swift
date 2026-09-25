@@ -30,8 +30,9 @@ nonisolated struct EngineResumeCheckpointResult: Equatable, Sendable {
     var status: EngineResumeCheckpointStatus
 }
 
-/// How many open files the engine may use. macOS starts apps with a soft limit
-/// of 256, while every TCP peer and every open payload file takes one.
+/// How many open files the engine may use. An app gets a soft limit of 256
+/// (2560 once AppKit starts from Finder or the Dock), while every TCP peer and
+/// every open payload file takes one.
 nonisolated struct EngineResourceBudget: Equatable, Sendable {
     /// The soft limit the process started with.
     var initialOpenFileLimit: Int

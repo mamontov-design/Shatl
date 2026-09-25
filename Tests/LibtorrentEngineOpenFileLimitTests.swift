@@ -6,20 +6,19 @@ import Foundation
 import XCTest
 @testable import Shatl
 
-/// Runs the real libtorrent bridge under the open-file limit macOS gives apps:
-/// a soft limit of 256, while every TCP peer and every open payload file takes
-/// one descriptor.
+/// Runs the real libtorrent bridge under 256 open files, the soft limit launchd
+/// gives a process before AppKit raises it to 2560. Every TCP peer and every
+/// open payload file takes one descriptor.
 final class LibtorrentEngineOpenFileLimitTests: XCTestCase {
     /// Descriptors Shatl itself and libtorrent's own sockets need beside peer
     /// connections and the file pool: libtorrent alone opens three sockets per
     /// local address, 75 on a Mac with VPN interfaces.
     private let minimumHeadroom = 160
 
-    /// The owner's report: downloads fell into «Ошибка» mid-progress at random
-    /// moments. When the process runs out of descriptors, libtorrent cannot
-    /// open a payload file, pauses the torrent and reports the error; Shatl
-    /// shows it as the engine error card (after relaunch it is «Остановлен»,
-    /// see `SessionStoreTests`).
+    /// When the process runs out of descriptors, libtorrent cannot open a
+    /// payload file, pauses the torrent and reports the error; Shatl shows it
+    /// as the engine error card (after relaunch it is «Остановлен», see
+    /// `SessionStoreTests`).
     func testRunningOutOfDescriptorsPutsDownloadIntoError() async throws {
         let fixture = try EngineFixture.make(named: "OutOfDescriptors")
         addTeardownBlock { fixture.remove() }

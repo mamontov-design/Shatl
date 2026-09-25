@@ -137,9 +137,9 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 @end
 
-/// How many descriptors the session may use. macOS starts apps with a soft
-/// limit of 256 open files, while every TCP peer and every open payload file
-/// takes one of them.
+/// How many descriptors the session may use. An app gets a soft limit of 256
+/// open files (2560 once AppKit starts from Finder or the Dock), while every
+/// TCP peer and every open payload file takes one of them.
 @interface LTResourceBudget : NSObject
 
 /// The soft open-file limit before the bridge raised it.

@@ -280,8 +280,8 @@
 "settings.debug.logging.metric_animation_diagnostics" = "Metric animation diagnostics";
 "settings.debug.logging.snapshot_diagnostics" = "Snapshot update diagnostics";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Add Torrent window diagnostics";
-"settings.debug.performance.budget" = "Debug: open file limit is %1$@ (macOS gave %2$@). Up to %3$@ connections and %4$@ files. Open now: %5$@.";
-"settings.debug.performance.budget_reduced" = "Debug: open file limit is %1$@, macOS allowed no more (it gave %2$@). Up to %3$@ connections instead of %4$@ and %5$@ files instead of %6$@. Open now: %7$@.";
+"settings.debug.performance.budget" = "Debug: open file limit is %1$@ (macOS gave %2$@). Up to %3$@ connections and %4$@ files. Open in total, including service connections: %5$@.";
+"settings.debug.performance.budget_reduced" = "Debug: open file limit is %1$@, macOS allowed no more (it gave %2$@). Up to %3$@ connections instead of %4$@ and %5$@ files instead of %6$@. Open in total, including service connections: %7$@.";
 "settings.debug.performance.engine_not_started" = "Debug: the engine has not started yet.";
 
 "notification.download_completed.title" = "Download complete";

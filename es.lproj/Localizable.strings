@@ -280,8 +280,8 @@
 "settings.debug.logging.metric_animation_diagnostics" = "Diagnóstico de animaciones de métricas";
 "settings.debug.logging.snapshot_diagnostics" = "Diagnóstico de actualizaciones de snapshots";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Diagnóstico de la ventana «Añadir torrent»";
-"settings.debug.performance.budget" = "Depuración: límite de archivos abiertos: %1$@ (macOS asignó %2$@). Hasta %3$@ conexiones y %4$@ archivos. Abiertos ahora: %5$@.";
-"settings.debug.performance.budget_reduced" = "Depuración: límite de archivos abiertos: %1$@, macOS no permitió más (asignó %2$@). Hasta %3$@ conexiones en lugar de %4$@ y %5$@ archivos en lugar de %6$@. Abiertos ahora: %7$@.";
+"settings.debug.performance.budget" = "Depuración: límite de archivos abiertos: %1$@ (macOS asignó %2$@). Hasta %3$@ conexiones y %4$@ archivos. Abiertos en total, incluidas las conexiones de servicio: %5$@.";
+"settings.debug.performance.budget_reduced" = "Depuración: límite de archivos abiertos: %1$@, macOS no permitió más (asignó %2$@). Hasta %3$@ conexiones en lugar de %4$@ y %5$@ archivos en lugar de %6$@. Abiertos en total, incluidas las conexiones de servicio: %7$@.";
 "settings.debug.performance.engine_not_started" = "Depuración: el motor aún no se ha iniciado.";
 
 "notification.download_completed.title" = "Descarga completada";

@@ -560,9 +560,10 @@ static int LTCurrentOpenFileLimit() {
     return limit.rlim_cur >= static_cast<rlim_t>(unlimited) ? unlimited : static_cast<int>(limit.rlim_cur);
 }
 
-/// macOS starts apps with a soft limit of 256 open files, less than one busy
-/// profile needs. Apple's setrlimit(2) asks for at most `OPEN_MAX` (10 240);
-/// the hard limit and `kern.maxfilesperproc` may be lower.
+/// launchd starts processes with a soft limit of 256 open files, and AppKit
+/// raises it to 2560 for an app opened from Finder or the Dock. A busy Nova
+/// session needs more. Apple's setrlimit(2) asks for at most `OPEN_MAX`
+/// (10 240); the hard limit and `kern.maxfilesperproc` may be lower.
 static void LTRaiseOpenFileLimit() {
     struct rlimit limit {};
     if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {

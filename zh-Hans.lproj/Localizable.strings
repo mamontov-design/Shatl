@@ -278,8 +278,8 @@
 "settings.debug.logging.metric_animation_diagnostics" = "指标动画诊断";
 "settings.debug.logging.snapshot_diagnostics" = "快照更新诊断";
 "settings.debug.logging.add_torrent_review_diagnostics" = "添加种子窗口诊断";
-"settings.debug.performance.budget" = "调试：打开文件上限为 %1$@（macOS 初始值：%2$@）。最多 %3$@ 个连接和 %4$@ 个文件。当前已打开：%5$@。";
-"settings.debug.performance.budget_reduced" = "调试：打开文件上限为 %1$@，macOS 不允许更高（初始值：%2$@）。最多 %3$@ 个连接（而非 %4$@）和 %5$@ 个文件（而非 %6$@）。当前已打开：%7$@。";
+"settings.debug.performance.budget" = "调试：打开文件上限为 %1$@（macOS 初始值：%2$@）。最多 %3$@ 个连接和 %4$@ 个文件。合计已打开（含服务连接）：%5$@。";
+"settings.debug.performance.budget_reduced" = "调试：打开文件上限为 %1$@，macOS 不允许更高（初始值：%2$@）。最多 %3$@ 个连接（而非 %4$@）和 %5$@ 个文件（而非 %6$@）。合计已打开（含服务连接）：%7$@。";
 "settings.debug.performance.engine_not_started" = "调试：引擎尚未启动。";
 
 "notification.download_completed.title" = "下载完成";
