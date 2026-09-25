@@ -4,7 +4,7 @@
 import AppKit
 import SwiftUI
 
-@main
+/// Started by `ShatlMain` once this copy owns the data folder.
 struct ShatlApp: App {
     @NSApplicationDelegateAdaptor(ShatlAppDelegate.self) private var appDelegate
     @StateObject private var store: AppStore

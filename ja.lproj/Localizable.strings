@@ -56,6 +56,8 @@
 "session.persistence.quit_dialog.retry" = "再試行";
 "session.persistence.quit_dialog.return" = "Shatlに戻る";
 "session.persistence.quit_dialog.quit" = "保存せずに終了";
+"single_instance.already_running.title" = "Shatlはすでに起動しています";
+"single_instance.already_running.message" = "Shatlは一度に1つしか起動できないため、このコピーは終了します。「OK」をクリックすると、すでに開いているShatlに切り替わります。";
 "session.persistence.redownload_failed.message" = "再ダウンロードは開始されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 
 "onboarding.action.next" = "次へ";

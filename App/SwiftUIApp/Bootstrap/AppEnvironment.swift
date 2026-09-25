@@ -95,7 +95,7 @@ struct AppEnvironment {
         )
     }
 
-    private static var liveDirectories: ShatlDirectories {
+    static var liveDirectories: ShatlDirectories {
         #if DEBUG
         if let rootPath = ProcessInfo.processInfo.environment["SHATL_TEST_STORAGE_ROOT"],
            !rootPath.isEmpty {
@@ -109,7 +109,7 @@ struct AppEnvironment {
         return ShatlDirectories()
     }
 
-    private static var livePreferencesStore: AppPreferencesStore {
+    static var livePreferencesStore: AppPreferencesStore {
         #if DEBUG
         if let suiteName = ProcessInfo.processInfo.environment["SHATL_TEST_USER_DEFAULTS_SUITE"],
            !suiteName.isEmpty,
