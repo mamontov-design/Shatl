@@ -457,6 +457,35 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), snapshotData)
     }
 
+    func testRepeatedTorrentIDBlocksLoadWithoutChangingTheFile() async throws {
+        let fixture = try makeFixture()
+        let record = makeSessionRecord(selectedFileIndices: [0])
+        let snapshotData = makeSnapshotData(torrents: [record, record])
+        try snapshotData.write(to: fixture.directories.sessionSnapshotURL, options: .atomic)
+
+        let result = await fixture.sessionStore.load(expectsExistingSession: true)
+
+        XCTAssertEqual(loadIssue(from: result), .unreadable)
+        let saveOutcome = await fixture.sessionStore.replaceAllRecordsForTesting(from: [])
+        XCTAssertEqual(saveOutcome, .blocked)
+        XCTAssertEqual(try Data(contentsOf: fixture.directories.sessionSnapshotURL), snapshotData)
+    }
+
+    /// The startup file check keys a record's selected files by index and
+    /// would trap on a repeated one.
+    func testRepeatedSelectedFileIndexBlocksLoad() async throws {
+        let fixture = try makeFixture()
+        let snapshotData = makeSnapshotData(torrents: [
+            makeSessionRecord(selectedFileIndices: [0, 1]),
+            makeSessionRecord(selectedFileIndices: [2, 2]),
+        ])
+        try snapshotData.write(to: fixture.directories.sessionSnapshotURL, options: .atomic)
+
+        let result = await fixture.sessionStore.load(expectsExistingSession: true)
+
+        XCTAssertEqual(loadIssue(from: result), .unreadable)
+    }
+
     func testRelaunchAfterLoadFailureRemainsBlocked() async throws {
         let fixture = try makeFixture()
         let corruptData = Data("broken session".utf8)
@@ -516,6 +545,26 @@ final class SessionStoreTests: XCTestCase {
             bookmarkStore: BookmarkStore(directories: directories),
             resumeDataStore: ResumeDataStore(directories: directories),
             readSessionData: readSessionData
+        )
+    }
+
+    private func makeSessionRecord(selectedFileIndices: [Int]) -> SessionTorrentRecord {
+        SessionTorrentRecord(
+            torrentID: UUID(),
+            attemptID: UUID(),
+            infoHash: nil,
+            originalName: "Record",
+            alias: nil,
+            status: .stopped,
+            progress: 0.4,
+            canonicalSavePath: "/Users/example/Downloads",
+            stopAfterDownload: false,
+            selectedFileIndices: selectedFileIndices,
+            selectedFileCount: selectedFileIndices.count,
+            totalFileCount: 3,
+            archivedTorrentRelativePath: "Torrents/record.torrent",
+            materializedSelectionFootprint: nil,
+            persistentIssue: nil
         )
     }
 
