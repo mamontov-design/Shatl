@@ -158,7 +158,7 @@ enum ShatlAlreadyRunningNotice {
         alert.informativeText = L10n.string(
             "single_instance.already_running.message",
             localeOverride: localeOverride,
-            defaultValue: "Одновременно может работать только один Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому."
+            defaultValue: "Одновременно может работать только один экземпляр Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому приложению."
         )
         alert.addButton(
             withTitle: L10n.string(

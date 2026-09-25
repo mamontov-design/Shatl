@@ -57,7 +57,7 @@
 "session.persistence.quit_dialog.return" = "Volver a Shatl";
 "session.persistence.quit_dialog.quit" = "Salir sin guardar";
 "single_instance.already_running.title" = "Shatl ya está abierto";
-"single_instance.already_running.message" = "Solo puede ejecutarse un Shatl a la vez, así que esta copia se cerrará. Haz clic en «OK» para ir al que ya está abierto.";
+"single_instance.already_running.message" = "Solo puede ejecutarse una instancia de Shatl a la vez, así que esta copia se cerrará. Haz clic en «OK» para ir a la app que ya está abierta.";
 "session.persistence.redownload_failed.message" = "La descarga no se reinició: Shatl no puede escribir datos en el disco. Comprueba el espacio libre y el acceso al disco e inténtalo de nuevo.";
 
 "onboarding.action.next" = "Siguiente";
