@@ -1639,7 +1639,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     LTTorrentSnapshot *snapshot = [self snapshotFromHandle:handle
                                           recordIdentifier:recordIdentifier
                                           resumeDataStatus:resumeDataStatus];
-    self->_lastSnapshotStatusByRecordID[key] = snapshot.status;
+    [self recordSnapshotStatus:snapshot key:key];
     LT_BRIDGE_LOG(
         @"restore.end",
         recordIdentifier,
@@ -1900,6 +1900,25 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     return YES;
 }
 
+/// Remembers the status of a torrent and returns whether it changed. The card
+/// of a torrent in error shows only a generic text, so the libtorrent reason
+/// goes to the main log, once per fall into error.
+- (BOOL)recordSnapshotStatus:(LTTorrentSnapshot *)snapshot key:(std::string const&)key {
+    auto previous = self->_lastSnapshotStatusByRecordID.find(key);
+    BOOL didChange = previous == self->_lastSnapshotStatusByRecordID.end() || previous->second != snapshot.status;
+    self->_lastSnapshotStatusByRecordID[key] = snapshot.status;
+
+    if (didChange && snapshot.status == LTTorrentRuntimeStatusError && LTDiagnosticsLoggingEnabled()) {
+        NSString *message = [@[
+            LTDiagnosticsField(@"torrent", snapshot.recordIdentifier),
+            LTDiagnosticsField(@"phase", @"snapshot.error"),
+            LTDiagnosticsField(@"reason", snapshot.errorMessage ?: @"unknown"),
+        ] componentsJoinedByString:@" "];
+        LTDiagnosticsLog(@"Bridge", @"ERROR", message, YES);
+    }
+    return didChange;
+}
+
 - (NSArray<LTTorrentSnapshot *> *)fetchActiveSnapshots:(NSError * _Nullable __autoreleasing *)error {
     if (_session == nullptr) {
         if (error != nullptr) {
@@ -1939,11 +1958,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         auto runtimeStatus = snapshot.status;
         bool isSleeping = runtimeStatus == LTTorrentRuntimeStatusCompleted
             || runtimeStatus == LTTorrentRuntimeStatusStopped;
-
-        auto previousStatusIterator = self->_lastSnapshotStatusByRecordID.find(entry.first);
-        bool didTransitionToNewState = previousStatusIterator == self->_lastSnapshotStatusByRecordID.end()
-            || previousStatusIterator->second != runtimeStatus;
-        self->_lastSnapshotStatusByRecordID[entry.first] = runtimeStatus;
+        bool didTransitionToNewState = [self recordSnapshotStatus:snapshot key:entry.first];
 
         // Sleeping torrents emit one final snapshot during the transition,
         // then leave active polling.
@@ -1996,7 +2011,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                                         source:@"reconcile"
                                                         tickID:tickID
                                                    handleIndex:handleIndex];
-        self->_lastSnapshotStatusByRecordID[LTToStdString(recordIdentifier)] = snapshot.status;
+        [self recordSnapshotStatus:snapshot key:LTToStdString(recordIdentifier)];
         [snapshots addObject:snapshot];
         handleIndex += 1;
     }

@@ -65,6 +65,34 @@ final class ShatlFileLoggerTests: XCTestCase {
         XCTAssertTrue(contents.contains("[Tests] [NOTICE] hello world"))
     }
 
+    /// Every diagnostics log used to rotate into `Shatl-<date>.log`, so its
+    /// archives could not be told from the main log's.
+    func testRotatedLogKeepsItsOwnName() throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ShatlFileLogger-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL)
+        }
+        let logger = ShatlFileLogger(
+            directoryURL: rootURL,
+            fileName: "Shatl Snapshot Diagnostics.log",
+            maxFileSizeBytes: 64,
+            initiallyEnabled: true
+        )
+
+        logger.write(level: .notice, category: "Tests", message: String(repeating: "x", count: 100))
+        logger.write(level: .notice, category: "Tests", message: "after rotation")
+        logger.flushForTests()
+
+        let names = try FileManager.default.contentsOfDirectory(atPath: rootURL.path).sorted()
+        XCTAssertEqual(names.count, 2, "\(names)")
+        XCTAssertTrue(names.contains("Shatl Snapshot Diagnostics.log"))
+        XCTAssertTrue(
+            names.contains { $0.hasPrefix("Shatl Snapshot Diagnostics-") && $0.hasSuffix(".log") },
+            "\(names)"
+        )
+    }
+
     func testDefaultLogsDirectoryUsesDownloadsInAppRuntime() {
         let directoryURL = AppPreferences.defaultLogsDirectoryURL(
             processInfo: TestProcessInfo(environment: [:]),

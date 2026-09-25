@@ -25,6 +25,56 @@ final class BridgeDiagnosticsTests: XCTestCase {
         XCTAssertFalse(log.contains(silentFixture.uuidString))
     }
 
+    /// The card of a torrent in error shows a generic text; the libtorrent
+    /// reason goes to the main log once, so an unexplained «Ошибка» in a long
+    /// test can be traced without the heavy snapshot log.
+    func testBridgeLogsTheReasonWhenATorrentFallsIntoError() async throws {
+        let wasEnabled = ShatlFileLogger.shared.loggingEnabled
+        addTeardownBlock { ShatlFileLogger.shared.setEnabled(wasEnabled) }
+        ShatlFileLogger.shared.setEnabled(true)
+        let fixture = try EngineFixture.make(named: "ErrorReason")
+        addTeardownBlock { fixture.remove() }
+        // An unreadable payload makes the full check fail with a file error.
+        let payloadURL = URL(fileURLWithPath: fixture.entry.suggestedSavePath)
+            .appendingPathComponent("payload.bin", isDirectory: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: payloadURL.path)
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: payloadURL.path)
+        }
+        let bridge = LibtorrentSessionBridge(resumeDataDirectoryURL: fixture.directories.resumeDataDirectoryURL)
+        let recordID = fixture.torrentID.uuidString
+
+        _ = try bridge.restoreTorrent(
+            withTorrentFilePath: fixture.entry.archivedTorrentPath,
+            suggestedSavePath: fixture.entry.suggestedSavePath,
+            stopAfterDownload: false,
+            selectedFileIndices: [0],
+            recordIdentifier: recordID,
+            shouldStart: true
+        )
+        var fellIntoError = false
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !fellIntoError, ContinuousClock.now < deadline {
+            fellIntoError = try bridge.fetchActiveSnapshots()
+                .contains { $0.recordIdentifier == recordID && $0.status == .error }
+            if !fellIntoError {
+                try await Task.sleep(for: .milliseconds(50))
+            }
+        }
+        _ = try bridge.fetchActiveSnapshots()
+        ShatlFileLogger.shared.flushForTests()
+
+        XCTAssertTrue(fellIntoError, "The unreadable payload did not put the torrent into error")
+        let logURL = AppPreferences.defaultLogsDirectoryURL()
+            .appendingPathComponent("Shatl.log", isDirectory: false)
+        let errorLines = ((try? String(contentsOf: logURL, encoding: .utf8)) ?? "")
+            .split(separator: "\n")
+            .filter { $0.contains("torrent=\(recordID) phase=snapshot.error") }
+        XCTAssertEqual(errorLines.count, 1, "\(errorLines)")
+        XCTAssertTrue(errorLines.first?.contains("[ERROR]") == true, "\(errorLines)")
+        XCTAssertTrue(errorLines.first?.contains("reason=") == true, "\(errorLines)")
+    }
+
     /// Restores a fixture torrent through the real bridge and returns its record ID.
     private func restoreFixture(named name: String) throws -> UUID {
         let fixture = try EngineFixture.make(named: name)

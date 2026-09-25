@@ -145,14 +145,17 @@ nonisolated final class ShatlFileLogger: @unchecked Sendable {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
 
+        // Each log archives under its own name, so a rotated snapshot or disk
+        // diagnostics file is not mistaken for the main `Shatl.log`.
+        let logName = fileURL.deletingPathExtension().lastPathComponent
         var archiveURL = directoryURL.appendingPathComponent(
-            "Shatl-\(formatter.string(from: Date())).log",
+            "\(logName)-\(formatter.string(from: Date())).log",
             isDirectory: false
         )
 
         if fileManager.fileExists(atPath: archiveURL.path) {
             archiveURL = directoryURL.appendingPathComponent(
-                "Shatl-\(formatter.string(from: Date()))-\(UUID().uuidString.prefix(6)).log",
+                "\(logName)-\(formatter.string(from: Date()))-\(UUID().uuidString.prefix(6)).log",
                 isDirectory: false
             )
         }
