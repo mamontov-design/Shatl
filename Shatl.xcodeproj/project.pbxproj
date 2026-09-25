@@ -422,7 +422,7 @@
 				);
 				INFOPLIST_FILE = "Shatl-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Shatl;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mamontov Design";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -494,7 +494,7 @@
 				);
 				INFOPLIST_FILE = "Shatl-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Shatl;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Mamontov Design";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
