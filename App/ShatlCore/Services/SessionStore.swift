@@ -161,6 +161,11 @@ actor SessionStore {
             }
 
             let snapshot = try decoder.decode(SessionSnapshot.self, from: data)
+            // Shatl never writes repeated IDs, but loading them would trap on
+            // every launch instead of showing the blocked-load screen.
+            guard Self.hasUniqueIdentifiers(snapshot) else {
+                return register(.failure(.unreadable))
+            }
             canonicalTorrentRecords = snapshot.torrents
             lastPersistedTorrentRecords = snapshot.torrents
             return register(.loaded(snapshot))
@@ -429,6 +434,16 @@ actor SessionStore {
             persistenceState = .blocked
         }
         return result
+    }
+
+    /// `AppStore` keys its state by torrent ID and the startup file check keys
+    /// each record's selected files by index, so both must be unique.
+    private nonisolated static func hasUniqueIdentifiers(_ snapshot: SessionSnapshot) -> Bool {
+        let torrentIDs = snapshot.torrents.map(\.torrentID)
+        guard Set(torrentIDs).count == torrentIDs.count else { return false }
+        return snapshot.torrents.allSatisfy { record in
+            Set(record.selectedFileIndices).count == record.selectedFileIndices.count
+        }
     }
 
     private func hasRecoveryArtifacts() throws -> Bool {

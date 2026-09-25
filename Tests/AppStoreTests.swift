@@ -3526,6 +3526,56 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(restoreCallCount, 0)
     }
 
+    /// Loading a repeated ID used to trap in `restoreSnapshot` on every launch,
+    /// so the blocked-load screen with «Запуск с пустым списком» never appeared.
+    func testRepeatedTorrentIDInSessionBlocksLoadInsteadOfCrashing() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(
+            engine: engine,
+            router: ExternalOpenRouter(),
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        try bundle.directories.ensureSessionDirectories()
+        let record = SessionTorrentRecord(
+            torrentID: UUID(),
+            attemptID: UUID(),
+            infoHash: "repeated",
+            originalName: "Repeated",
+            alias: nil,
+            status: .stopped,
+            progress: 0.4,
+            canonicalSavePath: "/Users/example/Downloads",
+            stopAfterDownload: false,
+            selectedFileIndices: [0],
+            selectedFileCount: 1,
+            totalFileCount: 1,
+            archivedTorrentRelativePath: "Torrents/repeated.torrent",
+            materializedSelectionFootprint: nil,
+            persistentIssue: nil
+        )
+        let sessionData = try JSONEncoder().encode(SessionSnapshot(
+            schemaVersion: SessionSnapshot.currentSchemaVersion,
+            savedAt: Date(),
+            torrents: [record, record]
+        ))
+        try sessionData.write(to: bundle.directories.sessionSnapshotURL, options: .atomic)
+
+        bundle.store.bootstrapRuntimeState()
+
+        let didReportFailure = await waitForCondition {
+            bundle.store.sessionLoadIssue == .unreadable
+        }
+        XCTAssertTrue(didReportFailure)
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+        XCTAssertEqual(try Data(contentsOf: bundle.directories.sessionSnapshotURL), sessionData)
+        let bootCallCount = await engine.bootCallCount()
+        XCTAssertEqual(bootCallCount, 0)
+    }
+
     func testCorruptSessionBlocksBootstrapAddingAndAllPersistencePathsWithoutChangingFiles() async throws {
         let engine = FakeTorrentEngine()
         let router = ExternalOpenRouter()
