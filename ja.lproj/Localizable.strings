@@ -51,7 +51,6 @@
 "session.persistence.remove_from_list_failed.message" = "Torrentはリストから削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.remove_with_files_failed.message" = "Torrentとそのファイルは削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.stop_failed.message" = "ダウンロードは停止されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.recheck_failed.message" = "再チェックは開始されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
 "session.persistence.quit_dialog.message" = "ディスクの空き容量が不足しているか、Shatlがデータフォルダにアクセスできない可能性があります。今すぐ終了すると、進行状況とステータスの最新の変更は保存されず、次回の起動時にダウンロード済みのデータの一部が再確認される場合があります。ダウンロード済みのファイルとダウンロードリストには影響しません。";
 "session.persistence.quit_dialog.retry" = "再試行";
 "session.persistence.quit_dialog.return" = "Shatlに戻る";

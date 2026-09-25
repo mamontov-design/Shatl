@@ -22,8 +22,9 @@ final class LibtorrentEngineMagnetMetadataTests: XCTestCase {
         let elapsed = try await ContinuousClock().measure {
             _ = try await engine.fetchActiveSnapshots()
             try await engine.startTorrent(id: fixture.torrentID)
-            try await engine.stopTorrent(id: fixture.torrentID)
             _ = await engine.checkpointTorrents(ids: [fixture.torrentID])
+            // Stop in the app detaches the torrent from the engine.
+            try await engine.removeTorrent(id: fixture.torrentID)
         }
 
         XCTAssertLessThan(elapsed, .seconds(2), "Engine commands waited for magnet metadata")

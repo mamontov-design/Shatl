@@ -342,7 +342,7 @@ final class AppStoreTests: XCTestCase {
         await engine.setAddSuspended(false)
         let didRemoveLateEngineResult = await waitForAsyncCondition {
             await engine.recordedRemoveCalls().contains(
-                RemovedTorrentCall(id: pendingID, deleteData: false)
+                RemovedTorrentCall(id: pendingID)
             )
         }
         XCTAssertTrue(didRemoveLateEngineResult)
@@ -400,7 +400,7 @@ final class AppStoreTests: XCTestCase {
         await engine.setAddSuspended(false)
         let didCancelOriginalAddition = await waitForAsyncCondition {
             await engine.recordedRemoveCalls().contains(
-                RemovedTorrentCall(id: pendingID, deleteData: false)
+                RemovedTorrentCall(id: pendingID)
             )
         }
         XCTAssertTrue(didCancelOriginalAddition)
@@ -1380,7 +1380,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
         let removeCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id)])
     }
 
     func testRemoveTorrentForgetsTrackedFiles() async throws {
@@ -1494,7 +1494,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: resumeDataURL.path))
         let retryRemoveCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id)])
         let persistedSnapshot = try JSONDecoder().decode(
             SessionSnapshot.self,
             from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
@@ -1547,7 +1547,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
 
         let removeCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id)])
     }
 
     func testRemoveTorrentWithFilesDowngradesToRemoveOnlyForRuntimeError() async throws {
@@ -1598,7 +1598,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: bookmarkURL.path))
 
         let removeCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(removeCalls, [RemovedTorrentCall(id: record.id)])
     }
 
     func testRemoveTorrentWithFilesShowsAlertWhenPayloadCannotBeResolved() async throws {
@@ -1894,7 +1894,7 @@ final class AppStoreTests: XCTestCase {
         }
         XCTAssertTrue(didStopOnRetry)
         let retryRemoveCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(retryRemoveCalls, [RemovedTorrentCall(id: record.id)])
         let persistedSnapshot = try JSONDecoder().decode(
             SessionSnapshot.self,
             from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
@@ -2133,293 +2133,6 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(ShatlFileLogger.shared.loggingEnabled)
     }
 
-    func testForceRecheckRestoresSleepingTorrentBeforeChecking() async throws {
-        let engine = FakeTorrentEngine()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ForceRecheck-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-        let payloadFileURL = saveRoot.appendingPathComponent("test-file.bin", isDirectory: false)
-        try Data("payload".utf8).write(to: payloadFileURL, options: .atomic)
-
-        let record = makeTestRecord(
-            savePath: saveRoot.path,
-            selectedFileIndices: [0],
-            selectedFileCount: 1,
-            totalFileCount: 1,
-            status: .stopped,
-            progress: 0.4
-        )
-
-        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didEnterChecking = await waitForCondition {
-            bundle.store.torrents.first?.status == .checking
-        }
-
-        XCTAssertTrue(didEnterChecking)
-        let recheckCallIDs = await engine.recordedRecheckCallIDs()
-        XCTAssertEqual(recheckCallIDs, [record.id])
-        let restoreCalls = await engine.restoreSessionCallCount()
-        XCTAssertEqual(restoreCalls, 1)
-        let restoreEntries = await engine.recordedRestoreSessionEntries()
-        XCTAssertEqual(restoreEntries.last?.torrentID, record.id)
-        XCTAssertEqual(restoreEntries.last?.shouldStart, true)
-    }
-
-    func testRecheckCommitFailureRollsBackEngineAndRetrySucceeds() async throws {
-        let engine = FakeTorrentEngine()
-        let writer = ControllableSessionDataWriter()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("RecheckCommitFailure-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-        try Data("payload".utf8).write(
-            to: saveRoot.appendingPathComponent("test-file.bin", isDirectory: false),
-            options: .atomic
-        )
-
-        let record = makeTestRecord(
-            savePath: saveRoot.path,
-            selectedFileIndices: [0],
-            selectedFileCount: 1,
-            totalFileCount: 1,
-            status: .stopped,
-            progress: 0.4
-        )
-        let bundle = makeTestStoreBundle(
-            engine: engine,
-            torrents: [record],
-            sessionWriteData: { data, url in
-                try writer.write(data, to: url)
-            }
-        )
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let initialSaveOutcome = await bundle.sessionStore.replaceAllRecordsForTesting(from: [record])
-        XCTAssertEqual(initialSaveOutcome, .saved)
-        let originalSessionData = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        writer.failNextWrite()
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didRollbackRecheck = await waitForCondition {
-            !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.sessionPersistenceIssue != nil
-        }
-        XCTAssertTrue(didRollbackRecheck)
-        XCTAssertEqual(bundle.store.torrents, [record])
-        XCTAssertEqual(
-            try Data(contentsOf: bundle.directories.sessionSnapshotURL),
-            originalSessionData
-        )
-        let failedRecheckCalls = await engine.recordedRecheckCallIDs()
-        XCTAssertEqual(failedRecheckCalls, [record.id])
-        let rollbackRemoveCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
-        XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .recheck)
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didStartRecheckOnRetry = await waitForCondition {
-            !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.torrents.first?.status == .checking
-                && bundle.store.sessionPersistenceIssue == nil
-        }
-        XCTAssertTrue(didStartRecheckOnRetry)
-        let retryRecheckCalls = await engine.recordedRecheckCallIDs()
-        XCTAssertEqual(retryRecheckCalls, [record.id, record.id])
-        let restoreCallCount = await engine.restoreSessionCallCount()
-        XCTAssertEqual(restoreCallCount, 2)
-        let persistedSnapshot = try JSONDecoder().decode(
-            SessionSnapshot.self,
-            from: Data(contentsOf: bundle.directories.sessionSnapshotURL)
-        )
-        XCTAssertEqual(persistedSnapshot.torrents.first?.status, .checking)
-    }
-
-    func testForceRecheckReturnsSleepingTorrentToStoppedAfterCheckCompletes() async throws {
-        let engine = FakeTorrentEngine()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ForceRecheck-Stopped-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-        let payloadFileURL = saveRoot.appendingPathComponent("test-file.bin", isDirectory: false)
-        try Data("payload".utf8).write(to: payloadFileURL, options: .atomic)
-
-        let record = makeTestRecord(
-            savePath: saveRoot.path,
-            selectedFileIndices: [0],
-            selectedFileCount: 1,
-            totalFileCount: 1,
-            status: .stopped,
-            progress: 0.4
-        )
-
-        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-
-        bundle.store.bootstrapRuntimeState()
-
-        let didBootstrap = await waitForCondition {
-            !bundle.store.isRestoringSession
-        }
-        XCTAssertTrue(didBootstrap)
-
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .checking,
-                progress: 0.4,
-                metrics: TorrentMetrics(),
-                errorState: nil
-            ),
-        ])
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .downloading,
-                progress: 0.4,
-                metrics: TorrentMetrics(
-                    downloadSpeedBytesPerSecond: 2_048,
-                    uploadSpeedBytesPerSecond: 512,
-                    etaSeconds: 120,
-                    seeds: 4,
-                    peers: 9,
-                    uploadedBytes: 8_192,
-                    totalBytes: 16_384,
-                    selectedBytes: 16_384
-                ),
-                errorState: nil
-            ),
-        ])
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didReturnToStopped = await waitForCondition(timeoutNanoseconds: 2_500_000_000) {
-            !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.torrents.first?.status == .stopped
-                && bundle.store.torrents.first?.runtimeErrorState == nil
-        }
-        XCTAssertTrue(didReturnToStopped)
-        XCTAssertNil(bundle.store.torrents.first?.metrics.seeds)
-        XCTAssertNil(bundle.store.torrents.first?.metrics.peers)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.downloadSpeedBytesPerSecond, 0)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.uploadSpeedBytesPerSecond, 0)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.uploadedBytes, 8_192)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.totalBytes, 16_384)
-
-        let didDetachTemporaryHandle = await waitForAsyncCondition(timeoutNanoseconds: 2_500_000_000) {
-            let removeCalls = await engine.recordedRemoveCalls()
-            return removeCalls.contains(RemovedTorrentCall(id: record.id, deleteData: false))
-        }
-        XCTAssertTrue(didDetachTemporaryHandle)
-    }
-
-    func testForceRecheckReturnsCompletedTorrentToCompletedAfterCheckCompletes() async throws {
-        let engine = FakeTorrentEngine()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ForceRecheck-Completed-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-        let payloadFileURL = saveRoot.appendingPathComponent("test-file.bin", isDirectory: false)
-        try Data("payload".utf8).write(to: payloadFileURL, options: .atomic)
-
-        let record = makeTestRecord(
-            savePath: saveRoot.path,
-            selectedFileIndices: [0],
-            selectedFileCount: 1,
-            totalFileCount: 1,
-            status: .completed,
-            progress: 1.0
-        )
-
-        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-
-        bundle.store.bootstrapRuntimeState()
-
-        let didBootstrap = await waitForCondition {
-            !bundle.store.isRestoringSession
-        }
-        XCTAssertTrue(didBootstrap)
-
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .checking,
-                progress: 1.0,
-                metrics: TorrentMetrics(),
-                errorState: nil
-            ),
-        ])
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .seeding,
-                progress: 1.0,
-                metrics: TorrentMetrics(
-                    downloadSpeedBytesPerSecond: 1_024,
-                    uploadSpeedBytesPerSecond: 256,
-                    etaSeconds: 30,
-                    seeds: 6,
-                    peers: 11,
-                    uploadedBytes: 12_288,
-                    totalBytes: 32_768,
-                    selectedBytes: 32_768
-                ),
-                errorState: nil
-            ),
-        ])
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didReturnToCompleted = await waitForCondition(timeoutNanoseconds: 2_500_000_000) {
-            !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.torrents.first?.status == .completed
-                && bundle.store.torrents.first?.runtimeErrorState == nil
-        }
-        XCTAssertTrue(didReturnToCompleted)
-        XCTAssertNil(bundle.store.torrents.first?.metrics.seeds)
-        XCTAssertNil(bundle.store.torrents.first?.metrics.peers)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.downloadSpeedBytesPerSecond, 0)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.uploadSpeedBytesPerSecond, 0)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.uploadedBytes, 12_288)
-        XCTAssertEqual(bundle.store.torrents.first?.metrics.totalBytes, 32_768)
-
-        let didDetachTemporaryHandle = await waitForAsyncCondition(timeoutNanoseconds: 2_500_000_000) {
-            let removeCalls = await engine.recordedRemoveCalls()
-            return removeCalls.contains(RemovedTorrentCall(id: record.id, deleteData: false))
-        }
-        XCTAssertTrue(didDetachTemporaryHandle)
-    }
-
     func testCompletedStopAfterDownloadSnapshotDetachesHiddenHandle() async throws {
         let engine = FakeTorrentEngine()
         let saveRoot = FileManager.default.temporaryDirectory
@@ -2470,86 +2183,9 @@ final class AppStoreTests: XCTestCase {
 
         let didDetachHandle = await waitForAsyncCondition(timeoutNanoseconds: 2_500_000_000) {
             let removeCalls = await engine.recordedRemoveCalls()
-            return removeCalls.contains(RemovedTorrentCall(id: record.id, deleteData: false))
+            return removeCalls.contains(RemovedTorrentCall(id: record.id))
         }
         XCTAssertTrue(didDetachHandle)
-    }
-
-    func testForceRecheckCompletedTorrentReusesExistingHiddenHandleAfterStopAfterDownload() async throws {
-        let engine = FakeTorrentEngine()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Recheck-HiddenCompleted-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-        let payloadFileURL = saveRoot.appendingPathComponent("Episode 03.mkv", isDirectory: false)
-        try Data("payload".utf8).write(to: payloadFileURL, options: .atomic)
-
-        let record = makeTestRecord(
-            savePath: saveRoot.path,
-            selectedFileIndices: [1, 4, 9],
-            selectedFileCount: 3,
-            totalFileCount: 16,
-            status: .completed,
-            progress: 1.0,
-            stopAfterDownload: true
-        )
-
-        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
-        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
-        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
-        await engine.setHandleActive(true, for: record.id)
-        await engine.setRestoreSessionErrors([
-            TorrentEngineError(kind: .duplicateTorrent, debugReason: "torrent already exists in session")
-        ])
-
-        bundle.store.bootstrapRuntimeState()
-
-        let didBootstrap = await waitForCondition {
-            !bundle.store.isRestoringSession
-        }
-        XCTAssertTrue(didBootstrap)
-
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .checking,
-                progress: 1.0,
-                metrics: TorrentMetrics(totalBytes: 16_000, selectedBytes: 3_000),
-                errorState: nil
-            ),
-        ])
-        await engine.enqueueActiveSnapshots([
-            EngineTorrentSnapshot(
-                id: record.id,
-                status: .completed,
-                progress: 1.0,
-                metrics: TorrentMetrics(totalBytes: 16_000, selectedBytes: 3_000),
-                errorState: nil
-            ),
-        ])
-
-        bundle.store.forceRecheckTorrent(id: record.id)
-
-        let didReturnToCompleted = await waitForCondition(timeoutNanoseconds: 2_500_000_000) {
-            !bundle.store.transitioningTorrentIDs.contains(record.id)
-                && bundle.store.torrents.first?.status == .completed
-                && bundle.store.torrents.first?.runtimeErrorState == nil
-        }
-        XCTAssertTrue(didReturnToCompleted)
-
-        let recheckCalls = await engine.recordedRecheckCallIDs()
-        XCTAssertEqual(recheckCalls.last, record.id)
-
-        let didDetachTemporaryHandle = await waitForAsyncCondition(timeoutNanoseconds: 2_500_000_000) {
-            let removeCalls = await engine.recordedRemoveCalls()
-            return removeCalls.contains(RemovedTorrentCall(id: record.id, deleteData: false))
-        }
-        XCTAssertTrue(didDetachTemporaryHandle)
     }
 
     func testStartCompletedTorrentReusesExistingHiddenHandleAfterStopAfterDownload() async throws {
@@ -3131,7 +2767,7 @@ final class AppStoreTests: XCTestCase {
         let firstRestoreCount = await engine.restoreSessionCallCount()
         XCTAssertEqual(firstRestoreCount, 1)
         let rollbackRemoveCalls = await engine.recordedRemoveCalls()
-        XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id, deleteData: false)])
+        XCTAssertEqual(rollbackRemoveCalls, [RemovedTorrentCall(id: record.id)])
         XCTAssertEqual(bundle.store.sessionPersistenceIssue?.kind, .redownload)
 
         bundle.store.redownloadTorrent(id: record.id, toSaveLocation: newSaveRoot, bookmarkData: nil)
@@ -3445,36 +3081,6 @@ final class AppStoreTests: XCTestCase {
         }
 
         bundle.store.startTorrent(id: record.id)
-
-        let didApplyError = await waitForCondition {
-            bundle.store.torrents.first?.runtimeErrorState?.kind == .torrentNotFound
-        }
-
-        XCTAssertTrue(didApplyError)
-        let restoreCallCount = await engine.restoreSessionCallCount()
-        XCTAssertEqual(restoreCallCount, 0)
-    }
-
-    func testForceRecheckWithoutArchivedTorrentShowsRuntimeErrorWithoutRestoreAttempt() async throws {
-        let engine = FakeTorrentEngine()
-        let saveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("MissingArchiveRecheck-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: saveRoot, withIntermediateDirectories: true)
-
-        let record = makeTestRecord(
-            infoHash: "missing-archive-recheck",
-            savePath: saveRoot.path,
-            status: .stopped,
-            progress: 0.36
-        )
-
-        let bundle = makeTestStoreBundle(engine: engine, torrents: [record])
-        addTeardownBlock {
-            try? FileManager.default.removeItem(at: saveRoot)
-            try? FileManager.default.removeItem(at: bundle.rootURL)
-        }
-
-        bundle.store.forceRecheckTorrent(id: record.id)
 
         let didApplyError = await waitForCondition {
             bundle.store.torrents.first?.runtimeErrorState?.kind == .torrentNotFound

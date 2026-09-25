@@ -1604,38 +1604,6 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     return snapshot;
 }
 
-- (NSArray<NSNumber *> *)materializedFileIndicesForTorrentWithIdentifier:(NSString *)recordIdentifier
-                                                     selectedFileIndices:(NSArray<NSNumber *> *)selectedFileIndices
-                                                                   error:(NSError * _Nullable __autoreleasing *)error {
-    auto iterator = self->_handlesByRecordID.find(LTToStdString(recordIdentifier));
-    if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        if (error != nullptr) {
-            *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
-        }
-        return nil;
-    }
-
-    std::unordered_map<int, bool> selectedIndices;
-    for (NSNumber *index in selectedFileIndices) {
-        selectedIndices[index.intValue] = true;
-    }
-
-    std::vector<std::int64_t> progress = iterator->second.file_progress();
-    NSMutableArray<NSNumber *> *materializedIndices = [[NSMutableArray alloc] init];
-
-    for (int index = 0; index < int(progress.size()); ++index) {
-        if (selectedIndices.count(index) == 0) {
-            continue;
-        }
-
-        if (progress[std::size_t(index)] > 0) {
-            [materializedIndices addObject:@(index)];
-        }
-    }
-
-    return materializedIndices;
-}
-
 - (BOOL)startTorrentWithIdentifier:(NSString *)recordIdentifier
                              error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
@@ -1653,30 +1621,6 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     iterator->second.resume();
     LT_BRIDGE_LOG(
         @"start.end",
-        recordIdentifier,
-        @{ @"totalMs": LTMillisecondsString(startedAt) },
-        YES
-    );
-    return YES;
-}
-
-- (BOOL)stopTorrentWithIdentifier:(NSString *)recordIdentifier
-                            error:(NSError * _Nullable __autoreleasing *)error {
-    auto startedAt = std::chrono::steady_clock::now();
-    LT_BRIDGE_LOG(@"stop.begin", recordIdentifier, nil, YES);
-    auto iterator = self->_handlesByRecordID.find(LTToStdString(recordIdentifier));
-    if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        LT_BRIDGE_LOG(@"stop.not-found", recordIdentifier, nil, YES);
-        if (error != nullptr) {
-            *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
-        }
-        return NO;
-    }
-
-    iterator->second.pause();
-    iterator->second.set_flags(lt::torrent_flags::paused);
-    LT_BRIDGE_LOG(
-        @"stop.end",
         recordIdentifier,
         @{ @"totalMs": LTMillisecondsString(startedAt) },
         YES
@@ -1876,15 +1820,9 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 }
 
 - (BOOL)removeTorrentWithIdentifier:(NSString *)recordIdentifier
-                         deleteData:(BOOL)deleteData
                               error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
-    LT_BRIDGE_LOG(
-        @"remove.begin",
-        recordIdentifier,
-        @{ @"deleteData": deleteData ? @"1" : @"0" },
-        YES
-    );
+    LT_BRIDGE_LOG(@"remove.begin", recordIdentifier, nil, YES);
     auto key = LTToStdString(recordIdentifier);
     auto iterator = self->_handlesByRecordID.find(key);
     if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
@@ -1895,30 +1833,18 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         return NO;
     }
 
-    lt::remove_flags_t flags{};
-    if (deleteData) {
-        flags |= lt::session_handle::delete_files;
-    } else {
-        [self saveResumeDataForHandle:iterator->second recordIdentifier:recordIdentifier];
-    }
+    [self saveResumeDataForHandle:iterator->second recordIdentifier:recordIdentifier];
 
-    LT_BRIDGE_LOG(
-        @"remove.session-call",
-        recordIdentifier,
-        @{ @"deleteData": deleteData ? @"1" : @"0" },
-        YES
-    );
-    self->_session->remove_torrent(iterator->second, flags);
+    LT_BRIDGE_LOG(@"remove.session-call", recordIdentifier, nil, YES);
+    // No `delete_files`: libtorrent never deletes payload in Shatl.
+    self->_session->remove_torrent(iterator->second);
     self->_handlesByRecordID.erase(iterator);
     self->_stopAfterDownloadByRecordID.erase(key);
     self->_lastSnapshotStatusByRecordID.erase(key);
     LT_BRIDGE_LOG(
         @"remove.end",
         recordIdentifier,
-        @{
-            @"deleteData": deleteData ? @"1" : @"0",
-            @"totalMs": LTMillisecondsString(startedAt)
-        },
+        @{ @"totalMs": LTMillisecondsString(startedAt) },
         YES
     );
     return YES;

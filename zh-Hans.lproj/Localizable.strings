@@ -51,7 +51,6 @@
 "session.persistence.remove_from_list_failed.message" = "Torrent 未从列表中移除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.remove_with_files_failed.message" = "Torrent 及其文件未被删除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.stop_failed.message" = "下载未停止：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
-"session.persistence.recheck_failed.message" = "重新检查未开始：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
 "session.persistence.quit_dialog.message" = "可能是磁盘空间已满，或 Shatl 无法访问其数据文件夹。如果现在退出，最近的进度和状态更改将不会被保存，下次打开 Shatl 时可能会重新检查部分已下载的数据。已下载的文件和下载列表不会受到影响。";
 "session.persistence.quit_dialog.retry" = "重试";
 "session.persistence.quit_dialog.return" = "返回 Shatl";

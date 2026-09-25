@@ -169,13 +169,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// Torrents that must intentionally ignore engine snapshots.
     /// Prevents delayed polling from resurrecting an already stopped torrent.
     private var detachedTorrentIDs: Set<UUID> = []
-    /// Temporary restoration used for manual rechecks of sleeping torrents.
-    /// The handle is removed from the engine when the check completes.
-    private var temporarilyRestoredRecheckTorrentIDs: Set<UUID> = []
-    /// Restores a card to its original sleeping state after a temporary recheck
-    /// instead of leaving it in an active runtime state.
-    private var temporaryRecheckPostCheckStatusByID: [UUID: TorrentStatus] = [:]
-    private var pendingTemporaryRecheckDetachIDs: Set<UUID> = []
     /// Some sleeping states arrive paused while their engine handle is still alive.
     /// Detach such a handle after its first final snapshot so the store and engine
     /// agree that a sleeping torrent has no active handle.
@@ -907,14 +900,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    func canForceRecheck(for id: UUID) -> Bool {
-        guard let record = torrentRecord(for: id) else { return false }
-        return record.errorState == nil
-            && record.status != .checking
-            && !isRestoringSession
-            && !transitioningTorrentIDs.contains(id)
-    }
-
     func canRemoveFromList(for id: UUID) -> Bool {
         let isPendingAddition = isPendingAddition(id: id)
         guard isPendingAddition || torrentIndex(for: id) != nil else { return false }
@@ -1249,7 +1234,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 do {
                     let engineCallStartedAt = DispatchTime.now().uptimeNanoseconds
                     self.traceTransition(torrentID: id, phase: "engine.remove.begin", level: .notice, flush: true)
-                    try await self.engine.removeTorrent(id: id, deleteData: false)
+                    try await self.engine.removeTorrent(id: id)
                     self.traceTransition(
                         torrentID: id,
                         phase: "engine.remove.end",
@@ -1298,7 +1283,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             do {
                 let engineCallStartedAt = DispatchTime.now().uptimeNanoseconds
                 self.traceTransition(torrentID: id, phase: "engine.remove.begin", level: .notice, flush: true)
-                try await self.engine.removeTorrent(id: id, deleteData: false)
+                try await self.engine.removeTorrent(id: id)
                 Self.logger.notice("Stop removal succeeded for torrent id=\(id.uuidString)")
                 self.traceTransition(
                     torrentID: id,
@@ -1341,265 +1326,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    func forceRecheckTorrent(id: UUID) {
-        guard let record = torrents.first(where: { $0.id == id }),
-              canForceRecheck(for: id) else { return }
-
-        Self.logger.notice("Recheck requested for torrent id=\(id.uuidString) status=\(record.status.rawValue)")
-        beginTransitionTrace(action: "recheck", record: record)
-        transitioningTorrentIDs.insert(id)
-        traceTransition(
-            torrentID: id,
-            phase: "transition.lock.acquired",
-            level: .notice,
-            flush: true,
-            extra: recordSnapshotFields(for: record)
-        )
-
-        Task { [weak self] in
-            guard let self else { return }
-            var transitionOutcome = "cancelled"
-            defer {
-                self.transitioningTorrentIDs.remove(id)
-                self.endTransitionTrace(torrentID: id, outcome: transitionOutcome)
-            }
-            var restoredTemporaryHandle = false
-
-            self.traceTransition(torrentID: id, phase: "validation.begin", extra: [:])
-            let validation = await self.diskIssueDetector.validateAfterUserAction(for: record)
-            self.traceTransition(
-                torrentID: id,
-                phase: "validation.result",
-                level: validation.issue == nil ? .debug : .notice,
-                extra: self.validationFields(for: validation)
-            )
-
-            if let issue = validation.issue {
-                guard let currentIndex = self.torrents.firstIndex(where: { $0.id == id }) else {
-                    return
-                }
-                var candidateRecord = self.torrents[currentIndex]
-                if let footprint = validation.footprint {
-                    candidateRecord.materializedSelectionFootprint = footprint
-                }
-                candidateRecord.persistentIssue = self.normalizedPersistentIssue(
-                    issue,
-                    for: candidateRecord
-                )
-                candidateRecord.runtimeErrorState = nil
-                candidateRecord.status = .error
-
-                var candidateTorrents = self.torrents
-                candidateTorrents[currentIndex] = candidateRecord
-                let sessionSaveOutcome = await self.commitCriticalState(candidateTorrents)
-                guard sessionSaveOutcome == .saved else {
-                    Self.logger.error(
-                        "Recheck issue could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
-                    )
-                    self.reportSessionPersistenceFailure(.recheck)
-                    transitionOutcome = "blocked.session-commit"
-                    return
-                }
-
-                self.applyValidationResult(validation, to: id)
-                Self.logger.notice("Recheck blocked by persistent issue for torrent id=\(id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
-                self.detachedTorrentIDs.insert(id)
-                transitionOutcome = "blocked.persistent-issue"
-
-                if record.status.isActive {
-                    try? await self.engine.removeTorrent(id: id, deleteData: false)
-                }
-                return
-            }
-
-            do {
-                if record.status.isSleeping {
-                    self.traceTransition(torrentID: id, phase: "temporary.restore.begin", level: .notice, flush: true)
-                    guard let restoreEntry = await self.makeRestoreEntryForUserAction(
-                        record: record,
-                        shouldStart: true,
-                        savePathFailureReason: "Не удалось разрешить путь для проверки торрента."
-                    ) else {
-                        transitionOutcome = "restore-entry.unavailable"
-                        return
-                    }
-
-                    do {
-                        let restoreStartedAt = DispatchTime.now().uptimeNanoseconds
-                        _ = try await self.engine.restoreSession([restoreEntry])
-                        self.temporarilyRestoredRecheckTorrentIDs.insert(id)
-                        self.temporaryRecheckPostCheckStatusByID[id] = record.status
-                        self.detachedTorrentIDs.remove(id)
-                        restoredTemporaryHandle = true
-                        self.traceTransition(
-                            torrentID: id,
-                            phase: "temporary.restore.end",
-                            level: .notice,
-                            flush: true,
-                            extra: ["engineMs": self.elapsedMilliseconds(sinceUptimeNs: restoreStartedAt)]
-                        )
-                    } catch {
-                        let engineError = TorrentEngineError.normalized(from: error)
-                        guard engineError.kind == .duplicateTorrent else {
-                            self.traceTransition(
-                                torrentID: id,
-                                phase: "temporary.restore.failed",
-                                level: .error,
-                                flush: true,
-                                extra: self.engineErrorFields(error)
-                            )
-                            throw error
-                        }
-
-                        // Auto-stop after download can leave a paused handle alive.
-                        // Reuse that handle instead of restoring it, then detach it
-                        // from the engine again after the recheck.
-                        self.temporarilyRestoredRecheckTorrentIDs.insert(id)
-                        self.temporaryRecheckPostCheckStatusByID[id] = record.status
-                        self.detachedTorrentIDs.remove(id)
-                        restoredTemporaryHandle = true
-                        self.traceTransition(
-                            torrentID: id,
-                            phase: "temporary.restore.reused-handle",
-                            level: .notice,
-                            flush: true,
-                            extra: self.engineErrorFields(error)
-                        )
-                    }
-                }
-
-                do {
-                    let recheckStartedAt = DispatchTime.now().uptimeNanoseconds
-                    self.traceTransition(torrentID: id, phase: "engine.recheck.begin", level: .notice, flush: true)
-                    try await self.engine.forceRecheck(id: id)
-                    self.traceTransition(
-                        torrentID: id,
-                        phase: "engine.recheck.end",
-                        level: .notice,
-                        flush: true,
-                        extra: ["engineMs": self.elapsedMilliseconds(sinceUptimeNs: recheckStartedAt)]
-                    )
-                } catch {
-                    let engineError = TorrentEngineError.normalized(from: error)
-
-                    if engineError.kind == .torrentNotFound, !restoredTemporaryHandle {
-                        guard let restoreEntry = await self.makeRestoreEntryForUserAction(
-                            record: record,
-                            shouldStart: true,
-                            savePathFailureReason: "Не удалось разрешить путь для проверки торрента."
-                        ) else {
-                            transitionOutcome = "restore-entry.unavailable"
-                            return
-                        }
-
-                        let restoreStartedAt = DispatchTime.now().uptimeNanoseconds
-                        _ = try await self.engine.restoreSession([restoreEntry])
-                        self.detachedTorrentIDs.remove(id)
-                        self.traceTransition(
-                            torrentID: id,
-                            phase: "temporary.restore.not-found-fallback",
-                            level: .notice,
-                            flush: true,
-                            extra: ["engineMs": self.elapsedMilliseconds(sinceUptimeNs: restoreStartedAt)]
-                        )
-                        let recheckStartedAt = DispatchTime.now().uptimeNanoseconds
-                        try await self.engine.forceRecheck(id: id)
-                        self.traceTransition(
-                            torrentID: id,
-                            phase: "engine.recheck.end",
-                            level: .notice,
-                            flush: true,
-                            extra: ["engineMs": self.elapsedMilliseconds(sinceUptimeNs: recheckStartedAt)]
-                        )
-                    } else {
-                        self.traceTransition(
-                            torrentID: id,
-                            phase: "engine.recheck.failed",
-                            level: .error,
-                            flush: true,
-                            extra: self.engineErrorFields(error)
-                        )
-                        throw error
-                    }
-                }
-
-                guard let currentIndex = self.torrents.firstIndex(where: { $0.id == id }) else {
-                    throw TorrentEngineError(
-                        kind: .torrentNotFound,
-                        debugReason: "Карточка торрента исчезла во время запуска проверки."
-                    )
-                }
-
-                var candidateRecord = self.torrents[currentIndex]
-                if let footprint = validation.footprint {
-                    candidateRecord.materializedSelectionFootprint = footprint
-                }
-                candidateRecord.status = .checking
-                candidateRecord.runtimeErrorState = nil
-                var candidateTorrents = self.torrents
-                candidateTorrents[currentIndex] = candidateRecord
-
-                let sessionSaveOutcome = await self.commitCriticalState(candidateTorrents)
-                guard sessionSaveOutcome == .saved else {
-                    self.temporarilyRestoredRecheckTorrentIDs.remove(id)
-                    self.temporaryRecheckPostCheckStatusByID[id] = nil
-                    self.pendingTemporaryRecheckDetachIDs.remove(id)
-                    self.detachedTorrentIDs.insert(id)
-
-                    do {
-                        try await self.engine.removeTorrent(id: id, deleteData: false)
-                    } catch {
-                        let engineError = TorrentEngineError.normalized(from: error)
-                        if engineError.kind != .torrentNotFound {
-                            self.traceTransition(
-                                torrentID: id,
-                                phase: "engine.recheck.rollback.failed",
-                                level: .error,
-                                flush: true,
-                                extra: self.engineErrorFields(error)
-                            )
-                        }
-                    }
-
-                    Self.logger.error(
-                        "Recheck rolled back because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
-                    )
-                    self.reportSessionPersistenceFailure(.recheck)
-                    transitionOutcome = "rolled-back.session-commit"
-                    return
-                }
-
-                self.detachedTorrentIDs.remove(id)
-                if let index = self.torrents.firstIndex(where: { $0.id == id }) {
-                    self.torrents[index] = candidateRecord
-                }
-
-                Self.logger.notice("Recheck started for torrent id=\(id.uuidString)")
-                transitionOutcome = "started"
-                await self.refreshActiveSnapshots()
-            } catch {
-                if restoredTemporaryHandle {
-                    self.temporarilyRestoredRecheckTorrentIDs.remove(id)
-                    self.temporaryRecheckPostCheckStatusByID[id] = nil
-                    self.pendingTemporaryRecheckDetachIDs.remove(id)
-                    self.detachedTorrentIDs.insert(id)
-                    try? await self.engine.removeTorrent(id: id, deleteData: false)
-                }
-                let engineError = TorrentEngineError.normalized(from: error)
-                Self.logger.error("Recheck failed for torrent id=\(id.uuidString) kind=\(engineError.kind.rawValue) reason=\(engineError.debugReason ?? "-")")
-                self.applyEngineError(error, to: id)
-                transitionOutcome = "failed.\(engineError.kind.rawValue)"
-            }
-        }
-    }
-
     func removeSelectedTorrent(policy: TorrentRemovalPolicy = .removeFromListOnly) async {
         guard let selectedTorrentID, isToolbarRemoveEnabled else { return }
         await removeTorrent(id: selectedTorrentID, policy: policy)
-    }
-
-    func removeSelectedTorrent(deleteData: Bool = false) async {
-        await removeSelectedTorrent(policy: deleteData ? .removeFromListAndDeleteFiles : .removeFromListOnly)
     }
 
     func primaryLocation(for id: UUID) async -> ManagedTorrentLocation? {
@@ -1647,7 +1376,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         var canDeletePayload = false
         do {
-            try await engine.removeTorrent(id: id, deleteData: false)
+            try await engine.removeTorrent(id: id)
             canDeletePayload = true
         } catch {
             let engineError = TorrentEngineError.normalized(from: error)
@@ -1920,7 +1649,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             guard saveOutcome == .saved else {
                 detachedTorrentIDs.insert(record.id)
                 do {
-                    try await engine.removeTorrent(id: record.id, deleteData: false)
+                    try await engine.removeTorrent(id: record.id)
                 } catch {
                     let engineError = TorrentEngineError.normalized(from: error)
                     if engineError.kind != .torrentNotFound {
@@ -2073,7 +1802,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await refreshActiveSnapshots()
         } catch {
             if let addedRecord {
-                try? await engine.removeTorrent(id: addedRecord.id, deleteData: false)
+                try? await engine.removeTorrent(id: addedRecord.id)
             }
             await sessionStore.abortAdd(addLease)
 
@@ -2113,7 +1842,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await sessionStore.abortAdd(lease)
         }
 
-        try? await engine.removeTorrent(id: record.id, deleteData: false)
+        try? await engine.removeTorrent(id: record.id)
         if isCommitted {
             await sessionStore.finalizeRemovalArtifacts(torrentID: record.id)
         }
@@ -2444,9 +2173,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             let snapshots = try await engine.fetchActiveSnapshots()
             applySnapshots(snapshots)
             await detachSleepingHandlesIfNeeded()
-            await detachCompletedTemporaryRechecksIfNeeded()
-            await detachCompletedTemporaryRechecks(from: snapshots)
-
         } catch {
             // Do not surface a separate alert for a background polling failure.
             // A transient engine failure can wait for the next tick.
@@ -2517,55 +2243,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 resolvedProgress = snapshot.progress
             }
             let resolvedStatus = protectsRestoreProgress ? TorrentStatus.checking : snapshot.status
-
-            if let desiredStatus = temporaryRecheckPostCheckStatusByID[updatedTorrents[index].id] {
-                if snapshot.status == .checking {
-                    updatedTorrents[index].status = .checking
-                    updatedTorrents[index].progress = resolvedProgress
-                    updatedTorrents[index].metrics = snapshot.metrics
-                    updatedTorrents[index].runtimeErrorState = snapshot.errorState
-                } else {
-                    updatedTorrents[index].status = desiredStatus
-                    updatedTorrents[index].progress = resolvedProgress
-                    updatedTorrents[index].lastKnownProgress = snapshot.progress
-                    updatedTorrents[index].metrics.downloadSpeedBytesPerSecond = 0
-                    updatedTorrents[index].metrics.uploadSpeedBytesPerSecond = 0
-                    updatedTorrents[index].metrics.etaSeconds = nil
-                    if desiredStatus.isSleeping {
-                        updatedTorrents[index].metrics.seeds = nil
-                        updatedTorrents[index].metrics.peers = nil
-                    } else {
-                        updatedTorrents[index].metrics.seeds = snapshot.metrics.seeds
-                        updatedTorrents[index].metrics.peers = snapshot.metrics.peers
-                    }
-                    updatedTorrents[index].metrics.uploadedBytes = snapshot.metrics.uploadedBytes
-                    updatedTorrents[index].metrics.totalBytes = snapshot.metrics.totalBytes
-                    updatedTorrents[index].metrics.selectedBytes = snapshot.metrics.selectedBytes
-                    updatedTorrents[index].runtimeErrorState = nil
-                    pendingTemporaryRecheckDetachIDs.insert(updatedTorrents[index].id)
-                }
-
-                logUploadCounterDiagnostics(
-                    phase: "snapshot.upload-counters.apply.temporary",
-                    torrentID: torrentID,
-                    previousStatus: previousStatus,
-                    previousMetrics: previousMetrics,
-                    snapshot: snapshot,
-                    appliedStatus: updatedTorrents[index].status,
-                    appliedProgress: updatedTorrents[index].progress,
-                    appliedMetrics: updatedTorrents[index].metrics
-                )
-
-                if selectedTorrentID == torrentID,
-                   wasFinishedForOpening != updatedTorrents[index].isFinishedForOpening {
-                    shouldRefreshSelectedNavigationAvailability = true
-                }
-                durableChange = max(
-                    durableChange,
-                    registerDurableSnapshotChange(previousStatus: previousStatus, record: updatedTorrents[index])
-                )
-                continue
-            }
 
             updatedTorrents[index].status = resolvedStatus
             updatedTorrents[index].progress = resolvedProgress
@@ -3300,8 +2977,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             "progress": progressString(record.progress),
             "transitioning": boolString(transitioningTorrentIDs.contains(record.id)),
             "detached": boolString(detachedTorrentIDs.contains(record.id)),
-            "tempRecheck": boolString(temporarilyRestoredRecheckTorrentIDs.contains(record.id)),
-            "pendingTempDetach": boolString(pendingTemporaryRecheckDetachIDs.contains(record.id)),
             "pendingSleepingDetach": boolString(pendingSleepingDetachIDs.contains(record.id)),
             "persistentIssue": record.persistentIssue?.kind.rawValue ?? "none",
             "runtimeError": record.runtimeErrorState?.title ?? "none"
@@ -4097,41 +3772,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    private func detachCompletedTemporaryRechecks(from snapshots: [EngineTorrentSnapshot]) async {
-        let completedTemporaryIDs = snapshots
-            .filter { temporarilyRestoredRecheckTorrentIDs.contains($0.id) && $0.status.isSleeping }
-            .map(\.id)
-
-        guard !completedTemporaryIDs.isEmpty else { return }
-
-        for torrentID in completedTemporaryIDs {
-            temporarilyRestoredRecheckTorrentIDs.remove(torrentID)
-            detachedTorrentIDs.insert(torrentID)
-            traceTransition(torrentID: torrentID, phase: "temporary.detach.begin", level: .notice, flush: true)
-            try? await engine.removeTorrent(id: torrentID, deleteData: false)
-            traceTransition(torrentID: torrentID, phase: "temporary.detach.end", level: .notice, flush: true)
-        }
-
-        await persistCriticalState()
-    }
-
-    private func detachCompletedTemporaryRechecksIfNeeded() async {
-        let completedTemporaryIDs = Array(pendingTemporaryRecheckDetachIDs)
-        guard !completedTemporaryIDs.isEmpty else { return }
-
-        for torrentID in completedTemporaryIDs {
-            pendingTemporaryRecheckDetachIDs.remove(torrentID)
-            temporarilyRestoredRecheckTorrentIDs.remove(torrentID)
-            temporaryRecheckPostCheckStatusByID[torrentID] = nil
-            detachedTorrentIDs.insert(torrentID)
-            traceTransition(torrentID: torrentID, phase: "temporary.detach.begin", level: .notice, flush: true)
-            try? await engine.removeTorrent(id: torrentID, deleteData: false)
-            traceTransition(torrentID: torrentID, phase: "temporary.detach.end", level: .notice, flush: true)
-        }
-
-        await persistCriticalState()
-    }
-
     private func detachSleepingHandlesIfNeeded() async {
         let sleepingIDs = Array(pendingSleepingDetachIDs)
         guard !sleepingIDs.isEmpty else { return }
@@ -4142,7 +3782,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
             do {
                 traceTransition(torrentID: torrentID, phase: "sleeping.detach.begin", level: .notice, flush: true)
-                try await engine.removeTorrent(id: torrentID, deleteData: false)
+                try await engine.removeTorrent(id: torrentID)
                 traceTransition(torrentID: torrentID, phase: "sleeping.detach.end", level: .notice, flush: true)
             } catch {
                 let engineError = TorrentEngineError.normalized(from: error)

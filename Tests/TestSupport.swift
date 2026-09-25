@@ -6,7 +6,6 @@ import Foundation
 
 struct RemovedTorrentCall: Sendable, Equatable {
     var id: UUID
-    var deleteData: Bool
 }
 
 actor FakeTorrentEngine: TorrentEngine {
@@ -32,7 +31,6 @@ actor FakeTorrentEngine: TorrentEngine {
     private var restoreSessionCallCountValue = 0
     private var restoreSessionEntriesValue: [SessionRestoreEntry] = []
     private var restoreSnapshotsByTorrentID: [UUID: EngineTorrentSnapshot] = [:]
-    private var materializedSelectionsByTorrentID: [UUID: Set<Int>] = [:]
     private var restoreSessionErrors: [TorrentEngineError] = []
     private var activeTorrentIDs: Set<UUID> = []
     private var queuedActiveSnapshots: [[EngineTorrentSnapshot]] = []
@@ -172,22 +170,10 @@ actor FakeTorrentEngine: TorrentEngine {
         }
     }
 
-    func fetchMaterializedSelectedFileIndices(
-        for id: UUID,
-        selectedFileIndices: [Int]
-    ) async throws -> Set<Int> {
-        let materialized = materializedSelectionsByTorrentID[id] ?? []
-        return materialized.intersection(Set(selectedFileIndices))
-    }
-
     func startTorrent(id: UUID) async throws {
         guard activeTorrentIDs.contains(id) else {
             throw TorrentEngineError(kind: .torrentNotFound, debugReason: "Handle not present in fake engine")
         }
-    }
-
-    func stopTorrent(id: UUID) async throws {
-        activeTorrentIDs.insert(id)
     }
 
     func forceRecheck(id: UUID) async throws {
@@ -207,8 +193,8 @@ actor FakeTorrentEngine: TorrentEngine {
         }
     }
 
-    func removeTorrent(id: UUID, deleteData: Bool) async throws {
-        removeCallsValue.append(RemovedTorrentCall(id: id, deleteData: deleteData))
+    func removeTorrent(id: UUID) async throws {
+        removeCallsValue.append(RemovedTorrentCall(id: id))
         activeTorrentIDs.remove(id)
 
         if removeDelayNanoseconds > 0 {
@@ -337,10 +323,6 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func setRestoreSnapshot(_ snapshot: EngineTorrentSnapshot, for torrentID: UUID) async {
         restoreSnapshotsByTorrentID[torrentID] = snapshot
-    }
-
-    func setMaterializedFileIndices(_ indices: Set<Int>, for torrentID: UUID) async {
-        materializedSelectionsByTorrentID[torrentID] = indices
     }
 
     func setRestoreSessionErrors(_ errors: [TorrentEngineError]) async {

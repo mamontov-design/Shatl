@@ -516,12 +516,6 @@ struct MainWindowView: View {
                 localeOverride: localeOverride,
                 defaultValue: "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
             )
-        case .recheck:
-            return L10n.string(
-                "session.persistence.recheck_failed.message",
-                localeOverride: localeOverride,
-                defaultValue: "Проверка не запущена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие."
-            )
         case .removeFromList:
             return L10n.string(
                 "session.persistence.remove_from_list_failed.message",

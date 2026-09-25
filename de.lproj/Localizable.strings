@@ -51,7 +51,6 @@
 "session.persistence.remove_from_list_failed.message" = "Der Torrent wurde nicht aus der Liste entfernt: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";
 "session.persistence.remove_with_files_failed.message" = "Der Torrent und seine Dateien wurden nicht gelöscht: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";
 "session.persistence.stop_failed.message" = "Der Download wurde nicht gestoppt: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";
-"session.persistence.recheck_failed.message" = "Die Überprüfung wurde nicht gestartet: Shatl kann keine Daten auf den Datenträger schreiben. Prüfen Sie den freien Speicherplatz und den Datenträgerzugriff und versuchen Sie es dann erneut.";
 "session.persistence.quit_dialog.message" = "Wahrscheinlich ist der Datenträger voll oder Shatl hat keinen Zugriff auf seinen Datenordner. Wenn Sie Shatl jetzt beenden, werden die letzten Änderungen an Fortschritt und Status nicht gespeichert, und Shatl prüft beim nächsten Start möglicherweise einen Teil der bereits heruntergeladenen Daten erneut. Ihre heruntergeladenen Dateien und die Downloadliste sind davon nicht betroffen.";
 "session.persistence.quit_dialog.retry" = "Erneut versuchen";
 "session.persistence.quit_dialog.return" = "Zurück zu Shatl";

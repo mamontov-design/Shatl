@@ -112,15 +112,12 @@ nonisolated protocol TorrentEngine: Sendable {
         attemptID: UUID
     ) async throws -> TorrentRecord
     func restoreSession(_ entries: [SessionRestoreEntry]) async throws -> [EngineTorrentSnapshot]
-    func fetchMaterializedSelectedFileIndices(
-        for id: UUID,
-        selectedFileIndices: [Int]
-    ) async throws -> Set<Int>
     func startTorrent(id: UUID) async throws
-    func stopTorrent(id: UUID) async throws
     func forceRecheck(id: UUID) async throws
     func checkpointTorrents(ids: [UUID]) async -> [EngineResumeCheckpointResult]
-    func removeTorrent(id: UUID, deleteData: Bool) async throws
+    /// Detaches the torrent and keeps its files: payload deletion belongs to
+    /// `TorrentPayloadDeletionService`, never to the engine.
+    func removeTorrent(id: UUID) async throws
     func fetchActiveSnapshots() async throws -> [EngineTorrentSnapshot]
     func reconcileSleepingTorrents(_ records: [TorrentRecord]) async throws -> [EngineTorrentSnapshot]
     /// The open-file budget of the running engine; `nil` before boot.

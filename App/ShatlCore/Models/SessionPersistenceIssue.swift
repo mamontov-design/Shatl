@@ -11,7 +11,6 @@ nonisolated struct SessionPersistenceIssue: Identifiable, Equatable, Sendable {
         /// A save that no user action waits for, such as progress or quit.
         case background
         case stop
-        case recheck
         case removeFromList
         case removeWithFiles
         case redownload

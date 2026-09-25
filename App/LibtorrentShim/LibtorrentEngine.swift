@@ -289,33 +289,9 @@ actor LibtorrentEngine: TorrentEngine {
         return snapshots
     }
 
-    func fetchMaterializedSelectedFileIndices(
-        for id: UUID,
-        selectedFileIndices: [Int]
-    ) async throws -> Set<Int> {
-        do {
-            let values = try bridge.materializedFileIndices(
-                recordIdentifier: id.uuidString,
-                selectedFileIndices: selectedFileIndices.map { NSNumber(value: $0) }
-            )
-
-            return Set(values.map { $0.intValue })
-        } catch {
-            throw mapBridgeError(error)
-        }
-    }
-
     func startTorrent(id: UUID) async throws {
         do {
             try bridge.startTorrent(withIdentifier: id.uuidString)
-        } catch {
-            throw mapBridgeError(error)
-        }
-    }
-
-    func stopTorrent(id: UUID) async throws {
-        do {
-            try bridge.stopTorrent(withIdentifier: id.uuidString)
         } catch {
             throw mapBridgeError(error)
         }
@@ -355,21 +331,17 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
-    func removeTorrent(id: UUID, deleteData: Bool) async throws {
+    func removeTorrent(id: UUID) async throws {
         ShatlDiskDiagnosticsLog.event(
             "engine.remove.begin",
-            fields: [
-                "torrent": id.uuidString,
-                "deleteData": deleteData ? "1" : "0"
-            ]
+            fields: ["torrent": id.uuidString]
         )
         do {
-            try bridge.removeTorrent(withIdentifier: id.uuidString, deleteData: deleteData)
+            try bridge.removeTorrent(withIdentifier: id.uuidString)
             ShatlDiskDiagnosticsLog.event(
                 "engine.remove.end",
                 fields: [
                     "torrent": id.uuidString,
-                    "deleteData": deleteData ? "1" : "0",
                     "outcome": "success"
                 ]
             )
@@ -380,7 +352,6 @@ actor LibtorrentEngine: TorrentEngine {
                 "engine.remove.end",
                 fields: [
                     "torrent": id.uuidString,
-                    "deleteData": deleteData ? "1" : "0",
                     "outcome": "failed",
                     "kind": engineError.kind.rawValue,
                     "reason": engineError.debugReason ?? "-"

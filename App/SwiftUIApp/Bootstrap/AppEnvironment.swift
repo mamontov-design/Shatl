@@ -271,16 +271,7 @@ private actor PreviewTorrentEngine: TorrentEngine {
         []
     }
 
-    func fetchMaterializedSelectedFileIndices(
-        for id: UUID,
-        selectedFileIndices: [Int]
-    ) async throws -> Set<Int> {
-        Set(selectedFileIndices)
-    }
-
     func startTorrent(id: UUID) async throws {}
-
-    func stopTorrent(id: UUID) async throws {}
 
     func forceRecheck(id: UUID) async throws {}
 
@@ -288,7 +279,7 @@ private actor PreviewTorrentEngine: TorrentEngine {
         ids.map { EngineResumeCheckpointResult(id: $0, status: .notFound) }
     }
 
-    func removeTorrent(id: UUID, deleteData: Bool) async throws {}
+    func removeTorrent(id: UUID) async throws {}
 
     func fetchActiveSnapshots() async throws -> [EngineTorrentSnapshot] {
         []

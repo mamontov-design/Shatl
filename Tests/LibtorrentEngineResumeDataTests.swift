@@ -20,7 +20,7 @@ final class LibtorrentEngineResumeDataTests: XCTestCase {
         XCTAssertEqual(checkpoints, [EngineResumeCheckpointResult(id: fixture.torrentID, status: .saved)])
         XCTAssertFalse(try Data(contentsOf: fixture.resumeDataURL).isEmpty)
 
-        try await engine.removeTorrent(id: fixture.torrentID, deleteData: false)
+        try await engine.removeTorrent(id: fixture.torrentID)
         let secondRestore = try await engine.restoreSession([fixture.entry])
 
         XCTAssertEqual(secondRestore.first?.resumeDataStatus, .loaded)

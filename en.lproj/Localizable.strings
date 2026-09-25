@@ -51,7 +51,6 @@
 "session.persistence.remove_from_list_failed.message" = "The torrent wasn’t removed from the list: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 "session.persistence.remove_with_files_failed.message" = "The torrent and its files weren’t deleted: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 "session.persistence.stop_failed.message" = "The download wasn’t stopped: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
-"session.persistence.recheck_failed.message" = "The recheck wasn’t started: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 "session.persistence.quit_dialog.message" = "Most likely, the disk is full or Shatl can’t access its data folder. If you quit now, recent progress and status changes won’t be saved, and Shatl may recheck some downloaded data the next time it opens. Your downloaded files and download list won’t be affected.";
 "session.persistence.quit_dialog.retry" = "Try Again";
 "session.persistence.quit_dialog.return" = "Return to Shatl";

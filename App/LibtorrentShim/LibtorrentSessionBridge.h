@@ -259,16 +259,8 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
                                                         shouldStart:(BOOL)shouldStart
                                                               error:(NSError * _Nullable * _Nullable)error;
 
-- (nullable NSArray<NSNumber *> *)materializedFileIndicesForTorrentWithIdentifier:(NSString *)recordIdentifier
-                                                               selectedFileIndices:(NSArray<NSNumber *> *)selectedFileIndices
-                                                                             error:(NSError * _Nullable * _Nullable)error
-    NS_SWIFT_NAME(materializedFileIndices(recordIdentifier:selectedFileIndices:));
-
 - (BOOL)startTorrentWithIdentifier:(NSString *)recordIdentifier
                              error:(NSError * _Nullable * _Nullable)error;
-
-- (BOOL)stopTorrentWithIdentifier:(NSString *)recordIdentifier
-                            error:(NSError * _Nullable * _Nullable)error;
 
 - (BOOL)forceRecheckTorrentWithIdentifier:(NSString *)recordIdentifier
                                     error:(NSError * _Nullable * _Nullable)error;
@@ -276,8 +268,10 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 - (nullable NSArray<LTResumeCheckpoint *> *)checkpointTorrentsWithIdentifiers:(NSArray<NSString *> *)recordIdentifiers
                                                                         error:(NSError * _Nullable * _Nullable)error;
 
+/// Saves fast-resume data and detaches the torrent from the session. Files
+/// stay on disk: payload deletion belongs to `TorrentPayloadDeletionService`,
+/// never to libtorrent.
 - (BOOL)removeTorrentWithIdentifier:(NSString *)recordIdentifier
-                         deleteData:(BOOL)deleteData
                               error:(NSError * _Nullable * _Nullable)error;
 
 - (nullable NSArray<LTTorrentSnapshot *> *)fetchActiveSnapshots:(NSError * _Nullable * _Nullable)error;
