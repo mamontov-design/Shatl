@@ -68,12 +68,18 @@ struct ShatlSettingsView: View {
                     }
                 }
 
-                ShatlSettingsParameterCaption(
-                    localizedLines: [
-                        "settings.downloads.performance.caption.main",
-                        "settings.downloads.performance.caption.economical",
-                    ]
-                )
+                VStack(spacing: 4) {
+                    ShatlSettingsParameterCaption(
+                        localizedLines: [
+                            "settings.downloads.performance.caption.main",
+                            "settings.downloads.performance.caption.economical",
+                        ]
+                    )
+
+                    #if DEBUG
+                    EngineResourceBudgetCaption()
+                    #endif
+                }
             }
 
             ShatlSettingsParameterHeader(localizedTitle: "settings.downloads.folder.section")
@@ -226,6 +232,64 @@ struct ShatlSettingsView: View {
         store.setDefaultDownloadLocation(url, bookmarkData: bookmarkData)
     }
 }
+
+#if DEBUG
+/// Debug builds only: the open-file limit the engine runs within, what the
+/// profile gets under it and how many descriptors are open, refreshed every
+/// 2 s while the Downloads tab is shown.
+private struct EngineResourceBudgetCaption: View {
+    @EnvironmentObject private var store: AppStore
+    @State private var budget: EngineResourceBudget?
+
+    var body: some View {
+        ShatlSettingsParameterCaption(text: text)
+            .task {
+                while !Task.isCancelled {
+                    budget = await store.engineResourceBudget()
+                    try? await Task.sleep(for: .seconds(2))
+                }
+            }
+    }
+
+    private var text: String {
+        let localeOverride = store.preferences.localeOverride
+        guard let budget else {
+            return L10n.string("settings.debug.performance.engine_not_started", localeOverride: localeOverride)
+        }
+
+        let locale = L10n.locale(for: localeOverride)
+        func number(_ value: Int) -> String {
+            value.formatted(.number.locale(locale))
+        }
+
+        if budget.isReduced {
+            return L10n.format(
+                "settings.debug.performance.budget_reduced",
+                localeOverride: localeOverride,
+                defaultValue: "%1$@ %2$@ %3$@ %4$@ %5$@ %6$@ %7$@",
+                number(budget.openFileLimit),
+                number(budget.initialOpenFileLimit),
+                number(budget.connectionsLimit),
+                number(budget.requestedConnectionsLimit),
+                number(budget.filePoolSize),
+                number(budget.requestedFilePoolSize),
+                number(budget.openFileCount)
+            )
+        }
+
+        return L10n.format(
+            "settings.debug.performance.budget",
+            localeOverride: localeOverride,
+            defaultValue: "%1$@ %2$@ %3$@ %4$@ %5$@",
+            number(budget.openFileLimit),
+            number(budget.initialOpenFileLimit),
+            number(budget.connectionsLimit),
+            number(budget.filePoolSize),
+            number(budget.openFileCount)
+        )
+    }
+}
+#endif
 
 private enum SettingsTab {
     case downloads

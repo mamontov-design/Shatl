@@ -137,6 +137,33 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 @end
 
+/// How many descriptors the session may use. macOS starts apps with a soft
+/// limit of 256 open files, while every TCP peer and every open payload file
+/// takes one of them.
+@interface LTResourceBudget : NSObject
+
+/// The soft open-file limit before the bridge raised it.
+@property (nonatomic, readonly) NSInteger initialOpenFileLimit;
+/// The soft open-file limit the session runs within.
+@property (nonatomic, readonly) NSInteger openFileLimit;
+/// What the performance profile asks for.
+@property (nonatomic, readonly) NSInteger requestedConnectionsLimit;
+@property (nonatomic, readonly) NSInteger requestedFilePoolSize;
+/// What the session gets.
+@property (nonatomic, readonly) NSInteger connectionsLimit;
+@property (nonatomic, readonly) NSInteger filePoolSize;
+
+- (instancetype)initWithInitialOpenFileLimit:(NSInteger)initialOpenFileLimit
+                               openFileLimit:(NSInteger)openFileLimit
+                   requestedConnectionsLimit:(NSInteger)requestedConnectionsLimit
+                       requestedFilePoolSize:(NSInteger)requestedFilePoolSize
+                            connectionsLimit:(NSInteger)connectionsLimit
+                                filePoolSize:(NSInteger)filePoolSize NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+@end
+
 /// The single entry point into the Objective-C++ layer.
 /// All implementation details of `libtorrent` remain inside it.
 @interface LibtorrentSessionBridge : NSObject
@@ -157,6 +184,18 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 
 - (BOOL)applyPerformanceProfile:(LTPerformanceProfile)profile
                            error:(NSError * _Nullable * _Nullable)error;
+
+/// What a profile gets under a limit. Boot raises the soft limit towards
+/// 10 240, and boot and every profile switch fit connections and the file
+/// pool into it.
++ (LTResourceBudget *)resourceBudgetForProfile:(LTPerformanceProfile)profile
+                                 openFileLimit:(NSInteger)openFileLimit;
+
+/// The budget of the running session, read back from libtorrent. Nil before boot.
+- (nullable LTResourceBudget *)currentResourceBudget;
+
+/// Descriptors the process has open right now.
++ (NSInteger)openFileDescriptorCount;
 
 /// Prepares `.torrent` sources. Magnet links use the metadata fetch below,
 /// because their metadata arrives from the network over seconds.

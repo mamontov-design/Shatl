@@ -30,6 +30,26 @@ nonisolated struct EngineResumeCheckpointResult: Equatable, Sendable {
     var status: EngineResumeCheckpointStatus
 }
 
+/// How many open files the engine may use. macOS starts apps with a soft limit
+/// of 256, while every TCP peer and every open payload file takes one.
+nonisolated struct EngineResourceBudget: Equatable, Sendable {
+    /// The soft limit the process started with.
+    var initialOpenFileLimit: Int
+    /// The soft limit the engine runs within.
+    var openFileLimit: Int
+    var connectionsLimit: Int
+    var requestedConnectionsLimit: Int
+    var filePoolSize: Int
+    var requestedFilePoolSize: Int
+    /// Descriptors the process has open right now.
+    var openFileCount: Int
+
+    /// The profile got less than it asks for because the limit is too small.
+    var isReduced: Bool {
+        connectionsLimit < requestedConnectionsLimit || filePoolSize < requestedFilePoolSize
+    }
+}
+
 nonisolated struct TorrentContentFileDescriptor: Equatable, Sendable {
     var relativePath: String
     var sizeBytes: Int64
@@ -102,4 +122,10 @@ nonisolated protocol TorrentEngine: Sendable {
     func removeTorrent(id: UUID, deleteData: Bool) async throws
     func fetchActiveSnapshots() async throws -> [EngineTorrentSnapshot]
     func reconcileSleepingTorrents(_ records: [TorrentRecord]) async throws -> [EngineTorrentSnapshot]
+    /// The open-file budget of the running engine; `nil` before boot.
+    func resourceBudget() async -> EngineResourceBudget?
+}
+
+extension TorrentEngine {
+    nonisolated func resourceBudget() async -> EngineResourceBudget? { nil }
 }

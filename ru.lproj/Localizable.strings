@@ -284,6 +284,9 @@
 "settings.debug.logging.metric_animation_diagnostics" = "Диагностика анимаций метрик";
 "settings.debug.logging.snapshot_diagnostics" = "Диагностика snapshot-обновлений";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Диагностика окна добавления торрента";
+"settings.debug.performance.budget" = "Отладка: лимит открытых файлов — %1$@ (macOS выдала %2$@). Соединений до %3$@, файлов до %4$@. Сейчас открыто: %5$@.";
+"settings.debug.performance.budget_reduced" = "Отладка: лимит открытых файлов — %1$@, выше macOS не дала (выдала %2$@). Соединений до %3$@ вместо %4$@, файлов до %5$@ вместо %6$@. Сейчас открыто: %7$@.";
+"settings.debug.performance.engine_not_started" = "Отладка: движок ещё не запущен.";
 
 "notification.download_completed.title" = "Загрузка завершена";
 "notification.download_completed.body" = "«%@» загружен.";

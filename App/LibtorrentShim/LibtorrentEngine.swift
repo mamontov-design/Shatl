@@ -48,6 +48,19 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
+    func resourceBudget() async -> EngineResourceBudget? {
+        guard let budget = bridge.currentResourceBudget() else { return nil }
+        return EngineResourceBudget(
+            initialOpenFileLimit: budget.initialOpenFileLimit,
+            openFileLimit: budget.openFileLimit,
+            connectionsLimit: budget.connectionsLimit,
+            requestedConnectionsLimit: budget.requestedConnectionsLimit,
+            filePoolSize: budget.filePoolSize,
+            requestedFilePoolSize: budget.requestedFilePoolSize,
+            openFileCount: LibtorrentSessionBridge.openFileDescriptorCount()
+        )
+    }
+
     func prepareDraft(
         from source: AddTorrentSource,
         suggestedSavePath: String,
