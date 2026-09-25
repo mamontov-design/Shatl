@@ -11,6 +11,14 @@ enum TorrentRemovalDialogPresenter {
         localeOverride: AppLocaleOverride = .system,
         window: NSWindow? = nil
     ) async -> Bool {
+        let alert = makeCancelPendingAdditionAlert(named: shortDisplayName, localeOverride: localeOverride)
+        return await presentSafeConfirmation(alert, on: resolvedWindow(window))
+    }
+
+    static func makeCancelPendingAdditionAlert(
+        named shortDisplayName: String,
+        localeOverride: AppLocaleOverride = .system
+    ) -> NSAlert {
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
         alert.alertStyle = .critical
@@ -25,24 +33,20 @@ enum TorrentRemovalDialogPresenter {
             localeOverride: localeOverride,
             defaultValue: "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо."
         )
-        alert.addButton(
-            withTitle: L10n.string(
+        addSafeConfirmationButtons(
+            to: alert,
+            cancelTitle: L10n.string(
+                "add_torrent.cancel.cancel_action",
+                localeOverride: localeOverride,
+                defaultValue: "Отмена"
+            ),
+            destructiveTitle: L10n.string(
                 "add_torrent.cancel.delete_action",
                 localeOverride: localeOverride,
                 defaultValue: "Удалить загрузку"
             )
         )
-        alert.addButton(
-            withTitle: L10n.string(
-                "add_torrent.cancel.cancel_action",
-                localeOverride: localeOverride,
-                defaultValue: "Отмена"
-            )
-        )
-        markDestructiveIfPossible(alert.buttons[safe: 0])
-
-        let response = await present(alert, on: resolvedWindow(window))
-        return response == .alertFirstButtonReturn
+        return alert
     }
 
     static func presentRemovalChoice(
@@ -97,6 +101,14 @@ enum TorrentRemovalDialogPresenter {
         localeOverride: AppLocaleOverride = .system,
         window: NSWindow? = nil
     ) async -> Bool {
+        let alert = makeDeleteWithFilesAlert(for: record, localeOverride: localeOverride)
+        return await presentSafeConfirmation(alert, on: resolvedWindow(window))
+    }
+
+    static func makeDeleteWithFilesAlert(
+        for record: TorrentRecord,
+        localeOverride: AppLocaleOverride = .system
+    ) -> NSAlert {
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
         alert.alertStyle = .critical
@@ -111,12 +123,51 @@ enum TorrentRemovalDialogPresenter {
             localeOverride: localeOverride,
             defaultValue: "Shatl удалит торрент из списка, а также все связанные файлы с диска."
         )
-        alert.addButton(withTitle: L10n.string("common.delete", localeOverride: localeOverride, defaultValue: "Удалить"))
-        alert.addButton(withTitle: L10n.string("common.cancel", localeOverride: localeOverride, defaultValue: "Отменить"))
-        markDestructiveIfPossible(alert.buttons[safe: 0])
+        addSafeConfirmationButtons(
+            to: alert,
+            cancelTitle: L10n.string("common.cancel", localeOverride: localeOverride, defaultValue: "Отменить"),
+            destructiveTitle: L10n.string("common.delete", localeOverride: localeOverride, defaultValue: "Удалить")
+        )
+        return alert
+    }
 
-        let response = await present(alert, on: resolvedWindow(window))
-        return response == .alertFirstButtonReturn
+    /// An irreversible action is never the default: the cancel button on the
+    /// right answers Return and Esc, the red destructive button on its left
+    /// answers only a click or ⌘⌫, as Move to Trash does in Finder.
+    static func addSafeConfirmationButtons(to alert: NSAlert, cancelTitle: String, destructiveTitle: String) {
+        let cancel = alert.addButton(withTitle: cancelTitle)
+        cancel.keyEquivalent = "\r"
+        let destructive = alert.addButton(withTitle: destructiveTitle)
+        destructive.keyEquivalent = "\u{8}"
+        destructive.keyEquivalentModifierMask = [.command]
+        markDestructiveIfPossible(destructive)
+    }
+
+    /// `true` only for the destructive button, the second one.
+    private static func presentSafeConfirmation(_ alert: NSAlert, on window: NSWindow?) async -> Bool {
+        // NSAlert gives Esc only to a button titled with AppKit's own "Cancel",
+        // so the localized cancel button takes it from a monitor while shown.
+        let cancelButton = alert.buttons[safe: 0]
+        let escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            escapeClicksCancel(event, alert: alert, cancelButton: cancelButton)
+        }
+        defer {
+            if let escapeMonitor {
+                NSEvent.removeMonitor(escapeMonitor)
+            }
+        }
+
+        return await present(alert, on: window) == .alertSecondButtonReturn
+    }
+
+    /// The virtual key code of Esc (`kVK_Escape`).
+    private static let escapeKeyCode: UInt16 = 53
+
+    /// Returns `nil` when Esc was used to cancel the visible alert.
+    static func escapeClicksCancel(_ event: NSEvent, alert: NSAlert, cancelButton: NSButton?) -> NSEvent? {
+        guard event.keyCode == escapeKeyCode, alert.window.isVisible, let cancelButton else { return event }
+        cancelButton.performClick(nil)
+        return nil
     }
 
     private static func present(
