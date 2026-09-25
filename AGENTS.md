@@ -51,6 +51,9 @@ persistence, deletion, restore, or shared UI state.
   builds no store, hands its torrents to the first copy and quits. Cleanup must
   never delete the lock file or the folder root.
 - Keep the 1 Hz runtime loop free of filesystem walks and heavy SwiftUI work.
+  A card is a pure function of `TorrentRowInputs` and is rebuilt only when
+  they change: anything new a card shows must enter through them, and the
+  tick must not scan the list per card (look records up through the ID index).
 - Preserve manual Start/Stop semantics; do not enable libtorrent `auto_managed`
   or add fake cache controls.
 - Payload deletion belongs to `TorrentPayloadDeletionService` and

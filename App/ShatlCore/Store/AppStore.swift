@@ -44,6 +44,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
         didSet {
             guard oldValue != torrents else { return }
+            updateTorrentIndex(previous: oldValue)
             refreshTorrentPresentations()
         }
     }
@@ -103,7 +104,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             releasePreparedDraftUnlessAdding(oldValue.id)
         }
     }
-    @Published var isRestoringSession = false
+    @Published var isRestoringSession = false {
+        didSet {
+            guard oldValue != isRestoringSession else { return }
+            refreshTorrentPresentations()
+        }
+    }
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
     @Published private(set) var isResolvingSessionRecovery = false
@@ -185,6 +191,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var unreadPersistentIssueKeys: Set<PersistentIssueNotificationKey> = []
     private var suppressesTorrentChangePublication = false
     private var torrentRowPresentationModelsByID: [UUID: TorrentRowPresentationModel] = [:]
+    /// What each record card was last built from. The 1 Hz tick rebuilds only
+    /// cards whose inputs changed, not the whole list.
+    private var torrentRowInputsByID: [UUID: TorrentRowInputs] = [:]
+    /// Positions in `torrents`, so lookups by ID do not scan the list.
+    private var torrentIndexByID: [UUID: Int] = [:]
+    #if DEBUG
+    private(set) var recordRowStateBuildCountForTesting = 0
+    #endif
 
     private struct PersistentIssueNotificationKey: Hashable {
         var torrentID: UUID
@@ -229,6 +243,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.progressSaveInterval = progressSaveInterval
         self.usageTelemetryWeekCheckInterval = usageTelemetryWeekCheckInterval
         self.torrents = torrents
+        self.torrentIndexByID = Self.makeTorrentIndex(torrents)
         self.lastPersistedProgressBucketByID = Dictionary(
             uniqueKeysWithValues: torrents.map {
                 ($0.id, Self.progressPersistenceBucket(for: max($0.progress, $0.lastKnownProgress)))
@@ -279,7 +294,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     var selectedTorrent: TorrentRecord? {
         guard let selectedTorrentID else { return nil }
-        return torrents.first(where: { $0.id == selectedTorrentID })
+        return torrentRecord(for: selectedTorrentID)
     }
 
     var torrentRowIDs: [UUID] {
@@ -336,7 +351,28 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func torrentRecord(for id: UUID) -> TorrentRecord? {
-        torrents.first(where: { $0.id == id })
+        torrentIndex(for: id).map { torrents[$0] }
+    }
+
+    private func torrentIndex(for id: UUID) -> Int? {
+        guard let index = torrentIndexByID[id], torrents.indices.contains(index), torrents[index].id == id else {
+            return nil
+        }
+        return index
+    }
+
+    private func updateTorrentIndex(previous: [TorrentRecord]) {
+        // A snapshot tick changes records in place and keeps their order.
+        let keepsOrder = previous.count == torrents.count
+            && zip(previous, torrents).allSatisfy { $0.id == $1.id }
+        if !keepsOrder {
+            torrentIndexByID = Self.makeTorrentIndex(torrents)
+        }
+    }
+
+    /// The first record wins for a repeated ID, as a linear search would find it.
+    private static func makeTorrentIndex(_ torrents: [TorrentRecord]) -> [UUID: Int] {
+        Dictionary(torrents.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     func isPendingAddition(id: UUID) -> Bool {
@@ -347,9 +383,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         pendingTorrentAdditions.first(where: { $0.id == id })?.shortDisplayName
     }
 
+    /// Built from scratch, bypassing the card cache.
     func rowState(for id: UUID) -> TorrentRowState? {
-        if let record = torrents.first(where: { $0.id == id }) {
-            return makeRowState(for: record)
+        if let record = torrentRecord(for: id) {
+            return Self.makeRowState(
+                rowInputSources(pendingIDs: Set(pendingTorrentAdditions.map(\.id))).inputs(for: record)
+            )
         }
         guard let addition = pendingTorrentAdditions.first(where: { $0.id == id }) else {
             return nil
@@ -404,23 +443,84 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return String(sourceName.prefix(29)) + "…"
     }
 
-    private func makeRowState(for record: TorrentRecord) -> TorrentRowState {
+    /// Everything a record card shows besides its record. `makeRowState`
+    /// sees nothing else, so the cache below cannot miss an input.
+    private struct TorrentRowInputs: Equatable {
+        struct Shared: Equatable {
+            var metricsMode: MetricsPresentationMode
+            var colorizesDownloadSpeed: Bool
+            var localeOverride: AppLocaleOverride
+            var enablesCardLayoutDiagnostics: Bool
+            var enablesMetricAnimationDiagnostics: Bool
+            var isRestoringSession: Bool
+        }
 
-        let isSelected = selectedTorrentID == record.id
-        let isExpanded = expandedTorrentID == record.id
-        let errorState = TorrentRowErrorState(record.errorState, localeOverride: preferences.localeOverride)
+        var record: TorrentRecord
+        var isSelected: Bool
+        var isExpanded: Bool
+        var isTransitioning: Bool
+        var isPendingAddition: Bool
+        var shared: Shared
+    }
+
+    private var sharedRowInputs: TorrentRowInputs.Shared {
+        TorrentRowInputs.Shared(
+            metricsMode: preferences.metricsMode,
+            colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
+            localeOverride: preferences.localeOverride,
+            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
+            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
+            isRestoringSession: isRestoringSession
+        )
+    }
+
+    /// The store-wide values every card reads, taken once per refresh:
+    /// reading a `@Published` property per card would cost more than the card.
+    private struct RowInputSources {
+        var selectedTorrentID: UUID?
+        var expandedTorrentID: UUID?
+        var transitioningTorrentIDs: Set<UUID>
+        var pendingIDs: Set<UUID>
+        var shared: TorrentRowInputs.Shared
+
+        func inputs(for record: TorrentRecord) -> TorrentRowInputs {
+            TorrentRowInputs(
+                record: record,
+                isSelected: selectedTorrentID == record.id,
+                isExpanded: expandedTorrentID == record.id,
+                isTransitioning: transitioningTorrentIDs.contains(record.id),
+                isPendingAddition: pendingIDs.contains(record.id),
+                shared: shared
+            )
+        }
+    }
+
+    private func rowInputSources(pendingIDs: Set<UUID>) -> RowInputSources {
+        RowInputSources(
+            selectedTorrentID: selectedTorrentID,
+            expandedTorrentID: expandedTorrentID,
+            transitioningTorrentIDs: transitioningTorrentIDs,
+            pendingIDs: pendingIDs,
+            shared: sharedRowInputs
+        )
+    }
+
+    private static func makeRowState(_ inputs: TorrentRowInputs) -> TorrentRowState {
+        let record = inputs.record
+        let shared = inputs.shared
+        let errorState = TorrentRowErrorState(record.errorState, localeOverride: shared.localeOverride)
         let compactTransferMetricSet = errorState == nil
             ? TorrentPresentation.compactTransferMetricSet(
                 for: record,
-                mode: preferences.metricsMode,
-                localeOverride: preferences.localeOverride
+                mode: shared.metricsMode,
+                localeOverride: shared.localeOverride
             )
             : nil
-        let expandedMetricGroups = errorState == nil && isExpanded
+        let expandedMetricGroups = errorState == nil && inputs.isExpanded
             ? TorrentPresentation.expandedMetricGroups(
                 for: record,
-                mode: preferences.metricsMode,
-                localeOverride: preferences.localeOverride
+                mode: shared.metricsMode,
+                localeOverride: shared.localeOverride
             )
             : nil
         let navigationAvailabilityKey = [
@@ -438,30 +538,47 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             originalTitle: record.originalName,
             hasAlias: record.alias?.isEmpty == false,
             status: record.status,
-            statusTitle: record.status.localizedTitle(localeOverride: preferences.localeOverride),
+            statusTitle: record.status.localizedTitle(localeOverride: shared.localeOverride),
             progress: presentedProgress(for: record),
             hasActiveTransfer: hasActiveTransfer(for: record),
             compactTransferMetricSet: compactTransferMetricSet,
             expandedMetricGroups: expandedMetricGroups,
-            metricsMode: preferences.metricsMode,
-            colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
-            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
-            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
+            metricsMode: shared.metricsMode,
+            colorizesDownloadSpeed: shared.colorizesDownloadSpeed,
+            enablesCardLayoutDiagnostics: shared.enablesCardLayoutDiagnostics,
+            enablesMetricAnimationDiagnostics: shared.enablesMetricAnimationDiagnostics,
             errorState: errorState,
-            isSelected: isSelected,
-            isExpanded: isExpanded,
-            canToggleRunningState: canToggleRunningState(for: record.id),
-            canRemoveFromList: canRemoveFromList(for: record.id),
-            canRemoveWithFiles: canRemoveWithFiles(for: record.id),
+            isSelected: inputs.isSelected,
+            isExpanded: inputs.isExpanded,
+            canToggleRunningState: canToggleRunningState(
+                record,
+                isRestoringSession: shared.isRestoringSession,
+                isTransitioning: inputs.isTransitioning
+            ),
+            canRemoveFromList: canRemoveFromList(
+                isPendingAddition: inputs.isPendingAddition,
+                isRestoringSession: shared.isRestoringSession,
+                isTransitioning: inputs.isTransitioning
+            ),
+            canRemoveWithFiles: canRemoveWithFiles(
+                record,
+                isRestoringSession: shared.isRestoringSession,
+                isTransitioning: inputs.isTransitioning
+            ),
             navigationAvailabilityKey: navigationAvailabilityKey,
-            localeOverride: preferences.localeOverride
+            localeOverride: shared.localeOverride
         )
     }
 
     private func refreshTorrentPresentations() {
-        let currentIDs = Set(torrents.map(\.id)).union(pendingTorrentAdditions.map(\.id))
-        torrentRowPresentationModelsByID = torrentRowPresentationModelsByID.filter {
-            currentIDs.contains($0.key)
+        let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
+        let currentIDs = Set(torrents.map(\.id)).union(pendingIDs)
+        if torrentRowPresentationModelsByID.count != currentIDs.count
+            || torrentRowPresentationModelsByID.keys.contains(where: { !currentIDs.contains($0) }) {
+            torrentRowPresentationModelsByID = torrentRowPresentationModelsByID.filter {
+                currentIDs.contains($0.key)
+            }
+            torrentRowInputsByID = torrentRowInputsByID.filter { currentIDs.contains($0.key) }
         }
 
         for addition in pendingTorrentAdditions {
@@ -473,20 +590,34 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
+        let sources = rowInputSources(pendingIDs: pendingIDs)
         for record in torrents {
-            let state = makeRowState(for: record)
+            let inputs = sources.inputs(for: record)
+            // A record still listed as a pending addition shares its model with
+            // the pending card built above, so it is always rebuilt over it.
+            if !inputs.isPendingAddition,
+               torrentRowInputsByID[record.id] == inputs,
+               torrentRowPresentationModelsByID[record.id] != nil {
+                continue
+            }
+
+            #if DEBUG
+            recordRowStateBuildCountForTesting += 1
+            #endif
+            let state = Self.makeRowState(inputs)
             if let model = torrentRowPresentationModelsByID[record.id] {
                 model.update(state: state)
             } else {
                 torrentRowPresentationModelsByID[record.id] = TorrentRowPresentationModel(state: state)
             }
+            torrentRowInputsByID[record.id] = inputs
         }
 
         let chips = bottomTransferChips
         torrentTransferSummary.update(chips: chips)
     }
 
-    private func presentedProgress(for record: TorrentRecord) -> Double {
+    private static func presentedProgress(for record: TorrentRecord) -> Double {
         let clampedProgress = min(max(record.progress, 0), 1)
         if record.status == .completed || record.status == .seeding {
             return 1
@@ -496,7 +627,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return Double(percent) / 100
     }
 
-    private func hasActiveTransfer(for record: TorrentRecord) -> Bool {
+    private static func hasActiveTransfer(for record: TorrentRecord) -> Bool {
         switch record.status {
         case .downloading:
             record.metrics.downloadSpeedBytesPerSecond > 0
@@ -768,14 +899,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func canToggleRunningState(for id: UUID) -> Bool {
-        guard let record = torrents.first(where: { $0.id == id }) else { return false }
-        return record.errorState == nil
-            && !isRestoringSession
-            && !transitioningTorrentIDs.contains(id)
+        guard let record = torrentRecord(for: id) else { return false }
+        return Self.canToggleRunningState(
+            record,
+            isRestoringSession: isRestoringSession,
+            isTransitioning: transitioningTorrentIDs.contains(id)
+        )
     }
 
     func canForceRecheck(for id: UUID) -> Bool {
-        guard let record = torrents.first(where: { $0.id == id }) else { return false }
+        guard let record = torrentRecord(for: id) else { return false }
         return record.errorState == nil
             && record.status != .checking
             && !isRestoringSession
@@ -783,19 +916,46 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func canRemoveFromList(for id: UUID) -> Bool {
-        if isPendingAddition(id: id) {
-            return !isRestoringSession
-        }
-        return torrents.contains(where: { $0.id == id })
-            && !isRestoringSession
-            && !transitioningTorrentIDs.contains(id)
+        let isPendingAddition = isPendingAddition(id: id)
+        guard isPendingAddition || torrentIndex(for: id) != nil else { return false }
+        return Self.canRemoveFromList(
+            isPendingAddition: isPendingAddition,
+            isRestoringSession: isRestoringSession,
+            isTransitioning: transitioningTorrentIDs.contains(id)
+        )
     }
 
     func canRemoveWithFiles(for id: UUID) -> Bool {
-        guard let record = torrents.first(where: { $0.id == id }) else { return false }
-        return record.errorState == nil
-            && !isRestoringSession
-            && !transitioningTorrentIDs.contains(id)
+        guard let record = torrentRecord(for: id) else { return false }
+        return Self.canRemoveWithFiles(
+            record,
+            isRestoringSession: isRestoringSession,
+            isTransitioning: transitioningTorrentIDs.contains(id)
+        )
+    }
+
+    private static func canToggleRunningState(
+        _ record: TorrentRecord,
+        isRestoringSession: Bool,
+        isTransitioning: Bool
+    ) -> Bool {
+        record.errorState == nil && !isRestoringSession && !isTransitioning
+    }
+
+    private static func canRemoveFromList(
+        isPendingAddition: Bool,
+        isRestoringSession: Bool,
+        isTransitioning: Bool
+    ) -> Bool {
+        isPendingAddition ? !isRestoringSession : !isRestoringSession && !isTransitioning
+    }
+
+    private static func canRemoveWithFiles(
+        _ record: TorrentRecord,
+        isRestoringSession: Bool,
+        isTransitioning: Bool
+    ) -> Bool {
+        record.errorState == nil && !isRestoringSession && !isTransitioning
     }
 
     func presentAddTorrentEntry() {
