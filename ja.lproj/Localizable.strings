@@ -148,6 +148,7 @@
 "add_torrent.entry.empty_title" = "Torrentリストは空です";
 "add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
+"add_torrent.entry.continue" = "続ける";
 "add_torrent.review.tab.files" = "ファイル";
 "add_torrent.review.tab.settings" = "設定";
 "add_torrent.review.search_files" = "ファイルを検索…";

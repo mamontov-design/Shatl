@@ -148,6 +148,7 @@
 "add_torrent.entry.empty_title" = "Torrent-Liste ist leer";
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen .magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
 "add_torrent.entry.choose_file" = ".torrent-Datei wählen…";
+"add_torrent.entry.continue" = "Fortfahren";
 "add_torrent.review.tab.files" = "Dateien";
 "add_torrent.review.tab.settings" = "Einstellungen";
 "add_torrent.review.search_files" = "Dateien suchen…";

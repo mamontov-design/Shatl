@@ -65,7 +65,9 @@ struct ShatlApp: App {
             ShatlCommands(store: store)
         }
 
-        Window("Добавление загрузки", id: AppWindowID.addTorrentReview) {
+        // Opened only by the add flow: no item in the Window menu, which would
+        // open a review window with no draft that closes itself at once.
+        Window("add_torrent.title", id: AppWindowID.addTorrentReview) {
             AddTorrentReviewWindowRoot()
                 .environmentObject(store)
                 .environmentObject(accentState)
@@ -84,6 +86,7 @@ struct ShatlApp: App {
         )
         .defaultLaunchBehavior(.suppressed)
         .restorationBehavior(.disabled)
+        .commandsRemoved()
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified(showsTitle: true))
 

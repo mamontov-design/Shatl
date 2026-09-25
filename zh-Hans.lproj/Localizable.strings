@@ -148,6 +148,7 @@
 "add_torrent.entry.empty_title" = "Torrent 列表为空";
 "add_torrent.entry.subtitle" = "在下方粘贴 .magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
+"add_torrent.entry.continue" = "继续";
 "add_torrent.review.tab.files" = "文件";
 "add_torrent.review.tab.settings" = "设置";
 "add_torrent.review.search_files" = "搜索文件…";
