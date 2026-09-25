@@ -3,7 +3,9 @@
 
 #import "LibtorrentSessionBridge.h"
 
+#include <ifaddrs.h>
 #include <libproc.h>
+#include <netinet/in.h>
 #include <sys/resource.h>
 #include <sys/syslimits.h>
 #include <sys/sysctl.h>
@@ -11,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <fstream>
 #include <map>
 #include <memory>
@@ -666,6 +669,149 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         || (lhs.has_v2() && rhs.has_v2() && lhs.v2 == rhs.v2);
 }
 
+/// Alert categories the session posts. Tracker replies, peer connections and
+/// listen sockets are posted only while the log is on, so a quiet session does
+/// not queue alerts nobody reads.
+static int LTSessionAlertMask(BOOL diagnostics) {
+    lt::alert_category_t mask = lt::alert_category::error;
+    if (diagnostics) {
+        mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
+    }
+    return static_cast<int>(static_cast<std::uint32_t>(mask));
+}
+
+/// A tracker URL reduced to its scheme and host: private trackers keep the
+/// user's passkey in the path or the query, and the log must not carry it.
+static NSString *LTRedactedTrackerURL(char const *url) {
+    std::string const value = url != nullptr ? url : "";
+    auto const schemeEnd = value.find("://");
+    if (schemeEnd == std::string::npos) {
+        return @"unknown";
+    }
+    auto const authorityStart = schemeEnd + 3;
+    auto authorityEnd = value.find_first_of("/?#", authorityStart);
+    if (authorityEnd == std::string::npos) {
+        authorityEnd = value.size();
+    }
+    std::string authority = value.substr(authorityStart, authorityEnd - authorityStart);
+    auto const credentialsEnd = authority.rfind('@');
+    if (credentialsEnd != std::string::npos) {
+        authority.erase(0, credentialsEnd + 1);
+    }
+    return LTToNSString(value.substr(0, authorityStart) + authority);
+}
+
+static NSString *LTTrackerEventName(lt::event_t event) {
+    switch (event) {
+    case lt::event_t::completed: return @"completed";
+    case lt::event_t::started: return @"started";
+    case lt::event_t::stopped: return @"stopped";
+    case lt::event_t::paused: return @"paused";
+    case lt::event_t::none: return @"none";
+    }
+    return @"unknown";
+}
+
+/// Compares a libtorrent address with one from the interface list. A missing
+/// IPv6 scope matches any: link-local addresses differ only by scope, which
+/// one side may leave out.
+static bool LTSameLocalAddress(lt::address const& lhs, lt::address const& rhs) {
+    if (lhs.is_v4() && rhs.is_v4()) {
+        return lhs.to_v4() == rhs.to_v4();
+    }
+    if (lhs.is_v6() && rhs.is_v6()) {
+        auto const left = lhs.to_v6();
+        auto const right = rhs.to_v6();
+        return left.to_bytes() == right.to_bytes()
+            && (left.scope_id() == 0 || right.scope_id() == 0 || left.scope_id() == right.scope_id());
+    }
+    return false;
+}
+
+/// Names the interface of a local address, such as en0 or utun7: it tells
+/// Wi-Fi from a VPN without writing the address itself to the log. Reads the
+/// interfaces once per batch of alerts.
+class LTInterfaceNames {
+public:
+    NSString *labelFor(lt::address const& address) {
+        NSString *family = address.is_v4() ? @"v4" : @"v6";
+        if (address.is_unspecified()) {
+            return [@"any/" stringByAppendingString:family];
+        }
+        load();
+        for (auto const& entry : _entries) {
+            if (LTSameLocalAddress(entry.first, address)) {
+                return [NSString stringWithFormat:@"%@/%@", LTToNSString(entry.second), family];
+            }
+        }
+        return [@"unknown/" stringByAppendingString:family];
+    }
+
+private:
+    void load() {
+        if (_isLoaded) {
+            return;
+        }
+        _isLoaded = true;
+        struct ifaddrs *interfaces = nullptr;
+        if (getifaddrs(&interfaces) != 0) {
+            return;
+        }
+        for (struct ifaddrs *entry = interfaces; entry != nullptr; entry = entry->ifa_next) {
+            if (entry->ifa_addr == nullptr || entry->ifa_name == nullptr) {
+                continue;
+            }
+            if (entry->ifa_addr->sa_family == AF_INET) {
+                auto const *ipv4 = reinterpret_cast<sockaddr_in const *>(entry->ifa_addr);
+                _entries.emplace_back(lt::address_v4(ntohl(ipv4->sin_addr.s_addr)), entry->ifa_name);
+            } else if (entry->ifa_addr->sa_family == AF_INET6) {
+                auto const *ipv6 = reinterpret_cast<sockaddr_in6 const *>(entry->ifa_addr);
+                lt::address_v6::bytes_type bytes;
+                std::memcpy(bytes.data(), ipv6->sin6_addr.s6_addr, bytes.size());
+                auto scope = static_cast<unsigned long>(ipv6->sin6_scope_id);
+                // The kernel may keep the scope of a link-local address inside
+                // its second 16-bit group; the real address has zeros there.
+                if (IN6_IS_ADDR_LINKLOCAL(&ipv6->sin6_addr)) {
+                    if (scope == 0) {
+                        scope = (static_cast<unsigned long>(bytes[2]) << 8) | bytes[3];
+                    }
+                    bytes[2] = 0;
+                    bytes[3] = 0;
+                }
+                _entries.emplace_back(lt::address_v6(bytes, scope), entry->ifa_name);
+            }
+        }
+        freeifaddrs(interfaces);
+    }
+
+    bool _isLoaded = false;
+    std::vector<std::pair<lt::address, std::string>> _entries;
+};
+
+/// What the swarm of a torrent looks like to the engine; logged when it changes.
+struct LTSwarmSample {
+    int state = -1;
+    bool paused = false;
+    int seeds = 0;
+    int peers = 0;
+    int connections = 0;
+    int knownSeeds = 0;
+    int knownPeers = 0;
+    int candidates = 0;
+    int trackerSeeds = -1;
+    int trackerPeers = -1;
+    bool announcing = false;
+
+    bool operator==(LTSwarmSample const&) const = default;
+};
+
+/// Peer connections of one torrent since the last diagnostics window.
+struct LTPeerEventCounts {
+    int connectedOut = 0;
+    int connectedIn = 0;
+    std::map<std::string, int> disconnectReasons;
+};
+
 @interface LibtorrentSessionBridge () {
     NSURL *_resumeDataDirectoryURL;
     std::unique_ptr<lt::session> _session;
@@ -679,6 +825,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     std::unordered_map<std::string, std::shared_ptr<const lt::torrent_info>> _preparedTorrentInfoByDraftID;
     std::unordered_map<std::string, bool> _stopAfterDownloadByRecordID;
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
+    std::unordered_map<std::string, LTSwarmSample> _lastSwarmByRecordID;
+    std::unordered_map<std::string, LTPeerEventCounts> _peerEventsByRecordID;
+    std::chrono::steady_clock::time_point _peerEventsWindowStartedAt;
+    BOOL _diagnosticAlertsEnabled;
     LTPerformanceProfile _performanceProfile;
     int _initialOpenFileLimit;
     BOOL _isShutDown;
@@ -804,6 +954,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
         std::vector<lt::alert *> alerts;
         _session->pop_alerts(&alerts);
+        [self logDiagnosticAlerts:alerts];
 
         for (lt::alert *alert : alerts) {
             if (auto *resumeAlert = lt::alert_cast<lt::save_resume_data_alert>(alert)) {
@@ -878,6 +1029,9 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     LTRaiseOpenFileLimit();
     int const openFileLimit = LTCurrentOpenFileLimit();
     lt::settings_pack pack = LTMakeSessionSettingsPack(_performanceProfile, openFileLimit);
+    _diagnosticAlertsEnabled = LTDiagnosticsLoggingEnabled();
+    pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled));
+    _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
 
     try {
         _session = std::make_unique<lt::session>(pack);
@@ -922,6 +1076,8 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     _magnetMetadataFetchesByToken.clear();
     _stopAfterDownloadByRecordID.clear();
     _lastSnapshotStatusByRecordID.clear();
+    _lastSwarmByRecordID.clear();
+    _peerEventsByRecordID.clear();
 
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
     std::thread([proxy = std::move(proxy), finished]() mutable {
@@ -953,7 +1109,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     try {
-        _session->apply_settings(LTMakeSessionSettingsPack(profile, LTCurrentOpenFileLimit()));
+        // A full profile pack would reset the alert mask to its default.
+        lt::settings_pack pack = LTMakeSessionSettingsPack(profile, LTCurrentOpenFileLimit());
+        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled));
+        _session->apply_settings(pack);
     } catch (std::exception const& exception) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
@@ -1557,7 +1716,12 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                 resumed.flags |= lt::torrent_flags::duplicate_is_error;
                 params = std::move(resumed);
                 resumeDataStatus = @"loaded";
-                LT_BRIDGE_LOG(@"restore.resume.loaded", recordIdentifier, nil, YES);
+                LT_BRIDGE_LOG(
+                    @"restore.resume.loaded",
+                    recordIdentifier,
+                    @{ @"savedPeers": [NSString stringWithFormat:@"%lu", static_cast<unsigned long>(params.peers.size())] },
+                    YES
+                );
             } else {
                 resumeDataStatus = @"invalid";
                 LT_BRIDGE_LOG(
@@ -1770,6 +1934,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
         std::vector<lt::alert *> alerts;
         _session->pop_alerts(&alerts);
+        [self logDiagnosticAlerts:alerts];
 
         for (lt::alert *alert : alerts) {
             if (auto *resumeAlert = lt::alert_cast<lt::save_resume_data_alert>(alert)) {
@@ -1891,6 +2056,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     self->_handlesByRecordID.erase(iterator);
     self->_stopAfterDownloadByRecordID.erase(key);
     self->_lastSnapshotStatusByRecordID.erase(key);
+    self->_lastSwarmByRecordID.erase(key);
     LT_BRIDGE_LOG(
         @"remove.end",
         recordIdentifier,
@@ -1898,6 +2064,251 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         YES
     );
     return YES;
+}
+
+/// Keeps the alert mask in step with the log, which can be switched on while
+/// the session runs, and reads the alerts nothing else waits for.
+- (void)drainDiagnosticAlerts {
+    BOOL const enabled = LTDiagnosticsLoggingEnabled();
+    if (enabled != _diagnosticAlertsEnabled) {
+        _diagnosticAlertsEnabled = enabled;
+        lt::settings_pack pack;
+        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(enabled));
+        _session->apply_settings(pack);
+        _peerEventsByRecordID.clear();
+        _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
+    }
+    if (!enabled) {
+        return;
+    }
+
+    std::vector<lt::alert *> alerts;
+    _session->pop_alerts(&alerts);
+    [self logDiagnosticAlerts:alerts];
+
+    auto const now = std::chrono::steady_clock::now();
+    if (now - _peerEventsWindowStartedAt >= std::chrono::seconds(10)) {
+        [self flushPeerEventsWithWindow:now - _peerEventsWindowStartedAt];
+        _peerEventsWindowStartedAt = now;
+    }
+}
+
+/// Tracker replies and listen sockets go to the log one by one. Peer
+/// connections are only counted: a busy swarm makes hundreds a second.
+- (void)logDiagnosticAlerts:(std::vector<lt::alert *> const&)alerts {
+    if (alerts.empty() || !LTDiagnosticsLoggingEnabled()) {
+        return;
+    }
+
+    std::unordered_map<lt::torrent_handle, std::string> recordKeysByHandle;
+    bool hasRecordKeys = false;
+    auto recordKeyFor = [&](lt::torrent_handle const& handle) -> std::string const * {
+        if (!hasRecordKeys) {
+            hasRecordKeys = true;
+            for (auto const& entry : self->_handlesByRecordID) {
+                recordKeysByHandle.emplace(entry.second, entry.first);
+            }
+        }
+        auto found = recordKeysByHandle.find(handle);
+        return found != recordKeysByHandle.end() ? &found->second : nullptr;
+    };
+    auto recordIdentifierFor = [&](lt::torrent_handle const& handle) -> NSString * {
+        std::string const *key = recordKeyFor(handle);
+        return key != nullptr ? LTToNSString(*key) : @"-";
+    };
+    LTInterfaceNames interfaces;
+
+    for (lt::alert *alert : alerts) {
+        if (auto *announce = lt::alert_cast<lt::tracker_announce_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"tracker.announce",
+                recordIdentifierFor(announce->handle),
+                (@{
+                    @"event": LTTrackerEventName(announce->event),
+                    @"tracker": LTRedactedTrackerURL(announce->tracker_url()),
+                    @"via": interfaces.labelFor(announce->local_endpoint.address())
+                }),
+                NO
+            );
+        } else if (auto *reply = lt::alert_cast<lt::tracker_reply_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"tracker.reply",
+                recordIdentifierFor(reply->handle),
+                (@{
+                    @"peers": [NSString stringWithFormat:@"%d", reply->num_peers],
+                    @"tracker": LTRedactedTrackerURL(reply->tracker_url()),
+                    @"via": interfaces.labelFor(reply->local_endpoint.address())
+                }),
+                NO
+            );
+        } else if (auto *trackerError = lt::alert_cast<lt::tracker_error_alert>(alert)) {
+            // libtorrent tries every local address and skips those that
+            // cannot reach the tracker; that is not an answer from it.
+            if (trackerError->error == lt::errors::announce_skipped) {
+                continue;
+            }
+            // A tracker that answers with a refusal puts its text in
+            // `failure_reason`; a network failure leaves it empty.
+            char const *failureReason = trackerError->failure_reason();
+            LT_BRIDGE_LOG(
+                @"tracker.error",
+                recordIdentifierFor(trackerError->handle),
+                (@{
+                    @"reason": LTToNSString(failureReason != nullptr ? failureReason : ""),
+                    @"error": LTToNSString(trackerError->error.message()),
+                    @"operation": LTToNSString(lt::operation_name(trackerError->op)),
+                    @"timesInRow": [NSString stringWithFormat:@"%d", trackerError->times_in_row],
+                    @"tracker": LTRedactedTrackerURL(trackerError->tracker_url()),
+                    @"via": interfaces.labelFor(trackerError->local_endpoint.address())
+                }),
+                YES
+            );
+        } else if (auto *warning = lt::alert_cast<lt::tracker_warning_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"tracker.warning",
+                recordIdentifierFor(warning->handle),
+                (@{
+                    @"message": LTToNSString(warning->warning_message()),
+                    @"tracker": LTRedactedTrackerURL(warning->tracker_url()),
+                    @"via": interfaces.labelFor(warning->local_endpoint.address())
+                }),
+                NO
+            );
+        } else if (auto *connected = lt::alert_cast<lt::peer_connect_alert>(alert)) {
+            if (std::string const *key = recordKeyFor(connected->handle)) {
+                LTPeerEventCounts& counts = _peerEventsByRecordID[*key];
+                if (connected->direction == lt::peer_connect_alert::direction_t::in) {
+                    counts.connectedIn += 1;
+                } else {
+                    counts.connectedOut += 1;
+                }
+            }
+        } else if (auto *disconnected = lt::alert_cast<lt::peer_disconnected_alert>(alert)) {
+            if (std::string const *key = recordKeyFor(disconnected->handle)) {
+                std::string reason = std::string(lt::operation_name(disconnected->op))
+                    + ": " + disconnected->error.message();
+                _peerEventsByRecordID[*key].disconnectReasons[reason] += 1;
+            }
+        } else if (auto *listening = lt::alert_cast<lt::listen_succeeded_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"listen.succeeded",
+                @"-",
+                (@{
+                    @"port": [NSString stringWithFormat:@"%d", listening->port],
+                    @"type": LTToNSString(lt::socket_type_name(listening->socket_type)),
+                    @"via": interfaces.labelFor(listening->address)
+                }),
+                NO
+            );
+        } else if (auto *listenFailed = lt::alert_cast<lt::listen_failed_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"listen.failed",
+                @"-",
+                (@{
+                    @"error": LTToNSString(listenFailed->error.message()),
+                    @"operation": LTToNSString(lt::operation_name(listenFailed->op)),
+                    @"port": [NSString stringWithFormat:@"%d", listenFailed->port],
+                    @"type": LTToNSString(lt::socket_type_name(listenFailed->socket_type)),
+                    @"via": interfaces.labelFor(listenFailed->address)
+                }),
+                YES
+            );
+        } else if (auto *dropped = lt::alert_cast<lt::alerts_dropped_alert>(alert)) {
+            LT_BRIDGE_LOG(
+                @"alerts.dropped",
+                @"-",
+                @{ @"types": [NSString stringWithFormat:@"%lu", static_cast<unsigned long>(dropped->dropped_alerts.count())] },
+                NO
+            );
+        }
+    }
+}
+
+/// One line per torrent with the peer connections of the window and the most
+/// common reasons they closed.
+- (void)flushPeerEventsWithWindow:(std::chrono::steady_clock::duration)window {
+    NSString *windowSeconds = [NSString stringWithFormat:@"%lld",
+        static_cast<long long>(std::chrono::duration_cast<std::chrono::seconds>(window).count())];
+    for (auto const& entry : _peerEventsByRecordID) {
+        LTPeerEventCounts const& counts = entry.second;
+        std::vector<std::pair<std::string, int>> reasons(
+            counts.disconnectReasons.begin(),
+            counts.disconnectReasons.end()
+        );
+        std::sort(reasons.begin(), reasons.end(), [](auto const& lhs, auto const& rhs) {
+            return lhs.second > rhs.second;
+        });
+        int disconnects = 0;
+        for (auto const& reason : reasons) {
+            disconnects += reason.second;
+        }
+        NSMutableArray<NSString *> *topReasons = [[NSMutableArray alloc] init];
+        for (std::size_t index = 0; index < reasons.size() && index < 5; ++index) {
+            [topReasons addObject:[NSString stringWithFormat:@"%@ (%d)",
+                LTToNSString(reasons[index].first),
+                reasons[index].second]];
+        }
+        LT_BRIDGE_LOG(
+            @"peers.window",
+            LTToNSString(entry.first),
+            (@{
+                @"connectedIn": [NSString stringWithFormat:@"%d", counts.connectedIn],
+                @"connectedOut": [NSString stringWithFormat:@"%d", counts.connectedOut],
+                @"disconnects": [NSString stringWithFormat:@"%d", disconnects],
+                @"reasons": topReasons.count > 0 ? [topReasons componentsJoinedByString:@"; "] : @"-",
+                @"windowSeconds": windowSeconds
+            }),
+            NO
+        );
+    }
+    _peerEventsByRecordID.clear();
+}
+
+/// Writes how many peers a torrent knows and reaches when that changes: a
+/// slow download then shows whether peers are missing or refuse to connect.
+- (void)logSwarmChangeForStatus:(lt::torrent_status const&)status
+                      recordKey:(std::string const&)recordKey
+               recordIdentifier:(NSString *)recordIdentifier {
+    LTSwarmSample sample;
+    sample.state = static_cast<int>(status.state);
+    sample.paused = LTFlagEnabled(status.flags, lt::torrent_flags::paused);
+    sample.seeds = status.num_seeds;
+    sample.peers = status.num_peers;
+    sample.connections = status.num_connections;
+    sample.knownSeeds = status.list_seeds;
+    sample.knownPeers = status.list_peers;
+    sample.candidates = status.connect_candidates;
+    sample.trackerSeeds = status.num_complete;
+    sample.trackerPeers = status.num_incomplete;
+    sample.announcing = status.announcing_to_trackers;
+
+    auto previous = _lastSwarmByRecordID.find(recordKey);
+    if (previous != _lastSwarmByRecordID.end() && previous->second == sample) {
+        return;
+    }
+    _lastSwarmByRecordID[recordKey] = sample;
+
+    auto const nextAnnounce = std::chrono::duration_cast<std::chrono::seconds>(status.next_announce).count();
+    LT_BRIDGE_LOG(
+        @"swarm.changed",
+        recordIdentifier,
+        (@{
+            @"announcing": sample.announcing ? @"1" : @"0",
+            @"candidates": [NSString stringWithFormat:@"%d", sample.candidates],
+            @"connections": [NSString stringWithFormat:@"%d", sample.connections],
+            @"downloadRate": [NSString stringWithFormat:@"%d", status.download_payload_rate],
+            @"knownPeers": [NSString stringWithFormat:@"%d", sample.knownPeers],
+            @"knownSeeds": [NSString stringWithFormat:@"%d", sample.knownSeeds],
+            @"nextAnnounceSec": [NSString stringWithFormat:@"%lld", static_cast<long long>(nextAnnounce)],
+            @"paused": sample.paused ? @"1" : @"0",
+            @"peers": [NSString stringWithFormat:@"%d", sample.peers],
+            @"seeds": [NSString stringWithFormat:@"%d", sample.seeds],
+            @"state": [NSString stringWithFormat:@"%d", sample.state],
+            @"trackerPeers": [NSString stringWithFormat:@"%d", sample.trackerPeers],
+            @"trackerSeeds": [NSString stringWithFormat:@"%d", sample.trackerSeeds]
+        }),
+        NO
+    );
 }
 
 /// Remembers the status of a torrent and returns whether it changed. The card
@@ -1926,6 +2337,8 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         }
         return nil;
     }
+
+    [self drainDiagnosticAlerts];
 
     uint64_t tickID = ++self->_snapshotTickCounter;
     auto tickStartedAt = std::chrono::steady_clock::now();
@@ -2079,6 +2492,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     double visibleProgress = status.progress;
     if (status.total_wanted > 0) {
         visibleProgress = double(status.total_wanted_done) / double(status.total_wanted);
+    }
+
+    if (LTDiagnosticsLoggingEnabled()) {
+        [self logSwarmChangeForStatus:status recordKey:recordKey recordIdentifier:recordIdentifier];
     }
 
     if (status.upload_rate > 0 || status.upload_payload_rate > 0 || status.all_time_upload > 0) {

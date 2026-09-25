@@ -75,6 +75,53 @@ final class BridgeDiagnosticsTests: XCTestCase {
         XCTAssertTrue(errorLines.first?.contains("reason=") == true, "\(errorLines)")
     }
 
+    /// A torrent that stays slow after a relaunch can be traced only through its
+    /// tracker and peers. The tracker's answer goes to the log with its reason
+    /// and interface, while the passkey in the tracker URL stays out of it.
+    func testBridgeLogsTrackerErrorsAndTheSwarmWithoutThePasskey() async throws {
+        let wasEnabled = ShatlFileLogger.shared.loggingEnabled
+        addTeardownBlock { ShatlFileLogger.shared.setEnabled(wasEnabled) }
+        ShatlFileLogger.shared.setEnabled(true)
+        // Nothing listens on port 1, so the announce fails at once.
+        let passkey = "PASSKEY\(UUID().uuidString.prefix(8))"
+        let fixture = try EngineFixture.make(
+            named: "TrackerError",
+            announceURL: "http://127.0.0.1:1/announce?uk=\(passkey)"
+        )
+        addTeardownBlock { fixture.remove() }
+        let bridge = LibtorrentSessionBridge(resumeDataDirectoryURL: fixture.directories.resumeDataDirectoryURL)
+        let recordID = fixture.torrentID.uuidString
+        let logURL = AppPreferences.defaultLogsDirectoryURL()
+            .appendingPathComponent("Shatl.log", isDirectory: false)
+
+        _ = try bridge.restoreTorrent(
+            withTorrentFilePath: fixture.entry.archivedTorrentPath,
+            suggestedSavePath: fixture.entry.suggestedSavePath,
+            stopAfterDownload: false,
+            selectedFileIndices: [0],
+            recordIdentifier: recordID,
+            shouldStart: true
+        )
+        var errorLines: [Substring] = []
+        var log = ""
+        let deadline = ContinuousClock.now + .seconds(10)
+        while errorLines.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(200))
+            _ = try bridge.fetchActiveSnapshots()
+            ShatlFileLogger.shared.flushForTests()
+            log = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
+            errorLines = log.split(separator: "\n")
+                .filter { $0.contains("torrent=\(recordID) phase=tracker.error") }
+        }
+
+        XCTAssertFalse(errorLines.isEmpty, "The failed announce was not logged")
+        XCTAssertTrue(errorLines.first?.contains("tracker=http://127.0.0.1:1 ") == true, "\(errorLines)")
+        XCTAssertTrue(errorLines.first?.contains("via=") == true, "\(errorLines)")
+        XCTAssertTrue(log.contains("torrent=\(recordID) phase=tracker.announce event=started"))
+        XCTAssertTrue(log.contains("torrent=\(recordID) phase=swarm.changed"))
+        XCTAssertFalse(log.contains(passkey), "The tracker passkey leaked into the log")
+    }
+
     /// Restores a fixture torrent through the real bridge and returns its record ID.
     private func restoreFixture(named name: String) throws -> UUID {
         let fixture = try EngineFixture.make(named: name)

@@ -24,7 +24,8 @@ struct EngineFixture {
         AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:\(infoHashHex)&dn=payload.bin")
     }
 
-    static func make(named name: String) throws -> EngineFixture {
+    /// `announceURL` adds a tracker; without it no peers are contacted.
+    static func make(named name: String, announceURL: String? = nil) throws -> EngineFixture {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("LibtorrentEngine-\(name)-\(UUID().uuidString)", isDirectory: true)
         let directories = ShatlDirectories(
@@ -40,7 +41,9 @@ struct EngineFixture {
 
         let torrentURL = rootURL.appendingPathComponent("fixture.torrent", isDirectory: false)
         let info = makeInfoDictionary(fileName: "payload.bin", payload: payload, pieceLength: 16 * 1024)
-        try (Data("d4:info".utf8) + info + Data("e".utf8)).write(to: torrentURL)
+        // Bencoded dictionary keys must be sorted: "announce" before "info".
+        let announce = announceURL.map { Data("8:announce\($0.utf8.count):\($0)".utf8) } ?? Data()
+        try (Data("d".utf8) + announce + Data("4:info".utf8) + info + Data("e".utf8)).write(to: torrentURL)
 
         let torrentID = UUID()
         return EngineFixture(
@@ -72,8 +75,8 @@ struct EngineFixture {
         try? FileManager.default.removeItem(at: rootURL)
     }
 
-    /// The bencoded info dictionary of a minimal single-file v1 torrent without
-    /// trackers, so no peers are contacted for it. Its SHA-1 is the info hash.
+    /// The bencoded info dictionary of a minimal single-file v1 torrent. Its
+    /// SHA-1 is the info hash.
     private static func makeInfoDictionary(fileName: String, payload: Data, pieceLength: Int) -> Data {
         var pieces = Data()
         var offset = 0
