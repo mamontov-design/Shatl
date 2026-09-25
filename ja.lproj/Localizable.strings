@@ -278,6 +278,9 @@
 "settings.debug.logging.metric_animation_diagnostics" = "メトリックアニメーション診断";
 "settings.debug.logging.snapshot_diagnostics" = "スナップショット更新診断";
 "settings.debug.logging.add_torrent_review_diagnostics" = "トレント追加ウインドウの診断";
+"settings.debug.performance.budget" = "デバッグ：開いているファイルの上限は%1$@です（macOSの初期値：%2$@）。接続は最大%3$@、ファイルは最大%4$@。サービス接続を含む合計：%5$@。";
+"settings.debug.performance.budget_reduced" = "デバッグ：開いているファイルの上限は%1$@で、macOSはそれ以上を許可しませんでした（初期値：%2$@）。接続は%4$@ではなく最大%3$@、ファイルは%6$@ではなく最大%5$@。サービス接続を含む合計：%7$@。";
+"settings.debug.performance.engine_not_started" = "デバッグ：エンジンはまだ起動していません。";
 
 "notification.download_completed.title" = "ダウンロード完了";
 "notification.download_completed.body" = "%@のダウンロードが完了しました。";

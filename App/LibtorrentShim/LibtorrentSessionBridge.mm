@@ -3,6 +3,12 @@
 
 #import "LibtorrentSessionBridge.h"
 
+#include <libproc.h>
+#include <sys/resource.h>
+#include <sys/syslimits.h>
+#include <sys/sysctl.h>
+
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <fstream>
@@ -82,6 +88,8 @@ static void LTApplyNetworkDiscoverySettings(lt::settings_pack& pack, bool enable
     pack.set_bool(lt::settings_pack::enable_natpmp, false);
 }
 
+/// What a profile asks for. The session gets it only through
+/// `LTMakeSessionSettingsPack`, which fits it into the open-file limit.
 static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile profile) {
     switch (profile) {
     case LTPerformanceProfileEconomical: {
@@ -518,6 +526,105 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @end
 
+@implementation LTResourceBudget
+
+- (instancetype)initWithInitialOpenFileLimit:(NSInteger)initialOpenFileLimit
+                               openFileLimit:(NSInteger)openFileLimit
+                   requestedConnectionsLimit:(NSInteger)requestedConnectionsLimit
+                       requestedFilePoolSize:(NSInteger)requestedFilePoolSize
+                            connectionsLimit:(NSInteger)connectionsLimit
+                                filePoolSize:(NSInteger)filePoolSize {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _initialOpenFileLimit = initialOpenFileLimit;
+    _openFileLimit = openFileLimit;
+    _requestedConnectionsLimit = requestedConnectionsLimit;
+    _requestedFilePoolSize = requestedFilePoolSize;
+    _connectionsLimit = connectionsLimit;
+    _filePoolSize = filePoolSize;
+    return self;
+}
+
+@end
+
+/// The soft open-file limit, capped like libtorrent's own `max_open_files()`.
+static int LTCurrentOpenFileLimit() {
+    int const unlimited = 10000000;
+    struct rlimit limit {};
+    if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        return 1024;
+    }
+    return limit.rlim_cur >= static_cast<rlim_t>(unlimited) ? unlimited : static_cast<int>(limit.rlim_cur);
+}
+
+/// launchd starts processes with a soft limit of 256 open files, and AppKit
+/// raises it to 2560 for an app opened from Finder or the Dock. A busy Nova
+/// session needs more. Apple's setrlimit(2) asks for at most `OPEN_MAX`
+/// (10 240); the hard limit and `kern.maxfilesperproc` may be lower.
+static void LTRaiseOpenFileLimit() {
+    struct rlimit limit {};
+    if (getrlimit(RLIMIT_NOFILE, &limit) != 0) {
+        return;
+    }
+
+    rlim_t target = std::min<rlim_t>(OPEN_MAX, limit.rlim_max);
+    int perProcessLimit = 0;
+    std::size_t size = sizeof(perProcessLimit);
+    if (sysctlbyname("kern.maxfilesperproc", &perProcessLimit, &size, nullptr, 0) == 0 && perProcessLimit > 0) {
+        target = std::min<rlim_t>(target, static_cast<rlim_t>(perProcessLimit));
+    }
+    // Never lower a limit that is already higher, e.g. after a launch from Terminal.
+    if (limit.rlim_cur >= target) {
+        return;
+    }
+
+    limit.rlim_cur = target;
+    // On failure the budget fits the session into the limit it has.
+    setrlimit(RLIMIT_NOFILE, &limit);
+}
+
+/// Descriptors kept outside peer connections and the file pool: Shatl itself,
+/// the three sockets libtorrent opens per local address (75 on a Mac with VPN
+/// interfaces), up to 50 concurrent tracker announces and short writes such as
+/// `session.json`.
+static int LTReservedDescriptorCount(int openFileLimit) {
+    return std::clamp(openFileLimit / 4, 160, 1024);
+}
+
+struct LTDescriptorBudget {
+    int connectionsLimit;
+    int filePoolSize;
+};
+
+/// Under the raised limit every profile keeps its values; a smaller limit cuts
+/// them, with libtorrent's own split of 80% to connections and 20% to files.
+static LTDescriptorBudget LTFitProfileIntoOpenFileLimit(lt::settings_pack const& profilePack, int openFileLimit) {
+    int const available = std::max(0, openFileLimit - LTReservedDescriptorCount(openFileLimit));
+    int const filePoolSize = std::min(
+        profilePack.get_int(lt::settings_pack::file_pool_size),
+        std::max(4, available / 5)
+    );
+    int const connectionsLimit = std::min(
+        profilePack.get_int(lt::settings_pack::connections_limit),
+        std::max(10, available - filePoolSize)
+    );
+    return {connectionsLimit, filePoolSize};
+}
+
+/// The only settings the session gets, at boot and on every profile switch.
+/// libtorrent caps connections to the limit only when the session is created,
+/// and never caps the file pool.
+static lt::settings_pack LTMakeSessionSettingsPack(LTPerformanceProfile profile, int openFileLimit) {
+    lt::settings_pack pack = LTMakePerformanceSettingsPack(profile);
+    LTDescriptorBudget const budget = LTFitProfileIntoOpenFileLimit(pack, openFileLimit);
+    pack.set_int(lt::settings_pack::connections_limit, budget.connectionsLimit);
+    pack.set_int(lt::settings_pack::file_pool_size, budget.filePoolSize);
+    return pack;
+}
+
 /// A temporary upload-mode torrent that exists only to receive magnet metadata.
 struct LTMagnetMetadataFetch {
     lt::torrent_handle handle;
@@ -548,6 +655,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     std::unordered_map<std::string, bool> _stopAfterDownloadByRecordID;
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
     LTPerformanceProfile _performanceProfile;
+    int _initialOpenFileLimit;
     uint64_t _snapshotTickCounter;
 }
 @end
@@ -733,7 +841,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         return YES;
     }
 
-    lt::settings_pack pack = LTMakePerformanceSettingsPack(_performanceProfile);
+    _initialOpenFileLimit = LTCurrentOpenFileLimit();
+    LTRaiseOpenFileLimit();
+    int const openFileLimit = LTCurrentOpenFileLimit();
+    lt::settings_pack pack = LTMakeSessionSettingsPack(_performanceProfile, openFileLimit);
 
     try {
         _session = std::make_unique<lt::session>(pack);
@@ -744,6 +855,18 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         return NO;
     }
 
+    if (LTDiagnosticsLoggingEnabled()) {
+        LTDiagnosticsLog(
+            @"Bridge",
+            @"INFO",
+            [NSString stringWithFormat:@"phase=boot.open-file-limit initial=%d limit=%d connections=%d filePool=%d",
+                _initialOpenFileLimit,
+                openFileLimit,
+                pack.get_int(lt::settings_pack::connections_limit),
+                pack.get_int(lt::settings_pack::file_pool_size)],
+            YES
+        );
+    }
     return YES;
 }
 
@@ -756,7 +879,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     try {
-        _session->apply_settings(LTMakePerformanceSettingsPack(profile));
+        _session->apply_settings(LTMakeSessionSettingsPack(profile, LTCurrentOpenFileLimit()));
     } catch (std::exception const& exception) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
@@ -765,6 +888,55 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     return YES;
+}
+
++ (LTResourceBudget *)resourceBudgetForProfile:(LTPerformanceProfile)profile
+                                 openFileLimit:(NSInteger)openFileLimit {
+    int const limit = static_cast<int>(std::clamp<NSInteger>(openFileLimit, 0, 10000000));
+    lt::settings_pack const requested = LTMakePerformanceSettingsPack(profile);
+    LTDescriptorBudget const budget = LTFitProfileIntoOpenFileLimit(requested, limit);
+    return [[LTResourceBudget alloc]
+        initWithInitialOpenFileLimit:limit
+                       openFileLimit:limit
+           requestedConnectionsLimit:requested.get_int(lt::settings_pack::connections_limit)
+               requestedFilePoolSize:requested.get_int(lt::settings_pack::file_pool_size)
+                    connectionsLimit:budget.connectionsLimit
+                        filePoolSize:budget.filePoolSize];
+}
+
+- (LTResourceBudget *)currentResourceBudget {
+    if (_session == nullptr) {
+        return nil;
+    }
+
+    lt::settings_pack const requested = LTMakePerformanceSettingsPack(_performanceProfile);
+    lt::settings_pack const applied = _session->get_settings();
+    return [[LTResourceBudget alloc]
+        initWithInitialOpenFileLimit:_initialOpenFileLimit
+                       openFileLimit:LTCurrentOpenFileLimit()
+           requestedConnectionsLimit:requested.get_int(lt::settings_pack::connections_limit)
+               requestedFilePoolSize:requested.get_int(lt::settings_pack::file_pool_size)
+                    connectionsLimit:applied.get_int(lt::settings_pack::connections_limit)
+                        filePoolSize:applied.get_int(lt::settings_pack::file_pool_size)];
+}
+
++ (NSInteger)openFileDescriptorCount {
+    pid_t const pid = getpid();
+    int const estimatedBytes = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nullptr, 0);
+    if (estimatedBytes <= 0) {
+        return 0;
+    }
+
+    // Room for descriptors opened between the two calls.
+    std::vector<proc_fdinfo> descriptors(static_cast<std::size_t>(estimatedBytes) / sizeof(proc_fdinfo) + 64);
+    int const filledBytes = proc_pidinfo(
+        pid,
+        PROC_PIDLISTFDS,
+        0,
+        descriptors.data(),
+        static_cast<int>(descriptors.size() * sizeof(proc_fdinfo))
+    );
+    return filledBytes <= 0 ? 0 : filledBytes / static_cast<int>(sizeof(proc_fdinfo));
 }
 
 - (LTPreparedDraft *)prepareDraftWithSourceKind:(NSString *)sourceKind

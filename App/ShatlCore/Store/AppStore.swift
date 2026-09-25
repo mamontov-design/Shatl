@@ -514,6 +514,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         schedulePerformanceSettingsApply()
     }
 
+    #if DEBUG
+    /// Debug Settings shows the engine's open-file limit and how many files are open.
+    func engineResourceBudget() async -> EngineResourceBudget? {
+        await engine.resourceBudget()
+    }
+    #endif
+
     func setDefaultDownloadLocation(_ url: URL, bookmarkData: Data?) {
         let normalizedPath = NSString(string: url.path).standardizingPath
         guard preferences.defaultDownloadPath != normalizedPath

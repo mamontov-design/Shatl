@@ -280,6 +280,9 @@
 "settings.debug.logging.metric_animation_diagnostics" = "Diagnose der Metrik-Animationen";
 "settings.debug.logging.snapshot_diagnostics" = "Diagnose der Snapshot-Aktualisierungen";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Diagnose des Fensters „Torrent hinzufügen“";
+"settings.debug.performance.budget" = "Debug: Limit für geöffnete Dateien: %1$@ (von macOS vergeben: %2$@). Bis zu %3$@ Verbindungen und %4$@ Dateien. Insgesamt geöffnet, einschließlich Dienstverbindungen: %5$@.";
+"settings.debug.performance.budget_reduced" = "Debug: Limit für geöffnete Dateien: %1$@, mehr hat macOS nicht erlaubt (vergeben: %2$@). Bis zu %3$@ statt %4$@ Verbindungen und %5$@ statt %6$@ Dateien. Insgesamt geöffnet, einschließlich Dienstverbindungen: %7$@.";
+"settings.debug.performance.engine_not_started" = "Debug: Die Engine wurde noch nicht gestartet.";
 
 "notification.download_completed.title" = "Download abgeschlossen";
 "notification.download_completed.body" = "%@ wurde fertig geladen.";
