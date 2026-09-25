@@ -156,15 +156,29 @@ static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile prof
     }
 }
 
-static BOOL LTDiagnosticsLoggingEnabled(void) {
-    Class bridgeClass = NSClassFromString(@"ShatlDiagnosticsBridge");
-    SEL selector = NSSelectorFromString(@"loggingEnabled");
-    if (bridgeClass == Nil || ![bridgeClass respondsToSelector:selector]) {
-        return NO;
+/// The Swift switch that says whether a diagnostics log is on, looked up once:
+/// the 1 Hz tick asks it for every torrent.
+struct LTLoggingSwitch {
+    Class bridgeClass = Nil;
+    SEL selector = nullptr;
+    BOOL (*isEnabled)(id, SEL) = nullptr;
+
+    explicit LTLoggingSwitch(NSString *className) {
+        bridgeClass = NSClassFromString(className);
+        selector = NSSelectorFromString(@"loggingEnabled");
+        if (bridgeClass != Nil && [bridgeClass respondsToSelector:selector]) {
+            isEnabled = reinterpret_cast<BOOL (*)(id, SEL)>([bridgeClass methodForSelector:selector]);
+        }
     }
 
-    BOOL (*messageSend)(id, SEL) = reinterpret_cast<BOOL (*)(id, SEL)>([bridgeClass methodForSelector:selector]);
-    return messageSend(bridgeClass, selector);
+    BOOL value() const {
+        return isEnabled != nullptr && isEnabled(bridgeClass, selector);
+    }
+};
+
+static BOOL LTDiagnosticsLoggingEnabled(void) {
+    static LTLoggingSwitch const loggingSwitch(@"ShatlDiagnosticsBridge");
+    return loggingSwitch.value();
 }
 
 static void LTDiagnosticsLog(NSString *category, NSString *level, NSString *message, BOOL flush) {
@@ -225,14 +239,8 @@ static void LTDiagnosticsBridgeLog(NSString *phase,
 }
 
 static BOOL LTSnapshotDiagnosticsLoggingEnabled(void) {
-    Class bridgeClass = NSClassFromString(@"ShatlSnapshotDiagnosticsBridge");
-    SEL selector = NSSelectorFromString(@"loggingEnabled");
-    if (bridgeClass == Nil || ![bridgeClass respondsToSelector:selector]) {
-        return NO;
-    }
-
-    BOOL (*messageSend)(id, SEL) = reinterpret_cast<BOOL (*)(id, SEL)>([bridgeClass methodForSelector:selector]);
-    return messageSend(bridgeClass, selector);
+    static LTLoggingSwitch const loggingSwitch(@"ShatlSnapshotDiagnosticsBridge");
+    return loggingSwitch.value();
 }
 
 static void LTSnapshotDiagnosticsLog(NSString *event,
@@ -252,6 +260,22 @@ static void LTSnapshotDiagnosticsLog(NSString *event,
         reinterpret_cast<void (*)(id, SEL, NSString *, NSDictionary<NSString *, NSString *> *, BOOL)>([bridgeClass methodForSelector:selector]);
     messageSend(bridgeClass, selector, event, fields ?: @{}, flush);
 }
+
+// Every diagnostics call goes through these: the arguments, often dictionaries
+// of formatted strings, are built only while the log is on. Diagnostics are
+// always off in Release, and the 1 Hz tick logs for every torrent.
+#define LT_BRIDGE_LOG(...) \
+    do { \
+        if (LTDiagnosticsLoggingEnabled()) { \
+            LTDiagnosticsBridgeLog(__VA_ARGS__); \
+        } \
+    } while (0)
+#define LT_SNAPSHOT_LOG(...) \
+    do { \
+        if (LTSnapshotDiagnosticsLoggingEnabled()) { \
+            LTSnapshotDiagnosticsLog(__VA_ARGS__); \
+        } \
+    } while (0)
 
 static NSString *LTStatusQueryFlagsDescription(void) {
     return @"query_name,query_torrent_file,query_accurate_download_counters";
@@ -297,7 +321,7 @@ static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle con
     );
     fields[@"handleValid"] = handle.is_valid() ? @"1" : @"0";
     fields[@"stopAfterDownloadPending"] = stopAfterDownloadPending ? @"1" : @"0";
-    LTSnapshotDiagnosticsLog(@"snapshot.status.begin", fields, YES);
+    LT_SNAPSHOT_LOG(@"snapshot.status.begin", fields, YES);
 
     auto logWatchdog = ^(NSString *event, NSString *thresholdMs) {
         if (completed->load()) {
@@ -315,7 +339,7 @@ static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle con
         watchdogFields[@"thresholdMs"] = thresholdMs;
         watchdogFields[@"handleValid"] = watchdogHandle.is_valid() ? @"1" : @"0";
         watchdogFields[@"stopAfterDownloadPending"] = stopAfterDownloadPending ? @"1" : @"0";
-        LTSnapshotDiagnosticsLog(event, watchdogFields, YES);
+        LT_SNAPSHOT_LOG(event, watchdogFields, YES);
     };
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, static_cast<int64_t>(500 * NSEC_PER_MSEC)), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
@@ -342,7 +366,7 @@ static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle con
     endFields[@"downloadRate"] = [NSString stringWithFormat:@"%lld", static_cast<long long>(status.download_rate)];
     endFields[@"uploadPayloadRate"] = [NSString stringWithFormat:@"%lld", static_cast<long long>(status.upload_payload_rate)];
     endFields[@"errc"] = status.errc ? LTToNSString(status.errc.message()) : @"none";
-    LTSnapshotDiagnosticsLog(@"snapshot.status.end", endFields, NO);
+    LT_SNAPSHOT_LOG(@"snapshot.status.end", endFields, NO);
 
     return status;
 }
@@ -744,7 +768,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 - (void)saveResumeDataForHandle:(lt::torrent_handle const&)handle
                recordIdentifier:(NSString *)recordIdentifier {
     if (_session == nullptr || !handle.is_valid()) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"resume.skip",
             recordIdentifier,
             @{ @"reason": @"invalid-session-or-handle" },
@@ -756,14 +780,14 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     auto startedAt = std::chrono::steady_clock::now();
     try {
         handle.save_resume_data(lt::torrent_handle::only_if_modified);
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"resume.requested",
             recordIdentifier,
             @{ @"resumeMode": @"only_if_modified" },
             YES
         );
     } catch (...) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"resume.request.failed",
             recordIdentifier,
             @{ @"reason": @"save_resume_data-throw" },
@@ -791,7 +815,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                 if (![self persistResumeDataFromParams:resumeAlert->params
                                    forRecordIdentifier:recordIdentifier
                                                  error:&persistError]) {
-                    LTDiagnosticsBridgeLog(
+                    LT_BRIDGE_LOG(
                         @"resume.persist.failed",
                         recordIdentifier,
                         @{
@@ -802,7 +826,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                     );
                     return;
                 }
-                LTDiagnosticsBridgeLog(
+                LT_BRIDGE_LOG(
                     @"resume.alert.received",
                     recordIdentifier,
                     @{ @"resumeWaitMs": LTMillisecondsString(startedAt) },
@@ -813,7 +837,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
             if (auto *failedAlert = lt::alert_cast<lt::save_resume_data_failed_alert>(alert)) {
                 if (failedAlert->handle == handle) {
-                    LTDiagnosticsBridgeLog(
+                    LT_BRIDGE_LOG(
                         @"resume.alert.failed",
                         recordIdentifier,
                         @{
@@ -828,7 +852,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         }
     }
 
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"resume.timeout",
         recordIdentifier,
         @{ @"resumeWaitMs": LTMillisecondsString(startedAt) },
@@ -1223,12 +1247,12 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                          error:(NSError * _Nullable __autoreleasing *)error {
     auto addStartedAt = std::chrono::steady_clock::now();
     if (![self boot:error]) {
-        LTDiagnosticsBridgeLog(@"add.boot.failed", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"add.boot.failed", recordIdentifier, nil, YES);
         return nil;
     }
 
     NSString *normalizedSavePath = [suggestedSavePath stringByStandardizingPath];
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"add.begin",
         recordIdentifier,
         @{
@@ -1241,7 +1265,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
     auto cachedInfoIterator = self->_preparedTorrentInfoByDraftID.find(LTToStdString(draftIdentifier));
     if (cachedInfoIterator == self->_preparedTorrentInfoByDraftID.end()) {
-        LTDiagnosticsBridgeLog(@"add.draft-missing", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"add.draft-missing", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(
                 ShatlLibtorrentErrorCodeDraftPreparationLost,
@@ -1255,7 +1279,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     lt::sha1_hash bestHash = torrentInfo->info_hashes().get_best();
     [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     if (self->_session->find_torrent(bestHash).is_valid()) {
-        LTDiagnosticsBridgeLog(@"add.duplicate", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"add.duplicate", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
         }
@@ -1276,7 +1300,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     params.file_priorities.reserve(fileStorage.num_files());
 
     if (selectedFileIndices.count == 0) {
-        LTDiagnosticsBridgeLog(@"add.invalid-selection", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"add.invalid-selection", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(
                 ShatlLibtorrentErrorCodeEngineFailure,
@@ -1306,7 +1330,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     lt::error_code ec;
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"add.failed",
             recordIdentifier,
             @{ @"reason": ec ? LTToNSString(ec.message()) : @"invalid-handle" },
@@ -1332,7 +1356,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     handle.unset_flags(lt::torrent_flags::paused);
 
     lt::torrent_status status = handle.status(LTMinimalStatusQueryFlags());
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"add.end",
         recordIdentifier,
         @{
@@ -1423,7 +1447,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                                shouldStart:(BOOL)shouldStart
                                                      error:(NSError * _Nullable __autoreleasing *)error {
     auto restoreStartedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"restore.begin",
         recordIdentifier,
         @{
@@ -1434,14 +1458,14 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     );
 
     if (![self boot:error]) {
-        LTDiagnosticsBridgeLog(@"restore.boot.failed", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"restore.boot.failed", recordIdentifier, nil, YES);
         return nil;
     }
 
     lt::error_code ec;
     auto torrentInfo = std::make_shared<lt::torrent_info>(LTToStdString(torrentFilePath), ec);
     if (ec) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"restore.archive-invalid",
             recordIdentifier,
             @{ @"reason": LTToNSString(ec.message()) },
@@ -1483,10 +1507,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                 resumed.flags |= lt::torrent_flags::duplicate_is_error;
                 params = std::move(resumed);
                 resumeDataStatus = @"loaded";
-                LTDiagnosticsBridgeLog(@"restore.resume.loaded", recordIdentifier, nil, YES);
+                LT_BRIDGE_LOG(@"restore.resume.loaded", recordIdentifier, nil, YES);
             } else {
                 resumeDataStatus = @"invalid";
-                LTDiagnosticsBridgeLog(
+                LT_BRIDGE_LOG(
                     @"restore.resume.invalid",
                     recordIdentifier,
                     @{ @"reason": LTToNSString(resumeError.message()) },
@@ -1494,7 +1518,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                 );
             }
         } else {
-            LTDiagnosticsBridgeLog(@"restore.resume.missing", recordIdentifier, nil, YES);
+            LT_BRIDGE_LOG(@"restore.resume.missing", recordIdentifier, nil, YES);
         }
     }
 
@@ -1507,7 +1531,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     lt::file_storage const& fileStorage = torrentInfo->files();
 
     if (selectedFileIndices.count == 0) {
-        LTDiagnosticsBridgeLog(@"restore.invalid-selection", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"restore.invalid-selection", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(
                 ShatlLibtorrentErrorCodeEngineFailure,
@@ -1535,7 +1559,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"restore.add.failed",
             recordIdentifier,
             @{ @"reason": ec ? LTToNSString(ec.message()) : @"invalid-handle" },
@@ -1566,7 +1590,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                           recordIdentifier:recordIdentifier
                                           resumeDataStatus:resumeDataStatus];
     self->_lastSnapshotStatusByRecordID[key] = snapshot.status;
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"restore.end",
         recordIdentifier,
         @{
@@ -1615,10 +1639,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 - (BOOL)startTorrentWithIdentifier:(NSString *)recordIdentifier
                              error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(@"start.begin", recordIdentifier, nil, YES);
+    LT_BRIDGE_LOG(@"start.begin", recordIdentifier, nil, YES);
     auto iterator = self->_handlesByRecordID.find(LTToStdString(recordIdentifier));
     if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        LTDiagnosticsBridgeLog(@"start.not-found", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"start.not-found", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
         }
@@ -1627,7 +1651,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
     iterator->second.unset_flags(lt::torrent_flags::paused);
     iterator->second.resume();
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"start.end",
         recordIdentifier,
         @{ @"totalMs": LTMillisecondsString(startedAt) },
@@ -1639,10 +1663,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 - (BOOL)stopTorrentWithIdentifier:(NSString *)recordIdentifier
                             error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(@"stop.begin", recordIdentifier, nil, YES);
+    LT_BRIDGE_LOG(@"stop.begin", recordIdentifier, nil, YES);
     auto iterator = self->_handlesByRecordID.find(LTToStdString(recordIdentifier));
     if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        LTDiagnosticsBridgeLog(@"stop.not-found", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"stop.not-found", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
         }
@@ -1651,7 +1675,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
     iterator->second.pause();
     iterator->second.set_flags(lt::torrent_flags::paused);
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"stop.end",
         recordIdentifier,
         @{ @"totalMs": LTMillisecondsString(startedAt) },
@@ -1663,10 +1687,10 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 - (BOOL)forceRecheckTorrentWithIdentifier:(NSString *)recordIdentifier
                                     error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(@"recheck.begin", recordIdentifier, nil, YES);
+    LT_BRIDGE_LOG(@"recheck.begin", recordIdentifier, nil, YES);
     auto iterator = self->_handlesByRecordID.find(LTToStdString(recordIdentifier));
     if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        LTDiagnosticsBridgeLog(@"recheck.not-found", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"recheck.not-found", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
         }
@@ -1674,7 +1698,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     iterator->second.force_recheck();
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"recheck.end",
         recordIdentifier,
         @{ @"totalMs": LTMillisecondsString(startedAt) },
@@ -1693,7 +1717,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     auto startedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"resume.batch.begin",
         @"-",
         @{ @"count": [NSString stringWithFormat:@"%lu", static_cast<unsigned long>(recordIdentifiers.count)] },
@@ -1707,7 +1731,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         auto key = LTToStdString(recordIdentifier);
         auto iterator = self->_handlesByRecordID.find(key);
         if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-            LTDiagnosticsBridgeLog(@"resume.skip", recordIdentifier, @{ @"reason": @"not-found" }, YES);
+            LT_BRIDGE_LOG(@"resume.skip", recordIdentifier, @{ @"reason": @"not-found" }, YES);
             [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                                   status:@"not-found"
                                                             errorMessage:nil]];
@@ -1717,14 +1741,14 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         try {
             iterator->second.save_resume_data();
             pending[key] = iterator->second;
-            LTDiagnosticsBridgeLog(
+            LT_BRIDGE_LOG(
                 @"resume.requested",
                 recordIdentifier,
                 @{ @"resumeMode": @"checkpoint" },
                 YES
             );
         } catch (std::exception const& exception) {
-            LTDiagnosticsBridgeLog(
+            LT_BRIDGE_LOG(
                 @"resume.request.failed",
                 recordIdentifier,
                 @{ @"reason": LTToNSString(exception.what()) },
@@ -1734,7 +1758,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                                                                   status:@"failed"
                                                             errorMessage:LTToNSString(exception.what())]];
         } catch (...) {
-            LTDiagnosticsBridgeLog(
+            LT_BRIDGE_LOG(
                 @"resume.request.failed",
                 recordIdentifier,
                 @{ @"reason": @"save_resume_data-throw" },
@@ -1770,7 +1794,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                         [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                                               status:@"failed"
                                                                         errorMessage:@"resume-persist-failed"]];
-                        LTDiagnosticsBridgeLog(
+                        LT_BRIDGE_LOG(
                             @"resume.persist.failed",
                             recordIdentifier,
                             @{
@@ -1786,7 +1810,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                     [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                                           status:@"saved"
                                                                     errorMessage:nil]];
-                    LTDiagnosticsBridgeLog(
+                    LT_BRIDGE_LOG(
                         @"resume.alert.received",
                         recordIdentifier,
                         @{ @"resumeWaitMs": LTMillisecondsString(startedAt) },
@@ -1809,7 +1833,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                     [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                                           status:@"failed"
                                                                     errorMessage:reason]];
-                    LTDiagnosticsBridgeLog(
+                    LT_BRIDGE_LOG(
                         @"resume.alert.failed",
                         recordIdentifier,
                         @{
@@ -1830,7 +1854,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         [results addObject:[self checkpointResultForRecordIdentifier:recordIdentifier
                                                               status:@"timed-out"
                                                         errorMessage:nil]];
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"resume.timeout",
             recordIdentifier,
             @{ @"resumeWaitMs": LTMillisecondsString(startedAt) },
@@ -1838,7 +1862,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         );
     }
 
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"resume.batch.end",
         @"-",
         @{
@@ -1855,7 +1879,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
                          deleteData:(BOOL)deleteData
                               error:(NSError * _Nullable __autoreleasing *)error {
     auto startedAt = std::chrono::steady_clock::now();
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"remove.begin",
         recordIdentifier,
         @{ @"deleteData": deleteData ? @"1" : @"0" },
@@ -1864,7 +1888,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     auto key = LTToStdString(recordIdentifier);
     auto iterator = self->_handlesByRecordID.find(key);
     if (iterator == self->_handlesByRecordID.end() || !iterator->second.is_valid()) {
-        LTDiagnosticsBridgeLog(@"remove.not-found", recordIdentifier, nil, YES);
+        LT_BRIDGE_LOG(@"remove.not-found", recordIdentifier, nil, YES);
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeTorrentNotFound, @"Торрент не найден в активной сессии.");
         }
@@ -1878,7 +1902,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         [self saveResumeDataForHandle:iterator->second recordIdentifier:recordIdentifier];
     }
 
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"remove.session-call",
         recordIdentifier,
         @{ @"deleteData": deleteData ? @"1" : @"0" },
@@ -1888,7 +1912,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     self->_handlesByRecordID.erase(iterator);
     self->_stopAfterDownloadByRecordID.erase(key);
     self->_lastSnapshotStatusByRecordID.erase(key);
-    LTDiagnosticsBridgeLog(
+    LT_BRIDGE_LOG(
         @"remove.end",
         recordIdentifier,
         @{
@@ -1910,7 +1934,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
 
     uint64_t tickID = ++self->_snapshotTickCounter;
     auto tickStartedAt = std::chrono::steady_clock::now();
-    LTSnapshotDiagnosticsLog(
+    LT_SNAPSHOT_LOG(
         @"snapshot.tick.begin",
         @{
             @"source": @"active",
@@ -1956,7 +1980,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
         handleIndex += 1;
     }
 
-    LTSnapshotDiagnosticsLog(
+    LT_SNAPSHOT_LOG(
         @"snapshot.tick.end",
         @{
             @"source": @"active",
@@ -2067,7 +2091,7 @@ static bool LTInfoHashesOverlap(lt::info_hash_t const& lhs, lt::info_hash_t cons
     }
 
     if (status.upload_rate > 0 || status.upload_payload_rate > 0 || status.all_time_upload > 0) {
-        LTDiagnosticsBridgeLog(
+        LT_BRIDGE_LOG(
             @"snapshot.upload-counters.bridge",
             recordIdentifier,
             @{

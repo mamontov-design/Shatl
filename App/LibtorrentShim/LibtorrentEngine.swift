@@ -492,6 +492,8 @@ actor LibtorrentEngine: TorrentEngine {
         bridgeSnapshot: LTTorrentSnapshot,
         engineSnapshot: EngineTorrentSnapshot
     ) {
+        // Runs for every torrent on every tick: build nothing while the log is off.
+        guard ShatlFileLogger.shared.loggingEnabled else { return }
         let metrics = engineSnapshot.metrics
         guard bridgeSnapshot.uploadSpeedBytesPerSecond > 0
             || bridgeSnapshot.uploadedBytes > 0
