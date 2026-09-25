@@ -56,6 +56,8 @@
 "session.persistence.quit_dialog.retry" = "Повторить";
 "session.persistence.quit_dialog.return" = "Вернуться в Shatl";
 "session.persistence.quit_dialog.quit" = "Выйти без сохранения";
+"single_instance.already_running.title" = "Shatl уже запущен";
+"single_instance.already_running.message" = "Одновременно может работать только один экземпляр Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому приложению.";
 "session.persistence.redownload_failed.message" = "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
 
 "onboarding.action.next" = "Далее";

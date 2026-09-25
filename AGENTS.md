@@ -46,6 +46,10 @@ persistence, deletion, restore, or shared UI state.
   Under XCTest (`ShatlLaunchMode.unitTestHost`) the host must stay inert: no
   `AppEnvironment.live()`, no bootstrap, no Sparkle, no telemetry. Otherwise
   every test run touches the user's real session and preferences.
+- One live Shatl per data folder. `ShatlMain` takes `Shatl.lock` (`flock`,
+  close-on-exec) in the data folder root before SwiftUI starts; a second copy
+  builds no store, hands its torrents to the first copy and quits. Cleanup must
+  never delete the lock file or the folder root.
 - Keep the 1 Hz runtime loop free of filesystem walks and heavy SwiftUI work.
 - Preserve manual Start/Stop semantics; do not enable libtorrent `auto_managed`
   or add fake cache controls.

@@ -56,6 +56,8 @@
 "session.persistence.quit_dialog.retry" = "重试";
 "session.persistence.quit_dialog.return" = "返回 Shatl";
 "session.persistence.quit_dialog.quit" = "不保存并退出";
+"single_instance.already_running.title" = "Shatl 已在运行";
+"single_instance.already_running.message" = "同一时间只能运行一个 Shatl 实例，因此此副本将退出。点按“好”即可切换到已打开的 App。";
 "session.persistence.redownload_failed.message" = "重新下载未开始：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
 
 "onboarding.action.next" = "下一步";

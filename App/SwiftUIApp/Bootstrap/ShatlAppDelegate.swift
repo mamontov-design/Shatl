@@ -56,11 +56,13 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let terminationHandler else {
+            ShatlSingleInstance.setClosing(true)
             return .terminateNow
         }
         guard !isPreparingForTermination else { return .terminateLater }
 
         isPreparingForTermination = true
+        ShatlSingleInstance.setClosing(true)
         let source = ShatlTerminationRequestSource.current()
         let presenter = terminationFailurePresenter
         Task { [weak self, weak sender] in
@@ -70,6 +72,9 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
                 presenter: presenter
             )
             self?.isPreparingForTermination = false
+            if !shouldTerminate {
+                ShatlSingleInstance.setClosing(false)
+            }
             sender?.reply(toApplicationShouldTerminate: shouldTerminate)
         }
 
