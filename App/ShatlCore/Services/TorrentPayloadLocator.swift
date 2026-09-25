@@ -232,12 +232,20 @@ actor TorrentPayloadLocator {
         }
     }
 
+    /// Every card asks this when it appears, to enable Open and Show in Finder.
+    /// They need only the selected files, which the record lists from the same
+    /// torrent, so the archive is parsed only for records without that list.
+    /// Deletion keeps the archive as its primary manifest.
     func primaryLocation(for record: TorrentRecord) async -> ManagedTorrentLocation? {
         guard let saveURL = await resolvedSaveURL(for: record) else {
             return nil
         }
 
-        guard let payload = await managedPayload(for: record) else {
+        var resolvedPayload = managedPayloadFromStoredManifest(for: record, saveURL: saveURL)
+        if resolvedPayload == nil {
+            resolvedPayload = await managedPayload(for: record)
+        }
+        guard let payload = resolvedPayload else {
             return ManagedTorrentLocation(
                 saveURL: saveURL,
                 openItemURL: nil,

@@ -1603,7 +1603,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func primaryLocation(for id: UUID) async -> ManagedTorrentLocation? {
-        guard let record = torrents.first(where: { $0.id == id }) else { return nil }
+        guard let record = torrentRecord(for: id) else { return nil }
         return await torrentPayloadLocator.primaryLocation(for: record)
     }
 

@@ -148,6 +148,43 @@ final class TorrentPayloadLocatorTests: XCTestCase {
         )
     }
 
+    /// Every card resolves this when it appears; parsing each archive then
+    /// kept the engine busy at launch. A record that lists its files needs no parse.
+    func testPrimaryLocationUsesTheRecordsFileListWithoutParsingTheArchive() async throws {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(engine: engine)
+        let saveRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Locator-Stored-\(UUID().uuidString)", isDirectory: true)
+        let showRoot = saveRoot.appendingPathComponent("Show", isDirectory: true)
+        try FileManager.default.createDirectory(at: showRoot, withIntermediateDirectories: true)
+        try Data("payload".utf8).write(to: showRoot.appendingPathComponent("E01.mkv"), options: .atomic)
+        try Data("payload".utf8).write(to: showRoot.appendingPathComponent("E02.mkv"), options: .atomic)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: saveRoot)
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        let record = makeTestRecord(
+            savePath: saveRoot.path,
+            selectedFileIndices: [0, 1],
+            selectedFileRelativePaths: ["Show/E01.mkv", "Show/E02.mkv"],
+            selectedFileCount: 2,
+            totalFileCount: 2,
+            status: .completed,
+            progress: 1
+        )
+        let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+        try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        await bundle.bookmarkStore.saveBookmark(for: record.id, url: saveRoot)
+
+        let location = await bundle.payloadLocator.primaryLocation(for: record)
+
+        XCTAssertEqual(location?.revealItemURL.standardizedFileURL, showRoot.standardizedFileURL)
+        XCTAssertNil(location?.openItemURL)
+        let inspectCallCount = await engine.inspectCallCount()
+        XCTAssertEqual(inspectCallCount, 0)
+    }
+
     func testPrimaryLocationDisablesOpenForSingleFileInsideTorrentFolder() async throws {
         let engine = FakeTorrentEngine()
         await engine.setInspectContents([

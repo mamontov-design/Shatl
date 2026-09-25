@@ -28,6 +28,7 @@ actor FakeTorrentEngine: TorrentEngine {
     private var inspectContentsValue: [TorrentContentFileDescriptor] = [
         TorrentContentFileDescriptor(relativePath: "test-file.bin", sizeBytes: 1_024, fileIndex: 0),
     ]
+    private var inspectCallCountValue = 0
     private var restoreSessionCallCountValue = 0
     private var restoreSessionEntriesValue: [SessionRestoreEntry] = []
     private var restoreSnapshotsByTorrentID: [UUID: EngineTorrentSnapshot] = [:]
@@ -86,7 +87,12 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor] {
         _ = torrentFilePath
+        inspectCallCountValue += 1
         return inspectContentsValue
+    }
+
+    func inspectCallCount() -> Int {
+        inspectCallCountValue
     }
 
     func exportPreparedTorrent(draftID: UUID, to destinationPath: String) async throws {
