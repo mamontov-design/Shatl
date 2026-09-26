@@ -851,12 +851,20 @@ struct LTSwarmSample {
     bool operator==(LTSwarmSample const&) const = default;
 };
 
-/// Peer connections of one torrent since the last diagnostics window.
+/// Peer connections of one torrent since the last diagnostics window, by
+/// direction and transport: behind a provider's NAT incoming TCP never
+/// arrives, while uTP can come through the UDP mapping of the listen port.
 struct LTPeerEventCounts {
-    int connectedOut = 0;
-    int connectedIn = 0;
+    int connectedOutTCP = 0;
+    int connectedOutUTP = 0;
+    int connectedInTCP = 0;
+    int connectedInUTP = 0;
     std::map<std::string, int> disconnectReasons;
 };
+
+static bool LTIsUTPSocket(lt::socket_type_t type) {
+    return type == lt::socket_type_t::utp || type == lt::socket_type_t::utp_ssl;
+}
 
 @interface LibtorrentSessionBridge () {
     NSURL *_resumeDataDirectoryURL;
@@ -2319,10 +2327,11 @@ struct LTPeerEventCounts {
         } else if (auto *connected = lt::alert_cast<lt::peer_connect_alert>(alert)) {
             if (std::string const *key = recordKeyFor(connected->handle)) {
                 LTPeerEventCounts& counts = _peerEventsByRecordID[*key];
+                bool const isUTP = LTIsUTPSocket(connected->socket_type);
                 if (connected->direction == lt::peer_connect_alert::direction_t::in) {
-                    counts.connectedIn += 1;
+                    (isUTP ? counts.connectedInUTP : counts.connectedInTCP) += 1;
                 } else {
-                    counts.connectedOut += 1;
+                    (isUTP ? counts.connectedOutUTP : counts.connectedOutTCP) += 1;
                 }
             }
         } else if (auto *disconnected = lt::alert_cast<lt::peer_disconnected_alert>(alert)) {
@@ -2417,8 +2426,12 @@ struct LTPeerEventCounts {
             @"peers.window",
             LTToNSString(entry.first),
             (@{
-                @"connectedIn": [NSString stringWithFormat:@"%d", counts.connectedIn],
-                @"connectedOut": [NSString stringWithFormat:@"%d", counts.connectedOut],
+                @"connectedIn": [NSString stringWithFormat:@"%d", counts.connectedInTCP + counts.connectedInUTP],
+                @"connectedInTCP": [NSString stringWithFormat:@"%d", counts.connectedInTCP],
+                @"connectedInUTP": [NSString stringWithFormat:@"%d", counts.connectedInUTP],
+                @"connectedOut": [NSString stringWithFormat:@"%d", counts.connectedOutTCP + counts.connectedOutUTP],
+                @"connectedOutTCP": [NSString stringWithFormat:@"%d", counts.connectedOutTCP],
+                @"connectedOutUTP": [NSString stringWithFormat:@"%d", counts.connectedOutUTP],
                 @"disconnects": [NSString stringWithFormat:@"%d", disconnects],
                 @"reasons": topReasons.count > 0 ? [topReasons componentsJoinedByString:@"; "] : @"-",
                 @"windowSeconds": windowSeconds
