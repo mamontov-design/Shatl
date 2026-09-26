@@ -70,22 +70,6 @@ nonisolated enum AppPerformanceProfile: String, CaseIterable, Codable, Sendable,
     }
 }
 
-nonisolated enum AppAnimationMode: String, CaseIterable, Codable, Sendable, Identifiable {
-    case lively
-    case calm
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .lively:
-            "Живые"
-        case .calm:
-            "Спокойные"
-        }
-    }
-}
-
 nonisolated enum AppLocaleOverride: String, CaseIterable, Codable, Sendable, Identifiable {
     case system
     case english = "en"
@@ -154,7 +138,6 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var theme: AppTheme
     var metricsMode: MetricsPresentationMode
     var colorizesDownloadSpeed: Bool = false
-    var animationMode: AppAnimationMode
     var localeOverride: AppLocaleOverride
     var sendsAnonymousUsageStatistics: Bool
     var hasAnsweredUsageStatisticsOnboarding: Bool
@@ -182,7 +165,6 @@ extension AppPreferences {
         case theme
         case metricsMode
         case colorizesDownloadSpeed
-        case animationMode
         case localeOverride
         case sendsAnonymousUsageStatistics
         case hasAnsweredUsageStatisticsOnboarding
@@ -229,10 +211,6 @@ extension AppPreferences {
         theme = try container.decode(AppTheme.self, forKey: .theme)
         metricsMode = try container.decode(MetricsPresentationMode.self, forKey: .metricsMode)
         colorizesDownloadSpeed = try container.decodeIfPresent(Bool.self, forKey: .colorizesDownloadSpeed) ?? false
-        animationMode = try container.decodeIfPresent(
-            AppAnimationMode.self,
-            forKey: .animationMode
-        ) ?? .lively
         localeOverride = try container.decodeIfPresent(
             AppLocaleOverride.self,
             forKey: .localeOverride
@@ -317,7 +295,6 @@ extension AppPreferences {
         usesUnrestrictedPerformanceMode: false,
         theme: .system,
         metricsMode: .simplified,
-        animationMode: .lively,
         localeOverride: .system,
         sendsAnonymousUsageStatistics: false,
         hasAnsweredUsageStatisticsOnboarding: false,

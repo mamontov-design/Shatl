@@ -1303,7 +1303,6 @@ struct ShatlMetricItem: View {
     var speedPalette: ShatlSpeedMetricPalette? = nil
     var showsSpeedBadge = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.shatlAnimationMode) private var animationMode
 
     var body: some View {
         HStack(spacing: 5) {
@@ -1363,7 +1362,7 @@ struct ShatlMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if animationMode == .lively, !reduceMotion {
+        if !reduceMotion {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
@@ -1448,7 +1447,6 @@ struct ShatlMetricSet: View {
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.shatlAnimationMode) private var animationMode
     @Environment(\.shatlMetricSetOutlinePulseEnabled) private var metricSetOutlinePulseEnabled
     @Environment(\.shatlMetricSetOutlineFlashTrigger) private var metricSetOutlineFlashTrigger
     @Environment(\.shatlDownloadSpeedOutlineFlashTrigger) private var downloadSpeedOutlineFlashTrigger
@@ -1623,14 +1621,13 @@ struct ShatlMetricSet: View {
             )
         }
 
-        guard animationMode == .lively, !reduceMotion else {
+        guard !reduceMotion else {
             if let startedAt {
                 logBounceEvent(
                     "metricset.bounce.skipped",
                     token: token,
                     startedAt: startedAt,
                     extra: [
-                        "animationMode": animationMode.rawValue,
                         "reduceMotion": reduceMotion.description,
                     ]
                 )
@@ -1653,7 +1650,7 @@ struct ShatlMetricSet: View {
         outlineFlashToken += 1
         let token = outlineFlashToken
 
-        guard animationMode == .lively, !reduceMotion else {
+        guard !reduceMotion else {
             return
         }
 
@@ -1712,7 +1709,6 @@ private struct MetricSetDiagnosticsModifier: ViewModifier {
     let context: MetricSetDiagnosticsContext
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.shatlAnimationMode) private var animationMode
     @State private var lastSize: CGSize?
 
     func body(content: Content) -> some View {
@@ -1766,9 +1762,8 @@ private struct MetricSetDiagnosticsModifier: ViewModifier {
                 "icons.previous": joinedOptionalSignature(oldIcons),
                 "icons.current": joinedOptionalSignature(newIcons),
                 "replacements": iconReplacementSignature(from: oldIcons, to: newIcons),
-                "animationMode": animationMode.rawValue,
                 "reduceMotion": reduceMotion.description,
-                "bounceEligible": (animationMode == .lively && !reduceMotion).description,
+                "bounceEligible": (!reduceMotion).description,
             ])
         )
     }
@@ -1918,7 +1913,6 @@ private func formatMetricSetNumber(_ value: CGFloat) -> String {
 struct ShatlInfoBottomSpeedChip: View {
     let item: MetricItemPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.shatlAnimationMode) private var animationMode
     @State private var isHovered = false
 
     @ViewBuilder
@@ -1958,14 +1952,13 @@ struct ShatlInfoBottomSpeedChip: View {
     }
 
     private var usesScaledHoverTransition: Bool {
-        animationMode == .lively && !reduceMotion
+        !reduceMotion
     }
 }
 
 private struct ShatlInfoBottomMetricItem: View {
     let item: MetricItemPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.shatlAnimationMode) private var animationMode
 
     var body: some View {
         HStack(spacing: 5) {
@@ -2005,7 +1998,7 @@ private struct ShatlInfoBottomMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if animationMode == .lively, !reduceMotion {
+        if !reduceMotion {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)

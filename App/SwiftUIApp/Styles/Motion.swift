@@ -123,10 +123,6 @@ enum ShatlMotion {
 
 // MARK: - Animation Environment
 
-private struct ShatlAnimationModeKey: EnvironmentKey {
-    static let defaultValue: AppAnimationMode = .lively
-}
-
 private struct ShatlMetricSetOutlinePulseEnabledKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -152,11 +148,6 @@ private struct ShatlMetricSetOutlineFlashColorKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    var shatlAnimationMode: AppAnimationMode {
-        get { self[ShatlAnimationModeKey.self] }
-        set { self[ShatlAnimationModeKey.self] = newValue }
-    }
-
     var shatlMetricSetOutlinePulseEnabled: Bool {
         get { self[ShatlMetricSetOutlinePulseEnabledKey.self] }
         set { self[ShatlMetricSetOutlinePulseEnabledKey.self] = newValue }

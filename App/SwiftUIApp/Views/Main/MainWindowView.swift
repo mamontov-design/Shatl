@@ -208,7 +208,6 @@ struct MainWindowView: View {
                 openWindow(id: AppWindowID.addTorrentReview)
             }
         }
-        .environment(\.shatlAnimationMode, store.preferences.animationMode)
         .animation(ShatlMotion.mainContentMode, value: contentMode)
         .sheet(isPresented: isAddTorrentEntryPresented) {
             AddTorrentEntryView(

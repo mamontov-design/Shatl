@@ -43,7 +43,6 @@ final class AppPreferencesStoreTests: XCTestCase {
         preferences.performanceProfile = .maximum
         preferences.metricsMode = .detailed
         preferences.colorizesDownloadSpeed = true
-        preferences.animationMode = .calm
         preferences.sendsAnonymousUsageStatistics = true
         preferences.hasAnsweredUsageStatisticsOnboarding = true
         preferences.lastUsageStatisticsSentAt = Date(timeIntervalSince1970: 1_780_000_000)
@@ -115,7 +114,6 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertNil(preferences.defaultDownloadBookmarkData)
         XCTAssertEqual(preferences.performanceProfile, .balanced)
         XCTAssertFalse(preferences.usesUnrestrictedPerformanceMode)
-        XCTAssertEqual(preferences.animationMode, .lively)
         XCTAssertFalse(preferences.sendsAnonymousUsageStatistics)
         XCTAssertFalse(preferences.hasAnsweredUsageStatisticsOnboarding)
         XCTAssertNil(preferences.lastUsageStatisticsSentAt)

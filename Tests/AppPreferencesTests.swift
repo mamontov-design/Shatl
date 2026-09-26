@@ -14,10 +14,6 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertFalse(AppPreferences.defaultValue.defaultDownloadPath.contains("/Library/Containers/"))
     }
 
-    func testDefaultAnimationModeUsesLivelyEffects() {
-        XCTAssertEqual(AppPreferences.defaultValue.animationMode, .lively)
-    }
-
     func testSpeedColorsDefaultToOffForNewAndExistingPreferences() throws {
         XCTAssertFalse(AppPreferences.defaultValue.colorizesDownloadSpeed)
         let data = try JSONEncoder().encode(AppPreferences.defaultValue)
