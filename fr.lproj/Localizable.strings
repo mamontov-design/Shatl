@@ -239,6 +239,9 @@
 "settings.downloads.network.section" = "Réseau";
 "settings.downloads.network.port_forwarding" = "Ouvrir automatiquement un port sur le routeur";
 "settings.downloads.network.port_forwarding.caption" = "Les autres pairs pourront se connecter eux-mêmes à Shatl, ce qui accélère généralement le téléchargement et l’envoi.";
+"settings.downloads.network.port_status.checking" = "Vérification du port…";
+"settings.downloads.network.port_status.open" = "Le port est ouvert";
+"settings.downloads.network.port_status.closed" = "Le port est fermé";
 
 "settings.appearance.theme.section" = "Thème";
 "settings.appearance.theme.system" = "Comme le système";

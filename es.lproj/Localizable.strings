@@ -239,6 +239,9 @@
 "settings.downloads.network.section" = "Red";
 "settings.downloads.network.port_forwarding" = "Abrir un puerto en el router automáticamente";
 "settings.downloads.network.port_forwarding.caption" = "Otros peers podrán conectarse a Shatl por su cuenta; normalmente esto acelera la descarga y la subida.";
+"settings.downloads.network.port_status.checking" = "Comprobando el puerto…";
+"settings.downloads.network.port_status.open" = "El puerto está abierto";
+"settings.downloads.network.port_status.closed" = "El puerto está cerrado";
 
 "settings.appearance.theme.section" = "Tema";
 "settings.appearance.theme.system" = "Como el sistema";

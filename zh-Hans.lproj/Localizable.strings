@@ -237,6 +237,9 @@
 "settings.downloads.network.section" = "网络";
 "settings.downloads.network.port_forwarding" = "自动在路由器上打开端口";
 "settings.downloads.network.port_forwarding.caption" = "其他节点将能够主动连接到 Shatl，这通常会加快下载和上传。";
+"settings.downloads.network.port_status.checking" = "正在检查端口…";
+"settings.downloads.network.port_status.open" = "端口已打开";
+"settings.downloads.network.port_status.closed" = "端口已关闭";
 
 "settings.appearance.theme.section" = "主题";
 "settings.appearance.theme.system" = "跟随系统";

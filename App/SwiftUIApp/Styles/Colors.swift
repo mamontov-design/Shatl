@@ -37,6 +37,12 @@ enum ShatlColor {
     static let speedIconBolt = Color("speedIconBolt")
     static let speedLabelBolt = Color("speedLabelBolt")
 
+    /// The port status dot in Settings → Downloads → Network, the same in
+    /// both themes: #71717A while the router is asked, #22C55E open, #EF4444 closed.
+    static let portStatusChecking = Color(red: 113.0 / 255.0, green: 113.0 / 255.0, blue: 122.0 / 255.0)
+    static let portStatusOpen = Color(red: 34.0 / 255.0, green: 197.0 / 255.0, blue: 94.0 / 255.0)
+    static let portStatusClosed = Color(red: 239.0 / 255.0, green: 68.0 / 255.0, blue: 68.0 / 255.0)
+
     static let metricBackground = Color("metricBackground")
     static let metricDivider = Color("metricDivider")
     static let metricOutline = Color("metricOutline")

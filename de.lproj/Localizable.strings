@@ -239,6 +239,9 @@
 "settings.downloads.network.section" = "Netzwerk";
 "settings.downloads.network.port_forwarding" = "Port am Router automatisch öffnen";
 "settings.downloads.network.port_forwarding.caption" = "Andere Peers können sich dann selbst mit Shatl verbinden – das beschleunigt meist Download und Upload.";
+"settings.downloads.network.port_status.checking" = "Port wird geprüft …";
+"settings.downloads.network.port_status.open" = "Port ist offen";
+"settings.downloads.network.port_status.closed" = "Port ist geschlossen";
 
 "settings.appearance.theme.section" = "Design";
 "settings.appearance.theme.system" = "Wie im System";

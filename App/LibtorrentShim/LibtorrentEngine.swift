@@ -74,11 +74,15 @@ actor LibtorrentEngine: TorrentEngine {
         case .off:
             return .off
         case .searching:
-            return .searching
+            let lastError = status.transport.map {
+                EnginePortMappingError(transport: $0, reason: status.errorMessage ?? "")
+            }
+            return .searching(
+                waiting: status.waitingSeconds < 0 ? nil : .milliseconds(Int64(status.waitingSeconds * 1000)),
+                lastError: lastError
+            )
         case .mapped:
             return .mapped(externalPort: status.externalPort, transport: status.transport ?? "")
-        case .failed:
-            return .failed(transport: status.transport, reason: status.errorMessage)
         @unknown default:
             return nil
         }

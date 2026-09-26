@@ -51,13 +51,20 @@ nonisolated struct EngineResourceBudget: Equatable, Sendable {
     }
 }
 
-/// Whether the router opened a port for incoming connections. Only Debug
-/// Settings shows it.
+/// Whether the router opened a port for incoming connections.
 nonisolated enum EnginePortMappingStatus: Equatable, Sendable {
     case off
-    case searching
+    /// The router has not opened the port yet. `waiting` counts from the
+    /// moment the running engine asked it and is `nil` before boot;
+    /// `lastError` is the router's last refusal, if any.
+    case searching(waiting: Duration?, lastError: EnginePortMappingError?)
     case mapped(externalPort: Int, transport: String)
-    case failed(transport: String?, reason: String?)
+}
+
+nonisolated struct EnginePortMappingError: Equatable, Sendable {
+    /// `UPnP` or `NAT-PMP`.
+    var transport: String
+    var reason: String
 }
 
 nonisolated struct TorrentContentFileDescriptor: Equatable, Sendable {

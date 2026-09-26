@@ -7,6 +7,7 @@ import SwiftUI
 struct ShatlSettingsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var selectedTab: SettingsTab = .downloads
+    @State private var animatesPortStatusDot = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -114,8 +115,22 @@ struct ShatlSettingsView: View {
                     isOn: Binding(
                         get: { store.preferences.opensRouterPortAutomatically },
                         set: { store.setOpensRouterPortAutomatically($0) }
-                    )
+                    ),
+                    statusDot: portStatusDot,
+                    animatesStatusDot: animatesPortStatusDot
                 )
+            }
+            .task {
+                // The first answer puts the dot in place; later ones animate.
+                await store.refreshPortForwardingIndicator()
+                animatesPortStatusDot = true
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    await store.refreshPortForwardingIndicator()
+                }
+            }
+            .onDisappear {
+                animatesPortStatusDot = false
             }
 
             VStack(spacing: 4) {
@@ -218,6 +233,29 @@ struct ShatlSettingsView: View {
         )
     }
     #endif
+
+    private var portStatusDot: ShatlSettingsStatusDot? {
+        let localeOverride = store.preferences.localeOverride
+        switch store.portForwardingIndicator {
+        case .hidden:
+            return nil
+        case .checking:
+            return ShatlSettingsStatusDot(
+                color: ShatlColor.portStatusChecking,
+                description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
+            )
+        case .open:
+            return ShatlSettingsStatusDot(
+                color: ShatlColor.portStatusOpen,
+                description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
+            )
+        case .closed:
+            return ShatlSettingsStatusDot(
+                color: ShatlColor.portStatusClosed,
+                description: L10n.string("settings.downloads.network.port_status.closed", localeOverride: localeOverride)
+            )
+        }
+    }
 
     private var performanceProfileBinding: Binding<AppPerformanceProfile> {
         Binding(
@@ -334,8 +372,6 @@ private struct PortMappingStatusCaption: View {
         switch status {
         case nil, .off:
             return L10n.string("settings.debug.performance.engine_not_started", localeOverride: localeOverride)
-        case .searching:
-            return L10n.string("settings.debug.network.port.searching", localeOverride: localeOverride)
         case .mapped(let externalPort, let transport):
             return L10n.format(
                 "settings.debug.network.port.mapped",
@@ -344,13 +380,16 @@ private struct PortMappingStatusCaption: View {
                 String(externalPort),
                 transport
             )
-        case .failed(let transport, let reason):
+        case .searching(_, let lastError):
+            guard PortForwardingIndicator(isEnabled: true, status: status) == .closed else {
+                return L10n.string("settings.debug.network.port.searching", localeOverride: localeOverride)
+            }
             return L10n.format(
                 "settings.debug.network.port.failed",
                 localeOverride: localeOverride,
                 defaultValue: "%1$@ %2$@",
-                transport ?? "—",
-                reason ?? "—"
+                lastError?.transport ?? "—",
+                lastError?.reason ?? "—"
             )
         }
     }

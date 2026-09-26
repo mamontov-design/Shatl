@@ -26,6 +26,30 @@ final class PortForwardingTests: XCTestCase {
         }
     }
 
+    /// Grey right after the switch turns on, green once the router opens the
+    /// port. A refusal alone keeps it grey, since the other way may still open
+    /// the port; red only after ten seconds without an opened port.
+    func testIndicatorFollowsTheSwitchAndTheRouterAnswer() {
+        let refusal = EnginePortMappingError(transport: "NAT-PMP", reason: "refused")
+        let mapped = EnginePortMappingStatus.mapped(externalPort: 6881, transport: "UPnP")
+
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: false, status: mapped), .hidden)
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: false, status: nil), .hidden)
+
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: true, status: nil), .checking)
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: true, status: .off), .checking)
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: true, status: .searching(waiting: nil, lastError: nil)), .checking)
+        XCTAssertEqual(
+            PortForwardingIndicator(isEnabled: true, status: .searching(waiting: .milliseconds(9_900), lastError: refusal)),
+            .checking
+        )
+        XCTAssertEqual(
+            PortForwardingIndicator(isEnabled: true, status: .searching(waiting: .seconds(10), lastError: nil)),
+            .closed
+        )
+        XCTAssertEqual(PortForwardingIndicator(isEnabled: true, status: mapped), .open)
+    }
+
     /// The engine gets the preference with its settings before it boots.
     func testEngineReportsPortForwardingAsTheSettingsSay() async throws {
         let fixture = try EngineFixture.make(named: "PortForwarding")
@@ -37,7 +61,8 @@ final class PortForwardingTests: XCTestCase {
 
         try await engine.applyPerformanceSettings(EnginePerformanceSettings(mode: .balanced, opensRouterPort: true))
         let enabledStatus = await engine.portMappingStatus()
-        XCTAssertEqual(enabledStatus, .searching)
+        // Before boot nobody has asked the router yet, so no wait is counted.
+        XCTAssertEqual(enabledStatus, .searching(waiting: nil, lastError: nil))
 
         try await engine.applyPerformanceSettings(EnginePerformanceSettings(mode: .maximum, opensRouterPort: false))
         let disabledStatus = await engine.portMappingStatus()

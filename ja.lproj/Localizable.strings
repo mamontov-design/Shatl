@@ -237,6 +237,9 @@
 "settings.downloads.network.section" = "ネットワーク";
 "settings.downloads.network.port_forwarding" = "ルーターのポートを自動的に開く";
 "settings.downloads.network.port_forwarding.caption" = "ほかのピアが Shatl に直接接続できるようになり、通常はダウンロードとアップロードが速くなります。";
+"settings.downloads.network.port_status.checking" = "ポートを確認中…";
+"settings.downloads.network.port_status.open" = "ポートは開いています";
+"settings.downloads.network.port_status.closed" = "ポートは閉じています";
 
 "settings.appearance.theme.section" = "テーマ";
 "settings.appearance.theme.system" = "システムに合わせる";

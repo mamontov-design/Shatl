@@ -95,6 +95,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
     @Published var payloadDeletionAlert: PayloadDeletionAlert?
     @Published private(set) var sessionPersistenceIssue: SessionPersistenceIssue?
+    /// Refreshed only while Settings shows it: `refreshPortForwardingIndicator`.
+    @Published private(set) var portForwardingIndicator: PortForwardingIndicator = .hidden
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
@@ -248,6 +250,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.allowsUserFacingNotifications = resolvedHasLoadedInitialSession
         let resolvedPreferences = preferences ?? preferencesStore?.load() ?? .defaultValue
         self.preferences = resolvedPreferences
+        self.portForwardingIndicator = PortForwardingIndicator(
+            isEnabled: resolvedPreferences.opensRouterPortAutomatically,
+            status: nil
+        )
         ShatlFileLogger.shared.setEnabled(resolvedPreferences.isLoggingEnabled)
         ShatlDiskDiagnosticsLog.setEnabled(resolvedPreferences.isDiskDiagnosticsLoggingEnabled)
         ShatlMetricAnimationDiagnosticsLog.setEnabled(
@@ -642,7 +648,24 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard preferences.opensRouterPortAutomatically != isEnabled else { return }
 
         preferences.opensRouterPortAutomatically = isEnabled
+        // The dot answers the switch at once: grey while the router is asked.
+        portForwardingIndicator = PortForwardingIndicator(isEnabled: isEnabled, status: nil)
         schedulePerformanceSettingsApply()
+    }
+
+    /// Asks the engine what the router answered. Settings calls it while the
+    /// Downloads tab is shown; the last answer stays, so the dot is in place
+    /// when the tab opens again.
+    func refreshPortForwardingIndicator() async {
+        let isEnabled = preferences.opensRouterPortAutomatically
+        let status = isEnabled ? await engine.portMappingStatus() : nil
+        // The switch may have moved while the engine answered.
+        guard isEnabled == preferences.opensRouterPortAutomatically else { return }
+
+        let indicator = PortForwardingIndicator(isEnabled: isEnabled, status: status)
+        if indicator != portForwardingIndicator {
+            portForwardingIndicator = indicator
+        }
     }
 
     #if DEBUG

@@ -29,12 +29,10 @@ typedef NS_ENUM(NSInteger, LTPerformanceProfile) {
 typedef NS_ENUM(NSInteger, LTPortMappingState) {
     /// Port forwarding is off.
     LTPortMappingStateOff = 0,
-    /// It is on and the router has not answered yet.
+    /// It is on and the router has not opened the port yet.
     LTPortMappingStateSearching = 1,
     /// The router opened a port for incoming connections.
     LTPortMappingStateMapped = 2,
-    /// The router answered only with errors so far.
-    LTPortMappingStateFailed = 3,
 };
 
 /// A file entry used by the add flow.
@@ -175,20 +173,25 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 
 @end
 
-/// Whether the router opened a port for incoming connections. Debug Settings
-/// shows it; users see only the switch.
+/// Whether the router opened a port for incoming connections, for the dot
+/// next to the switch in Settings.
 @interface LTPortMappingStatus : NSObject
 
 @property (nonatomic, readonly) LTPortMappingState state;
 /// The port the router opened, for `Mapped`.
 @property (nonatomic, readonly) NSInteger externalPort;
-/// `UPnP` or `NAT-PMP`, for `Mapped` and `Failed`.
+/// For `Searching`: how long the running session has been asking the router;
+/// negative before boot.
+@property (nonatomic, readonly) NSTimeInterval waitingSeconds;
+/// `UPnP` or `NAT-PMP`: how it opened for `Mapped`, how it last refused for
+/// `Searching`.
 @property (nonatomic, readonly, nullable) NSString *transport;
-/// The last error from the router, for `Failed`.
+/// The router's last refusal, for `Searching`.
 @property (nonatomic, readonly, nullable) NSString *errorMessage;
 
 - (instancetype)initWithState:(LTPortMappingState)state
                  externalPort:(NSInteger)externalPort
+               waitingSeconds:(NSTimeInterval)waitingSeconds
                     transport:(nullable NSString *)transport
                  errorMessage:(nullable NSString *)errorMessage NS_DESIGNATED_INITIALIZER;
 

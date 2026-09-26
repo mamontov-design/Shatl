@@ -37,6 +37,7 @@ actor FakeTorrentEngine: TorrentEngine {
     private var activeTorrentIDs: Set<UUID> = []
     private var queuedActiveSnapshots: [[EngineTorrentSnapshot]] = []
     private var appliedPerformanceSettingsValue: [EnginePerformanceSettings] = []
+    private var portMappingStatusValue: EnginePortMappingStatus?
     private var checkpointedTorrentIDsValue: [UUID] = []
     private var checkpointResultsByTorrentID: [UUID: EngineResumeCheckpointStatus] = [:]
 
@@ -284,6 +285,14 @@ actor FakeTorrentEngine: TorrentEngine {
             prepareContinuation = nil
             continuation?.resume()
         }
+    }
+
+    func portMappingStatus() async -> EnginePortMappingStatus? {
+        portMappingStatusValue
+    }
+
+    func setPortMappingStatus(_ status: EnginePortMappingStatus?) {
+        portMappingStatusValue = status
     }
 
     func recordedPerformanceSettings() async -> [EnginePerformanceSettings] {

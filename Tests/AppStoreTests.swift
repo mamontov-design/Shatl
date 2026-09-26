@@ -1273,6 +1273,40 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(bundle.store.preferences.performanceProfile, .maximum)
     }
 
+    /// The dot answers the switch at once and then shows the router's answer;
+    /// Settings opened later finds it in place.
+    func testPortIndicatorFollowsTheSwitchAndTheEngine() async {
+        let engine = FakeTorrentEngine()
+        let bundle = makeTestStoreBundle(engine: engine)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .checking)
+
+        await engine.setPortMappingStatus(.mapped(externalPort: 6881, transport: "UPnP"))
+        await bundle.store.refreshPortForwardingIndicator()
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .open)
+
+        bundle.store.setOpensRouterPortAutomatically(false)
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .hidden)
+        await bundle.store.refreshPortForwardingIndicator()
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .hidden)
+
+        await engine.setPortMappingStatus(.searching(waiting: .seconds(12), lastError: nil))
+        bundle.store.setOpensRouterPortAutomatically(true)
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .checking)
+        await bundle.store.refreshPortForwardingIndicator()
+        XCTAssertEqual(bundle.store.portForwardingIndicator, .closed)
+
+        var disabled = AppPreferences.defaultValue
+        disabled.opensRouterPortAutomatically = false
+        let disabledBundle = makeTestStoreBundle(engine: FakeTorrentEngine(), preferences: disabled)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: disabledBundle.rootURL)
+        }
+        XCTAssertEqual(disabledBundle.store.portForwardingIndicator, .hidden)
+    }
+
     func testRouterPortSwitchAppliesEngineSettingsAndKeepsTheProfile() async {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(engine: engine)

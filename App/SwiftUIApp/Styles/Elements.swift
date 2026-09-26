@@ -616,10 +616,24 @@ struct ShatlSettingsParameterDivider: View {
     }
 }
 
+/// A dot before the title of a settings toggle row that reports what the
+/// switch achieved, such as whether the router opened a port.
+struct ShatlSettingsStatusDot: Equatable {
+    var color: Color
+    /// What the dot means, for VoiceOver and the tooltip: colour alone does
+    /// not tell red from green for everyone.
+    var description: String
+}
+
 struct ShatlSettingsToggleRow: View {
     let title: ShatlTextContent
     @Binding var isOn: Bool
     var isEnabled = true
+    var statusDot: ShatlSettingsStatusDot?
+    /// Off while the row takes its first state, so opening Settings does not
+    /// animate a dot that was already there.
+    var animatesStatusDot = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(title: String, isOn: Binding<Bool>, isEnabled: Bool = true) {
         self.title = .verbatim(title)
@@ -627,20 +641,43 @@ struct ShatlSettingsToggleRow: View {
         self.isEnabled = isEnabled
     }
 
-    init(localizedTitle key: String, isOn: Binding<Bool>, isEnabled: Bool = true) {
+    init(
+        localizedTitle key: String,
+        isOn: Binding<Bool>,
+        isEnabled: Bool = true,
+        statusDot: ShatlSettingsStatusDot? = nil,
+        animatesStatusDot: Bool = true
+    ) {
         self.title = .localized(key)
         self._isOn = isOn
         self.isEnabled = isEnabled
+        self.statusDot = statusDot
+        self.animatesStatusDot = animatesStatusDot
     }
 
     var body: some View {
         HStack(spacing: 16) {
-            title.text
-                .shatlTypography(ShatlTypography.bodyRegular)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .opacity(isEnabled ? 1 : 0.5)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityHidden(true)
+            // The dot enters like a metric set and the title slides aside with it.
+            HStack(spacing: 4) {
+                if let statusDot {
+                    Circle()
+                        .fill(statusDot.color)
+                        .animation(animatesStatusDot ? ShatlMotion.speedMetricColor : nil, value: statusDot.color)
+                        .frame(width: 6, height: 6)
+                        .transition(reduceMotion ? .opacity : ShatlMotion.appearFromTop)
+                        .accessibilityElement()
+                        .accessibilityLabel(statusDot.description)
+                }
+
+                title.text
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .opacity(isEnabled ? 1 : 0.5)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+            .help(statusDot?.description ?? "")
+            .animation(animatesStatusDot ? ShatlMotion.metricResize : nil, value: statusDot != nil)
 
             Spacer(minLength: 0)
 

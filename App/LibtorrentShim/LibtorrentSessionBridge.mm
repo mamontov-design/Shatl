@@ -17,6 +17,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <thread>
 #include <string>
 #include <unordered_map>
@@ -582,6 +583,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 - (instancetype)initWithState:(LTPortMappingState)state
                  externalPort:(NSInteger)externalPort
+               waitingSeconds:(NSTimeInterval)waitingSeconds
                     transport:(NSString *)transport
                  errorMessage:(NSString *)errorMessage {
     self = [super init];
@@ -591,6 +593,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
     _state = state;
     _externalPort = externalPort;
+    _waitingSeconds = waitingSeconds;
     _transport = [transport copy];
     _errorMessage = [errorMessage copy];
     return self;
@@ -718,6 +721,8 @@ static NSString *LTPortMappingTransportName(lt::portmap_transport transport) {
 /// asks it over UPnP and NAT-PMP for every listen socket; one opened port is
 /// enough for peers to reach Shatl.
 struct LTPortMappingSummary {
+    /// When the running session started asking the router; empty before boot.
+    std::optional<std::chrono::steady_clock::time_point> startedAt;
     bool hasMapping = false;
     int externalPort = 0;
     std::string transport;
@@ -1101,6 +1106,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         }
         return NO;
     }
+    if (_portForwardingEnabled) {
+        _portMapping.startedAt = std::chrono::steady_clock::now();
+    }
 
     if (LTDiagnosticsLoggingEnabled()) {
         LTDiagnosticsLog(
@@ -1225,6 +1233,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     if (_session == nullptr) {
         return YES;
     }
+    if (enabled) {
+        _portMapping.startedAt = std::chrono::steady_clock::now();
+    }
 
     try {
         // Switching it off also removes the mappings from the router.
@@ -1253,25 +1264,31 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     if (!_portForwardingEnabled) {
         return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateOff
                                              externalPort:0
+                                           waitingSeconds:-1
                                                 transport:nil
                                              errorMessage:nil];
     }
     if (_portMapping.hasMapping) {
         return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateMapped
                                              externalPort:_portMapping.externalPort
+                                           waitingSeconds:-1
                                                 transport:LTToNSString(_portMapping.transport)
                                              errorMessage:nil];
     }
-    if (_portMapping.failureCount > 0) {
-        return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateFailed
-                                             externalPort:0
-                                                transport:LTToNSString(_portMapping.lastErrorTransport)
-                                             errorMessage:LTToNSString(_portMapping.lastError)];
+    // A refusal from one of the ways does not close the port: another one
+    // may still open it, so the caller decides when the wait is over.
+    NSTimeInterval waitingSeconds = -1;
+    if (_portMapping.startedAt.has_value()) {
+        waitingSeconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - *_portMapping.startedAt
+        ).count();
     }
+    BOOL const hasError = _portMapping.failureCount > 0;
     return [[LTPortMappingStatus alloc] initWithState:LTPortMappingStateSearching
                                          externalPort:0
-                                            transport:nil
-                                         errorMessage:nil];
+                                       waitingSeconds:waitingSeconds
+                                            transport:hasError ? LTToNSString(_portMapping.lastErrorTransport) : nil
+                                         errorMessage:hasError ? LTToNSString(_portMapping.lastError) : nil];
 }
 
 + (NSInteger)openFileDescriptorCount {
