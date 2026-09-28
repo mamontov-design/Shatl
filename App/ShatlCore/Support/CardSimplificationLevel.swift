@@ -12,9 +12,10 @@ import Foundation
 nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendable {
     /// Rolling digits, bouncing speed sets and metric shadows.
     case full
-    /// No bounce and no metric shadows.
+    /// No bounce and no metric shadows; the progress bar steps 5 %.
     case lighter
-    /// Also digits that change without rolling, in cards and speed chips.
+    /// Also digits that change without rolling, in cards and speed chips; the
+    /// progress bar steps 10 %, and a finished card folds in a single move.
     case lightest
 
     /// Active downloads from which each level starts.

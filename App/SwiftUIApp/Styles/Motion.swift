@@ -100,6 +100,10 @@ enum ShatlMotion {
     /// result does not flicker.
     static let busyButtonMinimumDuration = Duration.seconds(1)
 
+    /// A download that finishes shows its new status for a second, once the
+    /// status has changed, before its card starts folding into one line.
+    static let finishedCardPause: TimeInterval = metricResizeDuration + 1
+
     /// A finished card's last step: the title slides aside, and its badge,
     /// status and divider come in once the title is out of their way. On the
     /// way back they go at once, before the title moves over them.

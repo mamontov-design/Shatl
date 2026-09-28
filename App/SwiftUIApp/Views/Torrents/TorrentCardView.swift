@@ -55,8 +55,9 @@ private struct TorrentProgressFillShape: Shape {
 private enum TorrentCardFinishStage: Int, Comparable {
     /// Progress bar, and the status under the title.
     case regular
-    /// The download has just finished: its speed set leaves, and an open
-    /// card closes. The expand button hides until the last step.
+    /// The download has just finished: its speed set leaves, the new status
+    /// shows for a second, then an open card closes. The expand button hides
+    /// until the last step.
     case closing
     /// The badge and the status under the title have left together.
     case statusHidden
@@ -869,6 +870,15 @@ struct TorrentCardView: View, Equatable {
             return
         }
 
+        if layoutStage < .closing {
+            withAnimation(ShatlMotion.metricResize) {
+                finishStage = .closing
+            }
+            // The speed set leaves and the status changes with the finish;
+            // the new status stays a moment before the card rearranges.
+            guard await settle(for: ShatlMotion.finishedCardPause) else { return }
+        }
+
         // With many downloads running the list has no room for the steps.
         if row.simplification == .lightest {
             withAnimation(ShatlMotion.cardLayout) {
@@ -878,19 +888,11 @@ struct TorrentCardView: View, Equatable {
             return
         }
 
-        if layoutStage < .closing {
-            withAnimation(ShatlMotion.metricResize) {
-                finishStage = .closing
+        if layoutStage < .statusHidden, row.isExpanded {
+            withAnimation(ShatlMotion.cardLayout) {
+                onCollapse()
             }
-            // The speed set leaves and the status changes with the finish.
-            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
-
-            if row.isExpanded {
-                withAnimation(ShatlMotion.cardLayout) {
-                    onCollapse()
-                }
-                guard await settle(for: ShatlMotion.cardLayoutDuration) else { return }
-            }
+            guard await settle(for: ShatlMotion.cardLayoutDuration) else { return }
         }
 
         if layoutStage < .statusHidden {
@@ -958,9 +960,10 @@ struct TorrentCardView: View, Equatable {
         row.status == .completed || row.status == .seeding || clampedProgress >= 1
     }
 
-    /// The bar moves in steps; see `TorrentProgressBarSteps`.
+    /// The bar moves in steps, longer ones with many downloads running; see
+    /// `TorrentProgressBarSteps`.
     private var displayedBarProgress: Double {
-        TorrentProgressBarSteps.displayedProgress(row.progress)
+        TorrentProgressBarSteps.displayedProgress(row.progress, simplification: row.simplification)
     }
 
     private var clampedProgress: Double {

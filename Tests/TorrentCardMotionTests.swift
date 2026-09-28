@@ -29,16 +29,51 @@ final class TorrentCardMotionTests: XCTestCase {
         }
     }
 
+    /// With many downloads running the middle steps grow to 5 % and 10 %;
+    /// the start and the end keep theirs.
+    func testProgressBarStepsGrowWithManyDownloads() {
+        let cases: [(level: CardSimplificationLevel, progress: Double, bar: Double)] = [
+            (.lighter, 0.019, 0),
+            (.lighter, 0.03, 0.02),
+            (.lighter, 0.049, 0.04),
+            (.lighter, 0.05, 0.05),
+            (.lighter, 0.099, 0.05),
+            (.lighter, 0.515, 0.50),
+            (.lighter, 0.949, 0.90),
+            (.lighter, 0.95, 0.95),
+            (.lighter, 0.975, 0.97),
+            (.lighter, 1, 1),
+            (.lightest, 0.03, 0.02),
+            (.lightest, 0.099, 0.08),
+            (.lightest, 0.10, 0.10),
+            (.lightest, 0.199, 0.10),
+            (.lightest, 0.949, 0.90),
+            (.lightest, 0.961, 0.96),
+            (.lightest, 1, 1),
+        ]
+        for (level, progress, bar) in cases {
+            XCTAssertEqual(
+                TorrentProgressBarSteps.displayedProgress(progress, simplification: level),
+                bar,
+                accuracy: 0.000_1,
+                "\(level) \(progress)"
+            )
+        }
+    }
+
     /// The bar never runs ahead of the percent beside it, nor lags a step behind.
     func testProgressBarStaysWithinAStepBelowThePercent() {
-        for thousandth in 0...1000 {
-            let progress = Double(thousandth) / 1000
-            let percent = Double(Int((progress * 100).rounded(.down))) / 100
-            let bar = TorrentProgressBarSteps.displayedProgress(progress)
+        for level in CardSimplificationLevel.allCases {
+            let middleStep = Double(TorrentProgressBarSteps.middleStepPercent(for: level)) / 100
+            for thousandth in 0...1000 {
+                let progress = Double(thousandth) / 1000
+                let percent = Double(Int((progress * 100).rounded(.down))) / 100
+                let bar = TorrentProgressBarSteps.displayedProgress(progress, simplification: level)
 
-            XCTAssertLessThanOrEqual(bar, percent + 0.000_1, "\(progress)")
-            let step = percent < 0.95 ? 0.02 : 0.01
-            XCTAssertLessThan(percent - bar, step - 0.000_1, "\(progress)")
+                XCTAssertLessThanOrEqual(bar, percent + 0.000_1, "\(level) \(progress)")
+                let step = percent >= 0.95 ? 0.01 : (percent < middleStep ? 0.02 : middleStep)
+                XCTAssertLessThan(percent - bar, step - 0.000_1, "\(level) \(progress)")
+            }
         }
     }
 
