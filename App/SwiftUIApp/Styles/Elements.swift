@@ -1302,14 +1302,17 @@ struct ShatlMetricItem: View {
     var iconColorOverride: Color? = nil
     var speedPalette: ShatlSpeedMetricPalette? = nil
     var showsSpeedBadge = false
-    /// The number and unit hide behind a chevron before the icon.
+    /// The number and unit hide; a chevron before the icon says so.
     var isFolded = false
+    /// The chevron shows while the speed has the ETA beside it; at the end
+    /// of a download the ETA leaves and takes it along.
+    var showsFoldMark = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
     var body: some View {
         HStack(spacing: 5) {
-            if isFolded {
+            if isFolded, showsFoldMark {
                 Image(systemName: "chevron.backward")
                     .shatlTypography(ShatlTypography.metricSemibold)
                     .foregroundStyle(foldMarkColor)
@@ -1333,7 +1336,7 @@ struct ShatlMetricItem: View {
                     if let unit = item.unit {
                         Text(unit)
                             .shatlTypography(ShatlTypography.metricSemibold)
-                            .foregroundStyle(speedPalette?.label ?? ShatlColor.typographyTertiary)
+                            .foregroundStyle(cellPalette?.label ?? ShatlColor.typographyTertiary)
                             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -1354,7 +1357,7 @@ struct ShatlMetricItem: View {
                 .opacity(showsSpeedBadge ? 1 : 0)
         }
         // A colored cell keeps its text inside while it grows or shrinks.
-        .clipShape(MetricItemClip(clips: showsSpeedBadge && speedPalette != nil))
+        .clipShape(MetricItemClip(clips: cellPalette != nil))
         .animation(ShatlMotion.speedMetricColor, value: speedPalette)
         .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
     }
@@ -1363,8 +1366,15 @@ struct ShatlMetricItem: View {
         reduceMotion ? .opacity : ShatlMotion.appearFromTop
     }
 
+    /// The colors made for the colored cell, while it shows. Without it, at
+    /// the end of a download, the speed takes the colors it has with the
+    /// colored speed off.
+    private var cellPalette: ShatlSpeedMetricPalette? {
+        showsSpeedBadge ? speedPalette : nil
+    }
+
     private var foldMarkColor: Color {
-        speedPalette.map { $0.icon.opacity(0.35) } ?? ShatlColor.typographyTertiary
+        cellPalette.map { $0.icon.opacity(0.35) } ?? ShatlColor.typographyTertiary
     }
 
     private var spokenValue: String {
@@ -1372,7 +1382,7 @@ struct ShatlMetricItem: View {
     }
 
     private var iconColor: Color {
-        if let speedPalette { return speedPalette.icon }
+        if let cellPalette { return cellPalette.icon }
 
         if let iconColorOverride {
             return iconColorOverride
@@ -1385,7 +1395,7 @@ struct ShatlMetricItem: View {
     private func metricNumber(_ number: String) -> some View {
         let text = Text(number)
             .shatlTypography(ShatlTypography.metricSemibold)
-            .foregroundStyle(speedPalette?.label ?? ShatlColor.typographyPrimary)
+            .foregroundStyle(cellPalette?.label ?? ShatlColor.typographyPrimary)
             .monospacedDigit()
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
@@ -1526,7 +1536,8 @@ struct ShatlMetricSet: View {
                     iconColorOverride: metricIconColorOverride,
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
                     showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
-                    isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded
+                    isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded,
+                    showsFoldMark: items.contains { $0.id == "eta" }
                 )
                 .transition(metricContentTransition)
             }
