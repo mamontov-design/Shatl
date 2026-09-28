@@ -11,6 +11,7 @@ enum TorrentCardLayout {
 private struct CompactTransferMetricAnimationKey: Equatable {
     var widthSignature: [MetricItemWidthAnimationSignature]?
     var colorizesDownloadSpeed: Bool
+    var foldsDownloadSpeed: Bool
 }
 
 private struct ExpandedMetricAnimationKey: Equatable {
@@ -424,7 +425,8 @@ struct TorrentCardView: View, Equatable {
     private var compactTransferMetricAnimationKey: CompactTransferMetricAnimationKey {
         CompactTransferMetricAnimationKey(
             widthSignature: row.compactTransferMetricSet?.items.metricWidthAnimationSignature,
-            colorizesDownloadSpeed: row.colorizesDownloadSpeed
+            colorizesDownloadSpeed: row.colorizesDownloadSpeed,
+            foldsDownloadSpeed: foldsDownloadSpeed
         )
     }
 
@@ -454,6 +456,7 @@ struct TorrentCardView: View, Equatable {
             outlineColorOverride: metricSetOutlineColorOverride,
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             showsShadows: showsMetricShadows,
+            foldsDownloadSpeed: foldsDownloadSpeed,
             diagnosticsContext: metricDiagnosticsContext(source: "compactTransfer")
         )
     }
@@ -504,6 +507,12 @@ struct TorrentCardView: View, Equatable {
         }
         .geometryGroup()
         .animation(ShatlMotion.metricResize, value: animationKey)
+    }
+
+    /// Only in the list: the onboarding and the settings preview have no
+    /// pointer to unfold it.
+    private var foldsDownloadSpeed: Bool {
+        presentationMode == .normal && row.simplification.foldsDownloadSpeed
     }
 
     /// Off from the first card simplification.

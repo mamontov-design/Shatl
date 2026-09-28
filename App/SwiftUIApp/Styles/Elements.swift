@@ -1302,11 +1302,23 @@ struct ShatlMetricItem: View {
     var iconColorOverride: Color? = nil
     var speedPalette: ShatlSpeedMetricPalette? = nil
     var showsSpeedBadge = false
+    /// The number and unit hide behind a chevron before the icon.
+    var isFolded = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
     var body: some View {
         HStack(spacing: 5) {
+            if isFolded {
+                Image(systemName: "chevron.backward")
+                    .shatlTypography(ShatlTypography.metricSemibold)
+                    .foregroundStyle(foldMarkColor)
+                    .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
+                    // VoiceOver reads the hidden value here.
+                    .accessibilityLabel(Text(spokenValue))
+                    .transition(contentTransition)
+            }
+
             if let iconName = item.iconName {
                 Image(systemName: iconName)
                     .shatlTypography(iconTypography(for: iconName))
@@ -1314,7 +1326,7 @@ struct ShatlMetricItem: View {
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
 
-            if let number = item.number {
+            if let number = item.number, !isFolded {
                 HStack(spacing: 2) {
                     metricNumber(number)
 
@@ -1328,6 +1340,7 @@ struct ShatlMetricItem: View {
                 }
                 .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                 .fixedSize(horizontal: true, vertical: false)
+                .transition(contentTransition)
             }
         }
         .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
@@ -1342,6 +1355,18 @@ struct ShatlMetricItem: View {
         }
         .animation(ShatlMotion.speedMetricColor, value: speedPalette)
         .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
+    }
+
+    private var contentTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.appearFromTop
+    }
+
+    private var foldMarkColor: Color {
+        speedPalette.map { $0.icon.opacity(0.35) } ?? ShatlColor.typographyTertiary
+    }
+
+    private var spokenValue: String {
+        [item.number, item.unit].compactMap { $0 }.joined(separator: " ")
     }
 
     private var iconColor: Color {
@@ -1447,6 +1472,9 @@ struct ShatlMetricSet: View {
     var colorizesDownloadSpeed = false
     /// The resting shadow, and the one that grows while the set bounces.
     var showsShadows = true
+    /// The download speed shows its level icon alone; its number comes back
+    /// while the pointer rests on the set.
+    var foldsDownloadSpeed = false
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -1459,6 +1487,8 @@ struct ShatlMetricSet: View {
     @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
+    @State private var isDownloadSpeedUnfolded = false
+    @State private var downloadSpeedHoverIntent = TorrentCardHoverIntent()
 
     var body: some View {
         let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
@@ -1480,7 +1510,8 @@ struct ShatlMetricSet: View {
                     item: item,
                     iconColorOverride: metricIconColorOverride,
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
-                    showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" }
+                    showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
+                    isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded
                 )
                 .transition(metricContentTransition)
             }
@@ -1569,6 +1600,9 @@ struct ShatlMetricSet: View {
         }
         .frame(height: ShatlMetricLayout.containerHeight)
         .metricSetDiagnostics(items: items, context: diagnosticsContext)
+        .onHover { isInside in
+            unfoldDownloadSpeed(isInside)
+        }
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
             guard metricSetBounceEnabled else { return }
             // Only the download speed bounces; the upload speed changes its
@@ -1611,6 +1645,26 @@ struct ShatlMetricSet: View {
 
     private var iconSignature: [String?] {
         items.map(\.iconName)
+    }
+
+    /// The number comes back once the pointer rests on the set, and folds
+    /// again as soon as it leaves; see `TorrentCardHoverTiming`.
+    private func unfoldDownloadSpeed(_ isInside: Bool) {
+        if isInside {
+            guard foldsDownloadSpeed else { return }
+            downloadSpeedHoverIntent.pointerEntered {
+                guard !isDownloadSpeedUnfolded else { return }
+                withAnimation(ShatlMotion.metricResize) {
+                    isDownloadSpeedUnfolded = true
+                }
+            }
+        } else {
+            downloadSpeedHoverIntent.pointerExited()
+            guard isDownloadSpeedUnfolded else { return }
+            withAnimation(ShatlMotion.metricResize) {
+                isDownloadSpeedUnfolded = false
+            }
+        }
     }
 
     private var metricDivider: some View {

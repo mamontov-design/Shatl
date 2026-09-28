@@ -142,6 +142,19 @@ final class CardSimplificationTests: XCTestCase {
         XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 3, previous: .lightest), .full)
     }
 
+    /// At the deepest level the download speed shows its level icon alone;
+    /// for now every level folds it, while the owner tries it.
+    func testTheDeepestLevelFoldsTheDownloadSpeed() {
+        XCTAssertTrue(CardSimplificationLevel.lightest.foldsDownloadSpeed)
+        for level in CardSimplificationLevel.allCases {
+            XCTAssertEqual(
+                level.foldsDownloadSpeed,
+                CardSimplificationLevel.foldsDownloadSpeedAtEveryLevel || level == .lightest,
+                "\(level)"
+            )
+        }
+    }
+
     func testOnlyDownloadingAndCheckingCount() {
         let records = [
             makeTestRecord(status: .downloading, progress: 0.4),

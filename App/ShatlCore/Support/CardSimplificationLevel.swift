@@ -15,8 +15,20 @@ nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendabl
     /// No bounce and no metric shadows; the progress bar steps 5 %.
     case lighter
     /// Also digits that change without rolling, in cards and speed chips; the
-    /// progress bar steps 10 %, and a finished card folds in a single move.
+    /// progress bar steps 10 %, a finished card folds in a single move, and
+    /// the download speed shows its level icon alone.
     case lightest
+
+    /// For now the download speed folds at every level, while the owner tries
+    /// it on a single download; afterwards only at the deepest one.
+    static let foldsDownloadSpeedAtEveryLevel = true
+
+    /// The download speed shows its level icon alone, and its number only
+    /// under the pointer: a number that changes every second no longer
+    /// resizes the speed set every second.
+    var foldsDownloadSpeed: Bool {
+        Self.foldsDownloadSpeedAtEveryLevel || self == .lightest
+    }
 
     /// Active downloads from which each level starts.
     var threshold: Int {
