@@ -125,6 +125,19 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
 
     let torrentTransferSummary = TorrentTransferSummaryModel()
+    /// What the cards leave out with many downloads running; see
+    /// `CardSimplificationLevel`. The speed chips read it too.
+    @Published private(set) var cardSimplification = CardSimplificationLevel.full
+    private var automaticCardSimplification = CardSimplificationLevel.full
+    #if DEBUG
+    /// A level picked in Settings -> Debug in place of the one the count gives.
+    @Published private(set) var debugCardSimplificationOverride: CardSimplificationLevel?
+
+    func setDebugCardSimplificationOverride(_ level: CardSimplificationLevel?) {
+        debugCardSimplificationOverride = level
+        refreshTorrentPresentations()
+    }
+    #endif
 
     private let engine: any TorrentEngine
     private let preferencesStore: AppPreferencesStore?
@@ -462,6 +475,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             var enablesCardLayoutDiagnostics: Bool
             var enablesMetricAnimationDiagnostics: Bool
             var isRestoringSession: Bool
+            var simplification: CardSimplificationLevel
         }
 
         var record: TorrentRecord
@@ -480,7 +494,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             localeOverride: preferences.localeOverride,
             enablesCardLayoutDiagnostics: ShatlCardLayoutDiagnosticsLog.isEnabled,
             enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
-            isRestoringSession: isRestoringSession
+            isRestoringSession: isRestoringSession,
+            simplification: cardSimplification
         )
     }
 
@@ -581,11 +596,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 isTransitioning: inputs.isTransitioning
             ),
             navigationAvailabilityKey: navigationAvailabilityKey,
-            localeOverride: shared.localeOverride
+            localeOverride: shared.localeOverride,
+            simplification: shared.simplification
         )
     }
 
     private func refreshTorrentPresentations() {
+        updateCardSimplification()
         let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
         let currentIDs = Set(torrents.map(\.id)).union(pendingIDs)
         if torrentRowPresentationModelsByID.count != currentIDs.count
@@ -630,6 +647,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         let chips = bottomTransferChips
         torrentTransferSummary.update(chips: chips)
+    }
+
+    /// Before the rows: the level enters every card through its inputs.
+    private func updateCardSimplification() {
+        automaticCardSimplification = CardSimplificationLevel.level(
+            activeDownloads: CardSimplificationLevel.activeDownloadCount(in: torrents),
+            previous: automaticCardSimplification
+        )
+        var level = automaticCardSimplification
+        #if DEBUG
+        level = debugCardSimplificationOverride ?? level
+        #endif
+        if cardSimplification != level {
+            cardSimplification = level
+        }
     }
 
     private static func presentedProgress(for record: TorrentRecord) -> Double {

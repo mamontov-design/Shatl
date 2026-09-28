@@ -297,6 +297,13 @@
 "settings.debug.list.section" = "Liste des téléchargements";
 "settings.debug.list.frame_meter" = "Compteur d’images et journal des saccades";
 "settings.debug.list.caption" = "La touche F ajoute un repère au journal des saccades, sauf pendant la saisie dans un champ.";
+"settings.debug.list.simplification" = "Simplification des cartes";
+"settings.debug.list.simplification.automatic" = "Auto : selon les téléchargements actifs";
+"settings.debug.list.simplification.full" = "Complète : tout activé";
+"settings.debug.list.simplification.lighter" = "Niveau 1 : sans rebond ni ombres";
+"settings.debug.list.simplification.lightest" = "Niveau 2 : aussi sans défilement des chiffres";
+"settings.debug.list.simplification.caption" = "Auto : niveau 1 dès 15 téléchargements actifs, niveau 2 dès 25 ; retour quand il y en a 3 de moins que le seuil. Non conservé.";
+"debug.frame_meter.level" = "niv. %ld";
 "settings.debug.list.card_parts.section" = "Retirer des cartes (expérience)";
 "settings.debug.list.card_parts.animations" = "Toutes les animations et transitions";
 "settings.debug.list.card_parts.progressBarAnimation" = "Animation de la barre de progression";

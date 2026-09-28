@@ -1303,6 +1303,7 @@ struct ShatlMetricItem: View {
     var speedPalette: ShatlSpeedMetricPalette? = nil
     var showsSpeedBadge = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
     var body: some View {
         HStack(spacing: 5) {
@@ -1362,7 +1363,7 @@ struct ShatlMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion, !isCardPartRemoved(.digitRoll) {
+        if !reduceMotion, rollsDigits, !isCardPartRemoved(.digitRoll) {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
@@ -1994,6 +1995,7 @@ struct ShatlInfoBottomSpeedChip: View {
 private struct ShatlInfoBottomMetricItem: View {
     let item: MetricItemPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
     var body: some View {
         HStack(spacing: 5) {
@@ -2033,7 +2035,7 @@ private struct ShatlInfoBottomMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion, !isCardPartRemoved(.chipDigitRoll) {
+        if !reduceMotion, rollsDigits, !isCardPartRemoved(.chipDigitRoll) {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)

@@ -178,6 +178,14 @@ struct TorrentCardView: View, Equatable {
                 onSelect()
             }
         }
+        // With many downloads running, the speed set stops bouncing and, at
+        // the deepest level, digits stop rolling.
+        .transformEnvironment(\.shatlMetricSetBounceEnabled) { isEnabled in
+            if row.simplification > .full {
+                isEnabled = false
+            }
+        }
+        .environment(\.shatlRollsMetricDigits, row.simplification < .lightest)
         .cardAnimationTraceID(row.id)
     }
 
@@ -436,10 +444,10 @@ struct TorrentCardView: View, Equatable {
         .cardAnimation(ShatlMotion.metricResize, value: animationKey, part: .metricAnimations)
     }
 
-    /// Read here, where the Debug switches redraw the card, so taking the
-    /// shadows off shows at once.
+    /// Off from the first card simplification; read here, where the Debug
+    /// switches redraw the card, so taking the shadows off shows at once.
     private var showsMetricShadows: Bool {
-        !isCardPartRemoved(.metricShadows)
+        row.simplification == .full && !isCardPartRemoved(.metricShadows)
     }
 
     private var hidesExpandedMetricIcons: Bool {

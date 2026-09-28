@@ -297,6 +297,13 @@
 "settings.debug.list.section" = "Download list";
 "settings.debug.list.frame_meter" = "Frame counter and hitch log";
 "settings.debug.list.caption" = "Press F to put a mark in the hitch log, unless you are typing in a field.";
+"settings.debug.list.simplification" = "Card simplification";
+"settings.debug.list.simplification.automatic" = "Auto: by active downloads";
+"settings.debug.list.simplification.full" = "Full: everything on";
+"settings.debug.list.simplification.lighter" = "Level 1: no bounce or shadows";
+"settings.debug.list.simplification.lightest" = "Level 2: also no rolling digits";
+"settings.debug.list.simplification.caption" = "Auto: level 1 from 15 active downloads, level 2 from 25; back once there are 3 fewer than the threshold. Not kept.";
+"debug.frame_meter.level" = "lvl %ld";
 "settings.debug.list.card_parts.section" = "Remove from cards (experiment)";
 "settings.debug.list.card_parts.animations" = "All animations and transitions";
 "settings.debug.list.card_parts.progressBarAnimation" = "Progress bar animation";

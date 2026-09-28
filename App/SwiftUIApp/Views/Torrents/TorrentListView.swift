@@ -208,7 +208,11 @@ struct TorrentListView: View {
             guard let status = store.torrentRecord(for: id)?.status else { return false }
             return status == .downloading || status == .checking
         }
-        return ShatlFrameCardCounts(total: ids.count, active: active.count)
+        return ShatlFrameCardCounts(
+            total: ids.count,
+            active: active.count,
+            level: store.cardSimplification.rawValue
+        )
     }
     #endif
 

@@ -295,6 +295,13 @@
 "settings.debug.list.section" = "ダウンロードリスト";
 "settings.debug.list.frame_meter" = "フレームカウンターとカクつきログ";
 "settings.debug.list.caption" = "入力欄で入力中でなければ、F キーでカクつきログに印を付けます。";
+"settings.debug.list.simplification" = "カードの簡略化";
+"settings.debug.list.simplification.automatic" = "自動：アクティブなダウンロード数に合わせる";
+"settings.debug.list.simplification.full" = "フル：すべてオン";
+"settings.debug.list.simplification.lighter" = "レベル1：弾みと影なし";
+"settings.debug.list.simplification.lightest" = "レベル2：さらに数字のロールなし";
+"settings.debug.list.simplification.caption" = "自動：アクティブなダウンロードが15件からレベル1、25件からレベル2。しきい値より3件少なくなると戻ります。保存されません。";
+"debug.frame_meter.level" = "Lv %ld";
 "settings.debug.list.card_parts.section" = "カードから外す（実験）";
 "settings.debug.list.card_parts.animations" = "すべてのアニメーションとトランジション";
 "settings.debug.list.card_parts.progressBarAnimation" = "プログレスバーのアニメーション";

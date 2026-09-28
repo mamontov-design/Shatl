@@ -33,7 +33,7 @@ final class ShatlFrameMeterTests: XCTestCase {
         hitch.context = ShatlFrameContext(
             metricsMode: "detailed",
             windowSize: "820x1180",
-            cards: ShatlFrameCardCounts(total: 25, active: 10)
+            cards: ShatlFrameCardCounts(total: 25, active: 10, level: 1)
         )
 
         let line = hitch.logLine(timeFormatter: posixFormatter("HH:mm:ss.SSS"))
@@ -49,6 +49,7 @@ final class ShatlFrameMeterTests: XCTestCase {
             "window=820x1180",
             "cards=25",
             "active=10",
+            "level=1",
             "main.ms=35.0",
             "main.cpu.ms=10.1",
             "main.waiting.ms=24.9",

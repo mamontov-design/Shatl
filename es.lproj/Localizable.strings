@@ -297,6 +297,13 @@
 "settings.debug.list.section" = "Lista de descargas";
 "settings.debug.list.frame_meter" = "Contador de fotogramas y registro de tirones";
 "settings.debug.list.caption" = "La tecla F añade una marca al registro de tirones, salvo si escribes en un campo.";
+"settings.debug.list.simplification" = "Simplificación de tarjetas";
+"settings.debug.list.simplification.automatic" = "Auto: según las descargas activas";
+"settings.debug.list.simplification.full" = "Completa: todo activado";
+"settings.debug.list.simplification.lighter" = "Nivel 1: sin rebote ni sombras";
+"settings.debug.list.simplification.lightest" = "Nivel 2: también sin dígitos rodantes";
+"settings.debug.list.simplification.caption" = "Auto: nivel 1 desde 15 descargas activas, nivel 2 desde 25; vuelve cuando hay 3 menos que el umbral. No se guarda.";
+"debug.frame_meter.level" = "niv. %ld";
 "settings.debug.list.card_parts.section" = "Quitar de las tarjetas (experimento)";
 "settings.debug.list.card_parts.animations" = "Todas las animaciones y transiciones";
 "settings.debug.list.card_parts.progressBarAnimation" = "Animación de la barra de progreso";

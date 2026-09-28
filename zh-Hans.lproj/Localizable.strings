@@ -295,6 +295,13 @@
 "settings.debug.list.section" = "下载列表";
 "settings.debug.list.frame_meter" = "帧计数器和卡顿日志";
 "settings.debug.list.caption" = "未在输入框中输入时，按 F 键会在卡顿日志中添加标记。";
+"settings.debug.list.simplification" = "卡片简化";
+"settings.debug.list.simplification.automatic" = "自动：按活动下载数";
+"settings.debug.list.simplification.full" = "完整：全部开启";
+"settings.debug.list.simplification.lighter" = "级别 1：无弹跳和阴影";
+"settings.debug.list.simplification.lightest" = "级别 2：也无数字滚动";
+"settings.debug.list.simplification.caption" = "自动：活动下载达到 15 个时为级别 1，达到 25 个时为级别 2；比阈值少 3 个时恢复。不会保存。";
+"debug.frame_meter.level" = "级别 %ld";
 "settings.debug.list.card_parts.section" = "从卡片中移除（实验）";
 "settings.debug.list.card_parts.animations" = "所有动画和过渡";
 "settings.debug.list.card_parts.progressBarAnimation" = "进度条动画";

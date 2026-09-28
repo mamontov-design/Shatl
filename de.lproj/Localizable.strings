@@ -297,6 +297,13 @@
 "settings.debug.list.section" = "Downloadliste";
 "settings.debug.list.frame_meter" = "Bildzähler und Ruckelprotokoll";
 "settings.debug.list.caption" = "Die Taste F setzt eine Markierung ins Ruckelprotokoll, außer beim Tippen in einem Feld.";
+"settings.debug.list.simplification" = "Kartenvereinfachung";
+"settings.debug.list.simplification.automatic" = "Auto: nach aktiven Downloads";
+"settings.debug.list.simplification.full" = "Voll: alles an";
+"settings.debug.list.simplification.lighter" = "Stufe 1: ohne Hüpfen und Schatten";
+"settings.debug.list.simplification.lightest" = "Stufe 2: auch ohne rollende Ziffern";
+"settings.debug.list.simplification.caption" = "Auto: Stufe 1 ab 15 aktiven Downloads, Stufe 2 ab 25; zurück, sobald es 3 weniger als die Schwelle sind. Wird nicht gespeichert.";
+"debug.frame_meter.level" = "St. %ld";
 "settings.debug.list.card_parts.section" = "Aus Karten entfernen (Experiment)";
 "settings.debug.list.card_parts.animations" = "Alle Animationen und Übergänge";
 "settings.debug.list.card_parts.progressBarAnimation" = "Animation des Fortschrittsbalkens";

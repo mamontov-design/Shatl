@@ -136,6 +136,10 @@ private struct ShatlDownloadSpeedOutlineFlashTriggerKey: EnvironmentKey {
     static let defaultValue = 0
 }
 
+private struct ShatlRollsMetricDigitsKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
 private struct ShatlMetricSetBounceEnabledKey: EnvironmentKey {
     static let defaultValue = true
 }
@@ -162,6 +166,13 @@ extension EnvironmentValues {
     var shatlDownloadSpeedOutlineFlashTrigger: Int {
         get { self[ShatlDownloadSpeedOutlineFlashTriggerKey.self] }
         set { self[ShatlDownloadSpeedOutlineFlashTriggerKey.self] = newValue }
+    }
+
+    /// Whether metric numbers roll their digits; off at the deepest card
+    /// simplification.
+    var shatlRollsMetricDigits: Bool {
+        get { self[ShatlRollsMetricDigitsKey.self] }
+        set { self[ShatlRollsMetricDigitsKey.self] = newValue }
     }
 
     var shatlMetricSetBounceEnabled: Bool {

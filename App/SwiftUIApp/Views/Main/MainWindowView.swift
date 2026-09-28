@@ -120,6 +120,7 @@ struct MainWindowView: View {
             }
 
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
+                .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
         }
         .background(WindowChromeConfigurator(isTitleVisible: contentMode != .empty))
         .toolbar {

@@ -81,3 +81,59 @@ final class TorrentCardMotionTests: XCTestCase {
         var count = 0
     }
 }
+
+/// With many downloads running, the cards leave out their costliest motion,
+/// and a count wavering at a threshold does not switch them back and forth.
+@MainActor
+final class CardSimplificationTests: XCTestCase {
+    func testLevelsStartAtFifteenAndTwentyFiveActiveDownloads() {
+        func level(_ count: Int) -> CardSimplificationLevel {
+            CardSimplificationLevel.level(activeDownloads: count, previous: .full)
+        }
+        XCTAssertEqual(level(0), .full)
+        XCTAssertEqual(level(14), .full)
+        XCTAssertEqual(level(15), .lighter)
+        XCTAssertEqual(level(24), .lighter)
+        XCTAssertEqual(level(25), .lightest)
+        XCTAssertEqual(level(100), .lightest)
+    }
+
+    func testLevelsEndOnlyThreeBelowTheirThreshold() {
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 22, previous: .lightest), .lightest)
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 21, previous: .lightest), .lighter)
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 12, previous: .lighter), .lighter)
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 11, previous: .lighter), .full)
+        // A fall through both thresholds lands where the count is.
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 3, previous: .lightest), .full)
+    }
+
+    func testOnlyDownloadingAndCheckingCount() {
+        let records = [
+            makeTestRecord(status: .downloading, progress: 0.4),
+            makeTestRecord(status: .checking, progress: 0.4),
+            makeTestRecord(status: .seeding, progress: 1),
+            makeTestRecord(status: .completed, progress: 1),
+            makeTestRecord(status: .stopped, progress: 0.2),
+        ]
+        XCTAssertEqual(CardSimplificationLevel.activeDownloadCount(in: records), 2)
+    }
+
+    /// The level reaches every card through its row, and a Debug pick
+    /// replaces the one the count gives.
+    func testStoreHandsTheLevelToTheCards() throws {
+        let active = (0..<16).map { _ in makeTestRecord(status: .downloading, progress: 0.4) }
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: active)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: active[0].id))
+
+        XCTAssertEqual(bundle.store.cardSimplification, .lighter)
+        XCTAssertEqual(rowModel.state.simplification, .lighter)
+
+        bundle.store.setDebugCardSimplificationOverride(.lightest)
+        XCTAssertEqual(rowModel.state.simplification, .lightest)
+        bundle.store.setDebugCardSimplificationOverride(nil)
+        XCTAssertEqual(rowModel.state.simplification, .lighter)
+    }
+}

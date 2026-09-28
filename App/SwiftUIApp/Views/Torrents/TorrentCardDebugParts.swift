@@ -242,6 +242,39 @@ private struct RemovableCardTask<ID: Equatable>: ViewModifier {
     }
 }
 
+/// Debug builds only: the card simplification level to show, the one the
+/// number of active downloads gives or one picked to compare. Not kept.
+enum CardSimplificationChoice: String, CaseIterable, Identifiable {
+    case automatic
+    case full
+    case lighter
+    case lightest
+
+    var id: Self { self }
+
+    init(level: CardSimplificationLevel?) {
+        switch level {
+        case nil: self = .automatic
+        case .full: self = .full
+        case .lighter: self = .lighter
+        case .lightest: self = .lightest
+        }
+    }
+
+    var level: CardSimplificationLevel? {
+        switch self {
+        case .automatic: nil
+        case .full: .full
+        case .lighter: .lighter
+        case .lightest: .lightest
+        }
+    }
+
+    var titleKey: String {
+        "settings.debug.list.simplification.\(rawValue)"
+    }
+}
+
 /// Not kept between launches, so a part cannot stay off by accident.
 final class TorrentCardDebugOptions: ObservableObject {
     static let shared = TorrentCardDebugOptions()

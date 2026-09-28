@@ -63,6 +63,8 @@ struct ShatlMainThreadTime: Equatable {
 struct ShatlFrameCardCounts: Equatable {
     var total = 0
     var active = 0
+    /// The card simplification level the cards show.
+    var level = 0
 }
 
 /// What the owner was looking at: the metrics mode, the window and the cards.
@@ -80,6 +82,7 @@ struct ShatlFrameContext: Equatable {
             "window=\(windowSize)",
             "cards=\(cards.total)",
             "active=\(cards.active)",
+            "level=\(cards.level)",
         ]
     }
 }
@@ -581,6 +584,14 @@ final class ShatlFrameMonitor: NSObject {
             counts.total,
             counts.active
         )
+        if counts.level > 0 {
+            name += " · " + L10n.format(
+                "debug.frame_meter.level",
+                localeOverride: localeOverride,
+                defaultValue: "ур. %ld",
+                counts.level
+            )
+        }
         if let preset = ShatlDemoList.activePreset {
             name = L10n.format(
                 "debug.frame_meter.demo",

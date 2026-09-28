@@ -81,6 +81,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var localeOverride: AppLocaleOverride
     var isPendingAddition = false
     var canExpand = true
+    /// What the card leaves out with many downloads running.
+    var simplification = CardSimplificationLevel.full
 }
 
 @MainActor

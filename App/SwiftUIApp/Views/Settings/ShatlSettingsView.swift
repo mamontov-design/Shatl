@@ -252,6 +252,22 @@ struct ShatlSettingsView: View {
 
             ShatlSettingsParameterCaption(localizedText: "settings.debug.list.caption")
 
+            ShatlSettingsParameter {
+                Picker(selection: cardSimplificationChoice) {
+                    ForEach(CardSimplificationChoice.allCases) { choice in
+                        Text(LocalizedStringKey(choice.titleKey))
+                            .tag(choice)
+                    }
+                } label: {
+                    Text("settings.debug.list.simplification")
+                        .shatlTypography(ShatlTypography.bodyRegular)
+                        .foregroundStyle(ShatlColor.typographyPrimary)
+                }
+                .pickerStyle(.radioGroup)
+            }
+
+            ShatlSettingsParameterCaption(localizedText: "settings.debug.list.simplification.caption")
+
             ShatlSettingsParameterHeader(localizedTitle: "settings.debug.list.card_parts.section")
 
             ShatlSettingsParameter {
@@ -271,6 +287,13 @@ struct ShatlSettingsView: View {
         .padding(.horizontal, 16)
         .padding(.top, 0)
         .padding(.bottom, 16)
+    }
+
+    private var cardSimplificationChoice: Binding<CardSimplificationChoice> {
+        Binding(
+            get: { CardSimplificationChoice(level: store.debugCardSimplificationOverride) },
+            set: { store.setDebugCardSimplificationOverride($0.level) }
+        )
     }
 
     private func binding<Value>(for keyPath: WritableKeyPath<AppPreferences, Value>) -> Binding<Value> {

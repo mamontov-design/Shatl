@@ -301,6 +301,13 @@
 "settings.debug.list.section" = "Список загрузок";
 "settings.debug.list.frame_meter" = "Счётчик кадров и журнал рывков";
 "settings.debug.list.caption" = "Клавиша F ставит метку в журнал рывков, если курсор не в поле ввода.";
+"settings.debug.list.simplification" = "Упрощение карточек";
+"settings.debug.list.simplification.automatic" = "Авто: по числу активных загрузок";
+"settings.debug.list.simplification.full" = "Полное: всё включено";
+"settings.debug.list.simplification.lighter" = "Уровень 1: без прыжка и теней";
+"settings.debug.list.simplification.lightest" = "Уровень 2: ещё и без прокрутки цифр";
+"settings.debug.list.simplification.caption" = "Авто: с 15 активных загрузок — уровень 1, с 25 — уровень 2; обратно — когда активных на 3 меньше порога. Не запоминается.";
+"debug.frame_meter.level" = "ур. %ld";
 "settings.debug.list.card_parts.section" = "Убрать из карточки (эксперимент)";
 "settings.debug.list.card_parts.animations" = "Все анимации и переходы";
 "settings.debug.list.card_parts.progressBarAnimation" = "Анимация полоски прогресса";
