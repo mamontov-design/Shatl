@@ -18,6 +18,8 @@ enum ShatlIconSize {
 enum ShatlMetricLayout {
     static let contentHeight: CGFloat = 15
     static let containerHeight: CGFloat = 27
+    /// Between a metric set's edge and its items.
+    static let setPadding: CGFloat = 3
 }
 
 enum ShatlBottomChipLayout {
@@ -1348,9 +1350,10 @@ struct ShatlMetricItem: View {
         }
         .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.leading, item.iconName == nil ? 5 : 3)
-        .padding(.trailing, 5)
+        .padding(.leading, leadingPadding)
+        .padding(.trailing, trailingPadding)
         .padding(.vertical, 3)
+        .frame(minWidth: iconAloneMinimumWidth)
         .background {
             RoundedRectangle(cornerRadius: 5, style: .continuous)
                 .fill(speedPalette?.badge ?? .clear)
@@ -1364,6 +1367,24 @@ struct ShatlMetricItem: View {
 
     private var contentTransition: AnyTransition {
         reduceMotion ? .opacity : ShatlMotion.appearFromTop
+    }
+
+    /// The wider trailing padding leaves room after the unit; with the number
+    /// folded away the paddings match, so what is left sits in the middle.
+    private var leadingPadding: CGFloat {
+        if isFolded { return 4 }
+        return item.iconName == nil ? 5 : 3
+    }
+
+    private var trailingPadding: CGFloat {
+        isFolded ? 4 : 5
+    }
+
+    /// An icon left alone, at the end of a download, keeps its set at least
+    /// square, as wide as it is tall, with the icon in the middle.
+    private var iconAloneMinimumWidth: CGFloat? {
+        guard isFolded, !showsFoldMark else { return nil }
+        return ShatlMetricLayout.containerHeight - ShatlMetricLayout.setPadding * 2
     }
 
     /// The colors made for the colored cell, while it shows. Without it, at
@@ -1542,7 +1563,7 @@ struct ShatlMetricSet: View {
                 .transition(metricContentTransition)
             }
         }
-        .padding(3)
+        .padding(ShatlMetricLayout.setPadding)
         .overlay {
             MetricSetOutlineView(
                 baseColor: metricOutlineColor,
