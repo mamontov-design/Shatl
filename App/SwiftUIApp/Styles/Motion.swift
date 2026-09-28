@@ -100,15 +100,19 @@ enum ShatlMotion {
     /// result does not flicker.
     static let busyButtonMinimumDuration = Duration.seconds(1)
 
-    /// A finished card's last step: the title slides aside, and its status
-    /// and divider come in once the title is out of their way. On the way
-    /// back they go at once, before the title moves over them.
+    /// A finished card's last step: the title slides aside, and its badge,
+    /// status and divider come in once the title is out of their way. On the
+    /// way back they go at once, before the title moves over them.
     static let finishedStatusDelay = cardLayoutDuration * 0.6
     static let finishedStatusSettleDuration = finishedStatusDelay + metricResizeDuration
     static let finishedStatusBesideTitle = AnyTransition.asymmetric(
         insertion: appearFromTop.animation(metricResize.delay(finishedStatusDelay)),
         removal: .identity
     )
+    /// Parts of the full card come back once the title above them has
+    /// settled, so none passes under it.
+    static let finishedCardPartReturn = AnyTransition.opacity
+        .animation(cardLayout.delay(cardLayoutDuration / 2))
 
     /// Shared transition for elements inserted into an existing layout:
     /// the element shrinks and fades when hidden, then returns to full size and opacity.

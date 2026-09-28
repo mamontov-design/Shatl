@@ -58,11 +58,12 @@ private enum TorrentCardFinishStage: Int, Comparable {
     /// The download has just finished: its speed set leaves, and an open
     /// card closes. The expand button hides until the last step.
     case closing
-    /// The status under the title has left.
+    /// The badge and the status under the title have left together.
     case statusHidden
     /// The progress bar has left.
     case barHidden
-    /// The status sits beside the title, on one line.
+    /// The title has slid aside, and the badge and the status have come in
+    /// beside it, on one line.
     case merged
     /// The expand button is back.
     case finished
@@ -134,7 +135,6 @@ struct TorrentCardView: View, Equatable {
     /// Set once the card first changes its layout; see `layoutStage`.
     @State private var finishStage: TorrentCardFinishStage?
     @State private var finishSteps = TorrentCardFinishSteps()
-    @Namespace private var statusBadgeSpace
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -150,11 +150,9 @@ struct TorrentCardView: View, Equatable {
                     .transition(progressBarTransition)
             }
 
-            if layoutStage < .merged {
-                // Its badge moves to the title and back; the rest has left
-                // by then or comes in on its own.
+            if layoutStage < .statusHidden {
                 primaryMetricContainer
-                    .transition(.identity)
+                    .transition(statusRowTransition)
             }
 
             if row.errorState == nil, row.isExpanded, let expandedMetricGroups = row.expandedMetricGroups {
@@ -300,10 +298,9 @@ struct TorrentCardView: View, Equatable {
     private var nameExpandMark: some View {
         HStack(spacing: 8) {
             if layoutStage >= .merged {
-                // The badge comes up from under the title; the status and
-                // the divider appear beside it.
-                statusBadgeContent
-                    .transition(.identity)
+                // They come in together once the title is out of their way.
+                progressGroup
+                    .transition(ShatlMotion.finishedStatusBesideTitle)
 
                 // A new status replaces the old one in place, so the title
                 // does not step aside for both.
@@ -434,20 +431,14 @@ struct TorrentCardView: View, Equatable {
 
     private var statusBadge: some View {
         HStack(spacing: 8) {
-            statusBadgeContent
+            progressGroup
 
-            if statusKind != .error, layoutStage < .statusHidden {
+            if statusKind != .error {
                 statusTitle
-                    .transition(finishStepTransition(otherwise: AnyTransition(.blurReplace)))
+                    .transition(.blurReplace)
             }
         }
         .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
-    }
-
-    /// One badge for both places: under the title and beside it.
-    private var statusBadgeContent: some View {
-        progressGroup
-            .matchedGeometryEffect(id: "status-badge", in: statusBadgeSpace)
     }
 
     private var statusTitle: some View {
@@ -834,8 +825,18 @@ struct TorrentCardView: View, Equatable {
     /// under the title.
     private var progressBarTransition: AnyTransition {
         .asymmetric(
-            insertion: .opacity.animation(ShatlMotion.cardLayout.delay(ShatlMotion.cardLayoutDuration / 2)),
+            insertion: ShatlMotion.finishedCardPartReturn,
             removal: finishStepTransition(otherwise: .opacity)
+        )
+    }
+
+    /// The badge and the status under the title leave as one, the way the
+    /// speed set does, shrinking towards the edge they sit at; on the way
+    /// back they come in with the bar.
+    private var statusRowTransition: AnyTransition {
+        .asymmetric(
+            insertion: ShatlMotion.finishedCardPartReturn,
+            removal: .scale(scale: 0.85, anchor: .leading).combined(with: .opacity)
         )
     }
 
