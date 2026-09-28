@@ -73,12 +73,14 @@ persistence, deletion, restore, or shared UI state.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 15, no bounce and no metric shadows and a
   bar that steps 5 %; from 25, digits also stop rolling and the bar steps
-  10 %); the level enters each card through its row inputs. A finished download's card is one line, status beside the title
-  (`TorrentRowState.usesFinishedLayout`). Cards built for finished downloads,
-  at launch too, start on one line without animation; a card that finishes
-  in view takes `TorrentCardFinishStage` steps one after another, and goes
-  back in one move. If a hang returns, sample it first. The large add-review file tree
-  may use its separate cached/flattened `LazyVStack` path.
+  10 %); the level enters each card through its row inputs. A finished
+  download's card is one line, the status badge beside the title naming the
+  status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
+  built for finished downloads, at launch too, start on one line without
+  animation; a card that finishes in view takes `TorrentCardFinishStage`
+  steps one after another, and goes back in one move. If a hang returns,
+  sample it first. The large add-review file tree may use its separate
+  cached/flattened `LazyVStack` path.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

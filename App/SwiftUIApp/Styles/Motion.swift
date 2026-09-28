@@ -104,9 +104,9 @@ enum ShatlMotion {
     /// status has changed, before its card starts folding into one line.
     static let finishedCardPause: TimeInterval = metricResizeDuration + 1
 
-    /// A finished card's last step: the title slides aside, and its badge,
-    /// status and divider come in once the title is out of their way. On the
-    /// way back they go at once, before the title moves over them.
+    /// A finished card's last step: the title slides aside, and the status
+    /// badge comes in once the title is out of its way. On the way back it
+    /// goes at once, before the title moves over it.
     static let finishedStatusDelay = cardLayoutDuration * 0.6
     static let finishedStatusSettleDuration = finishedStatusDelay + metricResizeDuration
     static let finishedStatusBesideTitle = AnyTransition.asymmetric(

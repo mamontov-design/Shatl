@@ -63,8 +63,8 @@ private enum TorrentCardFinishStage: Int, Comparable {
     case statusHidden
     /// The progress bar has left.
     case barHidden
-    /// The title has slid aside, and the badge and the status have come in
-    /// beside it, on one line.
+    /// The title has slid aside, and the status badge has come in beside it,
+    /// on one line.
     case merged
     /// The expand button is back.
     case finished
@@ -131,6 +131,8 @@ struct TorrentCardView: View, Equatable {
     @State private var isExpandButtonHovered = false
     @State private var cardHoverIntent = TorrentCardHoverIntent()
     @State private var expandButtonHoverIntent = TorrentCardHoverIntent()
+    @State private var isStatusBadgeHovered = false
+    @State private var statusBadgeHoverIntent = TorrentCardHoverIntent()
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
     /// Set once the card first changes its layout; see `layoutStage`.
@@ -299,20 +301,14 @@ struct TorrentCardView: View, Equatable {
     private var nameExpandMark: some View {
         HStack(spacing: 8) {
             if layoutStage >= .merged {
-                // They come in together once the title is out of their way.
+                // Comes in once the title is out of its way, and names the
+                // status under a resting pointer.
                 progressGroup
-                    .transition(ShatlMotion.finishedStatusBesideTitle)
-
-                // A new status replaces the old one in place, so the title
-                // does not step aside for both.
-                ZStack(alignment: .leading) {
-                    statusTitle
-                        .transition(.blurReplace)
-                }
-                .transition(ShatlMotion.finishedStatusBesideTitle)
-
-                ShatlMetricDivider()
-                    .padding(.horizontal, 1)
+                    .onHover { isInside in
+                        guard presentationMode.allowsHoverEffects else { return }
+                        setHover(isInside, intent: statusBadgeHoverIntent, isHovered: $isStatusBadgeHovered)
+                    }
+                    .accessibilityLabel(Text(row.statusTitle))
                     .transition(ShatlMotion.finishedStatusBesideTitle)
             }
 
@@ -343,7 +339,9 @@ struct TorrentCardView: View, Equatable {
         .animation(ShatlMotion.cardControlSlide, value: row.errorState != nil)
         .animation(ShatlMotion.cardControlSlide, value: row.isExpanded)
         .animation(ShatlMotion.cardControlSlide, value: row.isSelected)
-        // A new status beside the title moves the title as it replaces the old one.
+        // The badge beside the title widens with its status under the
+        // pointer, or with a new status, and the title moves with it.
+        .animation(ShatlMotion.progressGroupResize, value: isStatusBadgeHovered)
         .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
     }
 
@@ -659,8 +657,13 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressText: String? {
-        if row.isPendingAddition || layoutStage >= .merged {
+        if row.isPendingAddition {
             return nil
+        }
+
+        if layoutStage >= .merged {
+            // One line: the badge names the status only under the pointer.
+            return isStatusBadgeHovered ? row.statusTitle : nil
         }
 
         switch statusKind {
@@ -851,6 +854,11 @@ struct TorrentCardView: View, Equatable {
         }
 
         guard row.usesFinishedLayout else {
+            // The badge beside the title leaves; so does its pointer.
+            statusBadgeHoverIntent.pointerExited()
+            if isStatusBadgeHovered {
+                isStatusBadgeHovered = false
+            }
             guard layoutStage != .regular else { return }
             withAnimation(reduceMotion ? nil : ShatlMotion.cardLayout) {
                 finishStage = .regular

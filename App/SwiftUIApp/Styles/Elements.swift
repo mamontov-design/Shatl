@@ -20,16 +20,6 @@ enum ShatlMetricLayout {
     static let containerHeight: CGFloat = 27
 }
 
-/// The line between metrics in a set, and between a finished download's
-/// status and its title.
-struct ShatlMetricDivider: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 1, style: .continuous)
-            .fill(ShatlColor.metricDivider)
-            .frame(width: 2, height: ShatlMetricLayout.contentHeight)
-    }
-}
-
 enum ShatlBottomChipLayout {
     static let legacyEdgePadding: CGFloat = 12
     static let modernEdgePadding: CGFloat = 6
@@ -1624,7 +1614,9 @@ struct ShatlMetricSet: View {
     }
 
     private var metricDivider: some View {
-        ShatlMetricDivider()
+        RoundedRectangle(cornerRadius: 1, style: .continuous)
+            .fill(ShatlColor.metricDivider)
+            .frame(width: 2, height: ShatlMetricLayout.contentHeight)
     }
 
     private func bounceMetricSet() {

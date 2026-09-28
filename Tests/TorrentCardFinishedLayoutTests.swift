@@ -6,8 +6,8 @@ import SwiftUI
 import XCTest
 @testable import Shatl
 
-/// A finished download takes one line in the list: its status beside the
-/// title, without the progress bar or the status under it.
+/// A finished download takes one line in the list: its status badge beside
+/// the title, without the progress bar or the status under it.
 @MainActor
 final class TorrentCardFinishedLayoutTests: XCTestCase {
     func testDownloadedAndSeedingCardsTakeOneLine() throws {

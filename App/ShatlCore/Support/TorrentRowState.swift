@@ -86,8 +86,9 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
 }
 
 extension TorrentRowState {
-    /// A finished download shows on one line: its status beside the title,
-    /// without the progress bar. A check of a finished download keeps it
+    /// A finished download shows on one line: its status badge beside the
+    /// title, without the progress bar; the badge names the status under the
+    /// pointer. A check of a finished download keeps it
     /// there, the one after a restart or before seeding alike: the card shows
     /// the progress it last knew, 100 %.
     var usesFinishedLayout: Bool {
