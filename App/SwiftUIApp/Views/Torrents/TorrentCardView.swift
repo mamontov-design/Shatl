@@ -587,6 +587,7 @@ struct TorrentCardView: View, Equatable {
                 .foregroundStyle(progressGroupForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
+                .frame(minWidth: progressIconMinimumWidth)
 
             if let progressText {
                 Text(progressText)
@@ -596,7 +597,7 @@ struct TorrentCardView: View, Equatable {
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
         }
-        .padding(6)
+        .padding(Self.progressGroupPadding)
         .frame(minWidth: progressGroupMinimumWidth, alignment: .center)
         .background(progressGroupColor)
         .clipShape(progressGroupShape)
@@ -608,6 +609,17 @@ struct TorrentCardView: View, Equatable {
         }
         .frame(height: ShatlMetricLayout.containerHeight)
         .animation(ShatlMotion.cardState, value: row.isPendingAddition)
+    }
+
+    private static let progressGroupPadding: CGFloat = 6
+
+    /// A badge with its icon alone centres the icon in its minimum width; one
+    /// with text puts the icon at its padding. Beside the title, where the
+    /// badge opens under the pointer, the icon keeps a box as wide as that
+    /// centre, so it stays put as the status comes in.
+    private var progressIconMinimumWidth: CGFloat? {
+        guard layoutStage >= .merged else { return nil }
+        return progressGroupMinimumWidth - Self.progressGroupPadding * 2
     }
 
     private var progressGroupMinimumWidth: CGFloat {
