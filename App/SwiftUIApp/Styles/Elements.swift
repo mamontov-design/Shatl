@@ -1353,6 +1353,8 @@ struct ShatlMetricItem: View {
                 .fill(speedPalette?.badge ?? .clear)
                 .opacity(showsSpeedBadge ? 1 : 0)
         }
+        // A colored cell keeps its text inside while it grows or shrinks.
+        .clipShape(MetricItemClip(clips: showsSpeedBadge && speedPalette != nil))
         .animation(ShatlMotion.speedMetricColor, value: speedPalette)
         .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
     }
@@ -1404,6 +1406,19 @@ struct ShatlMetricItem: View {
         default:
             ShatlTypography.metricSemibold
         }
+    }
+}
+
+/// The cell's own shape, or nothing to clip: switching between the two
+/// keeps the item's view.
+private struct MetricItemClip: Shape {
+    var clips: Bool
+
+    func path(in rect: CGRect) -> Path {
+        guard clips else {
+            return Path(rect.insetBy(dx: -1_000, dy: -1_000))
+        }
+        return RoundedRectangle(cornerRadius: 5, style: .continuous).path(in: rect)
     }
 }
 
