@@ -1477,6 +1477,7 @@ struct ShatlMetricSet: View {
         let restShadow = ShatlShadow.metricRest.appearance(for: colorScheme)?.primary
             ?? ShatlShadowLayer(opacity: 0, radius: 0)
         let restOpacity = usesColoredDownloadSpeed ? 0 : restShadow.opacity
+        let plateColor = metricBackgroundColor
 
         HStack(spacing: 5) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -1517,7 +1518,7 @@ struct ShatlMetricSet: View {
                 // blur as it is.
                 .background {
                     let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(metricBackgroundColor)
+                        .fill(plateColor)
                     if showsShadows, shadowOpacity > 0 {
                         plate.shadow(
                             color: metricBounceColor.opacity(shadowOpacity),

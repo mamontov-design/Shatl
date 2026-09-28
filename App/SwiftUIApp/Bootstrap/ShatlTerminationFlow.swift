@@ -135,7 +135,7 @@ enum ShatlRelauncher {
         let gate = LaunchGate()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             gate.continuation = continuation
-            let completion: (NSRunningApplication?, (any Error)?) -> Void = { _, _ in
+            let completion: @Sendable (NSRunningApplication?, (any Error)?) -> Void = { _, _ in
                 DispatchQueue.main.async { gate.resume() }
             }
             if urls.isEmpty {

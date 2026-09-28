@@ -819,12 +819,12 @@ private:
                 auto const *ipv6 = reinterpret_cast<sockaddr_in6 const *>(entry->ifa_addr);
                 lt::address_v6::bytes_type bytes;
                 std::memcpy(bytes.data(), ipv6->sin6_addr.s6_addr, bytes.size());
-                auto scope = static_cast<unsigned long>(ipv6->sin6_scope_id);
+                auto scope = static_cast<boost::asio::ip::scope_id_type>(ipv6->sin6_scope_id);
                 // The kernel may keep the scope of a link-local address inside
                 // its second 16-bit group; the real address has zeros there.
                 if (IN6_IS_ADDR_LINKLOCAL(&ipv6->sin6_addr)) {
                     if (scope == 0) {
-                        scope = (static_cast<unsigned long>(bytes[2]) << 8) | bytes[3];
+                        scope = static_cast<boost::asio::ip::scope_id_type>((bytes[2] << 8) | bytes[3]);
                     }
                     bytes[2] = 0;
                     bytes[3] = 0;
