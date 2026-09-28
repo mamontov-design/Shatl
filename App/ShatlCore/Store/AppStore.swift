@@ -1117,6 +1117,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         expandedTorrentID = nil
     }
 
+    /// Closes this card only: another one may have opened meanwhile.
+    func collapseExpanded(for id: UUID) {
+        guard expandedTorrentID == id else { return }
+        expandedTorrentID = nil
+    }
+
     func startSelectedTorrent() {
         guard let selectedTorrentID else { return }
         startTorrent(id: selectedTorrentID)

@@ -117,6 +117,7 @@ struct TorrentListView: View {
                                         await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
                                     }
                                 },
+                                onCollapse: { store.collapseExpanded(for: torrentID) },
                                 usesCompactExpandedMetricsLayout: usesCompactExpandedMetricsLayout
                             )
                             .equatable()

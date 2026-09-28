@@ -85,6 +85,25 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var simplification = CardSimplificationLevel.full
 }
 
+extension TorrentRowState {
+    /// A finished download shows on one line: its status beside the title,
+    /// without the progress bar. A check of a finished download keeps it
+    /// there, the one after a restart or before seeding alike: the card shows
+    /// the progress it last knew, 100 %.
+    var usesFinishedLayout: Bool {
+        guard errorState == nil, !isPendingAddition else { return false }
+
+        switch status {
+        case .completed, .seeding:
+            return true
+        case .checking:
+            return progress >= 1
+        case .downloading, .stopped, .error:
+            return false
+        }
+    }
+}
+
 @MainActor
 final class TorrentRowPresentationModel: ObservableObject, Identifiable {
     let id: UUID

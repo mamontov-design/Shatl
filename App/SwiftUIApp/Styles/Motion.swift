@@ -26,7 +26,8 @@ enum ShatlMotion {
     static let metricSetBounceScale: CGFloat = 1.1
 
     /// Local animation for card height changes as large blocks appear or disappear.
-    static let cardLayout = Animation.smooth(duration: 0.28)
+    static let cardLayout = Animation.smooth(duration: cardLayoutDuration)
+    static let cardLayoutDuration: TimeInterval = 0.28
 
     /// Smooth content transformation for the pinned row when its folder changes.
     static let stickyContentReplace = Animation.smooth(duration: 0.38)
@@ -98,6 +99,16 @@ enum ShatlMotion {
     /// A busy button keeps its progress title at least this long, so a fast
     /// result does not flicker.
     static let busyButtonMinimumDuration = Duration.seconds(1)
+
+    /// A finished card's last step: the title slides aside, and its status
+    /// and divider come in once the title is out of their way. On the way
+    /// back they go at once, before the title moves over them.
+    static let finishedStatusDelay = cardLayoutDuration * 0.6
+    static let finishedStatusSettleDuration = finishedStatusDelay + metricResizeDuration
+    static let finishedStatusBesideTitle = AnyTransition.asymmetric(
+        insertion: appearFromTop.animation(metricResize.delay(finishedStatusDelay)),
+        removal: .identity
+    )
 
     /// Shared transition for elements inserted into an existing layout:
     /// the element shrinks and fades when hidden, then returns to full size and opacity.

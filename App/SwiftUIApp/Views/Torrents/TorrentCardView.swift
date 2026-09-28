@@ -49,6 +49,36 @@ private struct TorrentProgressFillShape: Shape {
     }
 }
 
+/// The steps a card takes into the one-line layout of a finished download.
+/// They run one after another, each once the one before has settled, so the
+/// parts of the card do not move all at once.
+private enum TorrentCardFinishStage: Int, Comparable {
+    /// Progress bar, and the status under the title.
+    case regular
+    /// The download has just finished: its speed set leaves, and an open
+    /// card closes. The expand button hides until the last step.
+    case closing
+    /// The status under the title has left.
+    case statusHidden
+    /// The progress bar has left.
+    case barHidden
+    /// The status sits beside the title, on one line.
+    case merged
+    /// The expand button is back.
+    case finished
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+/// What a card knew when it appeared. Not observed: it changes only while
+/// the card already shows what it says.
+private final class TorrentCardFinishSteps {
+    /// Whether the card appeared with a finished download; nil before it did.
+    var appearedFinished: Bool?
+}
+
 private enum TorrentCardOutlineState: Equatable {
     case normal
     case selected
@@ -80,6 +110,8 @@ struct TorrentCardView: View, Equatable {
     let onChooseAnotherFolder: () -> Void
     let onRemove: () -> Void
     let onRemoveWithFiles: () -> Void
+    /// Closes the card when its download finishes open.
+    var onCollapse: () -> Void = {}
     var presentationMode: TorrentCardPresentationMode = .normal
     var isExpansionToggleEnabled = true
     var showsExpansionToggle = true
@@ -92,12 +124,17 @@ struct TorrentCardView: View, Equatable {
     var usesCompactExpandedMetricsLayout = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
     @State private var isExpandButtonHovered = false
     @State private var cardHoverIntent = TorrentCardHoverIntent()
     @State private var expandButtonHoverIntent = TorrentCardHoverIntent()
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
+    /// Set once the card first changes its layout; see `layoutStage`.
+    @State private var finishStage: TorrentCardFinishStage?
+    @State private var finishSteps = TorrentCardFinishSteps()
+    @Namespace private var statusBadgeSpace
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -110,10 +147,15 @@ struct TorrentCardView: View, Equatable {
 
             if showsProgressBar {
                 progressBar
-                    .transition(.opacity)
+                    .transition(progressBarTransition)
             }
 
-            primaryMetricContainer
+            if layoutStage < .merged {
+                // Its badge moves to the title and back; the rest has left
+                // by then or comes in on its own.
+                primaryMetricContainer
+                    .transition(.identity)
+            }
 
             if row.errorState == nil, row.isExpanded, let expandedMetricGroups = row.expandedMetricGroups {
                 expandedContent(expandedMetricGroups)
@@ -159,6 +201,9 @@ struct TorrentCardView: View, Equatable {
         }
         .task(id: row.navigationAvailabilityKey) {
             await refreshNavigationAvailability()
+        }
+        .task(id: row.usesFinishedLayout) {
+            await followFinishedLayout()
         }
         .onHover { isInside in
             guard presentationMode.allowsHoverEffects else { return }
@@ -254,6 +299,25 @@ struct TorrentCardView: View, Equatable {
 
     private var nameExpandMark: some View {
         HStack(spacing: 8) {
+            if layoutStage >= .merged {
+                // The badge comes up from under the title; the status and
+                // the divider appear beside it.
+                statusBadgeContent
+                    .transition(.identity)
+
+                // A new status replaces the old one in place, so the title
+                // does not step aside for both.
+                ZStack(alignment: .leading) {
+                    statusTitle
+                        .transition(.blurReplace)
+                }
+                .transition(ShatlMotion.finishedStatusBesideTitle)
+
+                ShatlMetricDivider()
+                    .padding(.horizontal, 1)
+                    .transition(ShatlMotion.finishedStatusBesideTitle)
+            }
+
             Text(row.title)
                 .shatlTypography(ShatlTypography.bodySemibold)
                 .foregroundStyle(ShatlColor.typographyPrimary)
@@ -264,13 +328,13 @@ struct TorrentCardView: View, Equatable {
 
             if row.errorState == nil, showsExpansionToggle {
                 ZStack {
-                    if row.canExpand {
+                    if showsExpandButton {
                         expandButton
                             .transition(ShatlMotion.appearFromTop)
                     }
                 }
                 .frame(width: 18, height: 18)
-                .animation(ShatlMotion.metricResize, value: row.canExpand)
+                .animation(ShatlMotion.metricResize, value: showsExpandButton)
             }
 
             if row.isSelected {
@@ -281,6 +345,14 @@ struct TorrentCardView: View, Equatable {
         .animation(ShatlMotion.cardControlSlide, value: row.errorState != nil)
         .animation(ShatlMotion.cardControlSlide, value: row.isExpanded)
         .animation(ShatlMotion.cardControlSlide, value: row.isSelected)
+        // A new status beside the title moves the title as it replaces the old one.
+        .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
+    }
+
+    /// Hidden while a finished download takes its steps, so a click cannot
+    /// open the card halfway through.
+    private var showsExpandButton: Bool {
+        row.canExpand && (layoutStage == .regular || layoutStage == .finished)
     }
 
     private var expandButton: some View {
@@ -362,17 +434,27 @@ struct TorrentCardView: View, Equatable {
 
     private var statusBadge: some View {
         HStack(spacing: 8) {
-            progressGroup
+            statusBadgeContent
 
-            if statusKind != .error {
-                Text(row.statusTitle)
-                    .shatlTypography(ShatlTypography.metricSemibold)
-                    .foregroundStyle(ShatlColor.typographyPrimary)
-                    .id(statusPresentationKey)
-                    .transition(.blurReplace)
+            if statusKind != .error, layoutStage < .statusHidden {
+                statusTitle
+                    .transition(finishStepTransition(otherwise: AnyTransition(.blurReplace)))
             }
         }
         .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
+    }
+
+    /// One badge for both places: under the title and beside it.
+    private var statusBadgeContent: some View {
+        progressGroup
+            .matchedGeometryEffect(id: "status-badge", in: statusBadgeSpace)
+    }
+
+    private var statusTitle: some View {
+        Text(row.statusTitle)
+            .shatlTypography(ShatlTypography.metricSemibold)
+            .foregroundStyle(ShatlColor.typographyPrimary)
+            .id(statusPresentationKey)
     }
 
     private func transferMetricSetView(_ metricSet: CompactTransferMetricSet) -> some View {
@@ -585,7 +667,7 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressText: String? {
-        if row.isPendingAddition {
+        if row.isPendingAddition || layoutStage >= .merged {
             return nil
         }
 
@@ -727,7 +809,123 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var showsProgressBar: Bool {
-        row.errorState == nil
+        row.errorState == nil && layoutStage < .barHidden
+    }
+
+    /// Where the card stands on its way to the finished layout. A card built
+    /// for a finished download, at launch too, is one line from the start.
+    /// After that the card changes its layout only in `followFinishedLayout`,
+    /// inside an animation, so the cards below move with it.
+    private var layoutStage: TorrentCardFinishStage {
+        if let finishStage {
+            return finishStage
+        }
+        let isFinished = finishSteps.appearedFinished ?? row.usesFinishedLayout
+        return isFinished ? .finished : .regular
+    }
+
+    /// Parts leave on the way to the finished layout the way the speed set does.
+    private func finishStepTransition(otherwise transition: AnyTransition) -> AnyTransition {
+        layoutStage == .regular ? transition : ShatlMotion.appearFromTop
+    }
+
+    /// The bar comes back once the title above it has settled: the card
+    /// grows around its new parts, and a bar that showed at once would pass
+    /// under the title.
+    private var progressBarTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.animation(ShatlMotion.cardLayout.delay(ShatlMotion.cardLayoutDuration / 2)),
+            removal: finishStepTransition(otherwise: .opacity)
+        )
+    }
+
+    /// Takes a download that finished in view into the one-line layout step
+    /// by step, each step once the one before has settled. A finished
+    /// download that starts again or fails goes back in one move.
+    private func followFinishedLayout() async {
+        guard finishSteps.appearedFinished != nil else {
+            finishSteps.appearedFinished = row.usesFinishedLayout
+            return
+        }
+
+        guard row.usesFinishedLayout else {
+            guard layoutStage != .regular else { return }
+            withAnimation(reduceMotion ? nil : ShatlMotion.cardLayout) {
+                finishStage = .regular
+            }
+            return
+        }
+
+        guard layoutStage < .finished else { return }
+
+        if reduceMotion || presentationMode != .normal {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                onCollapse()
+                finishStage = .finished
+            }
+            return
+        }
+
+        // With many downloads running the list has no room for the steps.
+        if row.simplification == .lightest {
+            withAnimation(ShatlMotion.cardLayout) {
+                onCollapse()
+                finishStage = .finished
+            }
+            return
+        }
+
+        if layoutStage < .closing {
+            withAnimation(ShatlMotion.metricResize) {
+                finishStage = .closing
+            }
+            // The speed set leaves and the status changes with the finish.
+            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+
+            if row.isExpanded {
+                withAnimation(ShatlMotion.cardLayout) {
+                    onCollapse()
+                }
+                guard await settle(for: ShatlMotion.cardLayoutDuration) else { return }
+            }
+        }
+
+        if layoutStage < .statusHidden {
+            withAnimation(ShatlMotion.metricResize) {
+                finishStage = .statusHidden
+            }
+            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+        }
+
+        if layoutStage < .barHidden {
+            withAnimation(ShatlMotion.metricResize) {
+                finishStage = .barHidden
+            }
+            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+        }
+
+        if layoutStage < .merged {
+            withAnimation(ShatlMotion.cardLayout) {
+                finishStage = .merged
+            }
+            guard await settle(for: ShatlMotion.finishedStatusSettleDuration) else { return }
+        }
+
+        withAnimation(ShatlMotion.metricResize) {
+            finishStage = .finished
+        }
+    }
+
+    /// Waits for a step to settle; false once the steps are called off.
+    private func settle(for duration: TimeInterval) async -> Bool {
+        do {
+            try await Task.sleep(for: .seconds(duration))
+            return true
+        } catch {
+            return false
+        }
     }
 
     private var progressBar: some View {
@@ -828,6 +1026,7 @@ struct TorrentCardView: View, Equatable {
             status: row.status,
             progressPercent: progressPercent,
             showsProgressBar: showsProgressBar,
+            finishStage: "\(layoutStage)",
             hasCompactTransferMetricSet: row.compactTransferMetricSet != nil,
             compactTransferItemIDs: row.compactTransferMetricSet?.items.map(\.id) ?? [],
             isExpanded: row.isExpanded,
@@ -932,6 +1131,8 @@ private struct TorrentCardLayoutDiagnosticsProbe: View {
             "progress.current=\(current.signature.progressPercent)",
             "progressBar.previous=\(previous?.signature.showsProgressBar.description ?? "-")",
             "progressBar.current=\(current.signature.showsProgressBar)",
+            "finish.previous=\(previous?.signature.finishStage ?? "-")",
+            "finish.current=\(current.signature.finishStage)",
             "compactTransfer.previous=\(previous?.signature.hasCompactTransferMetricSet.description ?? "-")",
             "compactTransfer.current=\(current.signature.hasCompactTransferMetricSet)",
             "compactItems.previous=\(previous?.signature.compactTransferItemIDs.joined(separator: ",") ?? "-")",
@@ -956,6 +1157,7 @@ private struct TorrentCardLayoutSignature: Equatable {
     var status: TorrentStatus
     var progressPercent: Int
     var showsProgressBar: Bool
+    var finishStage: String
     var hasCompactTransferMetricSet: Bool
     var compactTransferItemIDs: [String]
     var isExpanded: Bool
