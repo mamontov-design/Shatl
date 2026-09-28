@@ -70,9 +70,12 @@ struct ShatlFrameContext: Equatable {
     var metricsMode = "-"
     var windowSize = "-"
     var cards = ShatlFrameCardCounts()
+    /// The demo preset as `active+inactive`, or `-` for the user's own list.
+    var demo = "-"
 
     var logFields: [String] {
         [
+            "demo=\(demo)",
             "metrics=\(metricsMode)",
             "window=\(windowSize)",
             "cards=\(cards.total)",
@@ -562,6 +565,7 @@ final class ShatlFrameMonitor: NSObject {
             context.windowSize = "\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
         }
         context.cards = meter?.cardCounts?() ?? ShatlFrameCardCounts()
+        context.demo = ShatlDemoList.activePreset?.logName ?? "-"
         return context
     }
 
@@ -577,6 +581,14 @@ final class ShatlFrameMonitor: NSObject {
             counts.total,
             counts.active
         )
+        if let preset = ShatlDemoList.activePreset {
+            name = L10n.format(
+                "debug.frame_meter.demo",
+                localeOverride: localeOverride,
+                defaultValue: "Демо %@",
+                preset.logName
+            ) + " · " + name
+        }
         if removedCount > 0 {
             name += " · " + L10n.format(
                 "debug.frame_meter.removed_parts",

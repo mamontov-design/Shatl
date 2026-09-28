@@ -175,6 +175,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// The speed icons each torrent shows, kept between updates so an icon
     /// does not flicker at a threshold. See `TransferSpeedLevel`.
     private var transferSpeedLevels: [UUID: TransferSpeedLevels] = [:]
+    #if DEBUG
+    /// Debug demo list: made-up downloads that join the list once the engine
+    /// is up, without passing through the session.
+    var demoTorrentsAfterBootstrap: [TorrentRecord]?
+    #endif
     /// Some sleeping states arrive paused while their engine handle is still alive.
     /// Detach such a handle after its first final snapshot so the store and engine
     /// agree that a sleeping torrent has no active handle.
@@ -2128,6 +2133,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
+        #if DEBUG
+        if let demoTorrents = demoTorrentsAfterBootstrap {
+            demoTorrentsAfterBootstrap = nil
+            torrents = demoTorrents
+        }
+        #endif
         startRuntimeLoop()
         await reconcileSleepingTorrents()
         isRestoringSession = false

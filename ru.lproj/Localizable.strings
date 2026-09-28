@@ -202,6 +202,11 @@
 "settings.tab.localization" = "Язык";
 "settings.tab.debug" = "Отладка";
 "menu.debug.show_onboarding" = "Запустить онбординг";
+"menu.debug.demo_list" = "Демо-список";
+"menu.debug.demo_list.active" = "%ld активных";
+"menu.debug.demo_list.mixed" = "%1$ld активных + %2$ld неактивных";
+"menu.debug.demo_list.exit" = "Выйти из демо-списка";
+"debug.frame_meter.demo" = "Демо %@";
 
 "settings.notifications.section" = "Уведомления";
 "settings.notifications.show" = "Показывать уведомления";

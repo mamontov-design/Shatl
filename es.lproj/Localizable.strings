@@ -198,6 +198,11 @@
 "settings.tab.localization" = "Idioma";
 "settings.tab.debug" = "Depuración";
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
+"menu.debug.demo_list" = "Lista de demostración";
+"menu.debug.demo_list.active" = "%ld activas";
+"menu.debug.demo_list.mixed" = "%1$ld activas + %2$ld inactivas";
+"menu.debug.demo_list.exit" = "Salir de la lista de demostración";
+"debug.frame_meter.demo" = "Demo %@";
 
 "settings.notifications.section" = "Notificaciones";
 "settings.notifications.show" = "Mostrar notificaciones";
