@@ -129,15 +129,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// `CardSimplificationLevel`. The speed chips read it too.
     @Published private(set) var cardSimplification = CardSimplificationLevel.full
     private var automaticCardSimplification = CardSimplificationLevel.full
-    #if DEBUG
-    /// A level picked in Settings -> Debug in place of the one the count gives.
-    @Published private(set) var debugCardSimplificationOverride: CardSimplificationLevel?
-
-    func setDebugCardSimplificationOverride(_ level: CardSimplificationLevel?) {
-        debugCardSimplificationOverride = level
-        refreshTorrentPresentations()
-    }
-    #endif
 
     private let engine: any TorrentEngine
     private let preferencesStore: AppPreferencesStore?
@@ -188,11 +179,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// The speed icons each torrent shows, kept between updates so an icon
     /// does not flicker at a threshold. See `TransferSpeedLevel`.
     private var transferSpeedLevels: [UUID: TransferSpeedLevels] = [:]
-    #if DEBUG
-    /// Debug demo list: made-up downloads that join the list once the engine
-    /// is up, without passing through the session.
-    var demoTorrentsAfterBootstrap: [TorrentRecord]?
-    #endif
     /// Some sleeping states arrive paused while their engine handle is still alive.
     /// Detach such a handle after its first final snapshot so the store and engine
     /// agree that a sleeping torrent has no active handle.
@@ -655,12 +641,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             activeDownloads: CardSimplificationLevel.activeDownloadCount(in: torrents),
             previous: automaticCardSimplification
         )
-        var level = automaticCardSimplification
-        #if DEBUG
-        level = debugCardSimplificationOverride ?? level
-        #endif
-        if cardSimplification != level {
-            cardSimplification = level
+        if cardSimplification != automaticCardSimplification {
+            cardSimplification = automaticCardSimplification
         }
     }
 
@@ -2165,12 +2147,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
-        #if DEBUG
-        if let demoTorrents = demoTorrentsAfterBootstrap {
-            demoTorrentsAfterBootstrap = nil
-            torrents = demoTorrents
-        }
-        #endif
         startRuntimeLoop()
         await reconcileSleepingTorrents()
         isRestoringSession = false
@@ -2317,10 +2293,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func applySnapshots(_ snapshots: [EngineTorrentSnapshot]) {
         guard !snapshots.isEmpty else { return }
-        #if DEBUG
-        let frameTraceStart = ShatlFrameTrace.beginSpan()
-        defer { ShatlFrameTrace.endSpan("store.snapshots", startedAt: frameTraceStart) }
-        #endif
 
         let snapshotsByID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
         var updatedTorrents = torrents

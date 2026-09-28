@@ -12,9 +12,6 @@ struct TorrentListView: View {
     private static let maximumDisplayedSearchQueryLength = 32
     private static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
-    #if DEBUG
-    @ObservedObject private var frameDiagnostics = ShatlFrameDiagnosticsSettings.shared
-    #endif
 
     private var visibleTorrentIDs: [UUID] {
         store.torrentRowIDs(matching: searchText)
@@ -178,43 +175,7 @@ struct TorrentListView: View {
         .onChange(of: visibleTorrentIDs) { _, newVisibleTorrentIDs in
             store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)
         }
-        #if DEBUG
-        .overlay(alignment: .topTrailing) {
-            if frameDiagnostics.isEnabled {
-                // As wide as the list, whatever the text: new text must not
-                // lay the list out again. The label hugs the right.
-                ShatlFrameMeter(
-                    localeOverride: store.preferences.localeOverride,
-                    metricsMode: store.preferences.metricsMode,
-                    cardCounts: { [store, searchText] in
-                        Self.cardCounts(store: store, searchText: searchText)
-                    }
-                )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 20)
-                    .padding(.top, 6)
-                    .padding(.horizontal, 12)
-                    .allowsHitTesting(false)
-            }
-        }
-        #endif
     }
-
-    #if DEBUG
-    /// Cards in the list and how many of them download, for the frame log.
-    private static func cardCounts(store: AppStore, searchText: String) -> ShatlFrameCardCounts {
-        let ids = store.torrentRowIDs(matching: searchText)
-        let active = ids.filter { id in
-            guard let status = store.torrentRecord(for: id)?.status else { return false }
-            return status == .downloading || status == .checking
-        }
-        return ShatlFrameCardCounts(
-            total: ids.count,
-            active: active.count,
-            level: store.cardSimplification.rawValue
-        )
-    }
-    #endif
 
     private func presentRedownloadFolderPicker(for torrentID: UUID) {
         let panel = NSOpenPanel()

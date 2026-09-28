@@ -23,9 +23,6 @@ nonisolated final class ShatlFileLogger: @unchecked Sendable {
     static let addTorrentReviewDiagnostics = ShatlFileLogger(
         fileName: "Shatl Add Torrent Review Diagnostics.log"
     )
-    static let frameDiagnostics = ShatlFileLogger(
-        fileName: "Shatl Frame Diagnostics.log"
-    )
     static let cardLayoutDiagnostics = ShatlFileLogger(
         fileName: "Shatl Card Layout Diagnostics.log"
     )

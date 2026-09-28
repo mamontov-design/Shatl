@@ -13,15 +13,10 @@ struct ShatlApp: App {
 
     init() {
         let launchMode = ShatlLaunchMode.current
-        #if DEBUG
-        let isDemoList = ShatlDemoList.activePreset != nil
-        #else
-        let isDemoList = false
-        #endif
 
         _updaterController = StateObject(
             wrappedValue: ShatlUpdaterController(
-                startingUpdater: launchMode == .live && !isDemoList
+                startingUpdater: launchMode == .live
             )
         )
 
@@ -35,26 +30,24 @@ struct ShatlApp: App {
         #endif
 
         let environment = AppEnvironment.live()
-        let store = AppStore(
-            engine: environment.engine,
-            preferencesStore: environment.preferencesStore,
-            sessionStore: environment.sessionStore,
-            torrentArchiveStore: environment.torrentArchiveStore,
-            bookmarkStore: environment.bookmarkStore,
-            sessionRestoreCoordinator: environment.sessionRestoreCoordinator,
-            diskIssueDetector: environment.diskIssueDetector,
-            torrentPayloadLocator: environment.torrentPayloadLocator,
-            torrentPayloadDeletionService: environment.torrentPayloadDeletionService,
-            externalOpenRouter: environment.externalOpenRouter,
-            userEventNotifier: environment.userEventNotifier,
-            userEventBadgeDisplay: environment.userEventBadgeDisplay,
-            usageTelemetryCoordinator: environment.usageTelemetryCoordinator,
-            usageTelemetrySender: environment.usageTelemetrySender
+        _store = StateObject(
+            wrappedValue: AppStore(
+                engine: environment.engine,
+                preferencesStore: environment.preferencesStore,
+                sessionStore: environment.sessionStore,
+                torrentArchiveStore: environment.torrentArchiveStore,
+                bookmarkStore: environment.bookmarkStore,
+                sessionRestoreCoordinator: environment.sessionRestoreCoordinator,
+                diskIssueDetector: environment.diskIssueDetector,
+                torrentPayloadLocator: environment.torrentPayloadLocator,
+                torrentPayloadDeletionService: environment.torrentPayloadDeletionService,
+                externalOpenRouter: environment.externalOpenRouter,
+                userEventNotifier: environment.userEventNotifier,
+                userEventBadgeDisplay: environment.userEventBadgeDisplay,
+                usageTelemetryCoordinator: environment.usageTelemetryCoordinator,
+                usageTelemetrySender: environment.usageTelemetrySender
+            )
         )
-        #if DEBUG
-        store.demoTorrentsAfterBootstrap = environment.demoTorrents
-        #endif
-        _store = StateObject(wrappedValue: store)
     }
 
     var body: some Scene {

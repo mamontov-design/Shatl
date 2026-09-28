@@ -6,27 +6,6 @@ import SwiftUI
 struct ShatlCommands: Commands {
     @ObservedObject var store: AppStore
 
-    #if DEBUG
-    private func demoPresetTitle(_ preset: ShatlDemoPreset) -> String {
-        let localeOverride = store.preferences.localeOverride
-        guard preset.inactiveCount > 0 else {
-            return L10n.format(
-                "menu.debug.demo_list.active",
-                localeOverride: localeOverride,
-                defaultValue: "%ld активных",
-                preset.activeCount
-            )
-        }
-        return L10n.format(
-            "menu.debug.demo_list.mixed",
-            localeOverride: localeOverride,
-            defaultValue: "%1$ld активных + %2$ld неактивных",
-            preset.activeCount,
-            preset.inactiveCount
-        )
-    }
-    #endif
-
     var body: some Commands {
         CommandGroup(replacing: .newItem) { }
         CommandGroup(replacing: .sidebar) {
@@ -41,22 +20,6 @@ struct ShatlCommands: Commands {
                     name: .shatlPresentDebugOnboarding,
                     object: nil
                 )
-            }
-
-            Menu("menu.debug.demo_list") {
-                ForEach(ShatlDemoPreset.allCases) { preset in
-                    Button(demoPresetTitle(preset)) {
-                        ShatlDemoList.relaunch(into: preset)
-                    }
-                    .disabled(preset == ShatlDemoList.activePreset)
-                }
-
-                Divider()
-
-                Button("menu.debug.demo_list.exit") {
-                    ShatlDemoList.relaunch(into: nil)
-                }
-                .disabled(ShatlDemoList.activePreset == nil)
             }
         }
         #endif

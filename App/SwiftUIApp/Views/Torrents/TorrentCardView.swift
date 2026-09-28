@@ -98,9 +98,6 @@ struct TorrentCardView: View, Equatable {
     @State private var expandButtonHoverIntent = TorrentCardHoverIntent()
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
-    #if DEBUG
-    @ObservedObject private var debugOptions = TorrentCardDebugOptions.shared
-    #endif
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -108,9 +105,6 @@ struct TorrentCardView: View, Equatable {
     }
 
     var body: some View {
-        #if DEBUG
-        let _ = ShatlFrameTrace.count(.cardBodies)
-        #endif
         VStack(alignment: .leading, spacing: 8) {
             torrentNameHeader
 
@@ -131,8 +125,8 @@ struct TorrentCardView: View, Equatable {
                     .transition(ShatlMotion.appearFromTop)
             }
         }
-        .cardAnimation(ShatlMotion.cardLayout, value: row.isExpanded, part: .stateAnimations)
-        .cardAnimation(ShatlMotion.cardLayout, value: row.errorState != nil, part: .stateAnimations)
+        .animation(ShatlMotion.cardLayout, value: row.isExpanded)
+        .animation(ShatlMotion.cardLayout, value: row.errorState != nil)
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
@@ -148,14 +142,14 @@ struct TorrentCardView: View, Equatable {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .cardAnimation(ShatlMotion.cardState, value: isHovered, part: .hoverAnimations)
-        .cardAnimation(ShatlMotion.cardState, value: row.isSelected, part: .stateAnimations)
-        .cardAnimation(ShatlMotion.cardState, value: row.errorState != nil, part: .stateAnimations)
+        .animation(ShatlMotion.cardState, value: isHovered)
+        .animation(ShatlMotion.cardState, value: row.isSelected)
+        .animation(ShatlMotion.cardState, value: row.errorState != nil)
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(cardOutlineColor, lineWidth: cardOutlineLineWidth)
                 .allowsHitTesting(false)
-                .cardAnimation(ShatlMotion.cardState, value: cardOutlineState, part: .stateAnimations)
+                .animation(ShatlMotion.cardState, value: cardOutlineState)
         }
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .contextMenu {
@@ -163,13 +157,10 @@ struct TorrentCardView: View, Equatable {
                 contextMenuContent
             }
         }
-        .cardTask(id: row.navigationAvailabilityKey) {
+        .task(id: row.navigationAvailabilityKey) {
             await refreshNavigationAvailability()
         }
         .onHover { isInside in
-            #if DEBUG
-            ShatlFrameTrace.count(.cardHovers)
-            #endif
             guard presentationMode.allowsHoverEffects else { return }
             setHover(isInside, intent: cardHoverIntent, isHovered: $isHovered)
         }
@@ -186,7 +177,6 @@ struct TorrentCardView: View, Equatable {
             }
         }
         .environment(\.shatlRollsMetricDigits, row.simplification < .lightest)
-        .cardAnimationTraceID(row.id)
     }
 
     @ViewBuilder
@@ -270,7 +260,7 @@ struct TorrentCardView: View, Equatable {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .cardContentTransition(.interpolate, part: .titleTransition)
+                .contentTransition(.interpolate)
 
             if row.errorState == nil, showsExpansionToggle {
                 ZStack {
@@ -280,7 +270,7 @@ struct TorrentCardView: View, Equatable {
                     }
                 }
                 .frame(width: 18, height: 18)
-                .cardAnimation(ShatlMotion.metricResize, value: row.canExpand, part: .metricAnimations)
+                .animation(ShatlMotion.metricResize, value: row.canExpand)
             }
 
             if row.isSelected {
@@ -288,9 +278,9 @@ struct TorrentCardView: View, Equatable {
                     .transition(ShatlMotion.selectedIndicator)
             }
         }
-        .cardAnimation(ShatlMotion.cardControlSlide, value: row.errorState != nil, part: .stateAnimations)
-        .cardAnimation(ShatlMotion.cardControlSlide, value: row.isExpanded, part: .stateAnimations)
-        .cardAnimation(ShatlMotion.cardControlSlide, value: row.isSelected, part: .stateAnimations)
+        .animation(ShatlMotion.cardControlSlide, value: row.errorState != nil)
+        .animation(ShatlMotion.cardControlSlide, value: row.isExpanded)
+        .animation(ShatlMotion.cardControlSlide, value: row.isSelected)
     }
 
     private var expandButton: some View {
@@ -311,8 +301,8 @@ struct TorrentCardView: View, Equatable {
             guard presentationMode.allowsHoverEffects else { return }
             setHover(isInside, intent: expandButtonHoverIntent, isHovered: $isExpandButtonHovered)
         }
-        .cardAnimation(ShatlMotion.cardState, value: isExpandButtonHovered, part: .hoverAnimations)
-        .cardAnimation(ShatlMotion.cardControlSlide, value: row.isExpanded, part: .stateAnimations)
+        .animation(ShatlMotion.cardState, value: isExpandButtonHovered)
+        .animation(ShatlMotion.cardControlSlide, value: row.isExpanded)
     }
 
     /// Lights up once the pointer rests; goes dark at once. See
@@ -360,7 +350,7 @@ struct TorrentCardView: View, Equatable {
             }
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .cardAnimation(ShatlMotion.metricResize, value: compactTransferMetricAnimationKey, part: .metricAnimations)
+        .animation(ShatlMotion.metricResize, value: compactTransferMetricAnimationKey)
     }
 
     private var compactTransferMetricAnimationKey: CompactTransferMetricAnimationKey {
@@ -378,11 +368,11 @@ struct TorrentCardView: View, Equatable {
                 Text(row.statusTitle)
                     .shatlTypography(ShatlTypography.metricSemibold)
                     .foregroundStyle(ShatlColor.typographyPrimary)
-                    .cardTransitionIdentity(statusPresentationKey, part: .statusAnimations)
+                    .id(statusPresentationKey)
                     .transition(.blurReplace)
             }
         }
-        .cardAnimation(ShatlMotion.progressStatusReplace, value: statusPresentationKey, part: .statusAnimations)
+        .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
     }
 
     private func transferMetricSetView(_ metricSet: CompactTransferMetricSet) -> some View {
@@ -441,13 +431,12 @@ struct TorrentCardView: View, Equatable {
                 .layoutPriority(1)
         }
         .geometryGroup()
-        .cardAnimation(ShatlMotion.metricResize, value: animationKey, part: .metricAnimations)
+        .animation(ShatlMotion.metricResize, value: animationKey)
     }
 
-    /// Off from the first card simplification; read here, where the Debug
-    /// switches redraw the card, so taking the shadows off shows at once.
+    /// Off from the first card simplification.
     private var showsMetricShadows: Bool {
-        row.simplification == .full && !isCardPartRemoved(.metricShadows)
+        row.simplification == .full
     }
 
     private var hidesExpandedMetricIcons: Bool {
@@ -507,9 +496,9 @@ struct TorrentCardView: View, Equatable {
 
     private var progressGroup: some View {
         progressGroupContent
-        .cardAnimation(ShatlMotion.progressGroupResize, value: progressGroupResizeAnimationKey, part: .statusAnimations)
-        .cardAnimation(ShatlMotion.cardState, value: statusKind, part: .statusAnimations)
-        .cardAnimation(ShatlMotion.cardState, value: usesHoverStatusPalette, part: .hoverAnimations)
+        .animation(ShatlMotion.progressGroupResize, value: progressGroupResizeAnimationKey)
+        .animation(ShatlMotion.cardState, value: statusKind)
+        .animation(ShatlMotion.cardState, value: usesHoverStatusPalette)
     }
 
     private var progressGroupResizeAnimationKey: ProgressGroupResizeAnimationKey {
@@ -546,7 +535,7 @@ struct TorrentCardView: View, Equatable {
                 .allowsHitTesting(false)
         }
         .frame(height: ShatlMetricLayout.containerHeight)
-        .cardAnimation(ShatlMotion.cardState, value: row.isPendingAddition, part: .statusAnimations)
+        .animation(ShatlMotion.cardState, value: row.isPendingAddition)
     }
 
     private var progressGroupMinimumWidth: CGFloat {
@@ -752,8 +741,8 @@ struct TorrentCardView: View, Equatable {
 
             TorrentProgressFillShape(progress: CGFloat(displayedBarProgress))
                 .fill(progressBarFillColor)
-                .cardAnimation(ShatlMotion.progressBarFill, value: displayedBarProgress, part: .progressBarAnimation)
-                .cardAnimation(ShatlMotion.progressBarFill, value: isProgressBarComplete, part: .progressBarAnimation)
+                .animation(ShatlMotion.progressBarFill, value: displayedBarProgress)
+                .animation(ShatlMotion.progressBarFill, value: isProgressBarComplete)
         }
         .frame(height: 10)
     }

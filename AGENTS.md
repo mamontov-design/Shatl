@@ -73,12 +73,8 @@ persistence, deletion, restore, or shared UI state.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 15, no bounce and no metric shadows; from
   25, digits also stop rolling); the level enters each card through its row
-  inputs, and the Debug demo list (`ShatlDemoList`) is the bench for it.
-  Debug builds have a frame meter in Settings → Debug that logs late frames
-  to `Shatl Frame Diagnostics.log` with the card animations that ran; hot
-  paths feed it through `ShatlFrameTrace`, which must stay a no-op while the
-  meter is off. The large add-review file tree may use its separate
-  cached/flattened `LazyVStack` path.
+  inputs. If a hang returns, sample it first. The large add-review file tree
+  may use its separate cached/flattened `LazyVStack` path.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

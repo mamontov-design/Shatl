@@ -1340,8 +1340,8 @@ struct ShatlMetricItem: View {
                 .fill(speedPalette?.badge ?? .clear)
                 .opacity(showsSpeedBadge ? 1 : 0)
         }
-        .cardAnimation(ShatlMotion.speedMetricColor, value: speedPalette, part: .metricHighlight)
-        .cardAnimation(ShatlMotion.speedMetricColor, value: showsSpeedBadge, part: .metricHighlight)
+        .animation(ShatlMotion.speedMetricColor, value: speedPalette)
+        .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
     }
 
     private var iconColor: Color {
@@ -1363,13 +1363,10 @@ struct ShatlMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion, rollsDigits, !isCardPartRemoved(.digitRoll) {
+        if !reduceMotion, rollsDigits {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
-                #if DEBUG
-                .cardAnimationTrace(.digits, value: number, duration: ShatlMotion.metricResizeDuration)
-                #endif
         } else {
             text
         }
@@ -1462,9 +1459,6 @@ struct ShatlMetricSet: View {
     @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
-    #if DEBUG
-    @Environment(\.shatlTracedCardID) private var tracedCardID
-    #endif
 
     var body: some View {
         let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
@@ -1575,7 +1569,7 @@ struct ShatlMetricSet: View {
         .frame(height: ShatlMetricLayout.containerHeight)
         .metricSetDiagnostics(items: items, context: diagnosticsContext)
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
-            guard metricSetBounceEnabled, !isCardPartRemoved(.metricBounce) else { return }
+            guard metricSetBounceEnabled else { return }
             // Only the download speed bounces; the upload speed changes its
             // icon quietly.
             guard items.contains(where: { $0.id == "download-speed" }),
@@ -1657,13 +1651,6 @@ struct ShatlMetricSet: View {
         }
 
         bounceTrigger += 1
-        #if DEBUG
-        ShatlFrameTrace.animationStarted(
-            .bounce,
-            cardID: tracedCardID,
-            duration: ShatlMotion.metricSetBounceTotalDuration
-        )
-        #endif
         if let startedAt {
             logBounceEvent(
                 "metricset.bounce.keyframes-commanded",
@@ -1675,7 +1662,6 @@ struct ShatlMetricSet: View {
     }
 
     private func flashMetricSetOutline() {
-        guard !isCardPartRemoved(.metricHighlight) else { return }
         outlineFlashToken += 1
         let token = outlineFlashToken
 
@@ -1683,13 +1669,6 @@ struct ShatlMetricSet: View {
             return
         }
 
-        #if DEBUG
-        ShatlFrameTrace.animationStarted(
-            .highlight,
-            cardID: tracedCardID,
-            duration: ShatlMotion.metricSetBounceTotalDuration
-        )
-        #endif
         withAnimation(.smooth(duration: ShatlMotion.metricSetBounceUpDuration)) {
             outlineFlashOpacity = 1
         }
@@ -2035,13 +2014,10 @@ private struct ShatlInfoBottomMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion, rollsDigits, !isCardPartRemoved(.chipDigitRoll) {
+        if !reduceMotion, rollsDigits {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
-                #if DEBUG
-                .cardAnimationTrace(.chipDigits, value: number, duration: ShatlMotion.metricResizeDuration)
-                #endif
         } else {
             text
         }

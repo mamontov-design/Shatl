@@ -118,8 +118,7 @@ final class CardSimplificationTests: XCTestCase {
         XCTAssertEqual(CardSimplificationLevel.activeDownloadCount(in: records), 2)
     }
 
-    /// The level reaches every card through its row, and a Debug pick
-    /// replaces the one the count gives.
+    /// The level reaches every card through its row.
     func testStoreHandsTheLevelToTheCards() throws {
         let active = (0..<16).map { _ in makeTestRecord(status: .downloading, progress: 0.4) }
         let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: active)
@@ -129,11 +128,6 @@ final class CardSimplificationTests: XCTestCase {
         let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: active[0].id))
 
         XCTAssertEqual(bundle.store.cardSimplification, .lighter)
-        XCTAssertEqual(rowModel.state.simplification, .lighter)
-
-        bundle.store.setDebugCardSimplificationOverride(.lightest)
-        XCTAssertEqual(rowModel.state.simplification, .lightest)
-        bundle.store.setDebugCardSimplificationOverride(nil)
         XCTAssertEqual(rowModel.state.simplification, .lighter)
     }
 }

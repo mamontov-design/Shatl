@@ -6,8 +6,8 @@ import Foundation
 /// How much the cards leave out so the list keeps scrolling smoothly with
 /// many downloads running at once. The level follows the number of active
 /// downloads: the list keeps every card alive, and each active card animates
-/// its numbers every second, on screen or not. Measured on an M1 with the
-/// demo list: 25 active downloads scrolled with 17 % late frames with
+/// its numbers every second, on screen or not. Measured on an M1 in
+/// September 2026: 25 active downloads scrolled with 17 % late frames with
 /// everything on, 5 % without the bounce and 2 % without the rolling digits.
 nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendable {
     /// Rolling digits, bouncing speed sets and metric shadows.

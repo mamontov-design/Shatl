@@ -43,40 +43,14 @@ struct AppEnvironment {
     var userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     var usageTelemetryCoordinator: UsageTelemetryLocalCoordinator
     var usageTelemetrySender: (any UsageTelemetrySending)?
-    #if DEBUG
-    /// The made-up downloads of a demo list, put in the list once the engine
-    /// is up; see `ShatlDemoList`.
-    var demoTorrents: [TorrentRecord]? = nil
-    #endif
 
     static func live() -> AppEnvironment {
-        #if DEBUG
-        if let preset = ShatlDemoList.activePreset {
-            return demo(preset)
-        }
-        #endif
         let directories = liveDirectories
-        return assemble(
-            directories: directories,
-            preferencesStore: livePreferencesStore,
-            engine: LibtorrentEngine(directories: directories),
-            userEventNotifier: MacTorrentUserEventNotifier(),
-            userEventBadgeDisplay: MacTorrentUserEventBadgeDisplay(),
-            usageTelemetrySender: UsageTelemetryHTTPSender()
-        )
-    }
-
-    private static func assemble(
-        directories: ShatlDirectories,
-        preferencesStore: AppPreferencesStore,
-        engine: any TorrentEngine,
-        userEventNotifier: (any TorrentUserEventNotifying)?,
-        userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?,
-        usageTelemetrySender: (any UsageTelemetrySending)?
-    ) -> AppEnvironment {
         let archiveStore = TorrentArchiveStore(directories: directories)
         let bookmarkStore = BookmarkStore(directories: directories)
         let resumeDataStore = ResumeDataStore(directories: directories)
+        let preferencesStore = livePreferencesStore
+        let engine = LibtorrentEngine(directories: directories)
         let payloadLocator = TorrentPayloadLocator(
             engine: engine,
             archiveStore: archiveStore,
@@ -85,6 +59,7 @@ struct AppEnvironment {
         let usageTelemetryCoordinator = UsageTelemetryLocalCoordinator(
             store: UsageTelemetryStore(directories: directories)
         )
+        let usageTelemetrySender = UsageTelemetryHTTPSender()
         let externalOpenRouter = ExternalOpenRouter.shared
 
         return AppEnvironment(
@@ -113,37 +88,15 @@ struct AppEnvironment {
                 payloadLocator: payloadLocator
             ),
             externalOpenRouter: externalOpenRouter,
-            userEventNotifier: userEventNotifier,
-            userEventBadgeDisplay: userEventBadgeDisplay,
+            userEventNotifier: MacTorrentUserEventNotifier(),
+            userEventBadgeDisplay: MacTorrentUserEventBadgeDisplay(),
             usageTelemetryCoordinator: usageTelemetryCoordinator,
             usageTelemetrySender: usageTelemetrySender
         )
     }
 
-    #if DEBUG
-    /// A demo list on its own folder and settings, with the made-up engine:
-    /// no notifications, no telemetry, no files of the user's.
-    private static func demo(_ preset: ShatlDemoPreset) -> AppEnvironment {
-        let plans = DemoListFactory.plans(for: preset)
-        let downloadsURL = ShatlDemoList.downloadsURL
-        var environment = assemble(
-            directories: ShatlDemoList.directories,
-            preferencesStore: ShatlDemoList.preferencesStore(),
-            engine: DemoTorrentEngine(plans: plans, seed: preset.seed),
-            userEventNotifier: nil,
-            userEventBadgeDisplay: nil,
-            usageTelemetrySender: nil
-        )
-        environment.demoTorrents = plans.map { $0.record(saveURL: downloadsURL) }
-        return environment
-    }
-    #endif
-
     static var liveDirectories: ShatlDirectories {
         #if DEBUG
-        if ShatlDemoList.activePreset != nil {
-            return ShatlDemoList.directories
-        }
         if let rootPath = ProcessInfo.processInfo.environment["SHATL_TEST_STORAGE_ROOT"],
            !rootPath.isEmpty {
             let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
