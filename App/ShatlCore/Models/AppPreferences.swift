@@ -130,6 +130,9 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var isMetricAnimationDiagnosticsLoggingEnabled: Bool
     var isSnapshotDiagnosticsLoggingEnabled: Bool
     var isAddTorrentReviewDiagnosticsLoggingEnabled: Bool
+    /// A probe on every card that logs its height as it changes. It weighs
+    /// on scrolling, so it has its own switch rather than riding on the log.
+    var isCardLayoutDiagnosticsLoggingEnabled = false
     var defaultDownloadPath: String
     var defaultDownloadBookmarkData: Data?
     var alwaysStopAfterDownload: Bool
@@ -157,6 +160,7 @@ extension AppPreferences {
         case isMetricAnimationDiagnosticsLoggingEnabled
         case isSnapshotDiagnosticsLoggingEnabled
         case isAddTorrentReviewDiagnosticsLoggingEnabled
+        case isCardLayoutDiagnosticsLoggingEnabled
         case defaultDownloadPath
         case defaultDownloadBookmarkData
         case alwaysStopAfterDownload
@@ -194,6 +198,10 @@ extension AppPreferences {
         isAddTorrentReviewDiagnosticsLoggingEnabled = try container.decodeIfPresent(
             Bool.self,
             forKey: .isAddTorrentReviewDiagnosticsLoggingEnabled
+        ) ?? false
+        isCardLayoutDiagnosticsLoggingEnabled = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isCardLayoutDiagnosticsLoggingEnabled
         ) ?? false
         defaultDownloadPath = try container.decode(String.self, forKey: .defaultDownloadPath)
         defaultDownloadBookmarkData = try container.decodeIfPresent(Data.self, forKey: .defaultDownloadBookmarkData)

@@ -95,6 +95,9 @@ final class TorrentRowPresentationModel: ObservableObject, Identifiable {
 
     func update(state newState: TorrentRowState) {
         guard state != newState else { return }
+        #if DEBUG
+        ShatlFrameTrace.count(.cardUpdates)
+        #endif
         state = newState
     }
 }

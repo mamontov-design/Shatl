@@ -45,24 +45,24 @@ nonisolated struct MetricsDisplayRules: Sendable {
         }
     }
 
+    /// Kilobytes as whole numbers: a fraction there changed every second and
+    /// rolled the digits of every card, while the whole number already tells
+    /// 697 from 700. Megabytes keep a tenth, which tells 1.4 from 1.
     private nonisolated func formatDetailedSpeed(_ bytesPerSecond: Int64) -> String {
-        if bytesPerSecond < 103 {
+        if bytesPerSecond < 1_000 {
             return metricValue(bytesPerSecond, unitKey: "unit.speed.bytes_per_second", fallback: "Б/с")
         }
 
-        if bytesPerSecond < 1_024 {
-            let kilobytesPerSecond = Double(bytesPerSecond) / 1_024
-            return metricValue(
-                formatDecimal(kilobytesPerSecond, fractionDigits: 1),
-                unitKey: "unit.speed.kilobytes_per_second",
-                fallback: "КБ/с"
-            )
+        let suffix = L10n.string("unit.speed.per_second_suffix", localeOverride: localeOverride, defaultValue: "/с")
+        // 999.5 KB/s and up would round to 1 000 KB/s; that is 1 MB/s.
+        if bytesPerSecond < 999_500 {
+            return formatByteCount(bytesPerSecond, allowedUnits: [.useKB], maximumFractionDigits: 0, suffix: suffix)
         }
 
         return formatByteCount(
-            bytesPerSecond,
-            allowedUnits: [.useKB, .useMB, .useGB],
-            suffix: L10n.string("unit.speed.per_second_suffix", localeOverride: localeOverride, defaultValue: "/с")
+            max(bytesPerSecond, 1_000_000),
+            allowedUnits: [.useMB, .useGB],
+            suffix: suffix
         )
     }
 
@@ -204,6 +204,7 @@ nonisolated struct MetricsDisplayRules: Sendable {
     private nonisolated func formatByteCount(
         _ bytes: Int64,
         allowedUnits: ByteCountFormatter.Units,
+        maximumFractionDigits: Int = 1,
         suffix: String?
     ) -> String {
         let units = byteUnits(allowedUnits: allowedUnits)
@@ -211,7 +212,8 @@ nonisolated struct MetricsDisplayRules: Sendable {
         let formattedValue: String
 
         if let unit = units.first(where: { value >= $0.threshold }) {
-            formattedValue = "\(formatDecimal(value / unit.threshold, maximumFractionDigits: 1)) \(unit.unit)"
+            let number = formatDecimal(value / unit.threshold, maximumFractionDigits: maximumFractionDigits)
+            formattedValue = "\(number) \(unit.unit)"
         } else {
             formattedValue = metricValue(bytes, unitKey: "unit.byte", fallback: "Б")
         }
@@ -227,15 +229,6 @@ nonisolated struct MetricsDisplayRules: Sendable {
         formatter.locale = L10n.locale(for: localeOverride)
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(maximumFractionDigits)f", value)
-    }
-
-    private nonisolated func formatDecimal(_ value: Double, fractionDigits: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.minimumFractionDigits = fractionDigits
-        formatter.maximumFractionDigits = fractionDigits
-        formatter.locale = L10n.locale(for: localeOverride)
-        formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.\(fractionDigits)f", value)
     }
 
     private nonisolated func ceilDiv(_ value: Int, by divisor: Int) -> Int {

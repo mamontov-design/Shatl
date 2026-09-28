@@ -1339,8 +1339,8 @@ struct ShatlMetricItem: View {
                 .fill(speedPalette?.badge ?? .clear)
                 .opacity(showsSpeedBadge ? 1 : 0)
         }
-        .animation(ShatlMotion.speedMetricColor, value: speedPalette)
-        .animation(ShatlMotion.speedMetricColor, value: showsSpeedBadge)
+        .cardAnimation(ShatlMotion.speedMetricColor, value: speedPalette, part: .metricHighlight)
+        .cardAnimation(ShatlMotion.speedMetricColor, value: showsSpeedBadge, part: .metricHighlight)
     }
 
     private var iconColor: Color {
@@ -1362,10 +1362,13 @@ struct ShatlMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion {
+        if !reduceMotion, !isCardPartRemoved(.digitRoll) {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
+                #if DEBUG
+                .cardAnimationTrace(.digits, value: number, duration: ShatlMotion.metricResizeDuration)
+                #endif
         } else {
             text
         }
@@ -1444,6 +1447,8 @@ struct ShatlMetricSet: View {
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
     var colorizesDownloadSpeed = false
+    /// The resting shadow, and the one that grows while the set bounces.
+    var showsShadows = true
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -1456,6 +1461,9 @@ struct ShatlMetricSet: View {
     @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
+    #if DEBUG
+    @Environment(\.shatlTracedCardID) private var tracedCardID
+    #endif
 
     var body: some View {
         let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
@@ -1482,7 +1490,6 @@ struct ShatlMetricSet: View {
             }
         }
         .padding(3)
-        .background(metricBackgroundColor)
         .overlay {
             MetricSetOutlineView(
                 baseColor: metricOutlineColor,
@@ -1493,22 +1500,31 @@ struct ShatlMetricSet: View {
             )
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .frame(height: ShatlMetricLayout.containerHeight)
         .keyframeAnimator(
             initialValue: MetricSetBounceValues(),
             trigger: bounceTrigger
         ) { content, value in
-            content
+            let shadowOpacity = restOpacity + (metricBounceShadow.opacity - restOpacity) * value.shadowProgress
+            return content
                 .environment(\.metricSetBounceOutlineOpacity, value.outlineOpacity)
+                // The plate sits outside the clip so its shadow shows, and
+                // the shadow follows the plate alone: new digits leave the
+                // blur as it is.
+                .background {
+                    let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(metricBackgroundColor)
+                    if showsShadows, shadowOpacity > 0 {
+                        plate.shadow(
+                            color: metricBounceColor.opacity(shadowOpacity),
+                            radius: restShadow.radius + (metricBounceShadow.radius - restShadow.radius) * value.shadowProgress,
+                            x: restShadow.x + (metricBounceShadow.x - restShadow.x) * value.shadowProgress,
+                            y: restShadow.y + (metricBounceShadow.y - restShadow.y) * value.shadowProgress
+                        )
+                    } else {
+                        plate
+                    }
+                }
                 .scaleEffect(value.scale, anchor: .center)
-                .shadow(
-                    color: metricBounceColor.opacity(
-                        restOpacity + (metricBounceShadow.opacity - restOpacity) * value.shadowProgress
-                    ),
-                    radius: restShadow.radius + (metricBounceShadow.radius - restShadow.radius) * value.shadowProgress,
-                    x: restShadow.x + (metricBounceShadow.x - restShadow.x) * value.shadowProgress,
-                    y: restShadow.y + (metricBounceShadow.y - restShadow.y) * value.shadowProgress
-                )
         } keyframes: { _ in
             KeyframeTrack(\.scale) {
                 SpringKeyframe(
@@ -1555,10 +1571,14 @@ struct ShatlMetricSet: View {
                 )
             }
         }
+        .frame(height: ShatlMetricLayout.containerHeight)
         .metricSetDiagnostics(items: items, context: diagnosticsContext)
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
-            guard metricSetBounceEnabled else { return }
-            guard hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
+            guard metricSetBounceEnabled, !isCardPartRemoved(.metricBounce) else { return }
+            // Only the download speed bounces; the upload speed changes its
+            // icon quietly.
+            guard items.contains(where: { $0.id == "download-speed" }),
+                  hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
                 return
             }
             bounceMetricSet()
@@ -1636,6 +1656,13 @@ struct ShatlMetricSet: View {
         }
 
         bounceTrigger += 1
+        #if DEBUG
+        ShatlFrameTrace.animationStarted(
+            .bounce,
+            cardID: tracedCardID,
+            duration: ShatlMotion.metricSetBounceTotalDuration
+        )
+        #endif
         if let startedAt {
             logBounceEvent(
                 "metricset.bounce.keyframes-commanded",
@@ -1647,6 +1674,7 @@ struct ShatlMetricSet: View {
     }
 
     private func flashMetricSetOutline() {
+        guard !isCardPartRemoved(.metricHighlight) else { return }
         outlineFlashToken += 1
         let token = outlineFlashToken
 
@@ -1654,6 +1682,13 @@ struct ShatlMetricSet: View {
             return
         }
 
+        #if DEBUG
+        ShatlFrameTrace.animationStarted(
+            .highlight,
+            cardID: tracedCardID,
+            duration: ShatlMotion.metricSetBounceTotalDuration
+        )
+        #endif
         withAnimation(.smooth(duration: ShatlMotion.metricSetBounceUpDuration)) {
             outlineFlashOpacity = 1
         }
@@ -1998,10 +2033,13 @@ private struct ShatlInfoBottomMetricItem: View {
             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             .fixedSize(horizontal: true, vertical: false)
 
-        if !reduceMotion {
+        if !reduceMotion, !isCardPartRemoved(.chipDigitRoll) {
             text
                 .contentTransition(.numericText())
                 .animation(ShatlMotion.metricResize, value: number)
+                #if DEBUG
+                .cardAnimationTrace(.chipDigits, value: number, duration: ShatlMotion.metricResizeDuration)
+                #endif
         } else {
             text
         }
@@ -2022,6 +2060,7 @@ struct ShatlMetricGroup: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var showsShadows = true
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
 
     var body: some View {
@@ -2037,6 +2076,7 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
+                showsShadows: showsShadows,
                 diagnosticsContext: diagnosticsContext?.withGroupID(group.id)
             )
         }
@@ -2049,6 +2089,7 @@ struct ShatlMetricGroupSet: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var showsShadows = true
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
 
     var body: some View {
@@ -2059,6 +2100,7 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
+                    showsShadows: showsShadows,
                     diagnosticsContext: diagnosticsContext
                 )
                     .layoutPriority(1)

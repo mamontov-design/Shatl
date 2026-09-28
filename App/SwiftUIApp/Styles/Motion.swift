@@ -9,17 +9,18 @@ enum ShatlMotion {
     static let interface = Animation.spring(response: 0.7, blendDuration: 0.08)
 
     /// Local animation for containers whose width changes as numbers update.
-    static let metricResize = Animation.smooth(duration: 0.5)
+    static let metricResize = Animation.smooth(duration: metricResizeDuration)
+    static let metricResizeDuration: TimeInterval = 0.5
 
     /// Durations for the one-shot metric-set keyframe animation.
     static let metricSetBounceUpDuration: TimeInterval = 0.14
     static let metricSetBounceHoldDuration: TimeInterval = 0.14
     static let metricSetBounceDownDuration: TimeInterval = 0.24
+    static let metricSetBounceTotalDuration =
+        metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
 
     /// Color changes stay in sync with the complete bounce, including in previews.
-    static let speedMetricColor = Animation.easeInOut(
-        duration: metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
-    )
+    static let speedMetricColor = Animation.easeInOut(duration: metricSetBounceTotalDuration)
 
     /// Peak scale of the metric-set bounce animation.
     static let metricSetBounceScale: CGFloat = 1.1

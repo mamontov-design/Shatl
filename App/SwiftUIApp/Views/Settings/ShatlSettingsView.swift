@@ -8,6 +8,10 @@ struct ShatlSettingsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var selectedTab: SettingsTab = .downloads
     @State private var animatesPortStatusDot = false
+    #if DEBUG
+    @ObservedObject private var frameDiagnostics = ShatlFrameDiagnosticsSettings.shared
+    @ObservedObject private var cardDebugOptions = TorrentCardDebugOptions.shared
+    #endif
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -162,7 +166,16 @@ struct ShatlSettingsView: View {
     }
 
     #if DEBUG
+    /// The Debug switches outgrew the screen, so this tab scrolls at a fixed
+    /// height instead of stretching the window past the Dock.
     private var debugTab: some View {
+        ScrollView {
+            debugTabContent
+        }
+        .frame(height: 600)
+    }
+
+    private var debugTabContent: some View {
         VStack(spacing: 8) {
             ShatlSettingsParameterHeader(localizedTitle: "settings.localization.section")
 
@@ -219,7 +232,41 @@ struct ShatlSettingsView: View {
                     localizedTitle: "settings.debug.logging.add_torrent_review_diagnostics",
                     isOn: binding(for: \.isAddTorrentReviewDiagnosticsLoggingEnabled)
                 )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.logging.card_layout_diagnostics",
+                    isOn: binding(for: \.isCardLayoutDiagnosticsLoggingEnabled)
+                )
             }
+
+            ShatlSettingsParameterHeader(localizedTitle: "settings.debug.list.section")
+
+            ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.list.frame_meter",
+                    isOn: $frameDiagnostics.isEnabled
+                )
+            }
+
+            ShatlSettingsParameterCaption(localizedText: "settings.debug.list.caption")
+
+            ShatlSettingsParameterHeader(localizedTitle: "settings.debug.list.card_parts.section")
+
+            ShatlSettingsParameter {
+                ForEach(TorrentCardDebugPart.allCases) { part in
+                    if part != TorrentCardDebugPart.allCases.first {
+                        ShatlSettingsParameterDivider()
+                    }
+                    ShatlSettingsToggleRow(
+                        localizedTitle: part.titleKey,
+                        isOn: cardDebugOptions.isRemoved(part)
+                    )
+                }
+            }
+
+            ShatlSettingsParameterCaption(localizedText: "settings.debug.list.card_parts.caption")
         }
         .padding(.horizontal, 16)
         .padding(.top, 0)

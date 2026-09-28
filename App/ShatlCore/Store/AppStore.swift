@@ -71,6 +71,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ShatlMetricAnimationDiagnosticsLog.setEnabled(
                 preferences.isMetricAnimationDiagnosticsLoggingEnabled
             )
+            ShatlCardLayoutDiagnosticsLog.setEnabled(preferences.isCardLayoutDiagnosticsLoggingEnabled)
             ShatlSnapshotDiagnosticsLog.setEnabled(preferences.isSnapshotDiagnosticsLoggingEnabled)
             ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
                 preferences.isAddTorrentReviewDiagnosticsLoggingEnabled
@@ -171,6 +172,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// Torrents that must intentionally ignore engine snapshots.
     /// Prevents delayed polling from resurrecting an already stopped torrent.
     private var detachedTorrentIDs: Set<UUID> = []
+    /// The speed icons each torrent shows, kept between updates so an icon
+    /// does not flicker at a threshold. See `TransferSpeedLevel`.
+    private var transferSpeedLevels: [UUID: TransferSpeedLevels] = [:]
     /// Some sleeping states arrive paused while their engine handle is still alive.
     /// Detach such a handle after its first final snapshot so the store and engine
     /// agree that a sleeping torrent has no active handle.
@@ -259,6 +263,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         ShatlMetricAnimationDiagnosticsLog.setEnabled(
             resolvedPreferences.isMetricAnimationDiagnosticsLoggingEnabled
         )
+        ShatlCardLayoutDiagnosticsLog.setEnabled(resolvedPreferences.isCardLayoutDiagnosticsLoggingEnabled)
         ShatlSnapshotDiagnosticsLog.setEnabled(resolvedPreferences.isSnapshotDiagnosticsLoggingEnabled)
         ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
             resolvedPreferences.isAddTorrentReviewDiagnosticsLoggingEnabled
@@ -419,7 +424,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetricGroups: nil,
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
-            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
+            enablesCardLayoutDiagnostics: ShatlCardLayoutDiagnosticsLog.isEnabled,
             enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
             errorState: nil,
             isSelected: selectedTorrentID == addition.id,
@@ -455,6 +460,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         var record: TorrentRecord
+        var speedLevels: TransferSpeedLevels?
         var isSelected: Bool
         var isExpanded: Bool
         var isTransitioning: Bool
@@ -467,7 +473,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             localeOverride: preferences.localeOverride,
-            enablesCardLayoutDiagnostics: ShatlFileLogger.shared.loggingEnabled,
+            enablesCardLayoutDiagnostics: ShatlCardLayoutDiagnosticsLog.isEnabled,
             enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
             isRestoringSession: isRestoringSession
         )
@@ -480,11 +486,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var expandedTorrentID: UUID?
         var transitioningTorrentIDs: Set<UUID>
         var pendingIDs: Set<UUID>
+        var speedLevels: [UUID: TransferSpeedLevels]
         var shared: TorrentRowInputs.Shared
 
         func inputs(for record: TorrentRecord) -> TorrentRowInputs {
             TorrentRowInputs(
                 record: record,
+                speedLevels: speedLevels[record.id],
                 isSelected: selectedTorrentID == record.id,
                 isExpanded: expandedTorrentID == record.id,
                 isTransitioning: transitioningTorrentIDs.contains(record.id),
@@ -500,6 +508,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedTorrentID: expandedTorrentID,
             transitioningTorrentIDs: transitioningTorrentIDs,
             pendingIDs: pendingIDs,
+            speedLevels: transferSpeedLevels,
             shared: sharedRowInputs
         )
     }
@@ -512,14 +521,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ? TorrentPresentation.compactTransferMetricSet(
                 for: record,
                 mode: shared.metricsMode,
-                localeOverride: shared.localeOverride
+                localeOverride: shared.localeOverride,
+                speedLevels: inputs.speedLevels
             )
             : nil
         let expandedMetricGroups = errorState == nil && inputs.isExpanded
             ? TorrentPresentation.expandedMetricGroups(
                 for: record,
                 mode: shared.metricsMode,
-                localeOverride: shared.localeOverride
+                localeOverride: shared.localeOverride,
+                speedLevels: inputs.speedLevels
             )
             : nil
         let navigationAvailabilityKey = [
@@ -2263,11 +2274,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func applySnapshots(_ snapshots: [EngineTorrentSnapshot]) {
         guard !snapshots.isEmpty else { return }
+        #if DEBUG
+        let frameTraceStart = ShatlFrameTrace.beginSpan()
+        defer { ShatlFrameTrace.endSpan("store.snapshots", startedAt: frameTraceStart) }
+        #endif
 
         let snapshotsByID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
         var updatedTorrents = torrents
         var shouldRefreshSelectedNavigationAvailability = false
         var durableChange = DurableSnapshotChange.none
+        var speedLevels = transferSpeedLevels
 
         for index in updatedTorrents.indices {
             guard let snapshot = snapshotsByID[updatedTorrents[index].id] else { continue }
@@ -2320,6 +2336,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 updatedTorrents[index].lastKnownProgress = snapshot.progress
             }
             updatedTorrents[index].metrics = snapshot.metrics
+            // A torrent that stopped or finished starts its icons afresh.
+            let previousSpeedLevels = resolvedStatus == previousStatus ? speedLevels[torrentID] : nil
+            speedLevels[torrentID] = (previousSpeedLevels ?? TransferSpeedLevels()).following(snapshot.metrics)
             updatedTorrents[index].runtimeErrorState = snapshot.errorState
             clearRestoreProgressFloorIfSatisfied(torrentID: torrentID, snapshot: snapshot)
             notifyDownloadCompletionIfNeeded(
@@ -2382,6 +2401,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             )
         }
 
+        if speedLevels.count > updatedTorrents.count {
+            let torrentIDs = Set(updatedTorrents.map(\.id))
+            speedLevels = speedLevels.filter { torrentIDs.contains($0.key) }
+        }
+        // Before the records, whose change rebuilds the cards.
+        transferSpeedLevels = speedLevels
         if updatedTorrents != torrents {
             suppressesTorrentChangePublication = true
             torrents = updatedTorrents

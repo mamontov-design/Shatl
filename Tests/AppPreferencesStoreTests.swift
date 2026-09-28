@@ -36,6 +36,7 @@ final class AppPreferencesStoreTests: XCTestCase {
         preferences.isMetricAnimationDiagnosticsLoggingEnabled = true
         preferences.isSnapshotDiagnosticsLoggingEnabled = true
         preferences.isAddTorrentReviewDiagnosticsLoggingEnabled = true
+        preferences.isCardLayoutDiagnosticsLoggingEnabled = true
         preferences.launchAtLogin = true
         preferences.defaultDownloadPath = "/tmp/Shatl Downloads"
         preferences.defaultDownloadBookmarkData = Data("selected-folder-bookmark".utf8)
@@ -111,6 +112,7 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertFalse(preferences.isMetricAnimationDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.isSnapshotDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.isAddTorrentReviewDiagnosticsLoggingEnabled)
+        XCTAssertFalse(preferences.isCardLayoutDiagnosticsLoggingEnabled)
         XCTAssertNil(preferences.defaultDownloadBookmarkData)
         XCTAssertEqual(preferences.performanceProfile, .balanced)
         XCTAssertFalse(preferences.usesUnrestrictedPerformanceMode)
@@ -159,6 +161,7 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertFalse(preferences.isMetricAnimationDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.isSnapshotDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.isAddTorrentReviewDiagnosticsLoggingEnabled)
+        XCTAssertFalse(preferences.isCardLayoutDiagnosticsLoggingEnabled)
         XCTAssertFalse(preferences.usesUnrestrictedPerformanceMode)
         XCTAssertFalse(preferences.sendsAnonymousUsageStatistics)
         XCTAssertFalse(preferences.hasAnsweredUsageStatisticsOnboarding)

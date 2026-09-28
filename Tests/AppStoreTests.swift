@@ -515,6 +515,40 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(summaryPublicationCount, 1)
     }
 
+    /// A speed that wavers at a threshold keeps its icon; it takes a clear
+    /// drop to go down a level, and a status change starts afresh.
+    func testSpeedIconHoldsAtAThresholdUntilTheSpeedFallsClearlyBelowIt() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.4)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        let megabyte: Double = 1_024 * 1_024
+
+        func apply(megabytesPerSecond: Double, status: TorrentStatus = .downloading) throws -> String? {
+            var metrics = record.metrics
+            metrics.downloadSpeedBytesPerSecond = Int64(megabytesPerSecond * megabyte)
+            bundle.store.applySnapshotsForTesting([
+                EngineTorrentSnapshot(id: record.id, status: status, progress: 0.4, metrics: metrics, errorState: nil),
+            ])
+            let row = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: record.id)).state
+            return row.compactTransferMetricSet?.items.first { $0.id == "download-speed" }?.iconName
+        }
+
+        XCTAssertEqual(try apply(megabytesPerSecond: 1.9), "figure.walk")
+        // Up at once.
+        XCTAssertEqual(try apply(megabytesPerSecond: 2.1), "figure.run")
+        // Wavering just under 2 MB/s holds the level.
+        XCTAssertEqual(try apply(megabytesPerSecond: 1.85), "figure.run")
+        XCTAssertEqual(try apply(megabytesPerSecond: 2.05), "figure.run")
+        // 10 % under the threshold comes down.
+        XCTAssertEqual(try apply(megabytesPerSecond: 1.75), "figure.walk")
+
+        XCTAssertEqual(try apply(megabytesPerSecond: 2.1), "figure.run")
+        _ = try apply(megabytesPerSecond: 0, status: .checking)
+        XCTAssertEqual(try apply(megabytesPerSecond: 1.85), "figure.walk")
+    }
+
     func testCompactRowIgnoresRuntimeValuesThatDoNotChangePresentation() throws {
         var record = makeTestRecord(status: .downloading, progress: 0.401)
         record.metrics = TorrentMetrics(

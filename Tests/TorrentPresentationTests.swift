@@ -128,9 +128,58 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(Metrics.formatETA(0, mode: .detailed), "—")
     }
 
+    func testSpeedLevelGoesUpAtOnceAndDownOnlyWellBelowTheThreshold() {
+        let kilobyte: Int64 = 1_024
+        let megabyte: Int64 = 1_024 * 1_024
+
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 100 * kilobyte), .tortoise)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 250 * kilobyte), .walk)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 2 * megabyte), .run)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 8 * megabyte), .hare)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 25 * megabyte), .bolt)
+
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 2 * megabyte, after: .walk), .run)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 30 * megabyte, after: .tortoise), .bolt)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 19 * megabyte / 10, after: .run), .run)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 17 * megabyte / 10, after: .run), .walk)
+        // A fall through several levels lands where the speed is.
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 100 * kilobyte, after: .bolt), .tortoise)
+        // Holding 10 % below the level it holds, not below the one under it.
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 23 * megabyte, after: .bolt), .bolt)
+        XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 22 * megabyte, after: .bolt), .hare)
+
+        XCTAssertEqual(TransferSpeedLevel(iconName: "figure.run"), .run)
+        XCTAssertEqual(TransferSpeedLevel(iconName: "hare"), .hare)
+        XCTAssertEqual(TransferSpeedLevel(iconName: "bolt.fill"), .bolt)
+        XCTAssertNil(TransferSpeedLevel(iconName: "scalemass"))
+    }
+
+    func testSpeedLevelsStartAfreshAfterAStop() {
+        var metrics = TorrentMetrics()
+        metrics.downloadSpeedBytesPerSecond = 3 * 1_024 * 1_024
+        metrics.uploadSpeedBytesPerSecond = 100 * 1_024
+        let levels = TransferSpeedLevels().following(metrics)
+        XCTAssertEqual(levels, TransferSpeedLevels(download: .run, upload: .tortoise))
+
+        metrics.downloadSpeedBytesPerSecond = 0
+        XCTAssertEqual(levels.following(metrics), TransferSpeedLevels(download: nil, upload: .tortoise))
+    }
+
     func testDetailedSpeedKeepsSubKilobyteValuesVisible() {
         XCTAssertEqual(Metrics.formatSpeed(67, mode: .detailed), "67 Б/с")
-        XCTAssertEqual(Metrics.formatSpeed(410, mode: .detailed), "0,4 КБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(410, mode: .detailed), "410 Б/с")
+    }
+
+    /// A fraction of a kilobyte changed every second and rolled the digits of
+    /// every card; a tenth of a megabyte still tells 1.4 from 1.
+    func testDetailedSpeedShowsWholeKilobytesAndTenthsOfMegabytes() {
+        XCTAssertEqual(Metrics.formatSpeed(697_300, mode: .detailed), "697 КБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(768_600, mode: .detailed), "769 КБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(999_400, mode: .detailed), "999 КБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(999_700, mode: .detailed), "1 МБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(1_400_000, mode: .detailed), "1,4 МБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(12_400_000, mode: .detailed), "12,4 МБ/с")
+        XCTAssertEqual(Metrics.formatSpeed(12_000_000, mode: .detailed), "12 МБ/с")
     }
 
     func testCompactTransferMetricSetIsHiddenWhenDownloadSpeedIsZero() {

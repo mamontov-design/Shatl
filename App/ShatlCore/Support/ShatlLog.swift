@@ -23,6 +23,12 @@ nonisolated final class ShatlFileLogger: @unchecked Sendable {
     static let addTorrentReviewDiagnostics = ShatlFileLogger(
         fileName: "Shatl Add Torrent Review Diagnostics.log"
     )
+    static let frameDiagnostics = ShatlFileLogger(
+        fileName: "Shatl Frame Diagnostics.log"
+    )
+    static let cardLayoutDiagnostics = ShatlFileLogger(
+        fileName: "Shatl Card Layout Diagnostics.log"
+    )
 
     private static let queueSpecificKey = DispatchSpecificKey<Void>()
 
@@ -216,6 +222,23 @@ nonisolated enum ShatlDiskDiagnosticsLog {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
         return "\"\(escaped)\""
+    }
+}
+
+/// Card heights as they change. Written in the background: a card that
+/// appears must not wait for the disk.
+nonisolated enum ShatlCardLayoutDiagnosticsLog {
+    static var isEnabled: Bool {
+        ShatlFileLogger.cardLayoutDiagnostics.loggingEnabled
+    }
+
+    static func setEnabled(_ enabled: Bool) {
+        ShatlFileLogger.cardLayoutDiagnostics.setEnabled(enabled)
+    }
+
+    static func write(_ message: @autoclosure () -> String) {
+        guard isEnabled else { return }
+        ShatlFileLogger.cardLayoutDiagnostics.write(level: .debug, category: "CardLayout", message: message())
     }
 }
 

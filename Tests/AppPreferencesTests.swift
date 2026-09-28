@@ -57,6 +57,7 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertFalse(AppPreferences.defaultValue.isMetricAnimationDiagnosticsLoggingEnabled)
         XCTAssertFalse(AppPreferences.defaultValue.isSnapshotDiagnosticsLoggingEnabled)
         XCTAssertFalse(AppPreferences.defaultValue.isAddTorrentReviewDiagnosticsLoggingEnabled)
+        XCTAssertFalse(AppPreferences.defaultValue.isCardLayoutDiagnosticsLoggingEnabled)
     }
 
     private func resolvedRealUserDownloadsPath() -> String? {

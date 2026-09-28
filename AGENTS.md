@@ -61,8 +61,20 @@ persistence, deletion, restore, or shared UI state.
   Foundation deletion. Unsafe or partial deletion must remain visible to the
   user.
 - The main torrent list intentionally uses stable IDs, lightweight row
-  presentation, and `VStack`, not `List` or `LazyVStack`. The large add-review
-  file tree may use its separate cached/flattened `LazyVStack` path.
+  presentation, and a plain `VStack`, not `List` or `LazyVStack`. Every card is
+  built once and scrolling moves finished layers; a `LazyVStack` builds and
+  lays out cards as they scroll in, and on a short list every scroll started
+  with a jerk (bisected in September 2026). Downloads are usually few, so the
+  plain stack stays even though it tires on dozens of cards. Card guards:
+  hover waits for a resting pointer (`TorrentCardHoverTiming`), the progress
+  bar moves in steps (`TorrentProgressBarSteps`), speed icons change level
+  with hysteresis (`TransferSpeedLevel`), only the download speed bounces, and
+  metric shadows sit under the plate so changing digits leave the blur alone.
+  Debug builds have a frame meter in Settings → Debug that logs late frames
+  to `Shatl Frame Diagnostics.log` with the card animations that ran; hot
+  paths feed it through `ShatlFrameTrace`, which must stay a no-op while the
+  meter is off. The large add-review file tree may use its separate
+  cached/flattened `LazyVStack` path.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

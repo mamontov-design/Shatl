@@ -26,7 +26,7 @@ nonisolated struct MetricItemPresentation: Identifiable, Equatable, Sendable {
     }
 }
 
-nonisolated struct MetricItemWidthAnimationSignature: Equatable, Sendable {
+nonisolated struct MetricItemWidthAnimationSignature: Hashable, Sendable {
     var id: String
     var iconName: String?
     var numberPattern: String?
@@ -57,7 +57,7 @@ nonisolated struct MetricGroupPresentation: Identifiable, Equatable, Sendable {
     }
 }
 
-nonisolated struct MetricGroupWidthAnimationSignature: Equatable, Sendable {
+nonisolated struct MetricGroupWidthAnimationSignature: Hashable, Sendable {
     var id: String
     var title: String
     var items: [MetricItemWidthAnimationSignature]
@@ -88,12 +88,110 @@ nonisolated struct BottomTransferChipPresentation: Identifiable, Equatable, Send
     nonisolated var id: String { kind.id }
 }
 
+/// How fast a transfer goes, as its speed icon shows it. A level goes up as
+/// soon as the speed reaches the next threshold, but comes down only once the
+/// speed falls 10 % below the threshold of the level it holds: a speed that
+/// wavers at a threshold would otherwise swap the icon, and bounce the metric
+/// set, every second.
+nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
+    case tortoise
+    case walk
+    case run
+    case hare
+    case bolt
+
+    static let fallMargin = 0.1
+
+    /// The lowest speed of the level, in bytes per second.
+    var threshold: Int64 {
+        switch self {
+        case .tortoise: 1
+        case .walk: 250 * 1_024
+        case .run: 2 * 1_024 * 1_024
+        case .hare: 8 * 1_024 * 1_024
+        case .bolt: 25 * 1_024 * 1_024
+        }
+    }
+
+    /// The level of a speed seen for the first time.
+    init(bytesPerSecond: Int64) {
+        self = Self.allCases.last { bytesPerSecond >= $0.threshold } ?? .tortoise
+    }
+
+    /// The level of a speed that follows `previous`.
+    init(bytesPerSecond: Int64, after previous: TransferSpeedLevel?) {
+        let plain = TransferSpeedLevel(bytesPerSecond: bytesPerSecond)
+        guard var level = previous, level > plain else {
+            self = plain
+            return
+        }
+        while level > plain,
+              Double(bytesPerSecond) < Double(level.threshold) * (1 - Self.fallMargin),
+              let lower = TransferSpeedLevel(rawValue: level.rawValue - 1) {
+            level = lower
+        }
+        self = level
+    }
+
+    /// The level an icon stands for, whether a download or an upload icon.
+    init?(iconName: String) {
+        guard let level = Self.allCases.first(where: {
+            $0.downloadIconName == iconName || $0.uploadIconName == iconName
+        }) else { return nil }
+        self = level
+    }
+
+    var downloadIconName: String {
+        switch self {
+        case .tortoise: "tortoise.fill"
+        case .walk: "figure.walk"
+        case .run: "figure.run"
+        case .hare: "hare.fill"
+        case .bolt: "bolt.fill"
+        }
+    }
+
+    var uploadIconName: String {
+        switch self {
+        case .tortoise: "tortoise"
+        case .walk: "figure.walk"
+        case .run: "figure.run"
+        case .hare: "hare"
+        case .bolt: "bolt"
+        }
+    }
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+/// The speed levels a torrent's icons show, kept from one update to the next.
+nonisolated struct TransferSpeedLevels: Equatable, Sendable {
+    var download: TransferSpeedLevel?
+    var upload: TransferSpeedLevel?
+
+    /// The levels for new metrics that follow these. A speed of zero shows no
+    /// icon, and the next speed starts afresh.
+    func following(_ metrics: TorrentMetrics) -> TransferSpeedLevels {
+        TransferSpeedLevels(
+            download: Self.level(metrics.downloadSpeedBytesPerSecond, after: download),
+            upload: Self.level(metrics.uploadSpeedBytesPerSecond, after: upload)
+        )
+    }
+
+    private static func level(_ bytesPerSecond: Int64, after previous: TransferSpeedLevel?) -> TransferSpeedLevel? {
+        bytesPerSecond > 0 ? TransferSpeedLevel(bytesPerSecond: bytesPerSecond, after: previous) : nil
+    }
+}
+
 /// Decides what a torrent card displays without exposing UI details to the engine.
 nonisolated enum TorrentPresentation {
     nonisolated static func compactTransferMetricSet(
         for record: TorrentRecord,
         mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride = .russian
+        localeOverride: AppLocaleOverride = .russian,
+        speedLevels: TransferSpeedLevels? = nil
     ) -> CompactTransferMetricSet? {
         guard record.status == .downloading else { return nil }
 
@@ -101,10 +199,11 @@ nonisolated enum TorrentPresentation {
         guard speed > 0 else { return nil }
 
         let speedComponents = splitMetricValue(Metrics.formatSpeed(speed, mode: mode, localeOverride: localeOverride))
+        let speedLevel = speedLevels?.download ?? TransferSpeedLevel(bytesPerSecond: speed)
         var items = [
             MetricItemPresentation(
                 id: "download-speed",
-                iconName: downloadSpeedIconName(for: speed),
+                iconName: speedLevel.downloadIconName,
                 number: speedComponents.number,
                 unit: speedComponents.unit,
                 usesAccentIcon: true
@@ -130,7 +229,8 @@ nonisolated enum TorrentPresentation {
     nonisolated static func expandedMetricGroups(
         for record: TorrentRecord,
         mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride = .russian
+        localeOverride: AppLocaleOverride = .russian,
+        speedLevels: TransferSpeedLevels? = nil
     ) -> ExpandedMetricGroupsPresentation {
         var dynamicGroups: [MetricGroupPresentation] = []
         let showsConnectivityMetrics = record.status == .downloading || record.status == .seeding
@@ -151,7 +251,14 @@ nonisolated enum TorrentPresentation {
                 MetricGroupPresentation(
                     id: "upload-speed",
                     title: L10n.string("torrent.metric.upload_speed", localeOverride: localeOverride, defaultValue: "Скорость раздачи"),
-                    items: [uploadSpeedMetricItem(for: record, mode: mode, localeOverride: localeOverride)]
+                    items: [
+                        uploadSpeedMetricItem(
+                            for: record,
+                            mode: mode,
+                            localeOverride: localeOverride,
+                            level: speedLevels?.upload
+                        ),
+                    ]
                 )
             )
         }
@@ -301,13 +408,14 @@ nonisolated enum TorrentPresentation {
     private nonisolated static func uploadSpeedMetricItem(
         for record: TorrentRecord,
         mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride
+        localeOverride: AppLocaleOverride,
+        level: TransferSpeedLevel?
     ) -> MetricItemPresentation {
         let speed = record.metrics.uploadSpeedBytesPerSecond
         let components = splitMetricValue(Metrics.formatSpeed(speed, mode: mode, localeOverride: localeOverride))
         return MetricItemPresentation(
             id: "upload-speed",
-            iconName: uploadSpeedIconName(for: speed),
+            iconName: (level ?? TransferSpeedLevel(bytesPerSecond: speed)).uploadIconName,
             number: components.number,
             unit: components.unit,
             usesAccentIcon: false
@@ -334,39 +442,6 @@ nonisolated enum TorrentPresentation {
 
     private nonisolated static func selectedSizeBytes(for record: TorrentRecord) -> Int64 {
         record.metrics.selectedBytes > 0 ? record.metrics.selectedBytes : record.metrics.totalBytes
-    }
-
-    private nonisolated static func downloadSpeedIconName(for bytesPerSecond: Int64) -> String {
-        let kilobytesPerSecond = Int64(250 * 1_024)
-        let twoMegabytesPerSecond = Int64(2 * 1_024 * 1_024)
-        let eightMegabytesPerSecond = Int64(8 * 1_024 * 1_024)
-        let twentyFiveMegabytesPerSecond = Int64(25 * 1_024 * 1_024)
-
-        switch bytesPerSecond {
-        case 1..<kilobytesPerSecond:
-            return "tortoise.fill"
-        case kilobytesPerSecond..<twoMegabytesPerSecond:
-            return "figure.walk"
-        case twoMegabytesPerSecond..<eightMegabytesPerSecond:
-            return "figure.run"
-        case eightMegabytesPerSecond..<twentyFiveMegabytesPerSecond:
-            return "hare.fill"
-        default:
-            return "bolt.fill"
-        }
-    }
-
-    private nonisolated static func uploadSpeedIconName(for bytesPerSecond: Int64) -> String {
-        switch downloadSpeedIconName(for: bytesPerSecond) {
-        case "tortoise.fill":
-            return "tortoise"
-        case "hare.fill":
-            return "hare"
-        case "bolt.fill":
-            return "bolt"
-        case let iconName:
-            return iconName
-        }
     }
 
     private nonisolated static func splitMetricValue(_ value: String) -> (number: String, unit: String?) {
