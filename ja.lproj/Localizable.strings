@@ -149,7 +149,7 @@
 
 "add_torrent.loading_metadata" = "メタデータを取得中…";
 "add_torrent.title" = "ダウンロードを追加";
-"add_torrent.entry.empty_title" = "Torrentリストは空です";
+"add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";

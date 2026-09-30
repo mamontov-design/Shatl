@@ -149,7 +149,7 @@
 
 "add_torrent.loading_metadata" = "Récupération des métadonnées…";
 "add_torrent.title" = "Ajouter un téléchargement";
-"add_torrent.entry.empty_title" = "La liste des torrents est vide";
+"add_torrent.entry.empty_title" = "Aucun téléchargement";
 "add_torrent.entry.subtitle" = "Collez un lien .magnet ci-dessous ou choisissez un fichier .torrent sur votre Mac.";
 "add_torrent.entry.choose_file" = "Choisir un fichier .torrent…";
 "add_torrent.entry.continue" = "Continuer";

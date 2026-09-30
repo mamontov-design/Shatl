@@ -149,8 +149,8 @@
 
 "add_torrent.loading_metadata" = "Obteniendo metadatos…";
 "add_torrent.title" = "Añadir descarga";
-"add_torrent.entry.empty_title" = "La lista de torrents está vacía";
-"add_torrent.entry.subtitle" = "Pega un enlace .magnet abajo o elige un archivo .torrent de tu Mac.";
+"add_torrent.entry.empty_title" = "La lista de descargas está vacía";
+"add_torrent.entry.subtitle" = "Pega un enlace .magnet abajo o elige un archivo .torrent de tu Mac.";
 "add_torrent.entry.choose_file" = "Elegir archivo .torrent…";
 "add_torrent.entry.continue" = "Continuar";
 "add_torrent.review.tab.files" = "Archivos";

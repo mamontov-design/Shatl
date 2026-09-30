@@ -149,7 +149,7 @@
 
 "add_torrent.loading_metadata" = "正在获取元数据…";
 "add_torrent.title" = "添加下载";
-"add_torrent.entry.empty_title" = "Torrent 列表为空";
+"add_torrent.entry.empty_title" = "下载列表为空";
 "add_torrent.entry.subtitle" = "在下方粘贴 .magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.entry.continue" = "继续";

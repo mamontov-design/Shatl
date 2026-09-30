@@ -149,7 +149,7 @@
 
 "add_torrent.loading_metadata" = "Metadaten werden geladen…";
 "add_torrent.title" = "Download hinzufügen";
-"add_torrent.entry.empty_title" = "Torrent-Liste ist leer";
+"add_torrent.entry.empty_title" = "Download-Liste ist leer";
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen .magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
 "add_torrent.entry.choose_file" = ".torrent-Datei wählen…";
 "add_torrent.entry.continue" = "Fortfahren";

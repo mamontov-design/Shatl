@@ -149,8 +149,8 @@
 
 "add_torrent.loading_metadata" = "Получение метаданных…";
 "add_torrent.title" = "Добавление загрузки";
-"add_torrent.entry.empty_title" = "Список торрентов пуст";
-"add_torrent.entry.subtitle" = "Вставьте .magnet-ссылку в поле ниже или выберите .torrent-файл с вашего Mac.";
+"add_torrent.entry.empty_title" = "Список загрузок пуст";
+"add_torrent.entry.subtitle" = "Вставьте .magnet-ссылку в поле ниже или выберите .torrent-файл с вашего Mac.";
 "add_torrent.entry.choose_file" = "Выбрать .torrent-файл…";
 "add_torrent.entry.continue" = "Продолжить";
 "add_torrent.review.tab.files" = "Файлы";
