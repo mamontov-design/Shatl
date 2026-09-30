@@ -12,6 +12,8 @@ enum ShatlBrandRenderingMode {
 
 struct ShatlWordmark: View {
     let renderingMode: ShatlBrandRenderingMode
+    let artworkAlignment: Alignment
+    let isInteractive: Bool
 
     private let selection: Binding<ShatlBrandMark>?
 
@@ -29,9 +31,13 @@ struct ShatlWordmark: View {
 
     init(
         renderingMode: ShatlBrandRenderingMode,
-        selection: Binding<ShatlBrandMark>
+        selection: Binding<ShatlBrandMark>,
+        artworkAlignment: Alignment = .center,
+        isInteractive: Bool = true
     ) {
         self.renderingMode = renderingMode
+        self.artworkAlignment = artworkAlignment
+        self.isInteractive = isInteractive
         self.selection = selection
 
         let initialSelection = selection.wrappedValue
@@ -43,9 +49,13 @@ struct ShatlWordmark: View {
 
     init(
         renderingMode: ShatlBrandRenderingMode,
-        initialSelection: ShatlBrandMark = .wordmark
+        initialSelection: ShatlBrandMark = .wordmark,
+        artworkAlignment: Alignment = .center,
+        isInteractive: Bool = true
     ) {
         self.renderingMode = renderingMode
+        self.artworkAlignment = artworkAlignment
+        self.isInteractive = isInteractive
         selection = nil
         _localSelection = State(initialValue: initialSelection)
         _logomarkProgress = State(
@@ -66,7 +76,7 @@ struct ShatlWordmark: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: artworkAlignment) {
             ShatlWordmarkArtwork(
                 animationPhase: wordmarkAnimationState.phase,
                 renderingMode: effectiveRenderingMode
@@ -90,6 +100,7 @@ struct ShatlWordmark: View {
         .scaleEffect(interactionScale)
         .contentShape(Rectangle())
         .onTapGesture {
+            guard isInteractive else { return }
             toggleBrandMark()
         }
         .onChange(of: selectedBrandMark) { _, brandMark in
@@ -100,6 +111,10 @@ struct ShatlWordmark: View {
             }
         }
         .onHover { hovering in
+            guard isInteractive else {
+                updateCursor(isHovering: false)
+                return
+            }
             updateCursor(isHovering: hovering)
         }
         .onDisappear {

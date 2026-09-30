@@ -49,46 +49,6 @@ struct MetricSetDiagnosticsContext: Equatable {
     }
 }
 
-struct ShatlOnboardingProgressDots: View {
-    let currentStep: Int
-    var stepCount = 5
-
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(1...stepCount, id: \.self) { step in
-                Circle()
-                    .fill(fillColor(for: step))
-                    .frame(width: 6, height: 6)
-                    .overlay {
-                        Circle()
-                            .strokeBorder(strokeColor(for: step), lineWidth: strokeWidth(for: step))
-                    }
-            }
-        }
-        .animation(ShatlMotion.interface, value: currentStep)
-    }
-
-    private func fillColor(for step: Int) -> Color {
-        if step == currentStep {
-            return ShatlColor.accent
-        }
-
-        if step < currentStep {
-            return ShatlColor.onboardingOutline
-        }
-
-        return ShatlColor.onboardingForeground
-    }
-
-    private func strokeColor(for step: Int) -> Color {
-        ShatlColor.onboardingOutline
-    }
-
-    private func strokeWidth(for step: Int) -> CGFloat {
-        step > currentStep ? 1 : 0
-    }
-}
-
 enum ShatlTextContent {
     case verbatim(String)
     case localized(String)
@@ -989,6 +949,7 @@ struct TorrentCardPreviewView: View {
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
     var usesProductionProgressColors = false
+    var usesProductionCardColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
     var shadowStyle: TorrentCardPreviewShadowStyle = .onboarding
@@ -1016,6 +977,7 @@ struct TorrentCardPreviewView: View {
         progressGroupBackgroundColorOverride: Color? = nil,
         progressGroupForegroundColorOverride: Color? = nil,
         usesProductionProgressColors: Bool = false,
+        usesProductionCardColors: Bool = false,
         cardBackgroundColorOverride: Color? = nil,
         cardOutlineColorOverride: Color? = nil,
         shadowStyle: TorrentCardPreviewShadowStyle = .onboarding,
@@ -1036,6 +998,7 @@ struct TorrentCardPreviewView: View {
         self.progressGroupBackgroundColorOverride = progressGroupBackgroundColorOverride
         self.progressGroupForegroundColorOverride = progressGroupForegroundColorOverride
         self.usesProductionProgressColors = usesProductionProgressColors
+        self.usesProductionCardColors = usesProductionCardColors
         self.cardBackgroundColorOverride = cardBackgroundColorOverride
         self.cardOutlineColorOverride = cardOutlineColorOverride
         self.shadowStyle = shadowStyle
@@ -1129,6 +1092,7 @@ struct TorrentCardPreviewView: View {
             progressGroupBackgroundColorOverride: progressGroupBackgroundColorOverride,
             progressGroupForegroundColorOverride: progressGroupForegroundColorOverride,
             usesProductionProgressColors: usesProductionProgressColors,
+            usesProductionCardColors: usesProductionCardColors,
             cardBackgroundColorOverride: cardBackgroundColorOverride,
             cardOutlineColorOverride: cardOutlineColorOverride,
             usesCompactExpandedMetricsLayout: (cardWidth ?? .infinity)

@@ -64,14 +64,17 @@
 "onboarding.action.allow_notifications" = "允许通知";
 "onboarding.action.help_development" = "帮助改进";
 "onboarding.action.close" = "关闭";
-"onboarding.welcome.title" = "欢迎使用 Shatl";
-"onboarding.welcome.description" = "这是一款基于 libtorrent、面向 Mac 的轻量级 Torrent 客户端。开源、仅保留必要功能，并拥有精致的界面。";
+"onboarding.action.settings" = "设置";
+"onboarding.action.get_started" = "开始使用";
+"onboarding.welcome.title" = "欢迎。";
+"onboarding.welcome.description" = "这是一款基于 libtorrent、面向 Mac 的轻量级 Torrent 客户端。开源、仅保留必要功能，并拥有精致的界面。只需几个简单步骤，即可全部就绪。";
 "onboarding.download_folder.title" = "默认下载文件夹";
 "onboarding.download_folder.description" = "默认情况下，文件会保存到“下载”文件夹。你可以现在更改位置，也可以稍后在设置中更改。";
 "onboarding.download_folder.save_to" = "保存到：";
-"onboarding.expanded_card.title" = "展开视图";
+"onboarding.expanded_card.title" = "展开视图。";
+"onboarding.expanded_card.description.lead" = "每个下载任务都会像这样显示为一张卡片。";
 "onboarding.expanded_card.description.prefix" = "点击右上角的";
-"onboarding.expanded_card.description.suffix" = "按钮，查看更多数据：种子、用户、大小和上传。再次点击该按钮，可将卡片切换回紧凑视图。";
+"onboarding.expanded_card.description.suffix" = "按钮，查看更多数据：种子、节点、大小和上传。再次点击即可收起卡片。";
 "onboarding.expanded_card.demo_title" = "种子任务";
 "onboarding.metrics_mode.title" = "数据显示模式";
 "onboarding.metrics_mode.description" = "简化模式显示舍入后的数值，详细模式则保留更精确的数值。";
@@ -79,10 +82,12 @@
 "onboarding.theme.follow_macos" = "跟随 macOS 设置";
 "onboarding.notifications.title" = "通知";
 "onboarding.notifications.description" = "下载完成\n或发生错误时，Shatl 可以发送通知。";
-"onboarding.data.title" = "匿名统计";
-"onboarding.data.description" = "你可以帮助了解 Shatl 对用户是否有用。只会发送启动次数、App 版本和界面语言。";
-"onboarding.done.title" = "设置完成";
-"onboarding.done.description" = "Shatl 已准备就绪。你可以随时在设置中更改这些选项。";
+"onboarding.data.title" = "分享匿名统计？";
+"onboarding.data.description" = "你可以帮助了解 Shatl 对用户是否有用。报告每周最多发送一次。";
+"onboarding.done.title" = "全部就绪。";
+"onboarding.done.description" = "还可在“设置”中调整：";
+"onboarding.done.metrics.caption" = "“简洁”只显示重点；“详细”显示更多数据和更精确的数值。";
+"onboarding.done.performance.caption" = "可选择 Halo、Orbit 或 Nova，从轻量到最高性能。";
 
 "menu.view.enter_full_screen" = "进入全屏幕";
 "menu.torrent" = "Torrent";
@@ -225,7 +230,7 @@
 "settings.data.does_not_collect.link_data" = "链接数据";
 "settings.data.does_not_collect.file_data" = "文件数据";
 "settings.data.caption" = "这些统计有助于评估 Shatl 是否被用户需要，并指导后续维护决策。";
-"settings.data.caption.technical" = "从技术上讲，报告还包含随机安装标识符和报告周。这些信息用于汇总每周统计数据，不包含姓名、电子邮件地址或其他个人信息。";
+"settings.data.caption.technical" = "从技术上讲，报告还包含随机安装标识符和报告周。这些信息用于汇总每周统计数据。";
 
 "settings.downloads.performance.section" = "性能模式";
 "settings.downloads.performance.profile.economical" = "Halo";

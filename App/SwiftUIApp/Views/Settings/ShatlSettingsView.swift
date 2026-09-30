@@ -64,7 +64,7 @@ struct ShatlSettingsView: View {
                         ) {
                             store.setPerformanceProfile(profile)
                         } content: {
-                            PerformanceProfileDemo(profile: profile)
+                            ShatlPerformanceProfileSpeedometer(profile: profile)
                         }
                     }
                 }
@@ -586,20 +586,18 @@ struct DataCollectionInfo: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: style == .onboarding ? 0 : 10) {
+        HStack(alignment: .top, spacing: style == .onboarding ? 16 : 10) {
             DataCollectionCard(
                 group: .collects,
                 iconColor: collectsIconColor
             )
-            .padding(.horizontal, style == .onboarding ? 16 : 0)
 
             DataCollectionCard(
                 group: .doesNotCollect,
                 iconColor: doesNotCollectIconColor
             )
-            .padding(.horizontal, style == .onboarding ? 16 : 0)
         }
-        .frame(width: style == .onboarding ? 376 : nil)
+        .frame(maxWidth: style == .onboarding ? .infinity : nil)
     }
 
     private var collectsIconColor: Color {
@@ -873,7 +871,7 @@ private extension AppPerformanceProfile {
     }
 }
 
-private struct PerformanceProfileDemo: View {
+struct ShatlPerformanceProfileSpeedometer: View {
     private enum Layout {
         static let speedometerSize: CGFloat = 48
     }

@@ -4,6 +4,16 @@
 import Combine
 import Foundation
 
+enum OnboardingPresentation: Equatable {
+    case hidden
+    case firstLaunch
+    case debug
+
+    var isPresented: Bool {
+        self != .hidden
+    }
+}
+
 /// The main store is the single source of truth for the UI.
 @MainActor
 final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAttentionHandling {
@@ -116,6 +126,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published private(set) var hasLoadedInitialSession: Bool
     @Published private(set) var sessionLoadIssue: SessionLoadIssue?
     @Published private(set) var isResolvingSessionRecovery = false
+    /// A first-launch or Debug onboarding owns the main window until it finishes.
+    @Published private(set) var onboardingPresentation = OnboardingPresentation.hidden
     @Published private(set) var transitioningTorrentIDs: Set<UUID> = [] {
         didSet {
             guard oldValue != transitioningTorrentIDs else { return }
@@ -732,6 +744,20 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func completeOnboarding() {
         preferences.hasCompletedOnboarding = true
+        onboardingPresentation = .hidden
+    }
+
+    func presentInitialOnboardingIfNeeded() {
+        guard hasLoadedInitialSession,
+              sessionLoadIssue == nil,
+              !preferences.hasCompletedOnboarding else {
+            return
+        }
+        onboardingPresentation = .firstLaunch
+    }
+
+    func presentDebugOnboarding() {
+        onboardingPresentation = .debug
     }
 
     func setPreferredBrandMark(_ brandMark: ShatlBrandMark) {
@@ -968,6 +994,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     var canAddTorrent: Bool {
         guard hasLoadedInitialSession,
               sessionLoadIssue == nil,
+              !onboardingPresentation.isPresented,
               !isPreparingForTermination else {
             return false
         }
@@ -975,6 +1002,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     var isToolbarRemoveEnabled: Bool {
+        guard !onboardingPresentation.isPresented else { return false }
         if let selectedTorrentID, isPendingAddition(id: selectedTorrentID) {
             return !isRestoringSession
         }
@@ -985,14 +1013,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     var isToolbarStartStopEnabled: Bool {
-        guard let selectedTorrent else { return false }
+        guard !onboardingPresentation.isPresented, let selectedTorrent else { return false }
         return selectedTorrent.errorState == nil
             && !isRestoringSession
             && !transitioningTorrentIDs.contains(selectedTorrent.id)
     }
 
     func canToggleRunningState(for id: UUID) -> Bool {
-        guard let record = torrentRecord(for: id) else { return false }
+        guard !onboardingPresentation.isPresented, let record = torrentRecord(for: id) else { return false }
         return Self.canToggleRunningState(
             record,
             isRestoringSession: isRestoringSession,
@@ -1001,6 +1029,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func canRemoveFromList(for id: UUID) -> Bool {
+        guard !onboardingPresentation.isPresented else { return false }
         let isPendingAddition = isPendingAddition(id: id)
         guard isPendingAddition || torrentIndex(for: id) != nil else { return false }
         return Self.canRemoveFromList(
@@ -1011,7 +1040,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func canRemoveWithFiles(for id: UUID) -> Bool {
-        guard let record = torrentRecord(for: id) else { return false }
+        guard !onboardingPresentation.isPresented, let record = torrentRecord(for: id) else { return false }
         return Self.canRemoveWithFiles(
             record,
             isRestoringSession: isRestoringSession,
@@ -1666,6 +1695,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func handleIncomingURL(_ url: URL) {
+        // An external URL cannot explain why no visible add flow appears while
+        // first-run onboarding owns the window, so deliberately discard it.
+        guard !onboardingPresentation.isPresented else { return }
+
         if !isReadyToProcessIncomingURLs {
             pendingIncomingURLs.append(url)
             return

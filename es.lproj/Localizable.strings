@@ -64,14 +64,17 @@
 "onboarding.action.allow_notifications" = "Permitir notificaciones";
 "onboarding.action.help_development" = "Ayudar a mejorar";
 "onboarding.action.close" = "Cerrar";
-"onboarding.welcome.title" = "Te damos la bienvenida a Shatl";
-"onboarding.welcome.description" = "Un cliente torrent ligero para Mac basado en libtorrent. De código abierto, solo con las funciones esenciales y una interfaz cuidada.";
+"onboarding.action.settings" = "Ajustes";
+"onboarding.action.get_started" = "Empezar";
+"onboarding.welcome.title" = "Te damos la bienvenida.";
+"onboarding.welcome.description" = "Un cliente torrent ligero para Mac basado en libtorrent. De código abierto, solo con las funciones esenciales y una interfaz cuidada. Unos pocos pasos y todo estará listo.";
 "onboarding.download_folder.title" = "Carpeta de descarga predeterminada";
 "onboarding.download_folder.description" = "De forma predeterminada, los archivos se guardan en Descargas. Puedes cambiar la ubicación ahora o más tarde en Ajustes.";
 "onboarding.download_folder.save_to" = "Guardar en:";
-"onboarding.expanded_card.title" = "Vista ampliada";
+"onboarding.expanded_card.title" = "Vista ampliada.";
+"onboarding.expanded_card.description.lead" = "Así se verán tus descargas, cada una en su propia tarjeta.";
 "onboarding.expanded_card.description.prefix" = "Haz clic en el botón ";
-"onboarding.expanded_card.description.suffix" = " de la esquina superior derecha para ver más datos: semillas, pares, tamaño y subida. Haz clic en el botón de nuevo para devolver la tarjeta a la vista compacta.";
+"onboarding.expanded_card.description.suffix" = " de la esquina superior derecha para ver más datos: seeds, peers, tamaño y subida. Vuelve a hacer clic para contraer la tarjeta.";
 "onboarding.expanded_card.demo_title" = "Torrent";
 "onboarding.metrics_mode.title" = "Modo de visualización de datos";
 "onboarding.metrics_mode.description" = "El modo simplificado muestra valores redondeados, mientras que el detallado conserva valores más precisos.";
@@ -79,10 +82,12 @@
 "onboarding.theme.follow_macos" = "Seguir los ajustes de macOS";
 "onboarding.notifications.title" = "Notificaciones";
 "onboarding.notifications.description" = "Shatl puede avisarte cuando una descarga finaliza\no se produce un error.";
-"onboarding.data.title" = "Estadísticas anónimas";
-"onboarding.data.description" = "Puedes ayudar a entender si Shatl es útil para las personas. Solo se envían el número de inicios, la versión de la app y el idioma de la interfaz.";
-"onboarding.done.title" = "Todo listo";
-"onboarding.done.description" = "Shatl está listo para usarse. Puedes cambiar estas opciones en Ajustes cuando quieras.";
+"onboarding.data.title" = "¿Compartir estadísticas anónimas?";
+"onboarding.data.description" = "Puedes ayudar a entender si Shatl es útil para las personas. Se envía un informe como máximo una vez a la semana.";
+"onboarding.done.title" = "Todo listo.";
+"onboarding.done.description" = "También encontrarás en Ajustes:";
+"onboarding.done.metrics.caption" = "Simplificada: solo lo esencial. Detallada: más datos y mayor precisión.";
+"onboarding.done.performance.caption" = "Elige Halo, Orbit o Nova, del modo ahorrador al máximo.";
 
 "menu.view.enter_full_screen" = "Usar pantalla completa";
 "menu.torrent" = "Torrent";
@@ -227,7 +232,7 @@
 "settings.data.does_not_collect.link_data" = "Datos de enlaces";
 "settings.data.does_not_collect.file_data" = "Datos de archivos";
 "settings.data.caption" = "Estas estadísticas ayudan a evaluar cuánto se usa Shatl y a tomar decisiones sobre su mantenimiento.";
-"settings.data.caption.technical" = "Por motivos técnicos, el informe también incluye un identificador aleatorio de la instalación y la semana del informe. Estos datos se utilizan para agrupar las estadísticas semanales y no contienen nombres, direcciones de correo electrónico ni otra información personal.";
+"settings.data.caption.technical" = "Por motivos técnicos, el informe también incluye un identificador aleatorio de la instalación y la semana del informe. Estos datos se utilizan para agrupar las estadísticas semanales.";
 
 "settings.downloads.performance.section" = "Modo de rendimiento";
 "settings.downloads.performance.profile.economical" = "Halo";

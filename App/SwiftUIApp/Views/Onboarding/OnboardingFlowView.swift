@@ -3,48 +3,35 @@
 
 import SwiftUI
 
-private enum OnboardingThemeLayout {
-    static let manualCardsExpandedHeight: CGFloat = 70
-}
-
-private enum OnboardingWindowLayout {
-    static var closeButtonPadding: CGFloat {
-        if #available(macOS 27.0, *) {
-            8
-        } else {
-            16
-        }
-    }
-}
-
 struct OnboardingFlowView: View {
+    @Environment(\.openSettings) private var openSettings
+
     var localeOverride: AppLocaleOverride = .russian
-    var defaultDownloadPath: String = AppPreferences.defaultValue.defaultDownloadPath
     var metricsMode: MetricsPresentationMode = .simplified
-    var theme: AppTheme = .system
     var onClose: () -> Void = {}
     var onEnableUsageStatistics: () -> Void = {}
-    var onChangeDownloadFolder: () -> Void = {}
-    var onMetricsModeChange: (MetricsPresentationMode) -> Void = { _ in }
-    var onThemeChange: (AppTheme) -> Void = { _ in }
 
     @State private var step = OnboardingStep.welcome
-    @State private var onboardingTheme: AppTheme?
-    @State private var themePersistenceTask: Task<Void, Never>?
 
     var body: some View {
-        onboardingShell
-            .frame(width: 400, height: 500)
-            .animation(ShatlMotion.onboardingStepChange, value: step)
+        ZStack {
+            if step == .done {
+                completionStep
+                    .transition(.blurReplace)
+            } else {
+                onboardingShell
+                    .transition(.blurReplace)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(ShatlMotion.onboardingStepChange, value: step)
     }
 
     private var onboardingShell: some View {
         OnboardingStepShell(
             stepID: step.rawValue,
-            progressIndex: step.progressIndex,
             title: stepTitle,
-            usesOverlayCaption: step == .theme,
-            onClose: finish
+            showsCaptionTopBorder: step == .welcome
         ) {
             onboardingPresentation
         } description: {
@@ -54,70 +41,66 @@ struct OnboardingFlowView: View {
         }
     }
 
+    private var completionStep: some View {
+        OnboardingCompletionStep(
+            title: stepTitle,
+            introduction: localized(
+                "onboarding.done.description",
+                defaultValue: "В Настройках также доступны:"
+            ),
+            metricsTitle: localized(
+                "settings.appearance.metrics.section",
+                defaultValue: "Отображение данных"
+            ),
+            metricsDescription: localized(
+                "onboarding.done.metrics.caption",
+                defaultValue: "Упрощённо — только главное. Подробно — больше данных и точнее."
+            ),
+            performanceTitle: localized(
+                "settings.downloads.performance.section",
+                defaultValue: "Режим производительности"
+            ),
+            performanceDescription: localized(
+                "onboarding.done.performance.caption",
+                defaultValue: "Выберите Halo, Orbit или Nova — от бережного до максимального режима."
+            ),
+            localeOverride: localeOverride
+        ) {
+            onboardingActions
+        }
+    }
+
     private var stepTitle: String {
         switch step {
         case .welcome:
-            localized("onboarding.welcome.title", defaultValue: "Добро пожаловать в Shatl")
-        case .downloadFolder:
-            localized(
-                "onboarding.download_folder.title",
-                defaultValue: "Папка сохранения загрузок по умолчанию"
-            )
+            localized("onboarding.welcome.title", defaultValue: "Добро пожаловать.")
         case .expandedCard:
             localized(
                 "onboarding.expanded_card.title",
-                defaultValue: "Переход в расширенный вид"
-            )
-        case .metricsMode:
-            localized(
-                "onboarding.metrics_mode.title",
-                defaultValue: "Режим отображения данных"
-            )
-        case .theme:
-            localized(
-                "onboarding.theme.title",
-                defaultValue: "Выбор темы оформления"
+                defaultValue: "Расширенный вид."
             )
         case .data:
-            localized("onboarding.data.title", defaultValue: "Анонимная статистика")
+            localized("onboarding.data.title", defaultValue: "Делиться анонимной статистикой?")
         case .done:
-            localized("onboarding.done.title", defaultValue: "Всё настроено")
+            localized("onboarding.done.title", defaultValue: "Всё готово.")
         }
     }
 
     @ViewBuilder
     private var onboardingPresentation: some View {
         switch step {
-        case .welcome, .done:
-            OnboardingLogoPresentation(stepID: step.rawValue)
-        case .downloadFolder:
-            OnboardingDownloadFolderPresentation(
-                saveToTitle: localized("onboarding.download_folder.save_to", defaultValue: "Сохранять в:"),
-                downloadPath: defaultDownloadPath,
-                changeTitle: localized("common.change", defaultValue: "Сменить"),
-                onChange: onChangeDownloadFolder
-            )
+        case .welcome:
+            OnboardingWelcomeCoverPresentation()
         case .expandedCard:
             OnboardingExpandedCardPresentationView(
                 localeOverride: localeOverride,
                 metricsMode: metricsMode
             )
-        case .metricsMode:
-            OnboardingExpandedCardPresentationView(
-                localeOverride: localeOverride,
-                metricsMode: metricsMode,
-                initiallyExpanded: true,
-                centersExpandedCard: true,
-                allowsExpansionToggle: false,
-                pulsesMetricSetOutlines: true
-            )
-        case .theme:
-            OnboardingThemePreviewPresentation(
-                theme: displayedTheme,
-                localeOverride: localeOverride
-            )
         case .data:
             DataCollectionInfo(style: .onboarding)
+                .padding(.horizontal, 24)
+        case .done:
+            EmptyView()
         }
     }
 
@@ -127,52 +110,44 @@ struct OnboardingFlowView: View {
         case .welcome:
             plainDescription(
                 "onboarding.welcome.description",
-                defaultValue: "Перед вами лёгкий torrent-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс."
-            )
-        case .downloadFolder:
-            plainDescription(
-                "onboarding.download_folder.description",
-                defaultValue: "По умолчанию файлы сохраняются в папку «Загрузки». Вы можете изменить путь сейчас или позже в Настройках."
+                defaultValue: "Перед вами лёгкий торрент-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс. Несколько коротких шагов — и всё будет готово."
             )
         case .expandedCard:
             expandedCardDescription
-        case .metricsMode:
-            VStack(spacing: 6) {
-                plainDescription(
-                    "onboarding.metrics_mode.description",
-                    defaultValue: "Упрощённый режим показывает округлённые значения, а подробный сохраняет более точные значения."
-                )
-
-                metricsModeTumblers
-                    .padding(.top, 6)
-            }
-        case .theme:
-            VStack(spacing: 6) {
-                plainDescription(
-                    "settings.appearance.theme.caption",
-                    defaultValue: "Shatl может менять оформление в соответствии с настройками macOS или использовать выбранную тему."
-                )
-
-                themeControls
-            }
         case .data:
-            plainDescription(
-                "onboarding.data.description",
-                defaultValue: "Вы можете помочь понять, насколько Shatl нужен пользователям. Отправляются только количество запусков, версия приложения и язык интерфейса."
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                plainDescription(
+                    "onboarding.data.description",
+                    defaultValue: "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю."
+                )
+
+                plainDescription(
+                    "settings.data.caption.technical",
+                    defaultValue: "Технически отчёт также содержит случайный идентификатор установки и отчётную неделю. Они нужны для объединения еженедельной статистики."
+                )
+            }
         case .done:
-            plainDescription(
-                "onboarding.done.description",
-                defaultValue: "Shatl готов к работе. Параметры можно изменить в Настройках в любой момент."
-            )
+            EmptyView()
         }
     }
 
     @ViewBuilder
     private var onboardingActions: some View {
         switch step {
-        case .welcome, .downloadFolder, .expandedCard, .metricsMode, .theme:
-            nextButton
+        case .welcome, .expandedCard:
+            HStack(spacing: 8) {
+                ShatlButton(
+                    title: localized("onboarding.action.close", defaultValue: "Закрыть"),
+                    role: .borderedNeutral,
+                    action: finish
+                )
+
+                ShatlButton(
+                    title: localized("onboarding.action.next", defaultValue: "Далее"),
+                    role: .borderedColored,
+                    action: goNext
+                )
+            }
         case .data:
             HStack(spacing: 8) {
                 ShatlButton(
@@ -183,177 +158,51 @@ struct OnboardingFlowView: View {
 
                 ShatlButton(
                     title: localized("onboarding.action.help_development", defaultValue: "Помочь развитию"),
-                    role: .borderedMonochrome
+                    role: .borderedColored
                 ) {
                     onEnableUsageStatistics()
                     goNext()
                 }
             }
         case .done:
-            ShatlButton(
-                title: localized("onboarding.action.close", defaultValue: "Закрыть"),
-                role: .borderedMonochrome,
-                action: finish
-            )
-        }
-    }
+            HStack(spacing: 8) {
+                ShatlButton(
+                    title: localized("onboarding.action.settings", defaultValue: "Настройки"),
+                    role: .borderedNeutral,
+                    action: openSettingsAndFinish
+                )
 
-    private var nextButton: some View {
-        ShatlButton(
-            title: localized("onboarding.action.next", defaultValue: "Далее"),
-            role: .borderedMonochrome,
-            action: goNext
-        )
-    }
-
-    private var metricsModeTumblers: some View {
-        HStack(spacing: 6) {
-            ForEach(MetricsPresentationMode.allCases) { mode in
-                ShatlSettingsInputCard(
-                    title: metricsModeTitle(mode),
-                    isSelected: metricsMode == mode,
-                    labelPlacement: .insideCard
-                ) {
-                    onMetricsModeChange(mode)
-                } content: {
-                    EmptyView()
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var themeControls: some View {
-        let showsManualThemeCards = displayedTheme != .system
-
-        return VStack(spacing: 0) {
-            ShatlSettingsParameter {
-                ShatlSettingsToggleRow(
-                    title: localized(
-                        "onboarding.theme.follow_macos",
-                        defaultValue: "Следовать настройкам macOS"
-                    ),
-                    isOn: followsSystemTheme
+                ShatlButton(
+                    title: localized("onboarding.action.get_started", defaultValue: "Начать"),
+                    role: .borderedColored,
+                    action: finish
                 )
             }
-
-            HStack(spacing: 6) {
-                ForEach([AppTheme.light, AppTheme.dark]) { manualTheme in
-                    ShatlSettingsInputCard(
-                        title: themeTitle(manualTheme),
-                        isSelected: displayedTheme == manualTheme,
-                        labelPlacement: .insideCard
-                    ) {
-                        changeTheme(to: manualTheme)
-                    } content: {
-                        EmptyView()
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 62)
-            .padding(.top, 6)
-            .padding(.bottom, 2)
-            .scaleEffect(showsManualThemeCards ? 1 : 0.85, anchor: .center)
-            .opacity(showsManualThemeCards ? 1 : 0)
-            .frame(
-                height: showsManualThemeCards
-                    ? OnboardingThemeLayout.manualCardsExpandedHeight
-                    : 0,
-                alignment: .bottom
-            )
-            .clipped()
-            .allowsHitTesting(showsManualThemeCards)
-            .accessibilityHidden(!showsManualThemeCards)
-            .animation(ShatlMotion.interface, value: showsManualThemeCards)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var followsSystemTheme: Binding<Bool> {
-        Binding(
-            get: { displayedTheme == .system },
-            set: { followsSystem in
-                changeTheme(to: followsSystem ? .system : .light)
-            }
-        )
-    }
-
-    private var displayedTheme: AppTheme {
-        onboardingTheme ?? theme
-    }
-
-    private func changeTheme(to newTheme: AppTheme) {
-        themePersistenceTask?.cancel()
-
-        withAnimation(ShatlMotion.interface) {
-            onboardingTheme = newTheme
-        }
-
-        themePersistenceTask = Task { @MainActor in
-            do {
-                try await Task.sleep(for: .milliseconds(700))
-            } catch {
-                return
-            }
-
-            onThemeChange(newTheme)
-            themePersistenceTask = nil
-        }
-    }
-
-    private func themeTitle(_ theme: AppTheme) -> String {
-        switch theme {
-        case .system:
-            localized(
-                "settings.appearance.theme.system",
-                defaultValue: "Как в системе"
-            )
-        case .light:
-            localized(
-                "settings.appearance.theme.light",
-                defaultValue: "Светлая"
-            )
-        case .dark:
-            localized(
-                "settings.appearance.theme.dark",
-                defaultValue: "Тёмная"
-            )
-        }
-    }
-
-    private func metricsModeTitle(_ mode: MetricsPresentationMode) -> String {
-        switch mode {
-        case .simplified:
-            localized(
-                "settings.appearance.metrics.simplified",
-                defaultValue: "Упрощённо"
-            )
-        case .detailed:
-            localized(
-                "settings.appearance.metrics.detailed",
-                defaultValue: "Подробно"
-            )
         }
     }
 
     private var expandedCardDescription: some View {
-        Text("\(expandedDescriptionPrefix)\(expandedDescriptionIcon)\(expandedDescriptionSuffix)")
-            .shatlTypography(ShatlTypography.captionRegular)
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 8) {
+            plainDescription(
+                "onboarding.expanded_card.description.lead",
+                defaultValue: "Так будут выглядеть загрузки — каждая в своей карточке."
+            )
+
+            Text("\(expandedDescriptionPrefix)\(expandedDescriptionIcon)\(expandedDescriptionSuffix)")
+                .shatlTypography(ShatlTypography.bodyRegular)
+                .foregroundStyle(ShatlColor.typographySecondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var expandedDescriptionPrefix: Text {
         Text(
             localized(
                 "onboarding.expanded_card.description.prefix",
-                defaultValue: "Нажмите на кнопку "
+                defaultValue: "Нажмите кнопку "
             )
         )
-        .foregroundColor(ShatlColor.typographySecondary)
     }
 
     private var expandedDescriptionIcon: Text {
@@ -365,17 +214,16 @@ struct OnboardingFlowView: View {
         Text(
             localized(
                 "onboarding.expanded_card.description.suffix",
-                defaultValue: " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите на кнопку снова, чтобы перевести карточку обратно в компактный вид."
+                defaultValue: " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите ещё раз, чтобы свернуть карточку."
             )
         )
-        .foregroundColor(ShatlColor.typographySecondary)
     }
 
     private func plainDescription(_ key: String, defaultValue: String) -> some View {
         Text(localized(key, defaultValue: defaultValue))
-            .shatlTypography(ShatlTypography.captionRegular)
+            .shatlTypography(ShatlTypography.bodyRegular)
             .foregroundStyle(ShatlColor.typographySecondary)
-            .multilineTextAlignment(.center)
+            .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -392,34 +240,21 @@ struct OnboardingFlowView: View {
     }
 
     private func finish() {
-        persistPendingThemeImmediately()
         onClose()
     }
 
-    private func persistPendingThemeImmediately() {
-        themePersistenceTask?.cancel()
-        themePersistenceTask = nil
-
-        guard let onboardingTheme, onboardingTheme != theme else { return }
-        onThemeChange(onboardingTheme)
+    private func openSettingsAndFinish() {
+        openSettings()
+        finish()
     }
 
 }
 
 private enum OnboardingStep: Int, CaseIterable {
     case welcome = 1
-    case downloadFolder
     case expandedCard
-    case metricsMode
-    case theme
     case data
     case done
-
-    static let progressStepCount = allCases.filter { $0 != .done }.count
-
-    var progressIndex: Int? {
-        self == .done ? nil : rawValue
-    }
 
     var next: OnboardingStep? {
         OnboardingStep(rawValue: rawValue + 1)
@@ -431,29 +266,23 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     @Environment(\.colorScheme) private var colorScheme
 
     let stepID: Int
-    let progressIndex: Int?
     let title: String
-    let usesOverlayCaption: Bool
-    let onClose: () -> Void
+    let showsCaptionTopBorder: Bool
     let presentation: () -> Presentation
     let description: () -> Description
     let actions: () -> Actions
 
     init(
         stepID: Int,
-        progressIndex: Int?,
         title: String,
-        usesOverlayCaption: Bool = false,
-        onClose: @escaping () -> Void,
+        showsCaptionTopBorder: Bool = false,
         @ViewBuilder presentation: @escaping () -> Presentation,
         @ViewBuilder description: @escaping () -> Description,
         @ViewBuilder actions: @escaping () -> Actions
     ) {
         self.stepID = stepID
-        self.progressIndex = progressIndex
         self.title = title
-        self.usesOverlayCaption = usesOverlayCaption
-        self.onClose = onClose
+        self.showsCaptionTopBorder = showsCaptionTopBorder
         self.presentation = presentation
         self.description = description
         self.actions = actions
@@ -471,60 +300,40 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     }
 
     private var presentationArea: some View {
-        ZStack {
-            presentationBackground
+        Group {
+            if stepID == OnboardingStep.welcome.rawValue {
+                presentation()
+            } else {
+                ZStack {
+                    presentationBackground
 
-            OnboardingAmbientPresentationBackground(
-                showsAccentDots: stepID != OnboardingStep.data.rawValue
-            )
-                .allowsHitTesting(false)
-
-            presentation()
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity,
-                    alignment: usesOverlayCaption ? .top : .center
-                )
-                .id(stepID)
-        }
-        .overlay(alignment: .topTrailing) {
-            ShatlModalCloseButton(
-                action: onClose,
-                iconSize: 17,
-                hoverForegroundColor: ShatlColor.typographyTertiary
-            )
-            .padding(OnboardingWindowLayout.closeButtonPadding)
+                    presentation()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .id(stepID)
+                }
+            }
         }
     }
 
     private var captionArea: some View {
         VStack(spacing: 16) {
-            if let progressIndex {
-                ShatlOnboardingProgressDots(
-                    currentStep: progressIndex,
-                    stepCount: OnboardingStep.progressStepCount
-                )
-            }
-
             labelsContainer
                 .id(stepID)
                 .transition(.blurReplace)
 
-            actions()
-                .frame(maxWidth: .infinity, alignment: .center)
+            buttonContainer
                 .id(stepID)
                 .transition(.blurReplace)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, usesOverlayCaption ? 16 : 0)
-        .padding(.bottom, 24)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .background(ShatlColor.onboardingForeground)
+        .padding(.horizontal, 12)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) {
-            if usesOverlayCaption {
+            if showsCaptionTopBorder {
                 Rectangle()
-                    .fill(ShatlColor.onboardingOutline)
-                    .frame(height: 1)
+                    .fill(ShatlColor.outlinePrimary)
+                    .frame(height: 0.5)
             }
         }
     }
@@ -532,11 +341,11 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     private var presentationBackground: LinearGradient {
         let colors: [Color] = colorScheme == .dark
             ? [
-                Color(red: 17 / 255, green: 24 / 255, blue: 39 / 255),
-                Color(red: 55 / 255, green: 65 / 255, blue: 81 / 255),
+                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255),
+                Color.black.opacity(0),
             ]
             : [
-                Color(red: 229 / 255, green: 231 / 255, blue: 235 / 255),
+                Color(red: 244 / 255, green: 244 / 255, blue: 245 / 255),
                 Color.white,
             ]
 
@@ -544,98 +353,269 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     }
 
     private var labelsContainer: some View {
-        VStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .shatlTypography(ShatlTypography.headlineSemibold)
                 .foregroundStyle(ShatlColor.typographyPrimary)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(.leading)
 
             description()
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var buttonContainer: some View {
+        HStack(spacing: 12) {
+            OnboardingStepIndicator(currentStepID: stepID)
+
+            Spacer(minLength: 0)
+
+            actions()
+        }
     }
 }
 
-private struct OnboardingThemePreviewPresentation: View {
-    let theme: AppTheme
+private struct OnboardingCompletionStep<Actions: View>: View {
+    let title: String
+    let introduction: String
+    let metricsTitle: String
+    let metricsDescription: String
+    let performanceTitle: String
+    let performanceDescription: String
     let localeOverride: AppLocaleOverride
+    let actions: () -> Actions
+
+    init(
+        title: String,
+        introduction: String,
+        metricsTitle: String,
+        metricsDescription: String,
+        performanceTitle: String,
+        performanceDescription: String,
+        localeOverride: AppLocaleOverride,
+        @ViewBuilder actions: @escaping () -> Actions
+    ) {
+        self.title = title
+        self.introduction = introduction
+        self.metricsTitle = metricsTitle
+        self.metricsDescription = metricsDescription
+        self.performanceTitle = performanceTitle
+        self.performanceDescription = performanceDescription
+        self.localeOverride = localeOverride
+        self.actions = actions
+    }
 
     var body: some View {
-        Color.clear
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(alignment: .top) {
-                ZStack(alignment: .top) {
-                    Image(assetName)
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: 400, height: 431)
-                        .id(assetName)
-                        .transition(.blurReplace)
-                }
-                .frame(width: 400, height: 431, alignment: .top)
-                .animation(ShatlMotion.onboardingStepChange, value: assetName)
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 20) {
+                labelsContainer
+
+                settingsCards
             }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 12) {
+                OnboardingStepIndicator(currentStepID: OnboardingStep.done.rawValue)
+
+                Spacer(minLength: 0)
+
+                actions()
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 28)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var assetName: String {
-        "themePreview\(themeAssetComponent)\(localeAssetSuffix)"
+    private var labelsContainer: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ShatlWordmark(
+                renderingMode: .glass,
+                initialSelection: .logomark,
+                artworkAlignment: .leading,
+                isInteractive: false
+            )
+                .frame(width: 84, height: 84, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .shatlTypography(ShatlTypography.headlineSemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+
+                Text(introduction)
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.typographySecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var themeAssetComponent: String {
-        switch theme {
-        case .system:
-            "System"
-        case .light:
-            "Light"
-        case .dark:
-            "Dark"
+    private var settingsCards: some View {
+        VStack(spacing: 8) {
+            OnboardingSettingsCard(
+                title: metricsTitle,
+                description: metricsDescription
+            ) {
+                OnboardingMetricsModeIllustration(localeOverride: localeOverride)
+            }
+
+            OnboardingSettingsCard(
+                title: performanceTitle,
+                description: performanceDescription
+            ) {
+                HStack(spacing: 12) {
+                    ForEach(AppPerformanceProfile.allCases) { profile in
+                        ShatlPerformanceProfileSpeedometer(profile: profile)
+                    }
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private struct OnboardingSettingsCard<Illustration: View>: View {
+    let title: String
+    let description: String
+    let illustration: () -> Illustration
+
+    init(
+        title: String,
+        description: String,
+        @ViewBuilder illustration: @escaping () -> Illustration
+    ) {
+        self.title = title
+        self.description = description
+        self.illustration = illustration
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .shatlTypography(ShatlTypography.bodySemibold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(description)
+                    .shatlTypography(ShatlTypography.captionRegular)
+                    .foregroundStyle(ShatlColor.typographySecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+
+            illustration()
+                .frame(maxWidth: .infinity)
+                .padding(12)
+        }
+        .background {
+            GeometryReader { proxy in
+                ZStack(alignment: .trailing) {
+                    ShatlColor.cardDefault
+                    ShatlColor.cardHover
+                        .frame(width: proxy.size.width / 2)
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct OnboardingMetricsModeIllustration: View {
+    private struct Sample {
+        let downloadSpeedBytesPerSecond: Int64
+        let etaSeconds: Int
+    }
+
+    private static let samples = [
+        Sample(downloadSpeedBytesPerSecond: 9_750_000, etaSeconds: 2_280),
+        Sample(downloadSpeedBytesPerSecond: 13_400_000, etaSeconds: 1_020),
+        Sample(downloadSpeedBytesPerSecond: 18_650_000, etaSeconds: 3_180),
+    ]
+
+    let localeOverride: AppLocaleOverride
+
+    @State private var sampleIndex = 0
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ShatlMetricSet(items: metricSet(for: .detailed))
+            ShatlMetricSet(items: metricSet(for: .simplified))
+        }
+        .frame(maxWidth: .infinity)
+        .task {
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+
+                guard !Task.isCancelled else { return }
+
+                withAnimation(ShatlMotion.metricResize) {
+                    sampleIndex = (sampleIndex + 1) % Self.samples.count
+                }
+            }
         }
     }
 
-    private var localeAssetSuffix: String {
-        switch localeOverride {
-        case .english:
-            "En"
-        case .russian:
-            "Ru"
-        case .german:
-            "Ge"
-        case .spanish:
-            "Sp"
-        case .french:
-            "Fr"
-        case .japanese:
-            "Ja"
-        case .simplifiedChinese:
-            "Ch"
-        case .system:
-            systemLocaleAssetSuffix
-        }
+    private func metricSet(for mode: MetricsPresentationMode) -> [MetricItemPresentation] {
+        var record = TorrentRecord.previewData[0]
+        let sample = Self.samples[sampleIndex]
+        record.metrics.downloadSpeedBytesPerSecond = sample.downloadSpeedBytesPerSecond
+        record.metrics.etaSeconds = sample.etaSeconds
+
+        return TorrentPresentation.compactTransferMetricSet(
+            for: record,
+            mode: mode,
+            localeOverride: localeOverride
+        )?.items ?? []
     }
+}
 
-    private var systemLocaleAssetSuffix: String {
-        let preferredLanguage = Locale.preferredLanguages.first?.lowercased() ?? "en"
+private struct OnboardingStepIndicator: View {
+    let currentStepID: Int
 
-        if preferredLanguage.hasPrefix("zh") {
-            return "Ch"
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(OnboardingStep.allCases, id: \.rawValue) { step in
+                Circle()
+                    .fill(
+                        step.rawValue == currentStepID
+                            ? ShatlColor.typographyPrimary
+                            : ShatlColor.outlinePrimary
+                    )
+                    .frame(width: 6, height: 6)
+            }
         }
-        if preferredLanguage.hasPrefix("ru") {
-            return "Ru"
-        }
-        if preferredLanguage.hasPrefix("de") {
-            return "Ge"
-        }
-        if preferredLanguage.hasPrefix("es") {
-            return "Sp"
-        }
-        if preferredLanguage.hasPrefix("fr") {
-            return "Fr"
-        }
-        if preferredLanguage.hasPrefix("ja") {
-            return "Ja"
-        }
+        .padding(.leading, 12)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(currentStepID) / \(OnboardingStep.allCases.count)")
+    }
+}
 
-        return "En"
+private struct OnboardingWelcomeCoverPresentation: View {
+    var body: some View {
+        // `Color.clear` keeps the presentation area flexible. The fixed-size
+        // asset is an overlay, so a short window clips the cover rather than
+        // pushing the caption (and its bottom padding) outside the window.
+        Color.clear
+            .overlay {
+                Image("onboardingWelcomeCover")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFill()
+                    .frame(width: OnboardingWindowLayout.windowSize.width, height: 340)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .clipped()
     }
 }
 
@@ -1016,68 +996,11 @@ private struct OnboardingAmbientBody: Identifiable {
     var visualTransitionDuration: TimeInterval
 }
 
-private struct OnboardingLogoPresentation: View {
-    let stepID: Int
-
-    var body: some View {
-        ShatlWordmark(
-            renderingMode: .flat,
-            initialSelection: .logomark
-        )
-            .id(stepID)
-            .frame(width: 400, height: 163)
-    }
-}
-
-private struct OnboardingDownloadFolderPresentation: View {
-    let saveToTitle: String
-    let downloadPath: String
-    let changeTitle: String
-    let onChange: () -> Void
-
-    private var folderName: String {
-        let name = URL(fileURLWithPath: downloadPath).lastPathComponent
-        return name.isEmpty ? downloadPath : name
-    }
-
-    private var folderTitle: String {
-        "\(saveToTitle) \(folderName)"
-    }
-
-    var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: folderTitle)
-                    .shatlTypography(ShatlTypography.bodyMedium)
-                    .foregroundStyle(ShatlColor.typographyPrimary)
-                    .lineLimit(1)
-
-                Text(verbatim: downloadPath)
-                    .shatlTypography(ShatlTypography.bodyRegular)
-                    .foregroundStyle(ShatlColor.typographySecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            ShatlButton(
-                title: changeTitle,
-                role: .borderedNeutral,
-                action: onChange
-            )
-        }
-        .padding(12)
-        .frame(width: 380, alignment: .leading)
-        .background(ShatlColor.onboardingForeground)
-        .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous))
-        .shatlShadow(ShatlShadow.onboardingCard)
-    }
-}
-
 #if DEBUG
 #Preview("Onboarding Flow") {
     OnboardingFlowView()
         .environmentObject(ShatlAccentState())
         .shatlTypographyProfile(localeOverride: .russian)
+        .frame(width: OnboardingWindowLayout.windowSize.width, height: OnboardingWindowLayout.windowSize.height)
 }
 #endif

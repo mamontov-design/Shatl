@@ -64,14 +64,17 @@
 "onboarding.action.allow_notifications" = "Разрешить уведомления";
 "onboarding.action.help_development" = "Помочь развитию";
 "onboarding.action.close" = "Закрыть";
-"onboarding.welcome.title" = "Добро пожаловать в Shatl";
-"onboarding.welcome.description" = "Перед вами лёгкий torrent-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс.";
+"onboarding.action.settings" = "Настройки";
+"onboarding.action.get_started" = "Начать";
+"onboarding.welcome.title" = "Добро пожаловать.";
+"onboarding.welcome.description" = "Перед вами лёгкий торрент-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс. Несколько коротких шагов — и всё будет готово.";
 "onboarding.download_folder.title" = "Папка сохранения загрузок по умолчанию";
 "onboarding.download_folder.description" = "По умолчанию файлы сохраняются в папку «Загрузки». Вы можете изменить путь сейчас или позже в Настройках.";
 "onboarding.download_folder.save_to" = "Сохранять в:";
-"onboarding.expanded_card.title" = "Переход в расширенный вид";
-"onboarding.expanded_card.description.prefix" = "Нажмите на кнопку ";
-"onboarding.expanded_card.description.suffix" = " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите на кнопку снова, чтобы перевести карточку обратно в компактный вид.";
+"onboarding.expanded_card.title" = "Расширенный вид.";
+"onboarding.expanded_card.description.lead" = "Так будут выглядеть загрузки — каждая в своей карточке.";
+"onboarding.expanded_card.description.prefix" = "Нажмите кнопку ";
+"onboarding.expanded_card.description.suffix" = " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите ещё раз, чтобы свернуть карточку.";
 "onboarding.expanded_card.demo_title" = "Торрент";
 "onboarding.metrics_mode.title" = "Режим отображения данных";
 "onboarding.metrics_mode.description" = "Упрощённый режим показывает округлённые значения, а подробный сохраняет более точные значения.";
@@ -79,10 +82,12 @@
 "onboarding.theme.follow_macos" = "Следовать настройкам macOS";
 "onboarding.notifications.title" = "Уведомления";
 "onboarding.notifications.description" = "Shatl может оповещать о завершении загрузки\nили о возникновении ошибки.";
-"onboarding.data.title" = "Анонимная статистика";
-"onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отправляются только количество запусков, версия приложения и язык интерфейса.";
-"onboarding.done.title" = "Всё настроено";
-"onboarding.done.description" = "Shatl готов к работе. Параметры можно изменить в Настройках в любой момент.";
+"onboarding.data.title" = "Делиться анонимной статистикой?";
+"onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю.";
+"onboarding.done.title" = "Всё готово.";
+"onboarding.done.description" = "В Настройках также доступны:";
+"onboarding.done.metrics.caption" = "Упрощённо — только главное. Подробно — больше данных и точнее.";
+"onboarding.done.performance.caption" = "Выберите Halo, Orbit или Nova — от бережного до максимального режима.";
 
 "menu.view.enter_full_screen" = "Перейти в полноэкранный режим";
 "menu.torrent" = "Торрент";
@@ -231,7 +236,7 @@
 "settings.data.does_not_collect.link_data" = "Данные о ссылках";
 "settings.data.does_not_collect.file_data" = "Данные о файлах";
 "settings.data.caption" = "Эта статистика помогает оценивать востребованность Shatl и принимать решения о поддержке приложения.";
-"settings.data.caption.technical" = "Технически отчёт также содержит случайный идентификатор установки и отчётную неделю. Они нужны для объединения еженедельной статистики и не содержат имени, email или других сведений о личности.";
+"settings.data.caption.technical" = "Технически отчёт также содержит случайный идентификатор установки и отчётную неделю. Они нужны для объединения еженедельной статистики.";
 
 "settings.downloads.performance.section" = "Режим производительности";
 "settings.downloads.performance.profile.economical" = "Halo";
