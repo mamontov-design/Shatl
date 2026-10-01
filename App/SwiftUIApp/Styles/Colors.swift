@@ -302,6 +302,18 @@ enum ShatlShadow {
         dark: nil
     )
 
+    /// Drop shadow of the add box on the empty main window.
+    static let addTorrentEmptyStateBox = ShatlShadowToken(
+        light: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.24, radius: 2),
+            secondary: ShatlShadowLayer(opacity: 0.12, radius: 16, y: 4)
+        ),
+        dark: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.24, radius: 2),
+            secondary: ShatlShadowLayer(opacity: 0.12, radius: 16, y: 4)
+        )
+    )
+
     /// Shadow for performance gauge needles in Settings.
     static let speedometerArrow = ShatlShadowToken(
         light: ShatlShadowAppearance(

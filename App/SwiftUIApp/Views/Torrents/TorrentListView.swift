@@ -126,6 +126,10 @@ struct TorrentListView: View {
                     }
                 }
             }
+            // Full width even with no cards: an empty stack shrank to its
+            // padding and sat in the middle, and the last card, leaving from
+            // it, was cut off there and slid to the right.
+            .frame(maxWidth: .infinity, alignment: .top)
             .padding(.top, 8)
             .padding(.horizontal, Self.horizontalContentPadding)
             .padding(.bottom, bottomContentPadding)

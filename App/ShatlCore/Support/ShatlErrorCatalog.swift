@@ -83,7 +83,7 @@ enum ShatlErrorCatalog {
                 title: L10n.string(
                     "add_torrent.error.invalid_magnet.title",
                     localeOverride: localeOverride,
-                    defaultValue: "Не удалось распознать magnet-ссылку"
+                    defaultValue: "Не удалось распознать magnet-ссылку."
                 ),
                 message: L10n.string(
                     "add_torrent.error.invalid_magnet.message",
@@ -99,7 +99,7 @@ enum ShatlErrorCatalog {
                 title: L10n.string(
                     "add_torrent.error.invalid_torrent_file.title",
                     localeOverride: localeOverride,
-                    defaultValue: "Не удалось открыть файл"
+                    defaultValue: "Не удалось открыть файл."
                 ),
                 message: L10n.string(
                     "add_torrent.error.invalid_torrent_file.message",
@@ -115,7 +115,7 @@ enum ShatlErrorCatalog {
                 title: L10n.string(
                     "add_torrent.error.metadata_timeout.title",
                     localeOverride: localeOverride,
-                    defaultValue: "Не удалось получить метаданные"
+                    defaultValue: "Не удалось получить метаданные."
                 ),
                 message: L10n.string(
                     "add_torrent.error.metadata_timeout.message",
@@ -131,7 +131,7 @@ enum ShatlErrorCatalog {
                 title: L10n.string(
                     "add_torrent.error.draft_lost.title",
                     localeOverride: localeOverride,
-                    defaultValue: "Подготовка загрузки прервана"
+                    defaultValue: "Подготовка загрузки прервана."
                 ),
                 message: L10n.string(
                     "add_torrent.error.draft_lost.message",
@@ -147,10 +147,12 @@ enum ShatlErrorCatalog {
         case .torrentNotFound:
             return TorrentErrorState(
                 kind: .torrentNotFound,
+                // Its own title: the card's one also titles a notification,
+                // which takes no full stop.
                 title: L10n.string(
-                    "torrent.error.not_found.title",
+                    "add_torrent.error.not_found.title",
                     localeOverride: localeOverride,
-                    defaultValue: "Загрузка недоступна"
+                    defaultValue: "Загрузка недоступна."
                 ),
                 message: L10n.string(
                     "torrent.error.not_found.message",
@@ -198,23 +200,45 @@ enum ShatlErrorCatalog {
         )
     }
 
+    /// Names the torrent when its name is known, so the message says which
+    /// one is already in the list.
     nonisolated static func duplicateDraftError(
+        torrentName: String? = nil,
         localeOverride: AppLocaleOverride = .russian
     ) -> TorrentErrorState {
-        TorrentErrorState(
+        let name = torrentName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let message = name.isEmpty
+            ? L10n.string(
+                "add_torrent.error.duplicate.message",
+                localeOverride: localeOverride,
+                defaultValue: "Этот торрент уже добавлен в список загрузок."
+            )
+            : L10n.format(
+                "add_torrent.error.duplicate.named_message",
+                localeOverride: localeOverride,
+                defaultValue: "Торрент «%@» уже добавлен в список загрузок.",
+                shortenedTorrentName(name)
+            )
+        return TorrentErrorState(
             kind: .duplicateTorrent,
             title: L10n.string(
                 "add_torrent.error.duplicate.title",
                 localeOverride: localeOverride,
-                defaultValue: "Такая загрузка уже есть"
+                defaultValue: "Такая загрузка уже есть."
             ),
-            message: L10n.string(
-                "add_torrent.error.duplicate.message",
-                localeOverride: localeOverride,
-                defaultValue: "Этот торрент уже добавлен в список."
-            ),
+            message: message,
             recoveryOptions: [.dismiss]
         )
+    }
+
+    /// A torrent name short enough for a sentence: at most `limit` characters,
+    /// shortened in the middle as Finder shortens file names, so the title at
+    /// the start and the season, quality or extension at the end both stay.
+    nonisolated static func shortenedTorrentName(_ name: String, limit: Int = 40) -> String {
+        guard name.count > limit else { return name }
+        let tailLength = (limit - 1) / 3
+        let headLength = limit - 1 - tailLength
+        return String(name.prefix(headLength)) + "…" + String(name.suffix(tailLength))
     }
 
     nonisolated private static func genericAddFlowFailure(
@@ -228,7 +252,7 @@ enum ShatlErrorCatalog {
             title: L10n.string(
                 "add_torrent.error.generic.title",
                 localeOverride: localeOverride,
-                defaultValue: "Не удалось подготовить загрузку"
+                defaultValue: "Не удалось подготовить загрузку."
             ),
             message: L10n.string(
                 "add_torrent.error.generic.message",

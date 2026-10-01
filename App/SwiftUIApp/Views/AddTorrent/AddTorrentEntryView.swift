@@ -117,6 +117,7 @@ struct AddTorrentEntryView: View {
                         .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
                         in: addTorrentBoxShape
                     )
+                    .background { addTorrentBoxShadow }
             } else {
                 addTorrentBoxContent
                     .padding(12)
@@ -136,6 +137,26 @@ struct AddTorrentEntryView: View {
 
             chooseFileButton
         }
+    }
+
+    /// The shape only casts the shadow, and its inside is cut away, so nothing
+    /// darkens under the glass, as with a Figma drop shadow by default.
+    private var addTorrentBoxShadow: some View {
+        addTorrentBoxShape
+            .fill(Color.black)
+            .shatlShadow(ShatlShadow.addTorrentEmptyStateBox)
+            .mask {
+                ZStack {
+                    // Room for the 16 pt blur moved 4 pt down.
+                    Rectangle()
+                        .padding(-64)
+                    addTorrentBoxShape
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var addTorrentBoxShape: UnevenRoundedRectangle {

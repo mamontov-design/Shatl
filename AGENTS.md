@@ -71,11 +71,11 @@ persistence, deletion, restore, or shared UI state.
   with hysteresis (`TransferSpeedLevel`), only the download speed bounces, and
   metric shadows sit under the plate so changing digits leave the blur alone.
   With many active downloads the cards leave out their costliest motion
-  (`CardSimplificationLevel`: from 15, no bounce and no metric shadows and a
-  bar that steps 5 %; from 25, digits also stop rolling, the bar steps 10 %
-  and the download speed shows its level icon alone, its number under the
-  pointer, `foldsDownloadSpeed`, for now at every level while it is tried);
-  the level enters each card through its row inputs. A finished
+  (`CardSimplificationLevel`: from 15, no bounce and no metric shadows, a
+  bar that steps 5 % and a download speed that shows its level icon alone,
+  its number under the pointer, `foldsDownloadSpeed`; from 25, digits also
+  stop rolling and the bar steps 10 %); the level enters each card through
+  its row inputs. A finished
   download's card is one line, the status badge beside the title naming the
   status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
   built for finished downloads, at launch too, start on one line without

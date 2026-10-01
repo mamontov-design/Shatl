@@ -1089,6 +1089,14 @@ struct AddTorrentReviewView: View {
             )
         )
         .disabled(!areSettingsControlsEnabled)
+        // Over the disabled window, in the place of Download, so it can be
+        // pressed.
+        .overlay(alignment: .bottomTrailing) {
+            if isInvalidDraft {
+                closeButton
+                    .padding(AddTorrentReviewLayout.settingsColumnPadding)
+            }
+        }
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
@@ -1288,8 +1296,7 @@ struct AddTorrentReviewView: View {
                 localeOverride: store.preferences.localeOverride,
                 defaultValue: "Не удалось подготовить загрузку."
             ),
-            message: (message?.isEmpty ?? true) ? nil : message,
-            background: ShatlColor.backgroundSecondary
+            message: (message?.isEmpty ?? true) ? nil : message
         )
     }
 
@@ -2339,7 +2346,40 @@ struct AddTorrentReviewView: View {
             .frame(height: 1)
     }
 
+    private var isInvalidDraft: Bool {
+        if case .invalid? = draft?.reviewState {
+            return true
+        }
+        return false
+    }
+
+    /// Nothing can be downloaded from a draft that failed; Close takes the
+    /// place of Download instead of a disabled button. It sits over the
+    /// window, which the failure disables as a whole.
+    private var closeButton: some View {
+        ShatlButton(
+            title: L10n.string(
+                "add_torrent.review.close",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Закрыть"
+            ),
+            role: .borderedColored
+        ) {
+            store.dismissModal()
+        }
+    }
+
+    @ViewBuilder
     private var downloadButton: some View {
+        if isInvalidDraft {
+            confirmButton
+                .hidden()
+        } else {
+            confirmButton
+        }
+    }
+
+    private var confirmButton: some View {
         ShatlButton(
             title: L10n.string(
                 "add_torrent.review.confirm",

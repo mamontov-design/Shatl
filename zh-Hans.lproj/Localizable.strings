@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "正在恢复会话…";
 "session.restore.completed" = "会话已恢复";
-"session.load.in_progress.title" = "正在恢复会话。\n请稍候。";
+"session.load.in_progress.title" = "正在恢复下载列表。";
+"session.load.in_progress.message" = "正在将下载恢复到关闭时的状态。请稍候。";
 "session.load.failure.title" = "无法恢复下载列表。";
 "session.load.unreadable.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
 "session.load.missing.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "别名";
 "add_torrent.review.alias_placeholder" = "为下载命名…";
 "add_torrent.review.confirm" = "下载";
+"add_torrent.review.close" = "关闭";
 "add_torrent.review.summary.selected_files" = "已选文件";
 "add_torrent.review.summary.size" = "大小";
 "add_torrent.review.summary.free_space" = "可用空间";
@@ -181,17 +183,19 @@
 "add_torrent.error.empty_magnet.message" = "该字段为空。请粘贴 magnet 链接后重试。";
 "add_torrent.error.unrecognized_link.title" = "无法识别链接";
 "add_torrent.error.unrecognized_link.message" = "请确认它以 magnet:? 开头，并且已完整复制。";
-"add_torrent.error.invalid_magnet.title" = "无法识别 magnet 链接";
+"add_torrent.error.invalid_magnet.title" = "无法识别 magnet 链接。";
 "add_torrent.error.invalid_magnet.message" = "请确认链接已完整复制，然后重试。";
-"add_torrent.error.invalid_torrent_file.title" = "无法打开文件";
+"add_torrent.error.invalid_torrent_file.title" = "无法打开文件。";
 "add_torrent.error.invalid_torrent_file.message" = "文件可能已损坏或不受支持。请选择其他 .torrent 文件后重试。";
-"add_torrent.error.metadata_timeout.title" = "无法获取元数据";
+"add_torrent.error.metadata_timeout.title" = "无法获取元数据。";
 "add_torrent.error.metadata_timeout.message" = "来源未及时发送数据。请稍后重试。";
-"add_torrent.error.draft_lost.title" = "下载准备已中断";
+"add_torrent.error.draft_lost.title" = "下载准备已中断。";
 "add_torrent.error.draft_lost.message" = "数据未保存。请关闭此窗口，然后重新添加 Torrent。";
-"add_torrent.error.duplicate.title" = "此下载已添加";
-"add_torrent.error.duplicate.message" = "此 Torrent 已在列表中。";
-"add_torrent.error.generic.title" = "无法准备下载";
+"add_torrent.error.duplicate.title" = "此下载已添加。";
+"add_torrent.error.duplicate.message" = "此 Torrent 已在下载列表中。";
+"add_torrent.error.duplicate.named_message" = "Torrent“%@”已在下载列表中。";
+"add_torrent.error.generic.title" = "无法准备下载。";
+"add_torrent.error.not_found.title" = "下载不可用。";
 "add_torrent.error.generic.message" = "请重试。如果错误再次出现，请检查文件或链接。";
 
 "settings.tab.downloads" = "下载";
