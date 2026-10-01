@@ -21,6 +21,26 @@ final class ShatlMessageTextTests: XCTestCase {
         XCTAssertEqual(shortened.count, 40)
     }
 
+    /// Every error of the add window titles its message block with a full
+    /// stop, in every language.
+    func testAddWindowErrorTitlesEndWithAFullStop() {
+        let source = AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/test.torrent")
+        let kinds: [TorrentEngineError.Kind] = [
+            .notImplemented, .invalidMagnet, .invalidTorrentFile, .duplicateTorrent,
+            .metadataTimeout, .draftPreparationLost, .torrentNotFound, .engineFailure,
+        ]
+        for locale in AppLocaleOverride.allCases where locale != .system {
+            for kind in kinds {
+                let title = ShatlErrorCatalog.reviewError(
+                    for: TorrentEngineError(kind: kind),
+                    source: source,
+                    localeOverride: locale
+                ).title
+                XCTAssertTrue(title.hasSuffix(".") || title.hasSuffix("。"), "\(locale) \(kind): \(title)")
+            }
+        }
+    }
+
     func testDuplicateMessageNamesTheTorrent() {
         let named = ShatlErrorCatalog.duplicateDraftError(torrentName: "Northstar.S01", localeOverride: .russian)
         XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в список загрузок.")

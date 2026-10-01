@@ -185,18 +185,19 @@
 "add_torrent.error.empty_magnet.message" = "The field is empty. Paste a magnet link and try again.";
 "add_torrent.error.unrecognized_link.title" = "Could not recognize the link";
 "add_torrent.error.unrecognized_link.message" = "Make sure it starts with magnet:? and was copied completely.";
-"add_torrent.error.invalid_magnet.title" = "Could not recognize the magnet link";
+"add_torrent.error.invalid_magnet.title" = "Could not recognize the magnet link.";
 "add_torrent.error.invalid_magnet.message" = "Make sure the link was copied completely and try again.";
-"add_torrent.error.invalid_torrent_file.title" = "Could not open the file";
+"add_torrent.error.invalid_torrent_file.title" = "Could not open the file.";
 "add_torrent.error.invalid_torrent_file.message" = "The file may be damaged or unsupported. Choose another .torrent file and try again.";
-"add_torrent.error.metadata_timeout.title" = "Could not fetch metadata";
+"add_torrent.error.metadata_timeout.title" = "Could not fetch metadata.";
 "add_torrent.error.metadata_timeout.message" = "Sources did not send the data in time. Try again later.";
-"add_torrent.error.draft_lost.title" = "Download preparation was interrupted";
+"add_torrent.error.draft_lost.title" = "Download preparation was interrupted.";
 "add_torrent.error.draft_lost.message" = "The data was not saved. Close this window and add the torrent again.";
 "add_torrent.error.duplicate.title" = "This download is already added.";
 "add_torrent.error.duplicate.message" = "This torrent is already in the download list.";
 "add_torrent.error.duplicate.named_message" = "The torrent “%@” is already in the download list.";
-"add_torrent.error.generic.title" = "Could not prepare the download";
+"add_torrent.error.generic.title" = "Could not prepare the download.";
+"add_torrent.error.not_found.title" = "Download unavailable.";
 "add_torrent.error.generic.message" = "Try again. If the error repeats, check the file or link.";
 
 "settings.tab.downloads" = "Downloads";

@@ -189,18 +189,19 @@
 "add_torrent.error.empty_magnet.message" = "Поле пустое. Вставьте magnet-ссылку и попробуйте снова.";
 "add_torrent.error.unrecognized_link.title" = "Не удалось распознать ссылку";
 "add_torrent.error.unrecognized_link.message" = "Проверьте, что она начинается с magnet:? и скопирована полностью.";
-"add_torrent.error.invalid_magnet.title" = "Не удалось распознать magnet-ссылку";
+"add_torrent.error.invalid_magnet.title" = "Не удалось распознать magnet-ссылку.";
 "add_torrent.error.invalid_magnet.message" = "Проверьте, что ссылка скопирована полностью, и попробуйте снова.";
-"add_torrent.error.invalid_torrent_file.title" = "Не удалось открыть файл";
+"add_torrent.error.invalid_torrent_file.title" = "Не удалось открыть файл.";
 "add_torrent.error.invalid_torrent_file.message" = "Файл может быть повреждён или не поддерживается. Выберите другой .torrent-файл и попробуйте снова.";
-"add_torrent.error.metadata_timeout.title" = "Не удалось получить метаданные";
+"add_torrent.error.metadata_timeout.title" = "Не удалось получить метаданные.";
 "add_torrent.error.metadata_timeout.message" = "Источники не успели передать данные. Попробуйте снова через некоторое время.";
-"add_torrent.error.draft_lost.title" = "Подготовка загрузки прервана";
+"add_torrent.error.draft_lost.title" = "Подготовка загрузки прервана.";
 "add_torrent.error.draft_lost.message" = "Данные не сохранились. Закройте окно и добавьте торрент заново.";
 "add_torrent.error.duplicate.title" = "Такая загрузка уже есть.";
 "add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список загрузок.";
 "add_torrent.error.duplicate.named_message" = "Торрент «%@» уже добавлен в список загрузок.";
-"add_torrent.error.generic.title" = "Не удалось подготовить загрузку";
+"add_torrent.error.generic.title" = "Не удалось подготовить загрузку.";
+"add_torrent.error.not_found.title" = "Загрузка недоступна.";
 "add_torrent.error.generic.message" = "Попробуйте ещё раз. Если ошибка повторится, проверьте файл или ссылку.";
 
 "settings.tab.downloads" = "Загрузки";

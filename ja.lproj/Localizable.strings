@@ -183,18 +183,19 @@
 "add_torrent.error.empty_magnet.message" = "フィールドが空です。magnetリンクを貼り付けてもう一度試してください。";
 "add_torrent.error.unrecognized_link.title" = "リンクを認識できませんでした";
 "add_torrent.error.unrecognized_link.message" = "magnet:?で始まり、完全にコピーされていることを確認してください。";
-"add_torrent.error.invalid_magnet.title" = "magnetリンクを認識できませんでした";
+"add_torrent.error.invalid_magnet.title" = "magnetリンクを認識できませんでした。";
 "add_torrent.error.invalid_magnet.message" = "リンクが完全にコピーされていることを確認して、もう一度試してください。";
-"add_torrent.error.invalid_torrent_file.title" = "ファイルを開けませんでした";
+"add_torrent.error.invalid_torrent_file.title" = "ファイルを開けませんでした。";
 "add_torrent.error.invalid_torrent_file.message" = "ファイルが破損しているか、対応していない可能性があります。別の.torrentファイルを選択してもう一度試してください。";
-"add_torrent.error.metadata_timeout.title" = "メタデータを取得できませんでした";
+"add_torrent.error.metadata_timeout.title" = "メタデータを取得できませんでした。";
 "add_torrent.error.metadata_timeout.message" = "ソースから時間内にデータが送信されませんでした。後でもう一度試してください。";
-"add_torrent.error.draft_lost.title" = "ダウンロードの準備が中断されました";
+"add_torrent.error.draft_lost.title" = "ダウンロードの準備が中断されました。";
 "add_torrent.error.draft_lost.message" = "データは保存されませんでした。このウインドウを閉じて、Torrentをもう一度追加してください。";
 "add_torrent.error.duplicate.title" = "このダウンロードはすでに追加されています。";
 "add_torrent.error.duplicate.message" = "このTorrentはすでにダウンロードリストにあります。";
 "add_torrent.error.duplicate.named_message" = "Torrent「%@」はすでにダウンロードリストにあります。";
-"add_torrent.error.generic.title" = "ダウンロードを準備できませんでした";
+"add_torrent.error.generic.title" = "ダウンロードを準備できませんでした。";
+"add_torrent.error.not_found.title" = "ダウンロードを利用できません。";
 "add_torrent.error.generic.message" = "もう一度試してください。エラーが繰り返される場合は、ファイルまたはリンクを確認してください。";
 
 "settings.tab.downloads" = "ダウンロード";

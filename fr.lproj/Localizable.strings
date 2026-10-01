@@ -185,18 +185,19 @@
 "add_torrent.error.empty_magnet.message" = "Le champ est vide. Collez un lien magnet et réessayez.";
 "add_torrent.error.unrecognized_link.title" = "Impossible de reconnaître le lien";
 "add_torrent.error.unrecognized_link.message" = "Vérifiez qu’il commence par magnet:? et qu’il a été copié entièrement.";
-"add_torrent.error.invalid_magnet.title" = "Impossible de reconnaître le lien magnet";
+"add_torrent.error.invalid_magnet.title" = "Impossible de reconnaître le lien magnet.";
 "add_torrent.error.invalid_magnet.message" = "Vérifiez que le lien a été copié entièrement, puis réessayez.";
-"add_torrent.error.invalid_torrent_file.title" = "Impossible d’ouvrir le fichier";
+"add_torrent.error.invalid_torrent_file.title" = "Impossible d’ouvrir le fichier.";
 "add_torrent.error.invalid_torrent_file.message" = "Le fichier est peut-être endommagé ou non pris en charge. Choisissez un autre fichier .torrent et réessayez.";
-"add_torrent.error.metadata_timeout.title" = "Impossible de récupérer les métadonnées";
+"add_torrent.error.metadata_timeout.title" = "Impossible de récupérer les métadonnées.";
 "add_torrent.error.metadata_timeout.message" = "Les sources n’ont pas envoyé les données à temps. Réessayez plus tard.";
-"add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue";
+"add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue.";
 "add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Fermez cette fenêtre et ajoutez à nouveau le torrent.";
 "add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà.";
 "add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste des téléchargements.";
 "add_torrent.error.duplicate.named_message" = "Le torrent « %@ » est déjà dans la liste des téléchargements.";
-"add_torrent.error.generic.title" = "Impossible de préparer le téléchargement";
+"add_torrent.error.generic.title" = "Impossible de préparer le téléchargement.";
+"add_torrent.error.not_found.title" = "Téléchargement indisponible.";
 "add_torrent.error.generic.message" = "Réessayez. Si l’erreur se reproduit, vérifiez le fichier ou le lien.";
 
 "settings.tab.downloads" = "Téléchargements";
