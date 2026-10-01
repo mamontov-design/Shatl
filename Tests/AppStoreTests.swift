@@ -117,6 +117,30 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(bundle.store.preferences.hasCompletedOnboarding)
     }
 
+    func testOnboardingBlocksAddAndDiscardsIncomingURLUntilCompletion() throws {
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine())
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.presentInitialOnboardingIfNeeded()
+
+        XCTAssertEqual(bundle.store.onboardingPresentation, .firstLaunch)
+        XCTAssertFalse(bundle.store.canAddTorrent)
+
+        let magnetURL = try XCTUnwrap(URL(string: "magnet:?xt=urn:btih:onboarding"))
+        bundle.store.handleIncomingURL(magnetURL)
+
+        XCTAssertNil(bundle.store.currentAddTorrentDraft)
+        XCTAssertNil(bundle.store.presentedModal)
+
+        bundle.store.completeOnboarding()
+
+        XCTAssertEqual(bundle.store.onboardingPresentation, .hidden)
+        XCTAssertTrue(bundle.store.preferences.hasCompletedOnboarding)
+        XCTAssertTrue(bundle.store.canAddTorrent)
+    }
+
     func testTorrentSelectionIsManualAndToggleable() {
         let engine = FakeTorrentEngine()
         let first = makeTestRecord(originalName: "First")

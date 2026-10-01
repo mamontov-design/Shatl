@@ -16,10 +16,7 @@ struct ShatlCommands: Commands {
         #if DEBUG
         CommandMenu("settings.tab.debug") {
             Button("menu.debug.show_onboarding") {
-                NotificationCenter.default.post(
-                    name: .shatlPresentDebugOnboarding,
-                    object: nil
-                )
+                store.presentDebugOnboarding()
             }
         }
         #endif
@@ -167,8 +164,4 @@ struct ShatlCommands: Commands {
             }
         }
     }
-}
-
-extension Notification.Name {
-    static let shatlPresentDebugOnboarding = Notification.Name("ShatlPresentDebugOnboarding")
 }

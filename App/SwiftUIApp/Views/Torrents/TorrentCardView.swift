@@ -122,6 +122,7 @@ struct TorrentCardView: View, Equatable {
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
     var usesProductionProgressColors = false
+    var usesProductionCardColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
     var usesCompactExpandedMetricsLayout = false
@@ -779,11 +780,15 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var metricSetBackgroundColorOverride: Color? {
-        presentationMode == .onboardingDemo && colorScheme == .dark ? ShatlColor.backgroundPrimary : nil
+        presentationMode == .onboardingDemo && !usesProductionCardColors && colorScheme == .dark
+            ? ShatlColor.backgroundPrimary
+            : nil
     }
 
     private var metricSetOutlineColorOverride: Color? {
-        presentationMode == .onboardingDemo && colorScheme == .dark ? ShatlColor.backgroundPrimary : nil
+        presentationMode == .onboardingDemo && !usesProductionCardColors && colorScheme == .dark
+            ? ShatlColor.backgroundPrimary
+            : nil
     }
 
     private var cardOutlineState: TorrentCardOutlineState {
@@ -1034,7 +1039,7 @@ struct TorrentCardView: View, Equatable {
             return cardBackgroundColorOverride
         }
 
-        if presentationMode == .onboardingDemo {
+        if presentationMode == .onboardingDemo, !usesProductionCardColors {
             return ShatlColor.onboardingForeground
         }
 

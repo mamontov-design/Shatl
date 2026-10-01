@@ -32,7 +32,6 @@ struct MainWindowView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
-    @State private var isOnboardingPresented = false
     @State private var restoreStatusPhase = SessionRestoreStatusPhase.hidden
     @State private var isRestoreStatusSpinnerActive = false
     @State private var showsRestoreCompletionIcon = false
@@ -41,7 +40,6 @@ struct MainWindowView: View {
     @State private var restoreStatusTask: Task<Void, Never>?
     @State private var displayedSessionPersistenceIssue: SessionPersistenceIssue?
     @State private var isCheckingSessionPersistence = false
-    @State private var didEvaluateInitialOnboardingPresentation = false
     @State private var didRequestNativeNotificationAuthorization = false
 
     private enum ContentMode: Equatable {
@@ -99,6 +97,52 @@ struct MainWindowView: View {
     }
 
     var body: some View {
+        Group {
+            if store.onboardingPresentation.isPresented {
+                onboardingRoot
+            } else {
+                regularWindowContent
+            }
+        }
+        .onChange(of: store.hasLoadedInitialSession) { _, hasLoadedInitialSession in
+            guard hasLoadedInitialSession else { return }
+            store.presentInitialOnboardingIfNeeded()
+        }
+        .onChange(of: store.onboardingPresentation) { _, presentation in
+            guard presentation.isPresented else { return }
+            requestNativeNotificationAuthorizationIfNeeded()
+        }
+        .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
+            updateRestoreStatus(isRestoringSession: isRestoringSession)
+        }
+        .onChange(of: store.sessionPersistenceIssue, initial: true) { _, newIssue in
+            updateSessionPersistenceMessage(to: newIssue)
+        }
+        .onChange(of: store.addTorrentReviewWindowRequestID, initial: true) { _, requestID in
+            guard !store.onboardingPresentation.isPresented,
+                  requestID > 0,
+                  store.isAddTorrentReviewWindowActive else {
+                return
+            }
+            Task { @MainActor in
+                await Task.yield()
+                openWindow(id: AppWindowID.addTorrentReview)
+            }
+        }
+        .onAppear {
+            store.bootstrapRuntimeState()
+            store.presentInitialOnboardingIfNeeded()
+
+            if store.preferences.hasCompletedOnboarding {
+                requestNativeNotificationAuthorizationIfNeeded()
+            }
+        }
+        .onDisappear {
+            restoreStatusTask?.cancel()
+        }
+    }
+
+    private var regularWindowContent: some View {
         ZStack(alignment: .bottom) {
             VStack(spacing: 0) {
                 if let displayedSessionPersistenceIssue {
@@ -182,31 +226,11 @@ struct MainWindowView: View {
                     localeOverride: store.preferences.localeOverride,
                     defaultValue: "Поиск"
                 )
-            )
+                )
         )
         .onChange(of: store.torrentRowIDs.isEmpty) { _, isEmpty in
             if isEmpty {
                 searchText = ""
-            }
-        }
-        .onChange(of: store.hasLoadedInitialSession) { _, hasLoadedInitialSession in
-            guard hasLoadedInitialSession else { return }
-            presentInitialOnboardingIfNeeded()
-        }
-        .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
-            updateRestoreStatus(isRestoringSession: isRestoringSession)
-        }
-        .onChange(of: store.sessionPersistenceIssue, initial: true) { _, newIssue in
-            updateSessionPersistenceMessage(to: newIssue)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .shatlPresentDebugOnboarding)) { _ in
-            isOnboardingPresented = true
-        }
-        .onChange(of: store.addTorrentReviewWindowRequestID, initial: true) { _, requestID in
-            guard requestID > 0, store.isAddTorrentReviewWindowActive else { return }
-            Task { @MainActor in
-                await Task.yield()
-                openWindow(id: AppWindowID.addTorrentReview)
             }
         }
         .animation(ShatlMotion.mainContentMode, value: contentMode)
@@ -216,34 +240,6 @@ struct MainWindowView: View {
                 onValidationError: presentAddTorrentEntryAlert
             )
                 .environmentObject(store)
-        }
-        .sheet(isPresented: $isOnboardingPresented) {
-            OnboardingFlowView(
-                localeOverride: store.preferences.localeOverride,
-                defaultDownloadPath: store.preferences.defaultDownloadPath,
-                metricsMode: store.preferences.metricsMode,
-                theme: store.preferences.theme,
-                onClose: {
-                    completeOnboarding()
-                },
-                onEnableUsageStatistics: {
-                    store.answerUsageStatisticsOnboarding(allowStatistics: true)
-                },
-                onChangeDownloadFolder: {
-                    presentDefaultDownloadFolderPicker()
-                },
-                onMetricsModeChange: { metricsMode in
-                    store.preferences.metricsMode = metricsMode
-                },
-                onThemeChange: { theme in
-                    store.preferences.theme = theme
-                }
-            )
-            .environment(
-                \.locale,
-                L10n.locale(for: store.preferences.localeOverride)
-            )
-            .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
         }
         .alert(item: activeAlert) { alert in
             Alert(
@@ -260,14 +256,25 @@ struct MainWindowView: View {
                 )
             )
         }
-        .onAppear {
-            store.bootstrapRuntimeState()
-            requestNativeNotificationAuthorizationIfNeeded()
-            presentInitialOnboardingIfNeeded()
+    }
+
+    private var onboardingRoot: some View {
+        OnboardingFlowView(
+            localeOverride: store.preferences.localeOverride,
+            metricsMode: store.preferences.metricsMode,
+            onClose: completeOnboarding,
+            onEnableUsageStatistics: {
+                store.answerUsageStatisticsOnboarding(allowStatistics: true)
+            }
+        )
+        .frame(width: OnboardingWindowLayout.windowSize.width)
+        .frame(maxHeight: .infinity)
+        .overlay {
+            OnboardingWindowSizeLock(onWindowClose: completeOnboarding)
+                .allowsHitTesting(false)
         }
-        .onDisappear {
-            restoreStatusTask?.cancel()
-        }
+        .environment(\.locale, L10n.locale(for: store.preferences.localeOverride))
+        .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
     }
 
     @ViewBuilder
@@ -579,20 +586,8 @@ struct MainWindowView: View {
         }
     }
 
-    private func presentInitialOnboardingIfNeeded() {
-        guard store.hasLoadedInitialSession, store.sessionLoadIssue == nil else { return }
-        guard !didEvaluateInitialOnboardingPresentation else { return }
-
-        didEvaluateInitialOnboardingPresentation = true
-
-        if !store.preferences.hasCompletedOnboarding {
-            isOnboardingPresented = true
-        }
-    }
-
     private func completeOnboarding() {
         store.completeOnboarding()
-        isOnboardingPresented = false
     }
 
     private func requestNativeNotificationAuthorizationIfNeeded() {
@@ -602,28 +597,6 @@ struct MainWindowView: View {
         Task {
             _ = await MacNotificationAuthorizationRequester.requestNativeAuthorization()
         }
-    }
-
-    private func presentDefaultDownloadFolderPicker() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = true
-        panel.prompt = L10n.string("common.choose", localeOverride: store.preferences.localeOverride)
-
-        if FileManager.default.fileExists(atPath: store.preferences.defaultDownloadPath) {
-            panel.directoryURL = URL(fileURLWithPath: store.preferences.defaultDownloadPath, isDirectory: true)
-        }
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-
-        let bookmarkData = try? url.bookmarkData(
-            options: [.withSecurityScope],
-            includingResourceValuesForKeys: nil,
-            relativeTo: nil
-        )
-        store.setDefaultDownloadLocation(url, bookmarkData: bookmarkData)
     }
 
 }

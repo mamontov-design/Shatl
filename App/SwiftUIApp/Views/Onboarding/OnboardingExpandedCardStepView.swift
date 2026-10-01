@@ -35,7 +35,10 @@ struct OnboardingExpandedCardPresentationView: View {
             centersExpandedCard: centersExpandedCard,
             allowsExpansionToggle: allowsExpansionToggle,
             showsExpansionToggle: true,
-            pulsesMetricSetOutlines: pulsesMetricSetOutlines
+            pulsesMetricSetOutlines: pulsesMetricSetOutlines,
+            usesProductionProgressColors: true,
+            usesProductionCardColors: true,
+            cardOutlineColorOverride: .clear
         )
     }
 }

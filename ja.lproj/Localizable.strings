@@ -64,14 +64,17 @@
 "onboarding.action.allow_notifications" = "通知を許可";
 "onboarding.action.help_development" = "改善に協力";
 "onboarding.action.close" = "閉じる";
-"onboarding.welcome.title" = "Shatlへようこそ";
-"onboarding.welcome.description" = "libtorrentをベースにしたMac向けの軽量Torrentクライアントです。オープンソースで、必要な機能だけを備え、洗練されたインターフェイスを提供します。";
+"onboarding.action.settings" = "設定";
+"onboarding.action.get_started" = "始める";
+"onboarding.welcome.title" = "ようこそ。";
+"onboarding.welcome.description" = "libtorrentをベースにしたMac向けの軽量Torrentクライアントです。オープンソースで、必要な機能だけを備え、洗練されたインターフェイスを提供します。簡単なステップをいくつか進めるだけで、準備が完了します。";
 "onboarding.download_folder.title" = "デフォルトのダウンロード保存先";
 "onboarding.download_folder.description" = "ファイルは標準で「ダウンロード」フォルダに保存されます。保存先は今すぐ変更することも、あとで設定から変更することもできます。";
 "onboarding.download_folder.save_to" = "保存先：";
-"onboarding.expanded_card.title" = "詳細表示";
+"onboarding.expanded_card.title" = "詳細表示。";
+"onboarding.expanded_card.description.lead" = "ダウンロードは、このように1件ずつカードで表示されます。";
 "onboarding.expanded_card.description.prefix" = "右上の";
-"onboarding.expanded_card.description.suffix" = "ボタンをクリックすると、シード、ピア、サイズ、アップロードなどのデータを確認できます。もう一度クリックすると、カードをコンパクト表示に戻せます。";
+"onboarding.expanded_card.description.suffix" = "ボタンをクリックすると、シード、ピア、サイズ、アップロードなどのデータを確認できます。もう一度クリックすると、カードを折りたためます。";
 "onboarding.expanded_card.demo_title" = "トレント";
 "onboarding.metrics_mode.title" = "データ表示モード";
 "onboarding.metrics_mode.description" = "簡易モードでは丸めた値を表示し、詳細モードではより正確な値を維持します。";
@@ -79,10 +82,12 @@
 "onboarding.theme.follow_macos" = "macOSの設定に従う";
 "onboarding.notifications.title" = "通知";
 "onboarding.notifications.description" = "ダウンロードが完了したとき、\nまたはエラーが発生したときにShatlが通知できます。";
-"onboarding.data.title" = "匿名の統計";
-"onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。送信されるのは起動回数、アプリのバージョン、インターフェイスの言語だけです。";
-"onboarding.done.title" = "設定が完了しました";
-"onboarding.done.description" = "Shatlを使用できます。これらのオプションは、いつでも設定で変更できます。";
+"onboarding.data.title" = "匿名統計を共有しますか？";
+"onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。レポートの送信は週1回までです。";
+"onboarding.done.title" = "準備完了。";
+"onboarding.done.description" = "設定では次の項目も変更できます：";
+"onboarding.done.metrics.caption" = "「シンプル」では要点だけを表示します。「詳細」ではより多くのデータを正確に表示します。";
+"onboarding.done.performance.caption" = "Halo、Orbit、Novaから、負荷に合わせたモードを選べます。";
 
 "menu.view.enter_full_screen" = "フルスクリーンにする";
 "menu.torrent" = "Torrent";
@@ -144,7 +149,7 @@
 
 "add_torrent.loading_metadata" = "メタデータを取得中…";
 "add_torrent.title" = "ダウンロードを追加";
-"add_torrent.entry.empty_title" = "Torrentリストは空です";
+"add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";
@@ -225,7 +230,7 @@
 "settings.data.does_not_collect.link_data" = "リンクのデータ";
 "settings.data.does_not_collect.file_data" = "ファイルのデータ";
 "settings.data.caption" = "この統計は、Shatlがどれだけ必要とされているかを把握し、サポート方針を決めるために役立ちます。";
-"settings.data.caption.technical" = "技術上、レポートにはランダムなインストール識別子と集計対象の週も含まれます。これらは週ごとの統計をまとめるために使用され、氏名、メールアドレス、その他の個人情報は含まれません。";
+"settings.data.caption.technical" = "技術上、レポートにはランダムなインストール識別子と集計対象の週も含まれます。これらは週ごとの統計をまとめるために使用されます。";
 
 "settings.downloads.performance.section" = "パフォーマンスモード";
 "settings.downloads.performance.profile.economical" = "Halo";

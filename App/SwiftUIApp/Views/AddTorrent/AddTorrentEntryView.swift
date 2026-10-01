@@ -73,7 +73,7 @@ struct AddTorrentEntryView: View {
             L10n.string(
                 "add_torrent.entry.empty_title",
                 localeOverride: store.preferences.localeOverride,
-                defaultValue: "Список торрентов пуст"
+                defaultValue: "Список загрузок пуст"
             )
         case .modal:
             L10n.string(
@@ -488,8 +488,8 @@ private struct AddTorrentHeader: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
-                    .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(ShatlColor.typographyTertiary)
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .foregroundStyle(ShatlColor.typographySecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }

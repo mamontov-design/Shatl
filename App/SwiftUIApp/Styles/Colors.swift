@@ -104,11 +104,11 @@ enum ShatlColor {
     static func onboardingPresentationGradient(colorScheme: ColorScheme) -> LinearGradient {
         let colors: [Color] = colorScheme == .dark
             ? [
-                Color(red: 17.0 / 255.0, green: 24.0 / 255.0, blue: 39.0 / 255.0),
-                Color(red: 55.0 / 255.0, green: 65.0 / 255.0, blue: 81.0 / 255.0),
+                Color(red: 63.0 / 255.0, green: 63.0 / 255.0, blue: 70.0 / 255.0),
+                Color.black.opacity(0),
             ]
             : [
-                Color(red: 229.0 / 255.0, green: 231.0 / 255.0, blue: 235.0 / 255.0),
+                Color(red: 244.0 / 255.0, green: 244.0 / 255.0, blue: 245.0 / 255.0),
                 Color.white,
             ]
 
