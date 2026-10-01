@@ -105,7 +105,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
                     object: window,
                     queue: .main
                 ) { [weak self] _ in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
                         self?.handleWindowClose()
                     }
                 }
@@ -115,7 +115,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
                     object: window,
                     queue: .main
                 ) { [weak self] _ in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
                         self?.enforceWindowLock()
                     }
                 }
@@ -125,7 +125,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
                     object: window,
                     queue: .main
                 ) { [weak self] _ in
-                    Task { @MainActor in
+                    Task { @MainActor [weak self] in
                         self?.enforceWindowLock()
                     }
                 }
