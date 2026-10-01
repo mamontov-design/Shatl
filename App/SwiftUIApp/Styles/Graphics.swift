@@ -18,10 +18,12 @@ struct ShatlWordmark: View {
     private let selection: Binding<ShatlBrandMark>?
 
     @StateObject private var wordmarkAnimationState = ShatlBrandAnimationState(
-        originalStrokeWidth: ShatlBrandAnimation.wordmarkOriginalStrokeWidth
+        originalStrokeWidth: ShatlBrandAnimation.wordmarkOriginalStrokeWidth,
+        strokeWidths: ShatlBrandAnimation.wordmarkStrokeWidths
     )
     @StateObject private var logomarkAnimationState = ShatlBrandAnimationState(
-        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth
+        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth,
+        strokeWidths: ShatlBrandAnimation.logomarkStrokeWidths
     )
     @State private var interactionScale: CGFloat = 1
     @State private var localSelection: ShatlBrandMark
@@ -211,7 +213,10 @@ private struct ShatlWordmarkArtwork: View {
     let renderingMode: ShatlBrandRenderingMode
 
     private var strokeWidth: CGFloat {
-        ShatlBrandAnimation.strokeWidth(for: animationPhase)
+        ShatlBrandAnimation.strokeWidth(
+            for: animationPhase,
+            in: ShatlBrandAnimation.wordmarkStrokeWidths
+        )
     }
 
     private var strokeOpacity: Double {
@@ -302,9 +307,10 @@ private final class ShatlBrandAnimationState: ObservableObject {
 
     private let originalPhase: CGFloat
 
-    init(originalStrokeWidth: CGFloat) {
+    init(originalStrokeWidth: CGFloat, strokeWidths: ClosedRange<CGFloat>) {
         let originalPhase = ShatlBrandAnimation.phase(
-            forStrokeWidth: originalStrokeWidth
+            forStrokeWidth: originalStrokeWidth,
+            in: strokeWidths
         )
         self.originalPhase = originalPhase
         phase = originalPhase
@@ -345,15 +351,19 @@ private final class ShatlBrandAnimationState: ObservableObject {
     }
 }
 
-private enum ShatlBrandAnimation {
+/// Both marks breathe through one shared phase, which also morphs the star and
+/// fades the glass; each mark turns it into its own stroke widths. The
+/// compact letter of the logomark closes up above 8 pt, so it stays at 4–8
+/// and rests at its thickest.
+enum ShatlBrandAnimation {
     static let fullDuration: TimeInterval = 2.2
     static let pauseDuration: TimeInterval = 2.0
+    static let wordmarkStrokeWidths: ClosedRange<CGFloat> = 4...12
+    static let logomarkStrokeWidths: ClosedRange<CGFloat> = 4...8
     static let wordmarkOriginalStrokeWidth: CGFloat = 8
-    static let logomarkOriginalStrokeWidth: CGFloat = 10
+    static let logomarkOriginalStrokeWidth: CGFloat = 8
 
-    private static let phases: [CGFloat] = [0, 0.25, 0.5, 0.75, 1.0]
-    private static let minimumStrokeWidth: CGFloat = 4
-    private static let maximumStrokeWidth: CGFloat = 12
+    static let phases: [CGFloat] = [0, 0.25, 0.5, 0.75, 1.0]
     private static let commonRangeProbability = 0.9
     private static let phaseComparisonTolerance: CGFloat = 0.001
 
@@ -378,17 +388,20 @@ private enum ShatlBrandAnimation {
             ?? originalPhase
     }
 
-    static func strokeWidth(for phase: CGFloat) -> CGFloat {
-        minimumStrokeWidth + phase * (maximumStrokeWidth - minimumStrokeWidth)
+    static func strokeWidth(for phase: CGFloat, in strokeWidths: ClosedRange<CGFloat>) -> CGFloat {
+        strokeWidths.lowerBound + phase * (strokeWidths.upperBound - strokeWidths.lowerBound)
     }
 
-    static func phase(forStrokeWidth strokeWidth: CGFloat) -> CGFloat {
+    static func phase(
+        forStrokeWidth strokeWidth: CGFloat,
+        in strokeWidths: ClosedRange<CGFloat>
+    ) -> CGFloat {
         let clampedStrokeWidth = min(
-            max(strokeWidth, minimumStrokeWidth),
-            maximumStrokeWidth
+            max(strokeWidth, strokeWidths.lowerBound),
+            strokeWidths.upperBound
         )
-        return (clampedStrokeWidth - minimumStrokeWidth)
-            / (maximumStrokeWidth - minimumStrokeWidth)
+        return (clampedStrokeWidth - strokeWidths.lowerBound)
+            / (strokeWidths.upperBound - strokeWidths.lowerBound)
     }
 
     static func interpolatedOpacity(
@@ -609,7 +622,8 @@ struct ShatlLogomarkLarge: View {
     let renderingMode: ShatlBrandRenderingMode
 
     @StateObject private var animationState = ShatlBrandAnimationState(
-        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth
+        originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth,
+        strokeWidths: ShatlBrandAnimation.logomarkStrokeWidths
     )
 
     var body: some View {
@@ -633,7 +647,10 @@ private struct ShatlLogomarkArtwork: View {
     let renderingMode: ShatlBrandRenderingMode
 
     private var strokeWidth: CGFloat {
-        ShatlBrandAnimation.strokeWidth(for: animationPhase)
+        ShatlBrandAnimation.strokeWidth(
+            for: animationPhase,
+            in: ShatlBrandAnimation.logomarkStrokeWidths
+        )
     }
 
     private var strokeOpacity: Double {
