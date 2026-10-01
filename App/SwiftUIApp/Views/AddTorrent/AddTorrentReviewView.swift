@@ -1288,8 +1288,7 @@ struct AddTorrentReviewView: View {
                 localeOverride: store.preferences.localeOverride,
                 defaultValue: "Не удалось подготовить загрузку."
             ),
-            message: (message?.isEmpty ?? true) ? nil : message,
-            background: ShatlColor.backgroundSecondary
+            message: (message?.isEmpty ?? true) ? nil : message
         )
     }
 
@@ -2339,7 +2338,28 @@ struct AddTorrentReviewView: View {
             .frame(height: 1)
     }
 
+    /// Nothing can be downloaded from a draft that failed; its button closes
+    /// the window instead of standing disabled.
+    @ViewBuilder
     private var downloadButton: some View {
+        if case .invalid? = draft?.reviewState {
+            ShatlButton(
+                title: L10n.string(
+                    "add_torrent.review.close",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Закрыть"
+                ),
+                role: .borderedColored
+            ) {
+                store.dismissModal()
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        } else {
+            confirmButton
+        }
+    }
+
+    private var confirmButton: some View {
         ShatlButton(
             title: L10n.string(
                 "add_torrent.review.confirm",

@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "Restauration de la session…";
 "session.restore.completed" = "Session restaurée";
-"session.load.in_progress.title" = "La session est en cours de restauration.\nVeuillez patienter.";
+"session.load.in_progress.title" = "Restauration de la liste des téléchargements.";
+"session.load.in_progress.message" = "Les téléchargements reprennent leur état au moment de la fermeture. Veuillez patienter.";
 "session.load.failure.title" = "Impossible de restaurer la liste des téléchargements.";
 "session.load.unreadable.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
 "session.load.missing.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
+"add_torrent.review.close" = "Fermer";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
 "add_torrent.review.summary.size" = "Taille";
 "add_torrent.review.summary.free_space" = "Disponible";
@@ -191,8 +193,9 @@
 "add_torrent.error.metadata_timeout.message" = "Les sources n’ont pas envoyé les données à temps. Réessayez plus tard.";
 "add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue";
 "add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Fermez cette fenêtre et ajoutez à nouveau le torrent.";
-"add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà";
-"add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste.";
+"add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà.";
+"add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste des téléchargements.";
+"add_torrent.error.duplicate.named_message" = "Le torrent « %@ » est déjà dans la liste des téléchargements.";
 "add_torrent.error.generic.title" = "Impossible de préparer le téléchargement";
 "add_torrent.error.generic.message" = "Réessayez. Si l’erreur se reproduit, vérifiez le fichier ou le lien.";
 

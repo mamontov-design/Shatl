@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "Sitzung wird wiederhergestellt…";
 "session.restore.completed" = "Sitzung wiederhergestellt";
-"session.load.in_progress.title" = "Die Sitzung wird wiederhergestellt.\nBitte warten Sie.";
+"session.load.in_progress.title" = "Downloadliste wird wiederhergestellt.";
+"session.load.in_progress.message" = "Die Downloads werden auf den Stand beim Beenden gebracht. Bitte warten Sie.";
 "session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden.";
 "session.load.unreadable.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 "session.load.missing.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
+"add_torrent.review.close" = "Schließen";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";
 "add_torrent.review.summary.size" = "Größe";
 "add_torrent.review.summary.free_space" = "Frei";
@@ -191,8 +193,9 @@
 "add_torrent.error.metadata_timeout.message" = "Quellen haben die Daten nicht rechtzeitig gesendet. Versuchen Sie es später erneut.";
 "add_torrent.error.draft_lost.title" = "Download-Vorbereitung wurde unterbrochen";
 "add_torrent.error.draft_lost.message" = "Die Daten wurden nicht gespeichert. Schließen Sie dieses Fenster und fügen Sie den Torrent erneut hinzu.";
-"add_torrent.error.duplicate.title" = "Dieser Download ist bereits vorhanden";
-"add_torrent.error.duplicate.message" = "Dieser Torrent ist bereits in der Liste.";
+"add_torrent.error.duplicate.title" = "Dieser Download ist bereits vorhanden.";
+"add_torrent.error.duplicate.message" = "Dieser Torrent ist bereits in der Downloadliste.";
+"add_torrent.error.duplicate.named_message" = "Der Torrent „%@“ ist bereits in der Downloadliste.";
 "add_torrent.error.generic.title" = "Download konnte nicht vorbereitet werden";
 "add_torrent.error.generic.message" = "Versuchen Sie es erneut. Wenn der Fehler wieder auftritt, prüfen Sie Datei oder Link.";
 

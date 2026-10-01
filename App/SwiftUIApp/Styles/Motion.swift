@@ -65,6 +65,9 @@ enum ShatlMotion {
     /// Animation of a main window stage change; also the bottom chips.
     static let mainContentMode = Animation.smooth(duration: 0.24)
 
+    /// The session-reading message shows only if reading takes this long.
+    static let sessionLoadMessageDelay = Duration.milliseconds(300)
+
     /// Reveals the session-restore status below the toolbar and replaces its completion content.
     static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)
     static let sessionRestoreStatusContent = Animation.smooth(duration: 0.36)

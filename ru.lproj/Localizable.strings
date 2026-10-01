@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "Восстановление сессии…";
 "session.restore.completed" = "Сессия восстановлена";
-"session.load.in_progress.title" = "Выполняется восстановление сессии.\nПожалуйста, подождите.";
+"session.load.in_progress.title" = "Список загрузок восстанавливается.";
+"session.load.in_progress.message" = "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок.";
 "session.load.unreadable.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
 "session.load.missing.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "Псевдоним";
 "add_torrent.review.alias_placeholder" = "Назовите загрузку…";
 "add_torrent.review.confirm" = "Скачать";
+"add_torrent.review.close" = "Закрыть";
 "add_torrent.review.summary.selected_files" = "Выбрано файлов";
 "add_torrent.review.summary.size" = "Размер";
 "add_torrent.review.summary.free_space" = "Свободно";
@@ -195,8 +197,9 @@
 "add_torrent.error.metadata_timeout.message" = "Источники не успели передать данные. Попробуйте снова через некоторое время.";
 "add_torrent.error.draft_lost.title" = "Подготовка загрузки прервана";
 "add_torrent.error.draft_lost.message" = "Данные не сохранились. Закройте окно и добавьте торрент заново.";
-"add_torrent.error.duplicate.title" = "Такая загрузка уже есть";
-"add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список.";
+"add_torrent.error.duplicate.title" = "Такая загрузка уже есть.";
+"add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список загрузок.";
+"add_torrent.error.duplicate.named_message" = "Торрент «%@» уже добавлен в список загрузок.";
 "add_torrent.error.generic.title" = "Не удалось подготовить загрузку";
 "add_torrent.error.generic.message" = "Попробуйте ещё раз. Если ошибка повторится, проверьте файл или ссылку.";
 

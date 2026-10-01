@@ -906,7 +906,7 @@ final class AppStoreTests: XCTestCase {
 
         bundle.store.confirmDraft()
 
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Duplicate Torrent"))
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.errorState?.kind, .duplicateTorrent)
         XCTAssertEqual(bundle.store.torrents.count, 1)
     }
@@ -941,7 +941,7 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didApplyDuplicate)
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Duplicate Torrent"))
         XCTAssertTrue(bundle.store.torrents.isEmpty)
     }
 
@@ -1004,7 +1004,7 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didApplyDuplicate)
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Test Torrent"))
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.source.kind, .magnet)
         XCTAssertEqual(bundle.store.torrents.count, 1)
     }
@@ -1035,7 +1035,7 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didApplyDuplicate)
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Test Torrent"))
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.source.kind, .magnet)
         XCTAssertEqual(bundle.store.torrents.count, 1)
     }
@@ -1071,7 +1071,7 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didApplyDuplicate)
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState)
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Test Torrent"))
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.source.kind, .externalOpen)
         XCTAssertEqual(bundle.store.torrents.count, 1)
     }
@@ -3481,7 +3481,7 @@ final class AppStoreTests: XCTestCase {
         return urls
     }
 
-    private var duplicateDraftReviewState: AddTorrentReviewState {
-        .invalid(message: ShatlErrorCatalog.duplicateDraftError(localeOverride: .system).message)
+    private func duplicateDraftReviewState(named name: String) -> AddTorrentReviewState {
+        .invalid(message: ShatlErrorCatalog.duplicateDraftError(torrentName: name, localeOverride: .system).message)
     }
 }

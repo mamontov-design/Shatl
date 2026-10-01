@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "Restaurando sesión…";
 "session.restore.completed" = "Sesión restaurada";
-"session.load.in_progress.title" = "Se está restaurando la sesión.\nEspera, por favor.";
+"session.load.in_progress.title" = "Restaurando la lista de descargas.";
+"session.load.in_progress.message" = "Las descargas vuelven al estado en que estaban al cerrar. Espera, por favor.";
 "session.load.failure.title" = "No se pudo restaurar la lista de descargas.";
 "session.load.unreadable.message" = "Se produjo un error al restaurar las descargas. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
 "session.load.missing.message" = "Se produjo un error al restaurar las descargas. Los archivos descargados en ejecuciones anteriores siguen en el disco.";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Nombra la descarga…";
 "add_torrent.review.confirm" = "Descargar";
+"add_torrent.review.close" = "Cerrar";
 "add_torrent.review.summary.selected_files" = "Archivos seleccionados";
 "add_torrent.review.summary.size" = "Tamaño";
 "add_torrent.review.summary.free_space" = "Libre";
@@ -191,8 +193,9 @@
 "add_torrent.error.metadata_timeout.message" = "Las fuentes no enviaron los datos a tiempo. Inténtalo más tarde.";
 "add_torrent.error.draft_lost.title" = "La preparación de la descarga se interrumpió";
 "add_torrent.error.draft_lost.message" = "Los datos no se guardaron. Cierra esta ventana y vuelve a añadir el torrent.";
-"add_torrent.error.duplicate.title" = "Esta descarga ya está añadida";
-"add_torrent.error.duplicate.message" = "Este torrent ya está en la lista.";
+"add_torrent.error.duplicate.title" = "Esta descarga ya está añadida.";
+"add_torrent.error.duplicate.message" = "Este torrent ya está en la lista de descargas.";
+"add_torrent.error.duplicate.named_message" = "El torrent «%@» ya está en la lista de descargas.";
 "add_torrent.error.generic.title" = "No se pudo preparar la descarga";
 "add_torrent.error.generic.message" = "Inténtalo de nuevo. Si el error se repite, comprueba el archivo o el enlace.";
 

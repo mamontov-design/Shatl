@@ -754,31 +754,40 @@ private struct SessionLoadBlockingView: View {
 
     let issue: SessionLoadIssue?
     let localeOverride: AppLocaleOverride
+    /// Reading the session usually takes a moment; the message waits so a
+    /// quick launch does not flash it.
+    @State private var showsLoadingMessage = false
 
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(ShatlColor.backgroundSecondary)
-
-            if issue == nil {
-                VStack(spacing: 12) {
-                    Image(systemName: "tray.and.arrow.up")
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundStyle(ShatlColor.typographySecondary)
-
-                    Text(title)
-                        .shatlTypography(ShatlTypography.bodySemibold)
-                        .foregroundStyle(ShatlColor.typographyPrimary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: 320)
-                .padding(24)
-            } else {
+            if issue != nil {
                 recoveryCard
-                    .padding(24)
+            } else if showsLoadingMessage {
+                ShatlMessageBlockPrimary(
+                    systemImage: "clock.arrow.trianglehead.2.counterclockwise.rotate.90",
+                    title: title,
+                    message: L10n.string(
+                        "session.load.in_progress.message",
+                        localeOverride: localeOverride,
+                        defaultValue: "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста."
+                    )
+                )
+                .transition(.opacity)
             }
         }
+        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: issue == nil) {
+            guard issue == nil, !showsLoadingMessage else { return }
+            do {
+                try await Task.sleep(for: ShatlMotion.sessionLoadMessageDelay)
+            } catch {
+                return
+            }
+            withAnimation(ShatlMotion.mainContentMode) {
+                showsLoadingMessage = true
+            }
+        }
     }
 
     private var recoveryCard: some View {
@@ -805,7 +814,7 @@ private struct SessionLoadBlockingView: View {
             return L10n.string(
                 "session.load.in_progress.title",
                 localeOverride: localeOverride,
-                defaultValue: "Выполняется восстановление сессии.\nПожалуйста, подождите."
+                defaultValue: "Список загрузок восстанавливается."
             )
         }
 

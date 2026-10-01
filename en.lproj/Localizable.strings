@@ -37,7 +37,8 @@
 
 "session.restore.in_progress" = "Restoring session…";
 "session.restore.completed" = "Session restored";
-"session.load.in_progress.title" = "Session recovery is in progress.\nPlease wait.";
+"session.load.in_progress.title" = "Restoring the Download List.";
+"session.load.in_progress.message" = "Downloads are returning to where they were when you quit. Please wait.";
 "session.load.failure.title" = "Couldn’t Restore the Download List.";
 "session.load.unreadable.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
 "session.load.missing.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
@@ -169,6 +170,7 @@
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Name your download…";
 "add_torrent.review.confirm" = "Download";
+"add_torrent.review.close" = "Close";
 "add_torrent.review.summary.selected_files" = "Files selected";
 "add_torrent.review.summary.size" = "Size";
 "add_torrent.review.summary.free_space" = "Available";
@@ -191,8 +193,9 @@
 "add_torrent.error.metadata_timeout.message" = "Sources did not send the data in time. Try again later.";
 "add_torrent.error.draft_lost.title" = "Download preparation was interrupted";
 "add_torrent.error.draft_lost.message" = "The data was not saved. Close this window and add the torrent again.";
-"add_torrent.error.duplicate.title" = "This download is already added";
-"add_torrent.error.duplicate.message" = "This torrent is already in the list.";
+"add_torrent.error.duplicate.title" = "This download is already added.";
+"add_torrent.error.duplicate.message" = "This torrent is already in the download list.";
+"add_torrent.error.duplicate.named_message" = "The torrent “%@” is already in the download list.";
 "add_torrent.error.generic.title" = "Could not prepare the download";
 "add_torrent.error.generic.message" = "Try again. If the error repeats, check the file or link.";
 

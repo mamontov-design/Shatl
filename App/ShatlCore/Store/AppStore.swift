@@ -2021,7 +2021,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func handlePendingAdditionFailure(_ error: Error, addition: PendingTorrentAddition) {
         removePendingTorrentAdditionFromPresentation(id: addition.id)
         let errorState = isDuplicateError(error)
-            ? ShatlErrorCatalog.duplicateDraftError(localeOverride: preferences.localeOverride)
+            ? ShatlErrorCatalog.duplicateDraftError(
+                torrentName: addition.draft.originalName,
+                localeOverride: preferences.localeOverride
+            )
             : ShatlErrorCatalog.reviewError(
                 for: error,
                 source: addition.draft.source,
@@ -2876,7 +2879,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func presentDuplicateDraft(for draft: AddTorrentDraft) {
         presentInvalidDraft(
             for: draft.source,
-            errorState: ShatlErrorCatalog.duplicateDraftError(localeOverride: preferences.localeOverride),
+            errorState: ShatlErrorCatalog.duplicateDraftError(
+                torrentName: draft.originalName,
+                localeOverride: preferences.localeOverride
+            ),
             suggestedSavePath: draft.suggestedSavePath,
             stopAfterDownload: draft.stopAfterDownload,
             alias: draft.alias,

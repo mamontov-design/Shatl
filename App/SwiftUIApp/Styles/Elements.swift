@@ -391,11 +391,12 @@ struct ShatlMessageBlockPrimaryButton {
     }
 }
 
+/// A message in the middle of a window: icon, title, text and buttons. One
+/// look everywhere: its own fill on the window's own background.
 struct ShatlMessageBlockPrimary: View {
     var systemImage = "exclamationmark.circle"
     let title: String
     var message: String?
-    var background: Color = ShatlColor.backgroundTertiary
     var primaryButton: ShatlMessageBlockPrimaryButton?
     var secondaryButton: ShatlMessageBlockPrimaryButton?
 
@@ -411,7 +412,7 @@ struct ShatlMessageBlockPrimary: View {
         }
         .padding(10)
         .frame(width: 340, alignment: .leading)
-        .background(background)
+        .background(ShatlColor.backgroundSecondary)
         .clipShape(messageBlockShape)
         .overlay {
             messageBlockShape
