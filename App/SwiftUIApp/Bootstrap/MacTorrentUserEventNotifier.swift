@@ -38,12 +38,9 @@ final class MacTorrentUserEventNotifier: TorrentUserEventNotifying {
                 localeOverride: localeOverride,
                 defaultValue: "Download complete"
             )
-            content.body = L10n.format(
-                "notification.download_completed.body",
-                localeOverride: localeOverride,
-                defaultValue: "%@ has finished downloading.",
-                torrentTitle
-            )
+            // The name alone: a sentence around it would have to agree with
+            // a name of any gender and number.
+            content.body = torrentTitle
 
         case .persistentIssue(
             let torrentID,

@@ -677,9 +677,12 @@ final class AppStoreTests: XCTestCase {
             debugReason: nil
         )
 
-        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue)
+        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue, localeOverride: .russian)
 
-        XCTAssertEqual(errorState.message, "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка")
+        XCTAssertEqual(
+            errorState.message,
+            L10n.string("torrent.error.save_path_unavailable.message", localeOverride: .russian)
+        )
         XCTAssertEqual(errorState.recoveryOptions, [.chooseAnotherFolder, .removeFromList])
     }
 
@@ -836,11 +839,13 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didNotify)
-        if case .persistentIssue(let torrentID, let issueKind, let torrentTitle, let issueTitle, _, _) = notifier.notifications.first {
+        if case .persistentIssue(let torrentID, let issueKind, let torrentTitle, let issueTitle, let issueMessage, let localeOverride) = notifier.notifications.first {
             XCTAssertEqual(torrentID, record.id)
             XCTAssertEqual(issueKind, .savePathUnavailable)
             XCTAssertEqual(torrentTitle, record.displayName)
-            XCTAssertEqual(issueTitle, "Папка загрузки недоступна")
+            XCTAssertEqual(issueTitle, L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride))
+            // Its own text, not the card's: a notification has no buttons.
+            XCTAssertEqual(issueMessage, L10n.string("torrent.error.save_path_unavailable.notification", localeOverride: localeOverride))
             XCTAssertEqual(notifier.badgeCounts, [1])
         } else {
             XCTFail("Expected persistent issue notification")

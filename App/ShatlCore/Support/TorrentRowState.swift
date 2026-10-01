@@ -10,12 +10,22 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     var message: String
     var recoveryOptions: [TorrentErrorState.RecoveryOption]
 
-    init?(_ errorState: TorrentErrorState?, localeOverride: AppLocaleOverride = .russian) {
+    /// `saveFolderPath` lets a card with missing files name the folder they
+    /// were in.
+    init?(
+        _ errorState: TorrentErrorState?,
+        saveFolderPath: String? = nil,
+        localeOverride: AppLocaleOverride = .russian
+    ) {
         guard let errorState else { return nil }
 
         self.kind = errorState.kind
         self.title = Self.localizedTitle(for: errorState, localeOverride: localeOverride)
-        self.message = Self.localizedMessage(for: errorState, localeOverride: localeOverride)
+        self.message = Self.localizedMessage(
+            for: errorState,
+            saveFolderPath: saveFolderPath,
+            localeOverride: localeOverride
+        )
         self.recoveryOptions = errorState.recoveryOptions
     }
 
@@ -39,11 +49,12 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
 
     private static func localizedMessage(
         for errorState: TorrentErrorState,
+        saveFolderPath: String?,
         localeOverride: AppLocaleOverride
     ) -> String {
         switch errorState.kind {
         case .missingContent:
-            L10n.string("torrent.error.missing_content.message", localeOverride: localeOverride, defaultValue: errorState.message)
+            missingContentMessage(saveFolderPath: saveFolderPath, localeOverride: localeOverride, fallback: errorState.message)
         case .savePathUnavailable:
             L10n.string("torrent.error.save_path_unavailable.message", localeOverride: localeOverride, defaultValue: errorState.message)
         case .torrentNotFound:
@@ -53,6 +64,23 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
         default:
             errorState.message
         }
+    }
+
+    private static func missingContentMessage(
+        saveFolderPath: String?,
+        localeOverride: AppLocaleOverride,
+        fallback: String
+    ) -> String {
+        let folderName = saveFolderPath.map(ShatlErrorCatalog.folderDisplayName(forPath:)) ?? ""
+        guard !folderName.isEmpty else {
+            return L10n.string("torrent.error.missing_content.message", localeOverride: localeOverride, defaultValue: fallback)
+        }
+        return L10n.format(
+            "torrent.error.missing_content.named_message",
+            localeOverride: localeOverride,
+            defaultValue: fallback,
+            ShatlErrorCatalog.shortenedTorrentName(folderName)
+        )
     }
 }
 

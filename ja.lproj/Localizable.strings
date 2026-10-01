@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "アップロード済み";
 "torrent.metric.size" = "サイズ";
 
-"torrent.error.missing_content.title" = "ダウンロードファイルを利用できません";
-"torrent.error.missing_content.message" = "Shatlは保存済みの場所でTorrentデータを見つけられませんでした。再ダウンロードするか、リストから削除できます。";
+"torrent.error.missing_content.title" = "ダウンロードファイルが見つかりません";
+"torrent.error.missing_content.message" = "ダウンロードフォルダにファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.named_message" = "「%@」フォルダにこのダウンロードのファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.notification" = "移動、名前の変更、または削除された可能性があります。ダウンロードリストから再ダウンロードできます。";
 "torrent.error.save_path_unavailable.title" = "ダウンロードフォルダを利用できません";
 "torrent.error.save_path_unavailable.message" = "Shatlは保存先フォルダを開けませんでした。別のフォルダを選ぶか、Torrentをリストから削除してください。";
+"torrent.error.save_path_unavailable.notification" = "ダウンロードリストで別のフォルダを選択できます。";
 "torrent.error.not_found.title" = "ダウンロードを利用できません";
 "torrent.error.not_found.message" = "このTorrentが見つかりませんでした。もう一度追加してください。";
 "torrent.error.action_failed.title" = "操作できませんでした";
@@ -278,6 +281,5 @@
 "settings.debug.network.port.failed" = "デバッグ：ルーターはポートを開きませんでした（%1$@：%2$@）。";
 
 "notification.download_completed.title" = "ダウンロード完了";
-"notification.download_completed.body" = "%@のダウンロードが完了しました。";
 
 "session.recovery.open_empty" = "空のリストで起動";

@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "Отдано";
 "torrent.metric.size" = "Размер";
 
-"torrent.error.missing_content.title" = "Файлы загрузки недоступны";
-"torrent.error.missing_content.message" = "Shatl не нашёл данные торрента по сохранённому пути. Вы можете скачать их заново или удалить запись из списка.";
+"torrent.error.missing_content.title" = "Файлы загрузки не найдены";
+"torrent.error.missing_content.message" = "Файлы не найдены в папке загрузки — возможно, их переместили, переименовали или удалили. Скачайте их заново или удалите загрузку из списка.";
+"torrent.error.missing_content.named_message" = "В папке «%@» нет файлов этой загрузки — возможно, их переместили, переименовали или удалили. Скачайте их заново или удалите загрузку из списка.";
+"torrent.error.missing_content.notification" = "Возможно, их переместили, переименовали или удалили. Скачать их заново можно в списке загрузок.";
 "torrent.error.save_path_unavailable.title" = "Папка загрузки недоступна";
 "torrent.error.save_path_unavailable.message" = "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка.";
+"torrent.error.save_path_unavailable.notification" = "Выбрать для неё другую папку можно в списке загрузок.";
 "torrent.error.not_found.title" = "Загрузка недоступна";
 "torrent.error.not_found.message" = "Не удалось найти этот торрент. Попробуйте добавить его заново.";
 "torrent.error.action_failed.title" = "Не удалось выполнить действие";
@@ -287,6 +290,5 @@
 "settings.debug.network.port.failed" = "Отладка: роутер не открыл порт (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Загрузка завершена";
-"notification.download_completed.body" = "«%@» загружен.";
 
 "session.recovery.open_empty" = "Запуск с пустым списком";

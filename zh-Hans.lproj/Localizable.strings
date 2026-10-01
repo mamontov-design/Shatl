@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "已上传";
 "torrent.metric.size" = "大小";
 
-"torrent.error.missing_content.title" = "下载文件不可用";
-"torrent.error.missing_content.message" = "Shatl 在保存的位置找不到 Torrent 数据。你可以重新下载，或将其从列表中移除。";
+"torrent.error.missing_content.title" = "找不到下载文件";
+"torrent.error.missing_content.message" = "下载文件夹中没有这些文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.named_message" = "“%@”文件夹中没有此下载的文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.notification" = "这些文件可能已被移动、重命名或删除。可以在下载列表中重新下载。";
 "torrent.error.save_path_unavailable.title" = "下载文件夹不可用";
 "torrent.error.save_path_unavailable.message" = "Shatl 无法打开保存文件夹。请选择其他文件夹，或将 Torrent 从列表中移除。";
+"torrent.error.save_path_unavailable.notification" = "可以在下载列表中为其选择其他文件夹。";
 "torrent.error.not_found.title" = "下载不可用";
 "torrent.error.not_found.message" = "找不到这个 Torrent。请尝试重新添加。";
 "torrent.error.action_failed.title" = "操作失败";
@@ -278,6 +281,5 @@
 "settings.debug.network.port.failed" = "调试：路由器未打开端口（%1$@：%2$@）。";
 
 "notification.download_completed.title" = "下载完成";
-"notification.download_completed.body" = "%@ 已下载完成。";
 
 "session.recovery.open_empty" = "使用空列表启动";

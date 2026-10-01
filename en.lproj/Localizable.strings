@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "Uploaded";
 "torrent.metric.size" = "Size";
 
-"torrent.error.missing_content.title" = "Download files are unavailable";
-"torrent.error.missing_content.message" = "Shatl could not find the torrent data at the saved location. You can download it again or remove it from the list.";
+"torrent.error.missing_content.title" = "Download files not found";
+"torrent.error.missing_content.message" = "The files aren’t in the download folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
+"torrent.error.missing_content.named_message" = "The files for this download aren’t in the “%@” folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
+"torrent.error.missing_content.notification" = "They may have been moved, renamed, or deleted. You can download them again from the download list.";
 "torrent.error.save_path_unavailable.title" = "Download folder is unavailable";
 "torrent.error.save_path_unavailable.message" = "Shatl could not open the save folder. Choose another folder or remove the torrent from the list.";
+"torrent.error.save_path_unavailable.notification" = "You can choose another folder for it in the download list.";
 "torrent.error.not_found.title" = "Download unavailable";
 "torrent.error.not_found.message" = "This torrent could not be found. Try adding it again.";
 "torrent.error.action_failed.title" = "Action failed";
@@ -281,6 +284,5 @@
 "settings.debug.network.port.failed" = "Debug: the router did not open a port (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Download complete";
-"notification.download_completed.body" = "%@ has finished downloading.";
 
 "session.recovery.open_empty" = "Start with an Empty List";

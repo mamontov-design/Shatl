@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "Envoyé";
 "torrent.metric.size" = "Taille";
 
-"torrent.error.missing_content.title" = "Fichiers de téléchargement indisponibles";
-"torrent.error.missing_content.message" = "Shatl n’a pas trouvé les données du torrent à l’emplacement enregistré. Vous pouvez les télécharger à nouveau ou retirer l’entrée de la liste.";
+"torrent.error.missing_content.title" = "Fichiers du téléchargement introuvables";
+"torrent.error.missing_content.message" = "Les fichiers ne sont pas dans le dossier de téléchargement : ils ont peut-être été déplacés, renommés ou supprimés. Téléchargez-les à nouveau ou retirez le téléchargement de la liste.";
+"torrent.error.missing_content.named_message" = "Les fichiers de ce téléchargement ne sont pas dans le dossier « %@ » : ils ont peut-être été déplacés, renommés ou supprimés. Téléchargez-les à nouveau ou retirez le téléchargement de la liste.";
+"torrent.error.missing_content.notification" = "Ils ont peut-être été déplacés, renommés ou supprimés. Vous pouvez les télécharger à nouveau depuis la liste des téléchargements.";
 "torrent.error.save_path_unavailable.title" = "Dossier de téléchargement indisponible";
 "torrent.error.save_path_unavailable.message" = "Shatl n’a pas pu ouvrir le dossier d’enregistrement. Choisissez un autre dossier ou retirez le torrent de la liste.";
+"torrent.error.save_path_unavailable.notification" = "Vous pouvez lui choisir un autre dossier dans la liste des téléchargements.";
 "torrent.error.not_found.title" = "Téléchargement indisponible";
 "torrent.error.not_found.message" = "Ce torrent est introuvable. Essayez de l’ajouter à nouveau.";
 "torrent.error.action_failed.title" = "Action impossible";
@@ -281,6 +284,5 @@
 "settings.debug.network.port.failed" = "Débogage : le routeur n’a pas ouvert de port (%1$@ : %2$@).";
 
 "notification.download_completed.title" = "Téléchargement terminé";
-"notification.download_completed.body" = "%@ a terminé son téléchargement.";
 
 "session.recovery.open_empty" = "Démarrer avec une liste vide";

@@ -106,10 +106,13 @@
 "torrent.metric.uploaded" = "Subido";
 "torrent.metric.size" = "Tamaño";
 
-"torrent.error.missing_content.title" = "Los archivos de descarga no están disponibles";
-"torrent.error.missing_content.message" = "Shatl no encontró los datos del torrent en la ubicación guardada. Puedes descargarlos de nuevo o quitar la entrada de la lista.";
+"torrent.error.missing_content.title" = "No se encuentran los archivos de la descarga";
+"torrent.error.missing_content.message" = "Los archivos no están en la carpeta de descarga: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.named_message" = "Los archivos de esta descarga no están en la carpeta «%@»: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.notification" = "Puede que se hayan movido, renombrado o eliminado. Puedes volver a descargarlos desde la lista de descargas.";
 "torrent.error.save_path_unavailable.title" = "La carpeta de descarga no está disponible";
 "torrent.error.save_path_unavailable.message" = "Shatl no pudo abrir la carpeta de guardado. Elige otra carpeta o quita el torrent de la lista.";
+"torrent.error.save_path_unavailable.notification" = "Puedes elegir otra carpeta para ella en la lista de descargas.";
 "torrent.error.not_found.title" = "Descarga no disponible";
 "torrent.error.not_found.message" = "No se pudo encontrar este torrent. Intenta añadirlo de nuevo.";
 "torrent.error.action_failed.title" = "No se pudo completar la acción";
@@ -281,6 +284,5 @@
 "settings.debug.network.port.failed" = "Depuración: el router no abrió ningún puerto (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Descarga completada";
-"notification.download_completed.body" = "%@ ha terminado de descargarse.";
 
 "session.recovery.open_empty" = "Iniciar con una lista vacía";

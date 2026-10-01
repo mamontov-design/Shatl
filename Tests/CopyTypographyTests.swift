@@ -69,8 +69,7 @@ final class CopyTypographyTests: XCTestCase {
             "settings.data.caption",
         ]
         let pending: Set<String> = [
-            // Stage 2: card errors
-            "torrent.error.missing_content.message",
+            // Deferred with the folder's "Retry" button
             "torrent.error.save_path_unavailable.message",
             // Stage 4: the list and saving
             "session.persistence.background_failed.message",

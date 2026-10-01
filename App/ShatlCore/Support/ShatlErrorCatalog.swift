@@ -2,29 +2,68 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import Foundation
+import Synchronization
 
 /// The single place where Shatl converts technical failures
 /// into user-friendly interface messages.
 enum ShatlErrorCatalog {
-    nonisolated static func persistentIssueState(for issue: TorrentPersistentIssue) -> TorrentErrorState {
+    nonisolated static func persistentIssueState(
+        for issue: TorrentPersistentIssue,
+        localeOverride: AppLocaleOverride = .system
+    ) -> TorrentErrorState {
         switch issue.kind {
         case .missingContent:
             return TorrentErrorState(
                 kind: .missingContent,
-                title: "Файлы загрузки недоступны",
-                message: "Shatl не нашёл данные торрента по сохранённому пути. Вы можете скачать их заново или удалить запись из списка.",
+                title: L10n.string("torrent.error.missing_content.title", localeOverride: localeOverride),
+                message: L10n.string("torrent.error.missing_content.message", localeOverride: localeOverride),
                 recoveryOptions: [.redownload, .removeFromList]
             )
 
         case .savePathUnavailable:
             return TorrentErrorState(
                 kind: .savePathUnavailable,
-                title: "Папка загрузки недоступна",
-                message: "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка",
+                title: L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride),
+                message: L10n.string("torrent.error.save_path_unavailable.message", localeOverride: localeOverride),
                 recoveryOptions: [.chooseAnotherFolder, .removeFromList]
             )
         }
     }
+
+    /// A notification has no buttons: it names the event, then the download
+    /// (the subtitle), then says where the error is fixed, not which button
+    /// to press. The card's own text would point at buttons it cannot show.
+    nonisolated static func persistentIssueNotification(
+        for kind: TorrentPersistentIssue.Kind,
+        localeOverride: AppLocaleOverride = .system
+    ) -> (title: String, body: String) {
+        switch kind {
+        case .missingContent:
+            (
+                L10n.string("torrent.error.missing_content.title", localeOverride: localeOverride),
+                L10n.string("torrent.error.missing_content.notification", localeOverride: localeOverride)
+            )
+        case .savePathUnavailable:
+            (
+                L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride),
+                L10n.string("torrent.error.save_path_unavailable.notification", localeOverride: localeOverride)
+            )
+        }
+    }
+
+    /// The folder's name as Finder shows it ("Загрузки" for ~/Downloads),
+    /// looked up once per path: a card must not touch the disk each time it
+    /// is rebuilt. A folder that is gone keeps its last path component.
+    nonisolated static func folderDisplayName(forPath path: String) -> String {
+        if let cached = folderDisplayNames.withLock({ $0[path] }) {
+            return cached
+        }
+        let name = FileManager.default.displayName(atPath: path)
+        folderDisplayNames.withLock { $0[path] = name }
+        return name
+    }
+
+    nonisolated private static let folderDisplayNames = Mutex<[String: String]>([:])
 
     nonisolated static func inlineMagnetValidation(
         for input: String,

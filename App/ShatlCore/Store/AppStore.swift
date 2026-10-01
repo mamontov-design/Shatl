@@ -534,7 +534,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private static func makeRowState(_ inputs: TorrentRowInputs) -> TorrentRowState {
         let record = inputs.record
         let shared = inputs.shared
-        let errorState = TorrentRowErrorState(record.errorState, localeOverride: shared.localeOverride)
+        let errorState = TorrentRowErrorState(
+            record.errorState,
+            saveFolderPath: record.canonicalSavePath,
+            localeOverride: shared.localeOverride
+        )
         let compactTransferMetricSet = errorState == nil
             ? TorrentPresentation.compactTransferMetricSet(
                 for: record,
@@ -3558,13 +3562,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
         guard !notifiedPersistentIssueKeys.contains(notificationKey) else { return }
 
-        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue)
-        guard let rowErrorState = TorrentRowErrorState(
-            errorState,
+        let notification = ShatlErrorCatalog.persistentIssueNotification(
+            for: issue.kind,
             localeOverride: preferences.localeOverride
-        ) else {
-            return
-        }
+        )
 
         notifiedPersistentIssueKeys.insert(notificationKey)
         registerUnreadPersistentIssueIfNeeded(notificationKey)
@@ -3573,8 +3574,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 torrentID: torrent.id,
                 issueKind: issue.kind,
                 torrentTitle: torrent.displayName,
-                issueTitle: rowErrorState.title,
-                issueMessage: rowErrorState.message,
+                issueTitle: notification.title,
+                issueMessage: notification.body,
                 localeOverride: preferences.localeOverride
             ),
             badgeCount: userEventBadgeCount
