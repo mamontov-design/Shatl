@@ -642,36 +642,6 @@ enum AddTorrentSummaryByteFormatter {
     }
 }
 
-enum AddTorrentFilePluralCategory: String {
-    case one
-    case few
-    case many
-    case other
-
-    static func resolve(count: Int, localeOverride: AppLocaleOverride) -> Self {
-        let languageCode = L10n.locale(for: localeOverride).language.languageCode?.identifier
-
-        switch languageCode {
-        case "ru":
-            let modulo10 = count % 10
-            let modulo100 = count % 100
-            if modulo10 == 1, modulo100 != 11 {
-                return .one
-            }
-            if (2...4).contains(modulo10), !(12...14).contains(modulo100) {
-                return .few
-            }
-            return .many
-        case "en", "de", "es":
-            return count == 1 ? .one : .other
-        case "fr":
-            return count == 0 || count == 1 ? .one : .other
-        default:
-            return .other
-        }
-    }
-}
-
 private enum AddTorrentAvailableCapacity: Equatable {
     case loading
     case available(Int64)
@@ -1918,7 +1888,7 @@ struct AddTorrentReviewView: View {
         }
 
         if node.selectedFileCount == node.fileCount {
-            let category = AddTorrentFilePluralCategory.resolve(
+            let category = L10nPluralCategory.resolve(
                 count: node.fileCount,
                 localeOverride: store.preferences.localeOverride
             )
@@ -1939,7 +1909,7 @@ struct AddTorrentReviewView: View {
             )
         }
 
-        let category = AddTorrentFilePluralCategory.resolve(
+        let category = L10nPluralCategory.resolve(
             count: node.selectedFileCount,
             localeOverride: store.preferences.localeOverride
         )

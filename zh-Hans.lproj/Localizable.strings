@@ -1,7 +1,5 @@
 /* Simplified Chinese localization. Russian remains the canonical source copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "更改";
 "common.choose" = "选择";
 "common.ok" = "好";
@@ -41,7 +39,6 @@
 "session.load.in_progress.message" = "正在将下载恢复到关闭时的状态。请稍候。";
 "session.load.failure.title" = "无法恢复下载列表。";
 "session.load.unreadable.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
-"session.load.missing.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
 "session.load.unsupported.title" = "无法打开已保存的会话。";
 "session.load.unsupported.message" = "该会话由其他版本的 Shatl 创建，暂时无法打开。此前运行时下载的文件仍保留在磁盘上。";
 "session.persistence.save_failed.title" = "无法保存下载状态";
@@ -62,27 +59,17 @@
 
 "onboarding.action.next" = "下一步";
 "onboarding.action.not_now" = "暂不";
-"onboarding.action.allow_notifications" = "允许通知";
 "onboarding.action.help_development" = "帮助改进";
 "onboarding.action.close" = "关闭";
 "onboarding.action.settings" = "设置";
 "onboarding.action.get_started" = "开始使用";
 "onboarding.welcome.title" = "欢迎。";
 "onboarding.welcome.description" = "这是一款基于 libtorrent、面向 Mac 的轻量级 Torrent 客户端。开源、仅保留必要功能，并拥有精致的界面。只需几个简单步骤，即可全部就绪。";
-"onboarding.download_folder.title" = "默认下载文件夹";
-"onboarding.download_folder.description" = "默认情况下，文件会保存到“下载”文件夹。你可以现在更改位置，也可以稍后在设置中更改。";
-"onboarding.download_folder.save_to" = "保存到：";
 "onboarding.expanded_card.title" = "展开视图。";
 "onboarding.expanded_card.description.lead" = "每个下载任务都会像这样显示为一张卡片。";
 "onboarding.expanded_card.description.prefix" = "点击右上角的";
 "onboarding.expanded_card.description.suffix" = "按钮，查看更多数据：种子、节点、大小和上传。再次点击即可收起卡片。";
 "onboarding.expanded_card.demo_title" = "种子任务";
-"onboarding.metrics_mode.title" = "数据显示模式";
-"onboarding.metrics_mode.description" = "简化模式显示舍入后的数值，详细模式则保留更精确的数值。";
-"onboarding.theme.title" = "选择外观主题";
-"onboarding.theme.follow_macos" = "跟随 macOS 设置";
-"onboarding.notifications.title" = "通知";
-"onboarding.notifications.description" = "下载完成\n或发生错误时，Shatl 可以发送通知。";
 "onboarding.data.title" = "分享匿名统计？";
 "onboarding.data.description" = "你可以帮助了解 Shatl 对用户是否有用。报告每周最多发送一次。";
 "onboarding.done.title" = "全部就绪。";
@@ -114,8 +101,6 @@
 "torrent.card.original_title" = "Torrent 名称：%@";
 "torrent.card.adding_title" = "正在添加下载“%@”…";
 
-"torrent.metric.download_speed" = "下载速度";
-"torrent.metric.eta" = "剩余时间";
 "torrent.metric.seeds_and_peers" = "种子和节点";
 "torrent.metric.upload_speed" = "上传速度";
 "torrent.metric.uploaded" = "已上传";
@@ -143,7 +128,7 @@
 "payload_deletion.files_not_deleted.title" = "文件未删除";
 "payload_deletion.not_all_files_deleted.title" = "部分文件未删除";
 "payload_deletion.engine_stop_failed.message" = "Shatl 已将 Torrent 从列表中移除，但在删除文件前无法安全停止引擎中的 Torrent。";
-"payload_deletion.partial_failure.message" = "Shatl 已将 Torrent 从列表中移除，但无法删除磁盘上的 %lld 个文件。";
+"payload_deletion.partial_failure.message.other" = "Shatl 已将 Torrent 从列表中移除，但无法删除磁盘上的 %lld 个文件。";
 "payload_deletion.unresolved.message" = "Shatl 已将 Torrent 从列表中移除，但无法安全识别磁盘上的相关文件。";
 "payload_deletion.safety_refused.message" = "Shatl 已将 Torrent 从列表中移除，但由于路径或对象类型不再与 Torrent 数据匹配，因此保留了文件。";
 "payload_deletion.cleanup_failure.message" = "Torrent 文件已删除，但 Shatl 保留了部分文件夹或系统文件，因为无法安全清理它们。";
@@ -154,10 +139,7 @@
 "add_torrent.entry.subtitle" = "在下方粘贴 .magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.entry.continue" = "继续";
-"add_torrent.review.tab.files" = "文件";
-"add_torrent.review.tab.settings" = "设置";
 "add_torrent.review.search_files" = "搜索文件…";
-"add_torrent.review.no_selection" = "尚未选择 Torrent";
 "add_torrent.review.invalid_placeholder" = "无法准备下载。";
 "add_torrent.review.files_after_metadata" = "获取元数据后会显示文件。";
 "add_torrent.review.no_files" = "没有可下载的文件。";
@@ -202,13 +184,8 @@
 "settings.tab.appearance" = "外观";
 "settings.tab.data" = "数据";
 "settings.tab.about" = "关于";
-"settings.tab.localization" = "语言";
 "settings.tab.debug" = "调试";
 "menu.debug.show_onboarding" = "启动新手引导";
-
-"settings.notifications.section" = "通知";
-"settings.notifications.show" = "显示通知";
-"settings.notifications.play_sound_on_completion" = "下载完成时播放声音";
 
 "settings.data.section" = "使用统计";
 "settings.data.help_development" = "通过匿名统计协助改进";
@@ -254,10 +231,7 @@
 "settings.appearance.theme.system" = "跟随系统";
 "settings.appearance.theme.light" = "浅色";
 "settings.appearance.theme.dark" = "深色";
-"settings.appearance.theme.caption" = "Shatl 可以跟随 macOS 外观，也可以使用你选择的主题。";
 "settings.appearance.metrics.section" = "数据显示";
-"settings.appearance.metrics.simplified" = "简洁";
-"settings.appearance.metrics.detailed" = "详细";
 "settings.appearance.speed_colors.toggle" = "以颜色区分下载速度";
 "settings.appearance.metrics.toggle" = "以简洁模式显示数据";
 "settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。推荐模式。";

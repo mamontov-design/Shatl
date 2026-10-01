@@ -248,7 +248,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(pendingRow.statusTitle, "Добавляется…")
         XCTAssertEqual(
             pendingRow.title,
-            "Загрузка «12345678901234567890123456789…» в процессе добавления…"
+            "Загрузка «12345678901234567890123456789…» в\u{00A0}процессе добавления…"
         )
         XCTAssertNil(pendingRow.compactTransferMetricSet)
         XCTAssertFalse(pendingRow.canToggleRunningState)

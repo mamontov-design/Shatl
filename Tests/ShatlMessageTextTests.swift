@@ -50,24 +50,24 @@ final class ShatlMessageTextTests: XCTestCase {
             source: source,
             localeOverride: .russian
         )
-        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в список загрузок.")
+        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в\u{00A0}список загрузок.")
 
         let unnamed = ShatlErrorCatalog.reviewError(
             for: TorrentEngineError(kind: .duplicateTorrent),
             source: source,
             localeOverride: .russian
         )
-        XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в список загрузок.")
+        XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в\u{00A0}список загрузок.")
     }
 
     func testDuplicateMessageNamesTheTorrent() {
         let named = ShatlErrorCatalog.duplicateDraftError(torrentName: "Northstar.S01", localeOverride: .russian)
-        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в список загрузок.")
+        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в\u{00A0}список загрузок.")
         XCTAssertEqual(named.title, "Такая загрузка уже есть.")
 
         for name in [nil, "", "  "] as [String?] {
             let unnamed = ShatlErrorCatalog.duplicateDraftError(torrentName: name, localeOverride: .russian)
-            XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в список загрузок.", "\(String(describing: name))")
+            XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в\u{00A0}список загрузок.", "\(String(describing: name))")
         }
     }
 }

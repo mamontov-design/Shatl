@@ -1,7 +1,5 @@
 /* Japanese localization. Russian remains the canonical source copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "変更";
 "common.choose" = "選択";
 "common.ok" = "OK";
@@ -41,7 +39,6 @@
 "session.load.in_progress.message" = "ダウンロードを終了時の状態に戻しています。しばらくお待ちください。";
 "session.load.failure.title" = "ダウンロードリストを復元できませんでした。";
 "session.load.unreadable.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.load.missing.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 "session.load.unsupported.title" = "保存されたセッションを開けませんでした。";
 "session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
 "session.persistence.save_failed.title" = "ダウンロードの状態を保存できませんでした";
@@ -62,27 +59,17 @@
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";
-"onboarding.action.allow_notifications" = "通知を許可";
 "onboarding.action.help_development" = "改善に協力";
 "onboarding.action.close" = "閉じる";
 "onboarding.action.settings" = "設定";
 "onboarding.action.get_started" = "始める";
 "onboarding.welcome.title" = "ようこそ。";
 "onboarding.welcome.description" = "libtorrentをベースにしたMac向けの軽量Torrentクライアントです。オープンソースで、必要な機能だけを備え、洗練されたインターフェイスを提供します。簡単なステップをいくつか進めるだけで、準備が完了します。";
-"onboarding.download_folder.title" = "デフォルトのダウンロード保存先";
-"onboarding.download_folder.description" = "ファイルは標準で「ダウンロード」フォルダに保存されます。保存先は今すぐ変更することも、あとで設定から変更することもできます。";
-"onboarding.download_folder.save_to" = "保存先：";
 "onboarding.expanded_card.title" = "詳細表示。";
 "onboarding.expanded_card.description.lead" = "ダウンロードは、このように1件ずつカードで表示されます。";
 "onboarding.expanded_card.description.prefix" = "右上の";
 "onboarding.expanded_card.description.suffix" = "ボタンをクリックすると、シード、ピア、サイズ、アップロードなどのデータを確認できます。もう一度クリックすると、カードを折りたためます。";
 "onboarding.expanded_card.demo_title" = "トレント";
-"onboarding.metrics_mode.title" = "データ表示モード";
-"onboarding.metrics_mode.description" = "簡易モードでは丸めた値を表示し、詳細モードではより正確な値を維持します。";
-"onboarding.theme.title" = "外観テーマを選択";
-"onboarding.theme.follow_macos" = "macOSの設定に従う";
-"onboarding.notifications.title" = "通知";
-"onboarding.notifications.description" = "ダウンロードが完了したとき、\nまたはエラーが発生したときにShatlが通知できます。";
 "onboarding.data.title" = "匿名統計を共有しますか？";
 "onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。レポートの送信は週1回までです。";
 "onboarding.done.title" = "準備完了。";
@@ -114,8 +101,6 @@
 "torrent.card.original_title" = "Torrent名：%@";
 "torrent.card.adding_title" = "ダウンロード「%@」を追加中…";
 
-"torrent.metric.download_speed" = "ダウンロード速度";
-"torrent.metric.eta" = "残り時間";
 "torrent.metric.seeds_and_peers" = "シードとピア";
 "torrent.metric.upload_speed" = "アップロード速度";
 "torrent.metric.uploaded" = "アップロード済み";
@@ -143,7 +128,7 @@
 "payload_deletion.files_not_deleted.title" = "ファイルは削除されませんでした";
 "payload_deletion.not_all_files_deleted.title" = "一部のファイルは削除されませんでした";
 "payload_deletion.engine_stop_failed.message" = "ShatlはTorrentをリストから削除しましたが、ファイル削除前にエンジン内で安全に停止できませんでした。";
-"payload_deletion.partial_failure.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の%lld個のファイルを削除できませんでした。";
+"payload_deletion.partial_failure.message.other" = "ShatlはTorrentをリストから削除しましたが、ディスク上の%lld個のファイルを削除できませんでした。";
 "payload_deletion.unresolved.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の関連ファイルを安全に特定できませんでした。";
 "payload_deletion.safety_refused.message" = "ShatlはTorrentをリストから削除しましたが、パスまたはオブジェクトの種類がTorrentデータと一致しなくなったため、ファイルは残しました。";
 "payload_deletion.cleanup_failure.message" = "Torrentファイルは削除されましたが、安全にクリーンアップできなかった一部のフォルダまたはシステムファイルは残されました。";
@@ -154,10 +139,7 @@
 "add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";
-"add_torrent.review.tab.files" = "ファイル";
-"add_torrent.review.tab.settings" = "設定";
 "add_torrent.review.search_files" = "ファイルを検索…";
-"add_torrent.review.no_selection" = "まだTorrentが選択されていません";
 "add_torrent.review.invalid_placeholder" = "ダウンロードを準備できませんでした。";
 "add_torrent.review.files_after_metadata" = "メタデータ取得後にファイルが表示されます。";
 "add_torrent.review.no_files" = "ダウンロードするファイルがありません。";
@@ -202,13 +184,8 @@
 "settings.tab.appearance" = "外観";
 "settings.tab.data" = "データ";
 "settings.tab.about" = "Shatlについて";
-"settings.tab.localization" = "言語";
 "settings.tab.debug" = "デバッグ";
 "menu.debug.show_onboarding" = "オンボーディングを開始";
-
-"settings.notifications.section" = "通知";
-"settings.notifications.show" = "通知を表示";
-"settings.notifications.play_sound_on_completion" = "ダウンロード完了時にサウンドを再生";
 
 "settings.data.section" = "使用統計";
 "settings.data.help_development" = "匿名の統計で改善に協力する";
@@ -254,10 +231,7 @@
 "settings.appearance.theme.system" = "システムに合わせる";
 "settings.appearance.theme.light" = "ライト";
 "settings.appearance.theme.dark" = "ダーク";
-"settings.appearance.theme.caption" = "ShatlはmacOSの外観に合わせることも、選択したテーマを使うこともできます。";
 "settings.appearance.metrics.section" = "データ表示";
-"settings.appearance.metrics.simplified" = "シンプル";
-"settings.appearance.metrics.detailed" = "詳細";
 "settings.appearance.speed_colors.toggle" = "ダウンロード速度を色分けして表示";
 "settings.appearance.metrics.toggle" = "データをシンプルモードで表示";
 "settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。推奨モードです。";

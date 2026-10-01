@@ -37,6 +37,23 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 Run the focused test first, then the full suite when the change affects core,
 persistence, deletion, restore, or shared UI state.
 
+## Interface copy
+
+- Russian is the source; every key exists in all seven languages
+  (`LocalizationCoverageTests`). The owner's full copy guide, with the
+  dictionary and approved wordings, lives outside the repository in
+  `Shatl-Internal/Docs/Shatl Copy Guide.ru.md`; read it before changing any
+  visible string when it is available.
+- Write about the object and the result, not about the app: "Shatl" appears
+  only where the reader could not tell which app is meant
+  (`CopyTypographyTests` keeps the list).
+- An error says what happened, the likely cause, and an action that really
+  fixes it and is on screen. No bare "try again".
+- Never place non-breaking spaces by hand: write plain text and run
+  `Scripts/typograph.sh`, which applies the per-language rules in
+  `Tests/Typography/ShatlTypograph.swift`; the tests fail on an untypeset
+  string. Counts take plural keys through `L10n.pluralKey`, never "file(s)".
+
 ## Invariants
 
 - `session.json`, archived torrents, bookmarks, and fastresume data are durable

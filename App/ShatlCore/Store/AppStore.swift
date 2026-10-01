@@ -1553,9 +1553,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     payloadDeletionAlert = PayloadDeletionAlert(
                         title: L10n.string("payload_deletion.not_all_files_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Не все файлы удалены"),
                         message: L10n.format(
-                            "payload_deletion.partial_failure.message",
+                            L10n.pluralKey(
+                                "payload_deletion.partial_failure.message",
+                                count: failedItemCount,
+                                localeOverride: preferences.localeOverride
+                            ),
                             localeOverride: preferences.localeOverride,
-                            defaultValue: "Shatl удалил торрент из списка, но не смог удалить %lld файл(ов) с диска.",
+                            defaultValue: "Shatl удалил торрент из списка, но не смог удалить часть файлов с диска: %lld.",
                             failedItemCount
                         )
                     )

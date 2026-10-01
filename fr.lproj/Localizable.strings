@@ -1,7 +1,5 @@
 /* French localization. Russian remains the canonical source copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "Modifier";
 "common.choose" = "Choisir";
 "common.ok" = "OK";
@@ -32,63 +30,52 @@
 "toolbar.delete" = "Supprimer";
 "toolbar.search" = "Rechercher";
 
-"search.empty.title" = "Aucun résultat pour « %@ »";
+"search.empty.title" = "Aucun résultat pour « %@ »";
 "search.empty.description" = "Essayez un autre nom ou alias.";
 
 "session.restore.in_progress" = "Restauration de la session…";
 "session.restore.completed" = "Session restaurée";
 "session.load.in_progress.title" = "Restauration de la liste des téléchargements.";
-"session.load.in_progress.message" = "Les téléchargements reprennent leur état au moment de la fermeture. Veuillez patienter.";
+"session.load.in_progress.message" = "Les téléchargements reprennent leur état au moment de la fermeture. Veuillez patienter.";
 "session.load.failure.title" = "Impossible de restaurer la liste des téléchargements.";
 "session.load.unreadable.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
-"session.load.missing.message" = "Une erreur s’est produite lors de la restauration des téléchargements. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
 "session.load.unsupported.title" = "Impossible d’ouvrir la session enregistrée.";
 "session.load.unsupported.message" = "La session a été créée avec une autre version de Shatl et ne peut pas encore être ouverte. Les fichiers téléchargés lors des lancements précédents sont toujours présents sur le disque.";
 "session.persistence.save_failed.title" = "Impossible d’enregistrer l’état des téléchargements";
-"session.persistence.background_failed.message" = "Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis cliquez sur « Vérifier à nouveau ».";
-"session.persistence.line.check_again" = "Vérifier à nouveau";
+"session.persistence.background_failed.message" = "Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis cliquez sur « Vérifier à nouveau ».";
+"session.persistence.line.check_again" = "Vérifier à nouveau";
 "session.persistence.line.checking" = "Vérification…";
 "session.persistence.line.hide" = "Masquer";
-"session.persistence.remove_from_list_failed.message" = "Le torrent n’a pas été retiré de la liste : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
-"session.persistence.remove_with_files_failed.message" = "Le torrent et ses fichiers n’ont pas été supprimés : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
-"session.persistence.stop_failed.message" = "Le téléchargement n’a pas été arrêté : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
-"session.persistence.quit_dialog.message" = "Le disque est probablement plein ou Shatl n’a pas accès à son dossier de données. Si vous quittez maintenant, les dernières modifications de progression et d’état ne seront pas enregistrées, et Shatl pourrait revérifier une partie des données téléchargées au prochain lancement. Vos fichiers téléchargés et la liste des téléchargements ne seront pas affectés.";
+"session.persistence.remove_from_list_failed.message" = "Le torrent n’a pas été retiré de la liste : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
+"session.persistence.remove_with_files_failed.message" = "Le torrent et ses fichiers n’ont pas été supprimés : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
+"session.persistence.stop_failed.message" = "Le téléchargement n’a pas été arrêté : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
+"session.persistence.quit_dialog.message" = "Le disque est probablement plein ou Shatl n’a pas accès à son dossier de données. Si vous quittez maintenant, les dernières modifications de progression et d’état ne seront pas enregistrées, et Shatl pourrait revérifier une partie des données téléchargées au prochain lancement. Vos fichiers téléchargés et la liste des téléchargements ne seront pas affectés.";
 "session.persistence.quit_dialog.retry" = "Réessayer";
-"session.persistence.quit_dialog.return" = "Revenir à Shatl";
+"session.persistence.quit_dialog.return" = "Revenir à Shatl";
 "session.persistence.quit_dialog.quit" = "Quitter sans enregistrer";
 "single_instance.already_running.title" = "Shatl est déjà ouvert";
-"single_instance.already_running.message" = "Une seule instance de Shatl peut fonctionner à la fois, cette copie va donc se fermer. Cliquez sur « OK » pour passer à l’app déjà ouverte.";
-"session.persistence.redownload_failed.message" = "Le téléchargement n’a pas été relancé : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
+"single_instance.already_running.message" = "Une seule instance de Shatl peut fonctionner à la fois, cette copie va donc se fermer. Cliquez sur « OK » pour passer à l’app déjà ouverte.";
+"session.persistence.redownload_failed.message" = "Le téléchargement n’a pas été relancé : Shatl ne peut pas écrire de données sur le disque. Vérifiez l’espace libre et l’accès au disque, puis réessayez.";
 
 "onboarding.action.next" = "Suivant";
 "onboarding.action.not_now" = "Pas maintenant";
-"onboarding.action.allow_notifications" = "Autoriser les notifications";
-"onboarding.action.help_development" = "Aider au développement";
+"onboarding.action.help_development" = "Aider au développement";
 "onboarding.action.close" = "Fermer";
 "onboarding.action.settings" = "Réglages";
 "onboarding.action.get_started" = "Commencer";
 "onboarding.welcome.title" = "Bienvenue.";
 "onboarding.welcome.description" = "Découvrez un client torrent léger pour Mac basé sur libtorrent. Open source, avec uniquement les fonctions essentielles et une interface soignée. Quelques étapes rapides, et tout sera prêt.";
-"onboarding.download_folder.title" = "Dossier de téléchargement par défaut";
-"onboarding.download_folder.description" = "Par défaut, les fichiers sont enregistrés dans Téléchargements. Vous pouvez modifier l’emplacement maintenant ou plus tard dans les réglages.";
-"onboarding.download_folder.save_to" = "Enregistrer dans :";
 "onboarding.expanded_card.title" = "Vue détaillée.";
 "onboarding.expanded_card.description.lead" = "Vos téléchargements s’afficheront ainsi, chacun sur sa carte.";
 "onboarding.expanded_card.description.prefix" = "Cliquez sur le bouton ";
 "onboarding.expanded_card.description.suffix" = " en haut à droite pour voir plus de données : seeds, peers, taille et envoi. Cliquez à nouveau pour réduire la carte.";
 "onboarding.expanded_card.demo_title" = "Torrent";
-"onboarding.metrics_mode.title" = "Mode d’affichage des données";
-"onboarding.metrics_mode.description" = "Le mode simplifié affiche des valeurs arrondies, tandis que le mode détaillé conserve des valeurs plus précises.";
-"onboarding.theme.title" = "Choix du thème d’apparence";
-"onboarding.theme.follow_macos" = "Suivre les réglages de macOS";
-"onboarding.notifications.title" = "Notifications";
-"onboarding.notifications.description" = "Shatl peut vous prévenir lorsqu’un téléchargement est terminé\nou lorsqu’une erreur survient.";
-"onboarding.data.title" = "Partager des statistiques anonymes ?";
-"onboarding.data.description" = "Vous pouvez aider à savoir si Shatl est utile aux utilisateurs. Un rapport est envoyé au plus une fois par semaine.";
+"onboarding.data.title" = "Partager des statistiques anonymes ?";
+"onboarding.data.description" = "Vous pouvez aider à savoir si Shatl est utile aux utilisateurs. Un rapport est envoyé au plus une fois par semaine.";
 "onboarding.done.title" = "Tout est prêt.";
-"onboarding.done.description" = "Vous trouverez aussi dans Réglages :";
+"onboarding.done.description" = "Vous trouverez aussi dans Réglages :";
 "onboarding.done.metrics.caption" = "Le mode Simplifié affiche l’essentiel. Le mode Détaillé montre plus de données, avec plus de précision.";
-"onboarding.done.performance.caption" = "Choisissez Halo, Orbit ou Nova, du mode économe au mode maximal.";
+"onboarding.done.performance.caption" = "Choisissez Halo, Orbit ou Nova, du mode économe au mode maximal.";
 
 "menu.view.enter_full_screen" = "Activer le plein écran";
 "menu.torrent" = "Torrent";
@@ -114,8 +101,6 @@
 "torrent.card.original_title" = "Nom du torrent — %@";
 "torrent.card.adding_title" = "Ajout du téléchargement « %@ »…";
 
-"torrent.metric.download_speed" = "Vitesse de téléchargement";
-"torrent.metric.eta" = "Restant";
 "torrent.metric.seeds_and_peers" = "Seeds et peers";
 "torrent.metric.upload_speed" = "Vitesse d’envoi";
 "torrent.metric.uploaded" = "Envoyé";
@@ -143,9 +128,10 @@
 "payload_deletion.files_not_deleted.title" = "Les fichiers n’ont pas été supprimés";
 "payload_deletion.not_all_files_deleted.title" = "Certains fichiers n’ont pas été supprimés";
 "payload_deletion.engine_stop_failed.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu l’arrêter correctement dans le moteur avant de supprimer les fichiers.";
-"payload_deletion.partial_failure.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichier(s) du disque.";
+"payload_deletion.partial_failure.message.one" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichier du disque.";
+"payload_deletion.partial_failure.message.other" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichiers du disque.";
 "payload_deletion.unresolved.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu identifier correctement les fichiers associés sur le disque.";
-"payload_deletion.safety_refused.message" = "Shatl a retiré le torrent de la liste, mais a conservé les fichiers car un chemin ou un type d’objet ne correspond plus aux données du torrent.";
+"payload_deletion.safety_refused.message" = "Shatl a retiré le torrent de la liste, mais a conservé les fichiers car un chemin ou un type d’objet ne correspond plus aux données du torrent.";
 "payload_deletion.cleanup_failure.message" = "Les fichiers du torrent ont été supprimés, mais Shatl a conservé certains dossiers ou fichiers système, car ils ne pouvaient pas être nettoyés en toute sécurité.";
 
 "add_torrent.loading_metadata" = "Récupération des métadonnées…";
@@ -154,10 +140,7 @@
 "add_torrent.entry.subtitle" = "Collez un lien .magnet ci-dessous ou choisissez un fichier .torrent sur votre Mac.";
 "add_torrent.entry.choose_file" = "Choisir un fichier .torrent…";
 "add_torrent.entry.continue" = "Continuer";
-"add_torrent.review.tab.files" = "Fichiers";
-"add_torrent.review.tab.settings" = "Réglages";
 "add_torrent.review.search_files" = "Rechercher des fichiers…";
-"add_torrent.review.no_selection" = "Aucun torrent sélectionné pour le moment";
 "add_torrent.review.invalid_placeholder" = "Impossible de préparer le téléchargement.";
 "add_torrent.review.files_after_metadata" = "Les fichiers apparaîtront après la récupération des métadonnées.";
 "add_torrent.review.no_files" = "Aucun fichier à télécharger.";
@@ -192,10 +175,10 @@
 "add_torrent.error.metadata_timeout.title" = "Impossible de récupérer les métadonnées.";
 "add_torrent.error.metadata_timeout.message" = "Les sources n’ont pas envoyé les données à temps. Réessayez plus tard.";
 "add_torrent.error.draft_lost.title" = "La préparation du téléchargement a été interrompue.";
-"add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Fermez cette fenêtre et ajoutez à nouveau le torrent.";
+"add_torrent.error.draft_lost.message" = "Les données n’ont pas été enregistrées. Fermez cette fenêtre et ajoutez à nouveau le torrent.";
 "add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà.";
 "add_torrent.error.duplicate.message" = "Ce torrent est déjà dans la liste des téléchargements.";
-"add_torrent.error.duplicate.named_message" = "Le torrent « %@ » est déjà dans la liste des téléchargements.";
+"add_torrent.error.duplicate.named_message" = "Le torrent « %@ » est déjà dans la liste des téléchargements.";
 "add_torrent.error.generic.title" = "Impossible de préparer le téléchargement.";
 "add_torrent.error.not_found.title" = "Téléchargement indisponible.";
 "add_torrent.error.generic.message" = "Réessayez. Si l’erreur se reproduit, vérifiez le fichier ou le lien.";
@@ -203,14 +186,9 @@
 "settings.tab.downloads" = "Téléchargements";
 "settings.tab.appearance" = "Apparence";
 "settings.tab.data" = "Données";
-"settings.tab.about" = "À propos";
-"settings.tab.localization" = "Langue";
+"settings.tab.about" = "À propos";
 "settings.tab.debug" = "Débogage";
 "menu.debug.show_onboarding" = "Lancer la configuration initiale";
-
-"settings.notifications.section" = "Notifications";
-"settings.notifications.show" = "Afficher les notifications";
-"settings.notifications.play_sound_on_completion" = "Émettre un son à la fin d’un téléchargement";
 
 "settings.data.section" = "Statistiques d’utilisation";
 "settings.data.help_development" = "Contribuer au développement avec des statistiques anonymes";
@@ -247,7 +225,7 @@
 "settings.downloads.folder.section" = "Dossier de téléchargement";
 "settings.downloads.network.section" = "Réseau";
 "settings.downloads.network.port_forwarding" = "Ouvrir automatiquement un port sur le routeur";
-"settings.downloads.network.port_forwarding.caption" = "Les autres pairs pourront se connecter eux-mêmes à Shatl, ce qui accélère généralement le téléchargement et l’envoi.";
+"settings.downloads.network.port_forwarding.caption" = "Les autres pairs pourront se connecter eux-mêmes à Shatl, ce qui accélère généralement le téléchargement et l’envoi.";
 "settings.downloads.network.port_status.checking" = "Vérification du port…";
 "settings.downloads.network.port_status.open" = "Le port est ouvert";
 "settings.downloads.network.port_status.closed" = "Le port est fermé";
@@ -256,17 +234,14 @@
 "settings.appearance.theme.system" = "Comme le système";
 "settings.appearance.theme.light" = "Clair";
 "settings.appearance.theme.dark" = "Sombre";
-"settings.appearance.theme.caption" = "Shatl peut suivre l’apparence de macOS ou utiliser le thème que vous choisissez.";
 "settings.appearance.metrics.section" = "Affichage des données";
-"settings.appearance.metrics.simplified" = "Simplifié";
-"settings.appearance.metrics.detailed" = "Détaillé";
 "settings.appearance.speed_colors.toggle" = "Indiquer la vitesse de téléchargement en couleur";
 "settings.appearance.metrics.toggle" = "Afficher les données en mode simplifié";
 "settings.appearance.metrics.caption" = "Masque les détails peu importants, arrondit les valeurs et rend les données plus faciles à comprendre. Mode recommandé.";
 "settings.appearance.metrics.info.help" = "En savoir plus sur la précision des valeurs";
 "settings.appearance.metrics.popover.title" = "Précision des valeurs";
 "settings.appearance.metrics.popover.precision" = "Lorsque le mode simplifié est désactivé, les vitesses et les volumes de données sont affichés avec davantage de précision, avec une décimale si nécessaire. Par exemple, 10 Mo/s peut devenir 10,5 Mo/s et 8 Go peut devenir 7,7 Go.";
-"settings.appearance.metrics.popover.eta" = "Le temps restant inférieur à une heure est affiché sans arrondi par paliers de cinq secondes ou minutes : par exemple, 35 min peut devenir 38 min. À partir d’une heure, le format reste inchangé.";
+"settings.appearance.metrics.popover.eta" = "Le temps restant inférieur à une heure est affiché sans arrondi par paliers de cinq secondes ou minutes : par exemple, 35 min peut devenir 38 min. À partir d’une heure, le format reste inchangé.";
 "settings.appearance.metrics.popover.unchanged" = "La progression, le nombre de seeds et de peers ainsi que le fonctionnement du torrent restent inchangés.";
 "settings.appearance.preview" = "Aperçu";
 
@@ -296,14 +271,14 @@
 "settings.debug.logging.disk_diagnostics" = "Diagnostic des fichiers et chemins";
 "settings.debug.logging.metric_animation_diagnostics" = "Diagnostic des animations de métriques";
 "settings.debug.logging.snapshot_diagnostics" = "Diagnostic des mises à jour snapshot";
-"settings.debug.logging.add_torrent_review_diagnostics" = "Diagnostic de la fenêtre « Ajouter un torrent »";
+"settings.debug.logging.add_torrent_review_diagnostics" = "Diagnostic de la fenêtre « Ajouter un torrent »";
 "settings.debug.logging.card_layout_diagnostics" = "Diagnostic de la mise en page des cartes";
-"settings.debug.performance.budget" = "Débogage : limite de fichiers ouverts : %1$@ (macOS en a attribué %2$@). Jusqu’à %3$@ connexions et %4$@ fichiers. Ouverts au total, connexions de service comprises : %5$@.";
-"settings.debug.performance.budget_reduced" = "Débogage : limite de fichiers ouverts : %1$@, macOS n’en a pas autorisé davantage (attribué : %2$@). Jusqu’à %3$@ connexions au lieu de %4$@ et %5$@ fichiers au lieu de %6$@. Ouverts au total, connexions de service comprises : %7$@.";
+"settings.debug.performance.budget" = "Débogage : limite de fichiers ouverts : %1$@ (macOS en a attribué %2$@). Jusqu’à %3$@ connexions et %4$@ fichiers. Ouverts au total, connexions de service comprises : %5$@.";
+"settings.debug.performance.budget_reduced" = "Débogage : limite de fichiers ouverts : %1$@, macOS n’en a pas autorisé davantage (attribué : %2$@). Jusqu’à %3$@ connexions au lieu de %4$@ et %5$@ fichiers au lieu de %6$@. Ouverts au total, connexions de service comprises : %7$@.";
 "settings.debug.performance.engine_not_started" = "Débogage : le moteur n’a pas encore démarré.";
-"settings.debug.network.port.searching" = "Débogage : le routeur n’a pas encore répondu.";
-"settings.debug.network.port.mapped" = "Débogage : le routeur a ouvert le port %1$@ (%2$@).";
-"settings.debug.network.port.failed" = "Débogage : le routeur n’a pas ouvert de port (%1$@ : %2$@).";
+"settings.debug.network.port.searching" = "Débogage : le routeur n’a pas encore répondu.";
+"settings.debug.network.port.mapped" = "Débogage : le routeur a ouvert le port %1$@ (%2$@).";
+"settings.debug.network.port.failed" = "Débogage : le routeur n’a pas ouvert de port (%1$@ : %2$@).";
 
 "notification.download_completed.title" = "Téléchargement terminé";
 "notification.download_completed.body" = "%@ a terminé son téléchargement.";

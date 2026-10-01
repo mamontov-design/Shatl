@@ -1,7 +1,5 @@
 /* German localization. Russian remains the canonical source copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "Ändern";
 "common.choose" = "Auswählen";
 "common.ok" = "OK";
@@ -41,7 +39,6 @@
 "session.load.in_progress.message" = "Die Downloads werden auf den Stand beim Beenden gebracht. Bitte warten Sie.";
 "session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden.";
 "session.load.unreadable.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
-"session.load.missing.message" = "Beim Wiederherstellen der Downloads ist ein Fehler aufgetreten. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 "session.load.unsupported.title" = "Gespeicherte Sitzung konnte nicht geöffnet werden.";
 "session.load.unsupported.message" = "Die Sitzung wurde mit einer anderen Version von Shatl erstellt und kann noch nicht geöffnet werden. Die bei früheren Starts heruntergeladenen Dateien befinden sich weiterhin auf dem Laufwerk.";
 "session.persistence.save_failed.title" = "Downloadstatus konnte nicht gespeichert werden";
@@ -62,33 +59,23 @@
 
 "onboarding.action.next" = "Weiter";
 "onboarding.action.not_now" = "Nicht jetzt";
-"onboarding.action.allow_notifications" = "Mitteilungen erlauben";
 "onboarding.action.help_development" = "Entwicklung unterstützen";
 "onboarding.action.close" = "Schließen";
 "onboarding.action.settings" = "Einstellungen";
 "onboarding.action.get_started" = "Los geht’s";
 "onboarding.welcome.title" = "Willkommen.";
 "onboarding.welcome.description" = "Ein schlanker Torrent-Client für den Mac auf Basis von libtorrent. Open Source, nur die notwendigen Funktionen und eine sorgfältig gestaltete Oberfläche. Nur wenige kurze Schritte, dann ist alles bereit.";
-"onboarding.download_folder.title" = "Standardordner für Downloads";
-"onboarding.download_folder.description" = "Dateien werden standardmäßig im Ordner „Downloads“ gespeichert. Sie können den Speicherort jetzt oder später in den Einstellungen ändern.";
-"onboarding.download_folder.save_to" = "Speichern in:";
 "onboarding.expanded_card.title" = "Erweiterte Ansicht.";
-"onboarding.expanded_card.description.lead" = "So sehen Ihre Downloads aus – jeder auf einer eigenen Karte.";
+"onboarding.expanded_card.description.lead" = "So sehen Ihre Downloads aus – jeder auf einer eigenen Karte.";
 "onboarding.expanded_card.description.prefix" = "Klicken Sie auf die Schaltfläche ";
 "onboarding.expanded_card.description.suffix" = " oben rechts, um weitere Daten zu sehen: Seeds, Peers, Größe und Upload. Klicken Sie erneut darauf, um die Karte wieder einzuklappen.";
 "onboarding.expanded_card.demo_title" = "Torrent";
-"onboarding.metrics_mode.title" = "Datendarstellung";
-"onboarding.metrics_mode.description" = "Im vereinfachten Modus werden gerundete Werte angezeigt, während der detaillierte Modus genauere Werte beibehält.";
-"onboarding.theme.title" = "Darstellung auswählen";
-"onboarding.theme.follow_macos" = "macOS-Einstellungen folgen";
-"onboarding.notifications.title" = "Mitteilungen";
-"onboarding.notifications.description" = "Shatl kann Sie benachrichtigen, wenn ein Download abgeschlossen ist\noder ein Fehler auftritt.";
 "onboarding.data.title" = "Anonyme Statistiken teilen?";
 "onboarding.data.description" = "Sie können helfen einzuschätzen, ob Shatl für Nutzer nützlich ist. Ein Bericht wird höchstens einmal pro Woche gesendet.";
 "onboarding.done.title" = "Alles bereit.";
 "onboarding.done.description" = "Außerdem in den Einstellungen verfügbar:";
 "onboarding.done.metrics.caption" = "Vereinfacht zeigt nur das Wesentliche. Detailliert zeigt mehr Daten präziser.";
-"onboarding.done.performance.caption" = "Wählen Sie Halo, Orbit oder Nova – vom schonenden bis zum maximalen Modus.";
+"onboarding.done.performance.caption" = "Wählen Sie Halo, Orbit oder Nova – vom schonenden bis zum maximalen Modus.";
 
 "menu.view.enter_full_screen" = "Vollbildmodus aktivieren";
 "menu.torrent" = "Torrent";
@@ -114,15 +101,13 @@
 "torrent.card.original_title" = "Torrent-Name — %@";
 "torrent.card.adding_title" = "Download „%@“ wird hinzugefügt…";
 
-"torrent.metric.download_speed" = "Download-Geschwindigkeit";
-"torrent.metric.eta" = "Verbleibend";
 "torrent.metric.seeds_and_peers" = "Seeds und Peers";
 "torrent.metric.upload_speed" = "Upload-Geschwindigkeit";
 "torrent.metric.uploaded" = "Hochgeladen";
 "torrent.metric.size" = "Größe";
 
 "torrent.error.missing_content.title" = "Download-Dateien nicht verfügbar";
-"torrent.error.missing_content.message" = "Shatl konnte die Torrent-Daten am gespeicherten Ort nicht finden. Du kannst sie erneut laden oder den Eintrag aus der Liste entfernen.";
+"torrent.error.missing_content.message" = "Shatl konnte die Torrent-Daten am gespeicherten Ort nicht finden. Sie können sie erneut laden oder den Eintrag aus der Liste entfernen.";
 "torrent.error.save_path_unavailable.title" = "Download-Ordner nicht verfügbar";
 "torrent.error.save_path_unavailable.message" = "Shatl konnte den Speicherordner nicht öffnen. Wählen Sie einen anderen Ordner oder entfernen Sie den Torrent aus der Liste.";
 "torrent.error.not_found.title" = "Download nicht verfügbar";
@@ -131,7 +116,7 @@
 "torrent.error.action_failed.message" = "Etwas ist schiefgelaufen. Versuchen Sie es erneut.";
 
 "remove_dialog.choice.title" = "„%@“ löschen?";
-"remove_dialog.choice.message.with_files" = "Du kannst nur den Listeneintrag entfernen oder ihn zusammen mit den geladenen Dateien löschen.";
+"remove_dialog.choice.message.with_files" = "Sie können nur den Listeneintrag entfernen oder ihn zusammen mit den geladenen Dateien löschen.";
 "remove_dialog.choice.message.list_only" = "Shatl entfernt nur den Listeneintrag. Das Löschen von Dateien ist für diese Karte nicht verfügbar.";
 "remove_dialog.delete_with_files.title" = "„%@“ mit Dateien löschen?";
 "remove_dialog.delete_with_files.message" = "Shatl entfernt den Torrent aus der Liste und löscht alle zugehörigen Dateien vom Datenträger.";
@@ -143,7 +128,8 @@
 "payload_deletion.files_not_deleted.title" = "Dateien wurden nicht gelöscht";
 "payload_deletion.not_all_files_deleted.title" = "Nicht alle Dateien wurden gelöscht";
 "payload_deletion.engine_stop_failed.message" = "Shatl hat den Torrent aus der Liste entfernt, konnte ihn vor dem Löschen der Dateien aber nicht sicher im Engine stoppen.";
-"payload_deletion.partial_failure.message" = "Shatl hat den Torrent aus der Liste entfernt, konnte aber %lld Datei(en) nicht vom Datenträger löschen.";
+"payload_deletion.partial_failure.message.one" = "Shatl hat den Torrent aus der Liste entfernt, konnte aber %lld Datei nicht vom Datenträger löschen.";
+"payload_deletion.partial_failure.message.other" = "Shatl hat den Torrent aus der Liste entfernt, konnte aber %lld Dateien nicht vom Datenträger löschen.";
 "payload_deletion.unresolved.message" = "Shatl hat den Torrent aus der Liste entfernt, konnte die zugehörigen Dateien auf dem Datenträger aber nicht sicher bestimmen.";
 "payload_deletion.safety_refused.message" = "Shatl hat den Torrent aus der Liste entfernt, die Dateien aber beibehalten, weil ein Pfad oder Objekttyp nicht mehr den Torrent-Daten entspricht.";
 "payload_deletion.cleanup_failure.message" = "Die Torrent-Dateien wurden gelöscht, aber Shatl hat einige Ordner oder Systemdateien beibehalten, da sie nicht sicher bereinigt werden konnten.";
@@ -154,10 +140,7 @@
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen .magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
 "add_torrent.entry.choose_file" = ".torrent-Datei wählen…";
 "add_torrent.entry.continue" = "Fortfahren";
-"add_torrent.review.tab.files" = "Dateien";
-"add_torrent.review.tab.settings" = "Einstellungen";
 "add_torrent.review.search_files" = "Dateien suchen…";
-"add_torrent.review.no_selection" = "Noch kein Torrent ausgewählt";
 "add_torrent.review.invalid_placeholder" = "Download konnte nicht vorbereitet werden.";
 "add_torrent.review.files_after_metadata" = "Dateien erscheinen, nachdem die Metadaten geladen wurden.";
 "add_torrent.review.no_files" = "Keine Dateien zum Laden.";
@@ -179,8 +162,8 @@
 "add_torrent.review.folder.files.none" = "Keine Dateien ausgewählt";
 "add_torrent.review.folder.files.count.one" = "%lld Datei";
 "add_torrent.review.folder.files.count.other" = "%lld Dateien";
-"add_torrent.review.folder.files.partial.one" = "%lld Datei von %lld ausgewählt";
-"add_torrent.review.folder.files.partial.other" = "%lld Dateien von %lld ausgewählt";
+"add_torrent.review.folder.files.partial.one" = "%lld Datei von %lld ausgewählt";
+"add_torrent.review.folder.files.partial.other" = "%lld Dateien von %lld ausgewählt";
 "add_torrent.error.empty_magnet.title" = "Magnet-Link hinzufügen";
 "add_torrent.error.empty_magnet.message" = "Das Feld ist leer. Fügen Sie einen Magnet-Link ein und versuchen Sie es erneut.";
 "add_torrent.error.unrecognized_link.title" = "Link konnte nicht erkannt werden";
@@ -204,13 +187,8 @@
 "settings.tab.appearance" = "Darstellung";
 "settings.tab.data" = "Daten";
 "settings.tab.about" = "Über Shatl";
-"settings.tab.localization" = "Sprache";
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Onboarding starten";
-
-"settings.notifications.section" = "Mitteilungen";
-"settings.notifications.show" = "Mitteilungen anzeigen";
-"settings.notifications.play_sound_on_completion" = "Ton abspielen, wenn ein Download fertig ist";
 
 "settings.data.section" = "Nutzungsstatistik";
 "settings.data.help_development" = "Mit anonymen Statistiken zur Weiterentwicklung beitragen";
@@ -247,7 +225,7 @@
 "settings.downloads.folder.section" = "Download-Ordner";
 "settings.downloads.network.section" = "Netzwerk";
 "settings.downloads.network.port_forwarding" = "Port am Router automatisch öffnen";
-"settings.downloads.network.port_forwarding.caption" = "Andere Peers können sich dann selbst mit Shatl verbinden – das beschleunigt meist Download und Upload.";
+"settings.downloads.network.port_forwarding.caption" = "Andere Peers können sich dann selbst mit Shatl verbinden – das beschleunigt meist Download und Upload.";
 "settings.downloads.network.port_status.checking" = "Port wird geprüft …";
 "settings.downloads.network.port_status.open" = "Port ist offen";
 "settings.downloads.network.port_status.closed" = "Port ist geschlossen";
@@ -256,10 +234,7 @@
 "settings.appearance.theme.system" = "Wie im System";
 "settings.appearance.theme.light" = "Hell";
 "settings.appearance.theme.dark" = "Dunkel";
-"settings.appearance.theme.caption" = "Shatl kann der Darstellung von macOS folgen oder das ausgewählte Design verwenden.";
 "settings.appearance.metrics.section" = "Datenanzeige";
-"settings.appearance.metrics.simplified" = "Vereinfacht";
-"settings.appearance.metrics.detailed" = "Detailliert";
 "settings.appearance.speed_colors.toggle" = "Downloadgeschwindigkeit farblich kennzeichnen";
 "settings.appearance.metrics.toggle" = "Daten im vereinfachten Modus anzeigen";
 "settings.appearance.metrics.caption" = "Blendet weniger wichtige Details aus, rundet Werte und macht Daten leichter erfassbar. Empfohlener Modus.";

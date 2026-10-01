@@ -1,7 +1,5 @@
 /* Russian is the canonical source for current product copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "Сменить";
 "common.choose" = "Выбрать";
 "common.ok" = "ОК";
@@ -32,63 +30,52 @@
 "toolbar.delete" = "Удалить";
 "toolbar.search" = "Поиск";
 
-"search.empty.title" = "Нет результатов для «%@»";
-"search.empty.description" = "Попробуйте другое название или псевдоним.";
+"search.empty.title" = "Нет результатов для «%@»";
+"search.empty.description" = "Попробуйте другое название или псевдоним.";
 
 "session.restore.in_progress" = "Восстановление сессии…";
 "session.restore.completed" = "Сессия восстановлена";
 "session.load.in_progress.title" = "Список загрузок восстанавливается.";
-"session.load.in_progress.message" = "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста.";
+"session.load.in_progress.message" = "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок.";
 "session.load.unreadable.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
-"session.load.missing.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
 "session.load.unsupported.title" = "Не удалось открыть сохранённую сессию.";
 "session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
-"session.persistence.save_failed.title" = "Не удалось сохранить состояние загрузок";
-"session.persistence.background_failed.message" = "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова».";
+"session.persistence.save_failed.title" = "Не удалось сохранить состояние загрузок";
+"session.persistence.background_failed.message" = "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова».";
 "session.persistence.line.check_again" = "Проверить снова";
 "session.persistence.line.checking" = "Проверка…";
 "session.persistence.line.hide" = "Скрыть";
-"session.persistence.remove_from_list_failed.message" = "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.remove_with_files_failed.message" = "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.stop_failed.message" = "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.quit_dialog.message" = "Скорее всего, на диске закончилось место или у Shatl нет доступа к папке с данными. Если выйти сейчас, последние изменения прогресса и статусов не сохранятся, и при следующем запуске Shatl может заново проверить часть скачанных данных. Скачанные файлы и список загрузок не пострадают.";
+"session.persistence.remove_from_list_failed.message" = "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.remove_with_files_failed.message" = "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.stop_failed.message" = "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"session.persistence.quit_dialog.message" = "Скорее всего, на диске закончилось место или у Shatl нет доступа к папке с данными. Если выйти сейчас, последние изменения прогресса и статусов не сохранятся, и при следующем запуске Shatl может заново проверить часть скачанных данных. Скачанные файлы и список загрузок не пострадают.";
 "session.persistence.quit_dialog.retry" = "Повторить";
-"session.persistence.quit_dialog.return" = "Вернуться в Shatl";
-"session.persistence.quit_dialog.quit" = "Выйти без сохранения";
+"session.persistence.quit_dialog.return" = "Вернуться в Shatl";
+"session.persistence.quit_dialog.quit" = "Выйти без сохранения";
 "single_instance.already_running.title" = "Shatl уже запущен";
-"single_instance.already_running.message" = "Одновременно может работать только один экземпляр Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому приложению.";
-"session.persistence.redownload_failed.message" = "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"single_instance.already_running.message" = "Одновременно может работать только один экземпляр Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому приложению.";
+"session.persistence.redownload_failed.message" = "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
 
 "onboarding.action.next" = "Далее";
-"onboarding.action.not_now" = "Не сейчас";
-"onboarding.action.allow_notifications" = "Разрешить уведомления";
+"onboarding.action.not_now" = "Не сейчас";
 "onboarding.action.help_development" = "Помочь развитию";
 "onboarding.action.close" = "Закрыть";
 "onboarding.action.settings" = "Настройки";
 "onboarding.action.get_started" = "Начать";
 "onboarding.welcome.title" = "Добро пожаловать.";
-"onboarding.welcome.description" = "Перед вами лёгкий торрент-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс. Несколько коротких шагов — и всё будет готово.";
-"onboarding.download_folder.title" = "Папка сохранения загрузок по умолчанию";
-"onboarding.download_folder.description" = "По умолчанию файлы сохраняются в папку «Загрузки». Вы можете изменить путь сейчас или позже в Настройках.";
-"onboarding.download_folder.save_to" = "Сохранять в:";
+"onboarding.welcome.description" = "Перед вами лёгкий торрент-клиент для Mac на базе libtorrent. Открытый исходный код, только необходимые функции и аккуратный интерфейс. Несколько коротких шагов — и всё будет готово.";
 "onboarding.expanded_card.title" = "Расширенный вид.";
-"onboarding.expanded_card.description.lead" = "Так будут выглядеть загрузки — каждая в своей карточке.";
+"onboarding.expanded_card.description.lead" = "Так будут выглядеть загрузки — каждая в своей карточке.";
 "onboarding.expanded_card.description.prefix" = "Нажмите кнопку ";
 "onboarding.expanded_card.description.suffix" = " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите ещё раз, чтобы свернуть карточку.";
 "onboarding.expanded_card.demo_title" = "Торрент";
-"onboarding.metrics_mode.title" = "Режим отображения данных";
-"onboarding.metrics_mode.description" = "Упрощённый режим показывает округлённые значения, а подробный сохраняет более точные значения.";
-"onboarding.theme.title" = "Выбор темы оформления";
-"onboarding.theme.follow_macos" = "Следовать настройкам macOS";
-"onboarding.notifications.title" = "Уведомления";
-"onboarding.notifications.description" = "Shatl может оповещать о завершении загрузки\nили о возникновении ошибки.";
 "onboarding.data.title" = "Делиться анонимной статистикой?";
-"onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю.";
+"onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю.";
 "onboarding.done.title" = "Всё готово.";
 "onboarding.done.description" = "В Настройках также доступны:";
-"onboarding.done.metrics.caption" = "Упрощённо — только главное. Подробно — больше данных и точнее.";
-"onboarding.done.performance.caption" = "Выберите Halo, Orbit или Nova — от бережного до максимального режима.";
+"onboarding.done.metrics.caption" = "Упрощённо — только главное. Подробно — больше данных и точнее.";
+"onboarding.done.performance.caption" = "Выберите Halo, Orbit или Nova — от бережного до максимального режима.";
 
 "menu.view.enter_full_screen" = "Перейти в полноэкранный режим";
 "menu.torrent" = "Торрент";
@@ -112,41 +99,42 @@
 "torrent.status.checking" = "Проверяется";
 
 "torrent.card.original_title" = "Название торрента — %@";
-"torrent.card.adding_title" = "Загрузка «%@» в процессе добавления…";
+"torrent.card.adding_title" = "Загрузка «%@» в процессе добавления…";
 
-"torrent.metric.download_speed" = "Скорость загрузки";
-"torrent.metric.eta" = "Осталось";
 "torrent.metric.seeds_and_peers" = "Сиды и пиры";
 "torrent.metric.upload_speed" = "Скорость раздачи";
 "torrent.metric.uploaded" = "Отдано";
 "torrent.metric.size" = "Размер";
 
 "torrent.error.missing_content.title" = "Файлы загрузки недоступны";
-"torrent.error.missing_content.message" = "Shatl не нашёл данные торрента по сохранённому пути. Вы можете скачать их заново или удалить запись из списка.";
+"torrent.error.missing_content.message" = "Shatl не нашёл данные торрента по сохранённому пути. Вы можете скачать их заново или удалить запись из списка.";
 "torrent.error.save_path_unavailable.title" = "Папка загрузки недоступна";
-"torrent.error.save_path_unavailable.message" = "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка.";
+"torrent.error.save_path_unavailable.message" = "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка.";
 "torrent.error.not_found.title" = "Загрузка недоступна";
 "torrent.error.not_found.message" = "Не удалось найти этот торрент. Попробуйте добавить его заново.";
 "torrent.error.action_failed.title" = "Не удалось выполнить действие";
 "torrent.error.action_failed.message" = "Произошла ошибка. Попробуйте ещё раз.";
 
 "remove_dialog.choice.title" = "Удалить «%@»?";
-"remove_dialog.choice.message.with_files" = "Можно удалить только запись из списка или удалить запись вместе с загруженными файлами.";
-"remove_dialog.choice.message.list_only" = "Shatl удалит только запись из списка. Удаление файлов для этой карточки недоступно.";
+"remove_dialog.choice.message.with_files" = "Можно удалить только запись из списка или удалить запись вместе с загруженными файлами.";
+"remove_dialog.choice.message.list_only" = "Shatl удалит только запись из списка. Удаление файлов для этой карточки недоступно.";
 "remove_dialog.delete_with_files.title" = "Удалить «%@» вместе с файлами?";
 "remove_dialog.delete_with_files.message" = "Shatl удалит торрент из списка, а также все связанные файлы с диска.";
 "add_torrent.cancel.title" = "Отменить добавление «%@»?";
-"add_torrent.cancel.message" = "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо.";
+"add_torrent.cancel.message" = "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо.";
 "add_torrent.cancel.delete_action" = "Удалить загрузку";
 "add_torrent.cancel.cancel_action" = "Отмена";
 
 "payload_deletion.files_not_deleted.title" = "Файлы не удалены";
 "payload_deletion.not_all_files_deleted.title" = "Не все файлы удалены";
 "payload_deletion.engine_stop_failed.message" = "Shatl удалил торрент из списка, но не смог безопасно остановить его в движке перед удалением файлов.";
-"payload_deletion.partial_failure.message" = "Shatl удалил торрент из списка, но не смог удалить %lld файл(ов) с диска.";
+"payload_deletion.partial_failure.message.one" = "Shatl удалил торрент из списка, но не смог удалить %lld файл с диска.";
+"payload_deletion.partial_failure.message.few" = "Shatl удалил торрент из списка, но не смог удалить %lld файла с диска.";
+"payload_deletion.partial_failure.message.many" = "Shatl удалил торрент из списка, но не смог удалить %lld файлов с диска.";
+"payload_deletion.partial_failure.message.other" = "Shatl удалил торрент из списка, но не смог удалить %lld файла с диска.";
 "payload_deletion.unresolved.message" = "Shatl удалил торрент из списка, но не смог безопасно определить связанные файлы на диске.";
-"payload_deletion.safety_refused.message" = "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента.";
-"payload_deletion.cleanup_failure.message" = "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить.";
+"payload_deletion.safety_refused.message" = "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента.";
+"payload_deletion.cleanup_failure.message" = "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить.";
 
 "add_torrent.loading_metadata" = "Получение метаданных…";
 "add_torrent.title" = "Добавление загрузки";
@@ -154,13 +142,10 @@
 "add_torrent.entry.subtitle" = "Вставьте .magnet-ссылку в поле ниже или выберите .torrent-файл с вашего Mac.";
 "add_torrent.entry.choose_file" = "Выбрать .torrent-файл…";
 "add_torrent.entry.continue" = "Продолжить";
-"add_torrent.review.tab.files" = "Файлы";
-"add_torrent.review.tab.settings" = "Настройки";
 "add_torrent.review.search_files" = "Искать файлы…";
-"add_torrent.review.no_selection" = "Раздача пока не выбрана";
-"add_torrent.review.invalid_placeholder" = "Не удалось подготовить загрузку.";
+"add_torrent.review.invalid_placeholder" = "Не удалось подготовить загрузку.";
 "add_torrent.review.files_after_metadata" = "Файлы появятся после получения метаданных.";
-"add_torrent.review.no_files" = "Нет файлов для загрузки.";
+"add_torrent.review.no_files" = "Нет файлов для загрузки.";
 "add_torrent.review.no_draft" = "Черновик загрузки пока не создан.";
 "add_torrent.review.alias_caption" = "Псевдоним будет отображаться в карточке торрента вместо оригинального названия раздачи. Оригинальное название раздачи можно посмотреть, переведя карточку торрента в расширенный вид.";
 "add_torrent.review.download_to_folder" = "Загрузить в «%@»";
@@ -187,39 +172,34 @@
 "add_torrent.review.folder.files.partial.other" = "Выбрано %lld файла из %lld";
 "add_torrent.error.empty_magnet.title" = "Добавьте magnet-ссылку";
 "add_torrent.error.empty_magnet.message" = "Поле пустое. Вставьте magnet-ссылку и попробуйте снова.";
-"add_torrent.error.unrecognized_link.title" = "Не удалось распознать ссылку";
+"add_torrent.error.unrecognized_link.title" = "Не удалось распознать ссылку";
 "add_torrent.error.unrecognized_link.message" = "Проверьте, что она начинается с magnet:? и скопирована полностью.";
-"add_torrent.error.invalid_magnet.title" = "Не удалось распознать magnet-ссылку.";
+"add_torrent.error.invalid_magnet.title" = "Не удалось распознать magnet-ссылку.";
 "add_torrent.error.invalid_magnet.message" = "Проверьте, что ссылка скопирована полностью, и попробуйте снова.";
-"add_torrent.error.invalid_torrent_file.title" = "Не удалось открыть файл.";
-"add_torrent.error.invalid_torrent_file.message" = "Файл может быть повреждён или не поддерживается. Выберите другой .torrent-файл и попробуйте снова.";
-"add_torrent.error.metadata_timeout.title" = "Не удалось получить метаданные.";
+"add_torrent.error.invalid_torrent_file.title" = "Не удалось открыть файл.";
+"add_torrent.error.invalid_torrent_file.message" = "Файл может быть повреждён или не поддерживается. Выберите другой .torrent-файл и попробуйте снова.";
+"add_torrent.error.metadata_timeout.title" = "Не удалось получить метаданные.";
 "add_torrent.error.metadata_timeout.message" = "Источники не успели передать данные. Попробуйте снова через некоторое время.";
 "add_torrent.error.draft_lost.title" = "Подготовка загрузки прервана.";
-"add_torrent.error.draft_lost.message" = "Данные не сохранились. Закройте окно и добавьте торрент заново.";
+"add_torrent.error.draft_lost.message" = "Данные не сохранились. Закройте окно и добавьте торрент заново.";
 "add_torrent.error.duplicate.title" = "Такая загрузка уже есть.";
-"add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список загрузок.";
-"add_torrent.error.duplicate.named_message" = "Торрент «%@» уже добавлен в список загрузок.";
-"add_torrent.error.generic.title" = "Не удалось подготовить загрузку.";
+"add_torrent.error.duplicate.message" = "Этот торрент уже добавлен в список загрузок.";
+"add_torrent.error.duplicate.named_message" = "Торрент «%@» уже добавлен в список загрузок.";
+"add_torrent.error.generic.title" = "Не удалось подготовить загрузку.";
 "add_torrent.error.not_found.title" = "Загрузка недоступна.";
-"add_torrent.error.generic.message" = "Попробуйте ещё раз. Если ошибка повторится, проверьте файл или ссылку.";
+"add_torrent.error.generic.message" = "Попробуйте ещё раз. Если ошибка повторится, проверьте файл или ссылку.";
 
 "settings.tab.downloads" = "Загрузки";
 "settings.tab.appearance" = "Внешний вид";
 "settings.tab.data" = "Данные";
 "settings.tab.about" = "О программе";
-"settings.tab.localization" = "Язык";
 "settings.tab.debug" = "Отладка";
 "menu.debug.show_onboarding" = "Запустить онбординг";
-
-"settings.notifications.section" = "Уведомления";
-"settings.notifications.show" = "Показывать уведомления";
-"settings.notifications.play_sound_on_completion" = "Воспроизводить звук при завершении загрузки";
 
 "settings.data.section" = "Статистика использования";
 "settings.data.help_development" = "Помогать развитию анонимной статистикой";
 "settings.data.sent_data" = "Отправляемые данные";
-"settings.data.sent_data.description" = "Вы можете просмотреть, какие данные будут отправлены";
+"settings.data.sent_data.description" = "Вы можете просмотреть, какие данные будут отправлены";
 "settings.data.sent_data.show" = "Показать";
 "settings.data.status.never_sent.enabled" = "Статистика использования ещё не отправлялась.";
 "settings.data.status.never_sent.disabled" = "Данные не отправляются, отправка статистики отключена.";
@@ -235,7 +215,7 @@
 "settings.data.collects.launch_count" = "Количество запусков";
 "settings.data.collects.app_version" = "Версия приложения";
 "settings.data.collects.interface_language" = "Язык интерфейса";
-"settings.data.does_not_collect.title" = "Не отправляется:";
+"settings.data.does_not_collect.title" = "Не отправляется:";
 "settings.data.does_not_collect.torrent_data" = "Данные о торрентах";
 "settings.data.does_not_collect.link_data" = "Данные о ссылках";
 "settings.data.does_not_collect.file_data" = "Данные о файлах";
@@ -246,12 +226,12 @@
 "settings.downloads.performance.profile.economical" = "Halo";
 "settings.downloads.performance.profile.balanced" = "Orbit";
 "settings.downloads.performance.profile.maximum" = "Nova";
-"settings.downloads.performance.caption.main" = "Shatl может работать медленнее или быстрее в зависимости от выбранного режима. Чем выше режим, тем активнее загрузка и раздача, и тем больше нагрузка на Mac.";
-"settings.downloads.performance.caption.economical" = "Режим Halo дополнительно снижает скорость загрузки и раздачи для экономии заряда батареи.";
+"settings.downloads.performance.caption.main" = "Shatl может работать медленнее или быстрее в зависимости от выбранного режима. Чем выше режим, тем активнее загрузка и раздача, и тем больше нагрузка на Mac.";
+"settings.downloads.performance.caption.economical" = "Режим Halo дополнительно снижает скорость загрузки и раздачи для экономии заряда батареи.";
 "settings.downloads.folder.section" = "Папка загрузки";
 "settings.downloads.network.section" = "Сеть";
-"settings.downloads.network.port_forwarding" = "Открывать порт на роутере автоматически";
-"settings.downloads.network.port_forwarding.caption" = "Другие участники смогут подключаться к Shatl сами — обычно это ускоряет загрузку и раздачу.";
+"settings.downloads.network.port_forwarding" = "Открывать порт на роутере автоматически";
+"settings.downloads.network.port_forwarding.caption" = "Другие участники смогут подключаться к Shatl сами — обычно это ускоряет загрузку и раздачу.";
 "settings.downloads.network.port_status.checking" = "Проверяем порт…";
 "settings.downloads.network.port_status.open" = "Порт открыт";
 "settings.downloads.network.port_status.closed" = "Порт закрыт";
@@ -260,18 +240,15 @@
 "settings.appearance.theme.system" = "Как в системе";
 "settings.appearance.theme.light" = "Светлая";
 "settings.appearance.theme.dark" = "Тёмная";
-"settings.appearance.theme.caption" = "Shatl может менять оформление в соответствии с настройками macOS или использовать выбранную тему.";
 "settings.appearance.metrics.section" = "Отображение данных";
-"settings.appearance.metrics.simplified" = "Упрощённо";
-"settings.appearance.metrics.detailed" = "Подробно";
 "settings.appearance.speed_colors.toggle" = "Цветовая индикация скорости загрузки";
 "settings.appearance.metrics.toggle" = "Отображать данные в упрощённом режиме";
-"settings.appearance.metrics.caption" = "Скрывает малозначимые детали, округляет значения и делает данные легче для восприятия. Рекомендуемый режим.";
+"settings.appearance.metrics.caption" = "Скрывает малозначимые детали, округляет значения и делает данные легче для восприятия. Рекомендуемый режим.";
 "settings.appearance.metrics.info.help" = "Подробнее о точности значений";
 "settings.appearance.metrics.popover.title" = "Точность значений";
-"settings.appearance.metrics.popover.precision" = "При выключенном упрощённом режиме скорости и объёмы отображаются точнее — при необходимости с одним десятичным знаком. Например, 10 МБ/с может превратиться в 10,5 МБ/с, а 8 ГБ — в 7,7 ГБ.";
-"settings.appearance.metrics.popover.eta" = "Оставшееся время до часа показывается без укрупнения до шагов в пять секунд или минут: например, 35 мин может превратиться в 38 мин. Для интервалов от часа формат не меняется.";
-"settings.appearance.metrics.popover.unchanged" = "Прогресс, количество сидов и пиров, а также работа торрента остаются без изменений.";
+"settings.appearance.metrics.popover.precision" = "При выключенном упрощённом режиме скорости и объёмы отображаются точнее — при необходимости с одним десятичным знаком. Например, 10 МБ/с может превратиться в 10,5 МБ/с, а 8 ГБ — в 7,7 ГБ.";
+"settings.appearance.metrics.popover.eta" = "Оставшееся время до часа показывается без укрупнения до шагов в пять секунд или минут: например, 35 мин может превратиться в 38 мин. Для интервалов от часа формат не меняется.";
+"settings.appearance.metrics.popover.unchanged" = "Прогресс, количество сидов и пиров, а также работа торрента остаются без изменений.";
 "settings.appearance.preview" = "Предпросмотр";
 
 "settings.about.application_version" = "Версия приложения";
@@ -279,13 +256,13 @@
 "settings.about.check_for_updates_automatically" = "Проверять наличие обновлений";
 "settings.about.install_updates_automatically" = "Устанавливать обновления автоматически";
 "settings.about.contact_section" = "Связаться с разработчиком";
-"settings.about.contact_row" = "Отправить отзыв или сообщить о проблеме";
+"settings.about.contact_row" = "Отправить отзыв или сообщить о проблеме";
 "settings.about.write" = "Написать";
-"settings.about.logo.caption" = "Сделано с любовью для вашего Mac";
+"settings.about.logo.caption" = "Сделано с любовью для вашего Mac";
 
 "settings.localization.section" = "Язык интерфейса";
 "settings.localization.app_language" = "Язык Shatl";
-"settings.localization.caption" = "Временный переключатель для проверки локализаций. В релизе Shatl будет использовать язык macOS.";
+"settings.localization.caption" = "Временный переключатель для проверки локализаций. В релизе Shatl будет использовать язык macOS.";
 "settings.localization.language.system" = "Как в системе";
 "settings.localization.language.english" = "Английский";
 "settings.localization.language.russian" = "Русский";
@@ -302,12 +279,12 @@
 "settings.debug.logging.snapshot_diagnostics" = "Диагностика snapshot-обновлений";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Диагностика окна добавления торрента";
 "settings.debug.logging.card_layout_diagnostics" = "Диагностика раскладки карточек";
-"settings.debug.performance.budget" = "Отладка: лимит открытых файлов — %1$@ (macOS выдала %2$@). Соединений до %3$@, файлов до %4$@. Всего открыто, включая служебные соединения: %5$@.";
-"settings.debug.performance.budget_reduced" = "Отладка: лимит открытых файлов — %1$@, выше macOS не дала (выдала %2$@). Соединений до %3$@ вместо %4$@, файлов до %5$@ вместо %6$@. Всего открыто, включая служебные соединения: %7$@.";
-"settings.debug.performance.engine_not_started" = "Отладка: движок ещё не запущен.";
-"settings.debug.network.port.searching" = "Отладка: роутер пока не ответил.";
+"settings.debug.performance.budget" = "Отладка: лимит открытых файлов — %1$@ (macOS выдала %2$@). Соединений до %3$@, файлов до %4$@. Всего открыто, включая служебные соединения: %5$@.";
+"settings.debug.performance.budget_reduced" = "Отладка: лимит открытых файлов — %1$@, выше macOS не дала (выдала %2$@). Соединений до %3$@ вместо %4$@, файлов до %5$@ вместо %6$@. Всего открыто, включая служебные соединения: %7$@.";
+"settings.debug.performance.engine_not_started" = "Отладка: движок ещё не запущен.";
+"settings.debug.network.port.searching" = "Отладка: роутер пока не ответил.";
 "settings.debug.network.port.mapped" = "Отладка: роутер открыл порт %1$@ (%2$@).";
-"settings.debug.network.port.failed" = "Отладка: роутер не открыл порт (%1$@: %2$@).";
+"settings.debug.network.port.failed" = "Отладка: роутер не открыл порт (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Загрузка завершена";
 "notification.download_completed.body" = "«%@» загружен.";

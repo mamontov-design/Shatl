@@ -1,7 +1,5 @@
 /* English is the fallback localization. Russian remains the canonical source copy. */
 
-"app.name" = "Shatl";
-
 "common.change" = "Change";
 "common.choose" = "Choose";
 "common.ok" = "OK";
@@ -33,17 +31,16 @@
 "toolbar.search" = "Search";
 
 "search.empty.title" = "No results for “%@”";
-"search.empty.description" = "Try a different name or alias.";
+"search.empty.description" = "Try a different name or alias.";
 
 "session.restore.in_progress" = "Restoring session…";
 "session.restore.completed" = "Session restored";
 "session.load.in_progress.title" = "Restoring the Download List.";
 "session.load.in_progress.message" = "Downloads are returning to where they were when you quit. Please wait.";
 "session.load.failure.title" = "Couldn’t Restore the Download List.";
-"session.load.unreadable.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
-"session.load.missing.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
+"session.load.unreadable.message" = "An error occurred while restoring the downloads. Files downloaded during previous launches remain on disk.";
 "session.load.unsupported.title" = "Couldn’t Open the Saved Session.";
-"session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
+"session.load.unsupported.message" = "The session was created by a different version of Shatl and can’t be opened yet. Files downloaded during previous launches remain on disk.";
 "session.persistence.save_failed.title" = "Couldn’t save the download state";
 "session.persistence.background_failed.message" = "Shatl can’t write data to the disk. Check free space and disk access, then click Check Again.";
 "session.persistence.line.check_again" = "Check Again";
@@ -57,32 +54,22 @@
 "session.persistence.quit_dialog.return" = "Return to Shatl";
 "session.persistence.quit_dialog.quit" = "Quit Without Saving";
 "single_instance.already_running.title" = "Shatl is already running";
-"single_instance.already_running.message" = "Only one instance of Shatl can run at a time, so this copy will quit. Click OK to switch to the app that’s already open.";
+"single_instance.already_running.message" = "Only one instance of Shatl can run at a time, so this copy will quit. Click OK to switch to the app that’s already open.";
 "session.persistence.redownload_failed.message" = "The download wasn’t restarted: Shatl can’t write data to the disk. Check free space and disk access, then try again.";
 
 "onboarding.action.next" = "Next";
 "onboarding.action.not_now" = "Not Now";
-"onboarding.action.allow_notifications" = "Allow Notifications";
 "onboarding.action.help_development" = "Help Improve";
 "onboarding.action.close" = "Close";
 "onboarding.action.settings" = "Settings";
 "onboarding.action.get_started" = "Get Started";
 "onboarding.welcome.title" = "Welcome.";
 "onboarding.welcome.description" = "Meet a lightweight torrent client for Mac powered by libtorrent. Open source, with only the essential features and a polished interface. A few quick steps, and you’ll be all set.";
-"onboarding.download_folder.title" = "Default Download Folder";
-"onboarding.download_folder.description" = "Files are saved to Downloads by default. You can change the location now or later in Settings.";
-"onboarding.download_folder.save_to" = "Save to:";
 "onboarding.expanded_card.title" = "Expanded View.";
 "onboarding.expanded_card.description.lead" = "This is how your downloads will look, each in its own card.";
 "onboarding.expanded_card.description.prefix" = "Click the ";
 "onboarding.expanded_card.description.suffix" = " button in the top-right corner to see more data: seeds, peers, size, and upload. Click it again to collapse the card.";
 "onboarding.expanded_card.demo_title" = "Torrent";
-"onboarding.metrics_mode.title" = "Data display mode";
-"onboarding.metrics_mode.description" = "Simplified mode shows rounded values, while Detailed preserves more precise values.";
-"onboarding.theme.title" = "Choose Appearance Theme";
-"onboarding.theme.follow_macos" = "Follow macOS settings";
-"onboarding.notifications.title" = "Notifications";
-"onboarding.notifications.description" = "Shatl can notify you when a download finishes\nor an error occurs.";
 "onboarding.data.title" = "Share Anonymous Statistics?";
 "onboarding.data.description" = "You can help understand whether Shatl is useful to people. A report is sent no more than once a week.";
 "onboarding.done.title" = "All Set.";
@@ -114,8 +101,6 @@
 "torrent.card.original_title" = "Torrent name — %@";
 "torrent.card.adding_title" = "Download “%@” is being added…";
 
-"torrent.metric.download_speed" = "Download speed";
-"torrent.metric.eta" = "Remaining";
 "torrent.metric.seeds_and_peers" = "Seeds and peers";
 "torrent.metric.upload_speed" = "Upload speed";
 "torrent.metric.uploaded" = "Uploaded";
@@ -143,9 +128,10 @@
 "payload_deletion.files_not_deleted.title" = "Files were not deleted";
 "payload_deletion.not_all_files_deleted.title" = "Some files were not deleted";
 "payload_deletion.engine_stop_failed.message" = "Shatl removed the torrent from the list, but could not safely stop it in the engine before deleting files.";
-"payload_deletion.partial_failure.message" = "Shatl removed the torrent from the list, but could not delete %lld file(s) from disk.";
+"payload_deletion.partial_failure.message.one" = "Shatl removed the torrent from the list, but could not delete %lld file from disk.";
+"payload_deletion.partial_failure.message.other" = "Shatl removed the torrent from the list, but could not delete %lld files from disk.";
 "payload_deletion.unresolved.message" = "Shatl removed the torrent from the list, but could not safely identify the related files on disk.";
-"payload_deletion.safety_refused.message" = "Shatl removed the torrent from the list but left the files in place because a path or object type no longer matches the torrent data.";
+"payload_deletion.safety_refused.message" = "Shatl removed the torrent from the list but left the files in place because a path or object type no longer matches the torrent data.";
 "payload_deletion.cleanup_failure.message" = "The torrent files were deleted, but Shatl left some folders or system files in place because they could not be cleaned up safely.";
 
 "add_torrent.loading_metadata" = "Fetching metadata…";
@@ -154,10 +140,7 @@
 "add_torrent.entry.subtitle" = "Paste a .magnet link below or choose a .torrent file from your Mac.";
 "add_torrent.entry.choose_file" = "Choose .torrent File…";
 "add_torrent.entry.continue" = "Continue";
-"add_torrent.review.tab.files" = "Files";
-"add_torrent.review.tab.settings" = "Settings";
 "add_torrent.review.search_files" = "Search files…";
-"add_torrent.review.no_selection" = "No torrent selected yet";
 "add_torrent.review.invalid_placeholder" = "Could not prepare the download.";
 "add_torrent.review.files_after_metadata" = "Files will appear after metadata is fetched.";
 "add_torrent.review.no_files" = "No files to download.";
@@ -179,8 +162,8 @@
 "add_torrent.review.folder.files.none" = "No files selected";
 "add_torrent.review.folder.files.count.one" = "%lld file";
 "add_torrent.review.folder.files.count.other" = "%lld files";
-"add_torrent.review.folder.files.partial.one" = "%lld of %lld files selected";
-"add_torrent.review.folder.files.partial.other" = "%lld of %lld files selected";
+"add_torrent.review.folder.files.partial.one" = "%lld of %lld files selected";
+"add_torrent.review.folder.files.partial.other" = "%lld of %lld files selected";
 "add_torrent.error.empty_magnet.title" = "Add a magnet link";
 "add_torrent.error.empty_magnet.message" = "The field is empty. Paste a magnet link and try again.";
 "add_torrent.error.unrecognized_link.title" = "Could not recognize the link";
@@ -204,13 +187,8 @@
 "settings.tab.appearance" = "Appearance";
 "settings.tab.data" = "Data";
 "settings.tab.about" = "About";
-"settings.tab.localization" = "Language";
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Start Onboarding";
-
-"settings.notifications.section" = "Notifications";
-"settings.notifications.show" = "Show notifications";
-"settings.notifications.play_sound_on_completion" = "Play a sound when a download finishes";
 
 "settings.data.section" = "Usage statistics";
 "settings.data.help_development" = "Contribute anonymous statistics to help development";
@@ -236,7 +214,7 @@
 "settings.data.does_not_collect.link_data" = "Link data";
 "settings.data.does_not_collect.file_data" = "File data";
 "settings.data.caption" = "These statistics help estimate whether Shatl is useful to people and guide support decisions.";
-"settings.data.caption.technical" = "For technical purposes, the report also includes a random installation identifier and the reporting week. These fields are used to combine weekly statistics.";
+"settings.data.caption.technical" = "For technical purposes, the report also includes a random installation identifier and the reporting week. These fields are used to combine weekly statistics.";
 
 "settings.downloads.performance.section" = "Performance mode";
 "settings.downloads.performance.profile.economical" = "Halo";
@@ -246,8 +224,8 @@
 "settings.downloads.performance.caption.economical" = "Halo mode also lowers download and upload speeds to save battery power.";
 "settings.downloads.folder.section" = "Downloads folder";
 "settings.downloads.network.section" = "Network";
-"settings.downloads.network.port_forwarding" = "Open a port on the router automatically";
-"settings.downloads.network.port_forwarding.caption" = "Other peers will be able to connect to Shatl on their own — this usually speeds up downloads and uploads.";
+"settings.downloads.network.port_forwarding" = "Open a port on the router automatically";
+"settings.downloads.network.port_forwarding.caption" = "Other peers will be able to connect to Shatl on their own — this usually speeds up downloads and uploads.";
 "settings.downloads.network.port_status.checking" = "Checking the port…";
 "settings.downloads.network.port_status.open" = "Port is open";
 "settings.downloads.network.port_status.closed" = "Port is closed";
@@ -256,10 +234,7 @@
 "settings.appearance.theme.system" = "System";
 "settings.appearance.theme.light" = "Light";
 "settings.appearance.theme.dark" = "Dark";
-"settings.appearance.theme.caption" = "Shatl can follow your macOS appearance or use the theme you choose.";
 "settings.appearance.metrics.section" = "Data display";
-"settings.appearance.metrics.simplified" = "Simplified";
-"settings.appearance.metrics.detailed" = "Detailed";
 "settings.appearance.speed_colors.toggle" = "Color-code download speed";
 "settings.appearance.metrics.toggle" = "Display data in simplified mode";
 "settings.appearance.metrics.caption" = "Hides less important details, rounds values, and makes data easier to understand. Recommended mode.";
@@ -303,9 +278,9 @@
 "settings.debug.performance.engine_not_started" = "Debug: the engine has not started yet.";
 "settings.debug.network.port.searching" = "Debug: the router has not answered yet.";
 "settings.debug.network.port.mapped" = "Debug: the router opened port %1$@ (%2$@).";
-"settings.debug.network.port.failed" = "Debug: the router did not open a port (%1$@: %2$@).";
+"settings.debug.network.port.failed" = "Debug: the router did not open a port (%1$@: %2$@).";
 
 "notification.download_completed.title" = "Download complete";
 "notification.download_completed.body" = "%@ has finished downloading.";
 
-"session.recovery.open_empty" = "Start with an Empty List";
+"session.recovery.open_empty" = "Start with an Empty List";
