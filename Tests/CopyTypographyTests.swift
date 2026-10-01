@@ -71,14 +71,6 @@ final class CopyTypographyTests: XCTestCase {
         let pending: Set<String> = [
             // Deferred with the folder's "Retry" button
             "torrent.error.save_path_unavailable.message",
-            // Stage 4: the list and saving
-            "session.persistence.background_failed.message",
-            "session.persistence.remove_from_list_failed.message",
-            "session.persistence.remove_with_files_failed.message",
-            "session.persistence.stop_failed.message",
-            "session.persistence.redownload_failed.message",
-            "session.persistence.quit_dialog.message",
-            "session.persistence.quit_dialog.return",
             // Stage 5: deletion
             "remove_dialog.choice.message.list_only",
             "remove_dialog.delete_with_files.message",

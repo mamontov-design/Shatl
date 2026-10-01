@@ -33,29 +33,29 @@
 "search.empty.title" = "「%@」の検索結果はありません";
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 
-"session.restore.in_progress" = "セッションを復元中…";
-"session.restore.completed" = "セッションを復元しました";
-"session.load.in_progress.title" = "ダウンロードリストを復元しています。";
+"session.restore.in_progress" = "ダウンロードを準備しています…";
+"session.restore.completed" = "ダウンロードの準備ができました";
+"session.load.in_progress.title" = "ダウンロードリストを開いています。";
 "session.load.in_progress.message" = "ダウンロードを終了時の状態に戻しています。しばらくお待ちください。";
 "session.load.failure.title" = "ダウンロードリストを復元できませんでした。";
-"session.load.unreadable.message" = "ダウンロードの復元中にエラーが発生しました。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.load.unsupported.title" = "保存されたセッションを開けませんでした。";
-"session.load.unsupported.message" = "このセッションは別のバージョンのShatlで作成されたため、現在は開けません。以前の起動時にダウンロードしたファイルはディスクに残っています。";
-"session.persistence.save_failed.title" = "ダウンロードの状態を保存できませんでした";
-"session.persistence.background_failed.message" = "Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、「再確認」をクリックしてください。";
+"session.load.unreadable.message" = "保存されたダウンロードリストが破損しているか、利用できません。ダウンロードしたファイルはディスクに残っています。空のリストで開始すると、以前のリストは削除され、元に戻せません。";
+"session.load.unsupported.title" = "ダウンロードリストを開けませんでした。";
+"session.load.unsupported.message" = "このリストは別のバージョンのShatlで保存されました。最新バージョンをインストールすると、リストが開きます。ダウンロードしたファイルはディスクに残っています。空のリストで開始すると、保存されたリストは削除されます。";
+"session.persistence.save_failed.title" = "変更を保存できません";
+"session.persistence.background_failed.message" = "ディスクがいっぱいか、データフォルダにアクセスできません。空き容量を確保して「再確認」をクリックしてください。";
 "session.persistence.line.check_again" = "再確認";
 "session.persistence.line.checking" = "確認中…";
 "session.persistence.line.hide" = "非表示";
-"session.persistence.remove_from_list_failed.message" = "Torrentはリストから削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.remove_with_files_failed.message" = "Torrentとそのファイルは削除されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.stop_failed.message" = "ダウンロードは停止されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
-"session.persistence.quit_dialog.message" = "ディスクの空き容量が不足しているか、Shatlがデータフォルダにアクセスできない可能性があります。今すぐ終了すると、進行状況とステータスの最新の変更は保存されず、次回の起動時にダウンロード済みのデータの一部が再確認される場合があります。ダウンロード済みのファイルとダウンロードリストには影響しません。";
-"session.persistence.quit_dialog.retry" = "再試行";
-"session.persistence.quit_dialog.return" = "Shatlに戻る";
+"session.persistence.remove_from_list_failed.message" = "ダウンロードをリストから削除できませんでした。ディスクがいっぱいか、データフォルダにアクセスできません。空き容量を確保して「再確認」をクリックし、もう一度削除してください。";
+"session.persistence.remove_with_files_failed.message" = "ダウンロードとそのファイルを削除できませんでした。ディスクがいっぱいか、データフォルダにアクセスできません。空き容量を確保して「再確認」をクリックし、もう一度削除してください。";
+"session.persistence.stop_failed.message" = "ダウンロードを停止できませんでした。ディスクがいっぱいか、データフォルダにアクセスできません。空き容量を確保して「再確認」をクリックし、もう一度停止してください。";
+"session.persistence.quit_dialog.message" = "ディスクがいっぱいか、データフォルダにアクセスできない可能性があります。今終了すると、最新の進行状況は保存されず、次回起動時にダウンロード済みデータの一部が再確認されます。ダウンロードしたファイルとダウンロードリストには影響しません。";
+"session.persistence.quit_dialog.retry" = "もう一度保存";
+"session.persistence.quit_dialog.return" = "終了しない";
 "session.persistence.quit_dialog.quit" = "保存せずに終了";
-"single_instance.already_running.title" = "Shatlはすでに起動しています";
-"single_instance.already_running.message" = "Shatlは一度に1つのインスタンスしか起動できないため、このコピーは終了します。「OK」をクリックすると、すでに開いているアプリに切り替わります。";
-"session.persistence.redownload_failed.message" = "再ダウンロードは開始されていません。Shatlがディスクにデータを書き込めません。空き容量とディスクへのアクセスを確認して、もう一度お試しください。";
+"single_instance.already_running.title" = "Shatlはすでに開いています";
+"single_instance.already_running.message" = "Shatlは1つしか起動できないため、このコピーは終了します。「OK」をクリックすると、開いているShatlに切り替わります。";
+"session.persistence.redownload_failed.message" = "ダウンロードを最初からやり直せませんでした。ディスクがいっぱいか、データフォルダにアクセスできません。空き容量を確保して「再確認」をクリックし、もう一度「再ダウンロード」をクリックしてください。";
 
 "onboarding.action.next" = "次へ";
 "onboarding.action.not_now" = "今はしない";
@@ -287,4 +287,4 @@
 
 "notification.download_completed.title" = "ダウンロード完了";
 
-"session.recovery.open_empty" = "空のリストで起動";
+"session.recovery.open_empty" = "空のリストで開始";

@@ -3253,7 +3253,7 @@ final class AppStoreTests: XCTestCase {
     }
 
     /// Loading a repeated ID used to trap in `restoreSnapshot` on every launch,
-    /// so the blocked-load screen with «Запуск с пустым списком» never appeared.
+    /// so the blocked-load screen with its empty-list button never appeared.
     func testRepeatedTorrentIDInSessionBlocksLoadInsteadOfCrashing() async throws {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(

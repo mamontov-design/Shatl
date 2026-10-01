@@ -33,29 +33,29 @@
 "search.empty.title" = "未找到“%@”的结果";
 "search.empty.description" = "请尝试其他名称或别名。";
 
-"session.restore.in_progress" = "正在恢复会话…";
-"session.restore.completed" = "会话已恢复";
-"session.load.in_progress.title" = "正在恢复下载列表。";
+"session.restore.in_progress" = "正在准备下载…";
+"session.restore.completed" = "下载已就绪";
+"session.load.in_progress.title" = "正在打开下载列表。";
 "session.load.in_progress.message" = "正在将下载恢复到关闭时的状态。请稍候。";
 "session.load.failure.title" = "无法恢复下载列表。";
-"session.load.unreadable.message" = "恢复下载项目时发生错误。此前运行时下载的文件仍保留在磁盘上。";
-"session.load.unsupported.title" = "无法打开已保存的会话。";
-"session.load.unsupported.message" = "该会话由其他版本的 Shatl 创建，暂时无法打开。此前运行时下载的文件仍保留在磁盘上。";
-"session.persistence.save_failed.title" = "无法保存下载状态";
-"session.persistence.background_failed.message" = "Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后点击“再次检查”。";
+"session.load.unreadable.message" = "已保存的下载列表已损坏或无法访问。已下载的文件仍在磁盘上。如果以空列表开始，之前的列表将被永久删除。";
+"session.load.unsupported.title" = "无法打开下载列表。";
+"session.load.unsupported.message" = "该列表由其他版本的 Shatl 保存。安装最新版本后即可打开列表。已下载的文件仍在磁盘上。如果以空列表开始，已保存的列表将被删除。";
+"session.persistence.save_failed.title" = "无法保存更改";
+"session.persistence.background_failed.message" = "磁盘已满或无法访问数据文件夹。请释放空间，然后点按“再次检查”。";
 "session.persistence.line.check_again" = "再次检查";
 "session.persistence.line.checking" = "正在检查…";
 "session.persistence.line.hide" = "隐藏";
-"session.persistence.remove_from_list_failed.message" = "Torrent 未从列表中移除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
-"session.persistence.remove_with_files_failed.message" = "Torrent 及其文件未被删除：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
-"session.persistence.stop_failed.message" = "下载未停止：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
-"session.persistence.quit_dialog.message" = "可能是磁盘空间已满，或 Shatl 无法访问其数据文件夹。如果现在退出，最近的进度和状态更改将不会被保存，下次打开 Shatl 时可能会重新检查部分已下载的数据。已下载的文件和下载列表不会受到影响。";
-"session.persistence.quit_dialog.retry" = "重试";
-"session.persistence.quit_dialog.return" = "返回 Shatl";
+"session.persistence.remove_from_list_failed.message" = "下载未从列表中移除：磁盘已满或无法访问数据文件夹。请释放空间，点按“再次检查”，然后再次移除此下载。";
+"session.persistence.remove_with_files_failed.message" = "下载及其文件未被删除：磁盘已满或无法访问数据文件夹。请释放空间，点按“再次检查”，然后再次删除此下载。";
+"session.persistence.stop_failed.message" = "下载未停止：磁盘已满或无法访问数据文件夹。请释放空间，点按“再次检查”，然后再次停止此下载。";
+"session.persistence.quit_dialog.message" = "很可能磁盘已满或无法访问数据文件夹。如果现在退出，最近的进度将不会保存，下次打开时会重新检查部分已下载的数据。已下载的文件和下载列表不会受影响。";
+"session.persistence.quit_dialog.retry" = "再次保存";
+"session.persistence.quit_dialog.return" = "不退出";
 "session.persistence.quit_dialog.quit" = "不保存并退出";
-"single_instance.already_running.title" = "Shatl 已在运行";
-"single_instance.already_running.message" = "同一时间只能运行一个 Shatl 实例，因此此副本将退出。点按“好”即可切换到已打开的 App。";
-"session.persistence.redownload_failed.message" = "重新下载未开始：Shatl 无法向磁盘写入数据。请检查可用空间和磁盘访问权限，然后重试。";
+"single_instance.already_running.title" = "Shatl 已打开";
+"single_instance.already_running.message" = "同一时间只能运行一个 Shatl 副本，因此此副本将退出。点按“好”即可切换到已打开的副本。";
+"session.persistence.redownload_failed.message" = "下载未重新开始：磁盘已满或无法访问数据文件夹。请释放空间，点按“再次检查”，然后再次点按“重新下载”。";
 
 "onboarding.action.next" = "下一步";
 "onboarding.action.not_now" = "暂不";
@@ -287,4 +287,4 @@
 
 "notification.download_completed.title" = "下载完成";
 
-"session.recovery.open_empty" = "使用空列表启动";
+"session.recovery.open_empty" = "以空列表开始";

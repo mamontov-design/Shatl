@@ -33,29 +33,29 @@
 "search.empty.title" = "Нет результатов для «%@»";
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
 
-"session.restore.in_progress" = "Восстановление сессии…";
-"session.restore.completed" = "Сессия восстановлена";
-"session.load.in_progress.title" = "Список загрузок восстанавливается.";
+"session.restore.in_progress" = "Подготовка загрузок…";
+"session.restore.completed" = "Загрузки готовы";
+"session.load.in_progress.title" = "Список загрузок открывается.";
 "session.load.in_progress.message" = "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок.";
-"session.load.unreadable.message" = "При попытке восстановить загрузки произошла ошибка. Загруженные с прошлого запуска файлы остались на диске.";
-"session.load.unsupported.title" = "Не удалось открыть сохранённую сессию.";
-"session.load.unsupported.message" = "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске.";
-"session.persistence.save_failed.title" = "Не удалось сохранить состояние загрузок";
-"session.persistence.background_failed.message" = "Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем нажмите «Проверить снова».";
+"session.load.unreadable.message" = "Сохранённый список загрузок повреждён или недоступен. Скачанные файлы на месте. Если начать с пустого списка, прежний список будет удалён без возможности восстановления.";
+"session.load.unsupported.title" = "Не удалось открыть список загрузок.";
+"session.load.unsupported.message" = "Список сохранила другая версия Shatl. Установите последнюю версию — и список откроется. Скачанные файлы на месте. Если начать с пустого списка, сохранённый будет удалён.";
+"session.persistence.save_failed.title" = "Не удаётся сохранить изменения";
+"session.persistence.background_failed.message" = "На диске закончилось место или нет доступа к папке с данными. Освободите место и нажмите «Проверить снова».";
 "session.persistence.line.check_again" = "Проверить снова";
 "session.persistence.line.checking" = "Проверка…";
 "session.persistence.line.hide" = "Скрыть";
-"session.persistence.remove_from_list_failed.message" = "Торрент не удалён из списка: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.remove_with_files_failed.message" = "Торрент и его файлы не удалены: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.stop_failed.message" = "Загрузка не остановлена: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
-"session.persistence.quit_dialog.message" = "Скорее всего, на диске закончилось место или у Shatl нет доступа к папке с данными. Если выйти сейчас, последние изменения прогресса и статусов не сохранятся, и при следующем запуске Shatl может заново проверить часть скачанных данных. Скачанные файлы и список загрузок не пострадают.";
-"session.persistence.quit_dialog.retry" = "Повторить";
-"session.persistence.quit_dialog.return" = "Вернуться в Shatl";
+"session.persistence.remove_from_list_failed.message" = "Загрузка не удалена из списка: на диске закончилось место или нет доступа к папке с данными. Освободите место, нажмите «Проверить снова» и удалите загрузку ещё раз.";
+"session.persistence.remove_with_files_failed.message" = "Загрузка и её файлы не удалены: на диске закончилось место или нет доступа к папке с данными. Освободите место, нажмите «Проверить снова» и удалите загрузку ещё раз.";
+"session.persistence.stop_failed.message" = "Загрузка не остановлена: на диске закончилось место или нет доступа к папке с данными. Освободите место, нажмите «Проверить снова» и остановите загрузку ещё раз.";
+"session.persistence.quit_dialog.message" = "Скорее всего, на диске закончилось место или нет доступа к папке с данными. Если выйти сейчас, последние изменения прогресса не сохранятся и при следующем запуске часть скачанного будет проверена заново. Скачанные файлы и список загрузок не пострадают.";
+"session.persistence.quit_dialog.retry" = "Повторить сохранение";
+"session.persistence.quit_dialog.return" = "Не выходить";
 "session.persistence.quit_dialog.quit" = "Выйти без сохранения";
-"single_instance.already_running.title" = "Shatl уже запущен";
-"single_instance.already_running.message" = "Одновременно может работать только один экземпляр Shatl, поэтому эта копия закроется. Нажмите «ОК», чтобы перейти к уже открытому приложению.";
-"session.persistence.redownload_failed.message" = "Повторная загрузка не начата: Shatl не может записать данные на диск. Проверьте свободное место и доступ к диску, затем повторите действие.";
+"single_instance.already_running.title" = "Shatl уже открыт";
+"single_instance.already_running.message" = "Работать может только одна копия Shatl, поэтому эта закроется. Нажмите «ОК», чтобы перейти к открытой.";
+"session.persistence.redownload_failed.message" = "Загрузка не начата заново: на диске закончилось место или нет доступа к папке с данными. Освободите место, нажмите «Проверить снова» и снова нажмите «Скачать заново».";
 
 "onboarding.action.next" = "Далее";
 "onboarding.action.not_now" = "Не сейчас";
@@ -296,4 +296,4 @@
 
 "notification.download_completed.title" = "Загрузка завершена";
 
-"session.recovery.open_empty" = "Запуск с пустым списком";
+"session.recovery.open_empty" = "Начать с пустого списка";
