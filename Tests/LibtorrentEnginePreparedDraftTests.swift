@@ -59,6 +59,28 @@ final class LibtorrentEnginePreparedDraftTests: XCTestCase {
         XCTAssertEqual(remainingCount, 0)
     }
 
+    /// Opening a torrent the session already has fails as a duplicate that
+    /// names it, so the add window can say which download it is.
+    func testDuplicateNamesTheTorrentAlreadyInTheSession() async throws {
+        let fixture = try EngineFixture.make(named: "DraftDuplicate")
+        addTeardownBlock { fixture.remove() }
+        let engine = LibtorrentEngine(directories: fixture.directories)
+
+        let draft = try await prepare(fixture, in: engine)
+        _ = try await engine.addTorrent(using: draft, recordID: UUID(), attemptID: UUID())
+        await engine.releasePreparedDraft(id: draft.id)
+
+        do {
+            _ = try await prepare(fixture, in: engine)
+            XCTFail("Expected a duplicate")
+        } catch {
+            let engineError = try XCTUnwrap(error as? TorrentEngineError, "Unexpected error: \(error)")
+            XCTAssertEqual(engineError.kind, .duplicateTorrent)
+            XCTAssertEqual(engineError.torrentName, draft.originalName)
+            XCTAssertFalse(draft.originalName.isEmpty)
+        }
+    }
+
     private func prepare(_ fixture: EngineFixture, in engine: LibtorrentEngine) async throws -> AddTorrentDraft {
         try await engine.prepareDraft(
             from: AddTorrentSource(kind: .torrentFile, rawValue: fixture.entry.archivedTorrentPath),

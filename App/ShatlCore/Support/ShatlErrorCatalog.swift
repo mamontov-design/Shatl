@@ -142,7 +142,7 @@ enum ShatlErrorCatalog {
             )
 
         case .duplicateTorrent:
-            return duplicateDraftError(localeOverride: localeOverride)
+            return duplicateDraftError(torrentName: engineError.torrentName, localeOverride: localeOverride)
 
         case .torrentNotFound:
             return TorrentErrorState(

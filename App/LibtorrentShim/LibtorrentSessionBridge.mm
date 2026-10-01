@@ -81,6 +81,20 @@ static NSError *LTMakeError(ShatlLibtorrentErrorCode code, NSString *message) {
                            userInfo:@{NSLocalizedDescriptionKey: message}];
 }
 
+/// Names the torrent already in the session, when its name is known, so the
+/// add window can say which one it is.
+static NSString * const ShatlLibtorrentTorrentNameKey = @"mamontov.design.shatl.libtorrent.torrent-name";
+
+static NSError *LTMakeDuplicateError(std::string const& torrentName) {
+    NSMutableDictionary *userInfo = [@{NSLocalizedDescriptionKey: @"Такая загрузка уже есть."} mutableCopy];
+    if (!torrentName.empty()) {
+        userInfo[ShatlLibtorrentTorrentNameKey] = LTToNSString(torrentName);
+    }
+    return [NSError errorWithDomain:ShatlLibtorrentErrorDomain
+                               code:ShatlLibtorrentErrorCodeDuplicateTorrent
+                           userInfo:userInfo];
+}
+
 static NSError *LTMakeErrorFromCode(ShatlLibtorrentErrorCode code, lt::error_code const& ec, NSString *fallback) {
     NSString *message = ec ? LTToNSString(ec.message()) : fallback;
     return LTMakeError(code, message);
@@ -1357,7 +1371,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 
     if (self->_session->find_torrent(params.info_hashes.get_best()).is_valid()) {
         if (error != nullptr) {
-            *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
+            *error = LTMakeDuplicateError(params.name);
         }
         return nil;
     }
@@ -1521,7 +1535,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     if (self->_session->find_torrent(torrentInfo->info_hashes().get_best()).is_valid()) {
         if (error != nullptr) {
-            *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
+            *error = LTMakeDuplicateError(torrentInfo->name());
         }
         return nil;
     }
@@ -1628,7 +1642,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     if (self->_session->find_torrent(bestHash).is_valid()) {
         LT_BRIDGE_LOG(@"add.duplicate", recordIdentifier, nil, YES);
         if (error != nullptr) {
-            *error = LTMakeError(ShatlLibtorrentErrorCodeDuplicateTorrent, @"Такая загрузка уже есть.");
+            *error = LTMakeDuplicateError(torrentInfo->name());
         }
         return nil;
     }

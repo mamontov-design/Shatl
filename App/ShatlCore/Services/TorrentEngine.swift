@@ -89,10 +89,13 @@ nonisolated struct TorrentEngineError: Error, Equatable, Sendable {
 
     var kind: Kind
     var debugReason: String?
+    /// The torrent a duplicate already is, when the engine knows its name.
+    var torrentName: String?
 
-    init(kind: Kind, debugReason: String? = nil) {
+    init(kind: Kind, debugReason: String? = nil, torrentName: String? = nil) {
         self.kind = kind
         self.debugReason = debugReason
+        self.torrentName = torrentName
     }
 
     static func normalized(from error: Error) -> TorrentEngineError {

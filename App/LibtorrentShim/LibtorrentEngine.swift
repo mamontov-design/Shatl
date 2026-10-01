@@ -8,6 +8,7 @@ import Foundation
 actor LibtorrentEngine: TorrentEngine {
     private let bridge: LibtorrentSessionBridge
     private let bridgeErrorDomain = "mamontov.design.shatl.libtorrent"
+    private let bridgeTorrentNameKey = "mamontov.design.shatl.libtorrent.torrent-name"
     private let metadataTimeout: Duration
     private let metadataPollInterval: Duration
 
@@ -589,7 +590,11 @@ actor LibtorrentEngine: TorrentEngine {
         case .invalidTorrentFile:
             return TorrentEngineError(kind: .invalidTorrentFile, debugReason: nsError.localizedDescription)
         case .duplicateTorrent:
-            return TorrentEngineError(kind: .duplicateTorrent, debugReason: nsError.localizedDescription)
+            return TorrentEngineError(
+                kind: .duplicateTorrent,
+                debugReason: nsError.localizedDescription,
+                torrentName: nsError.userInfo[bridgeTorrentNameKey] as? String
+            )
         case .metadataTimeout:
             return TorrentEngineError(kind: .metadataTimeout, debugReason: nsError.localizedDescription)
         case .torrentNotFound:

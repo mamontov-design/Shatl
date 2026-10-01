@@ -41,6 +41,25 @@ final class ShatlMessageTextTests: XCTestCase {
         }
     }
 
+    /// A torrent already running is caught by the engine while the add window
+    /// prepares it; the engine's error carries the name to the message.
+    func testDuplicateFoundByTheEngineNamesTheTorrent() {
+        let source = AddTorrentSource(kind: .torrentFile, rawValue: "/tmp/test.torrent")
+        let named = ShatlErrorCatalog.reviewError(
+            for: TorrentEngineError(kind: .duplicateTorrent, torrentName: "Northstar.S01"),
+            source: source,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в список загрузок.")
+
+        let unnamed = ShatlErrorCatalog.reviewError(
+            for: TorrentEngineError(kind: .duplicateTorrent),
+            source: source,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в список загрузок.")
+    }
+
     func testDuplicateMessageNamesTheTorrent() {
         let named = ShatlErrorCatalog.duplicateDraftError(torrentName: "Northstar.S01", localeOverride: .russian)
         XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в список загрузок.")
