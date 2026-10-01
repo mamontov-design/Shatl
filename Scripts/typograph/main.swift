@@ -44,6 +44,7 @@ func visible(_ text: String) -> String {
     text
         .replacingOccurrences(of: ShatlTypograph.noBreakSpace, with: "⍽")
         .replacingOccurrences(of: ShatlTypograph.narrowNoBreakSpace, with: "⌴")
+        .replacingOccurrences(of: ShatlTypograph.noBreakHyphen, with: "‑̲")
 }
 
 var changedCount = 0

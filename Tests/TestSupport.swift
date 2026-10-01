@@ -17,6 +17,7 @@ actor FakeTorrentEngine: TorrentEngine {
     private var prepareSources: [AddTorrentSource] = []
     private var suspendsPrepare = false
     private var prepareContinuation: CheckedContinuation<Void, Never>?
+    private var prepareError: TorrentEngineError?
     private var heldPreparedDraftIDsValue: Set<UUID> = []
     private var createdPreparedDraftIDsValue: [UUID] = []
     private var requiresPreparedDrafts = false
@@ -60,6 +61,9 @@ actor FakeTorrentEngine: TorrentEngine {
             await withCheckedContinuation { continuation in
                 prepareContinuation = continuation
             }
+        }
+        if let prepareError {
+            throw prepareError
         }
 
         let draftID = UUID()
@@ -297,6 +301,10 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func recordedPerformanceSettings() async -> [EnginePerformanceSettings] {
         appliedPerformanceSettingsValue
+    }
+
+    func setPrepareError(_ error: TorrentEngineError?) async {
+        prepareError = error
     }
 
     func setAddError(_ error: TorrentEngineError?) async {

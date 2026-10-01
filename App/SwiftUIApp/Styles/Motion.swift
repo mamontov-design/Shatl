@@ -32,6 +32,10 @@ enum ShatlMotion {
     /// Smooth content transformation for the pinned row when its folder changes.
     static let stickyContentReplace = Animation.smooth(duration: 0.38)
 
+    /// A message block replacing its content in place: waiting becomes an
+    /// error, or the files arrive.
+    static let messageBlockContent = Animation.smooth(duration: 0.38)
+
     /// Reveals the pinned row with a subtle lift from the list and no zoom.
     static let stickyPinInsertion = AnyTransition
         .offset(y: 8)

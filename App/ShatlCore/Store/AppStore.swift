@@ -143,6 +143,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var automaticCardSimplification = CardSimplificationLevel.full
 
     private let engine: any TorrentEngine
+    /// Asked when a magnet link's file list does not arrive in time, so the
+    /// message can say the Mac is offline. Tests replace it.
+    var networkIsOffline: @Sendable () async -> Bool = { await NetworkReachability.isOffline() }
     private let preferencesStore: AppPreferencesStore?
     private let sessionStore: SessionStore
     private let torrentArchiveStore: TorrentArchiveStore
@@ -420,12 +423,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func makeRowState(for addition: PendingTorrentAddition) -> TorrentRowState {
         TorrentRowState(
             id: addition.id,
-            title: L10n.format(
-                "torrent.card.adding_title",
-                localeOverride: preferences.localeOverride,
-                defaultValue: "Загрузка «%@» в процессе добавления…",
-                addition.shortDisplayName
-            ),
+            // The name alone, as on any card; the badge says it is being added.
+            title: Self.pendingDisplayName(for: addition.draft),
             originalTitle: addition.draft.originalName,
             hasAlias: addition.draft.alias.isEmpty == false,
             status: .downloading,
@@ -455,9 +454,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    private static func shortenedPendingDisplayName(for draft: AddTorrentDraft) -> String {
+    private static func pendingDisplayName(for draft: AddTorrentDraft) -> String {
         let alias = draft.alias.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sourceName = alias.isEmpty ? draft.originalName : alias
+        return alias.isEmpty ? draft.originalName : alias
+    }
+
+    private static func shortenedPendingDisplayName(for draft: AddTorrentDraft) -> String {
+        let sourceName = pendingDisplayName(for: draft)
         guard sourceName.count > 30 else { return sourceName }
 
         return String(sourceName.prefix(29)) + "…"
@@ -2821,11 +2824,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                let errorState = ShatlErrorCatalog.reviewError(
+                var errorState = ShatlErrorCatalog.reviewError(
                     for: error,
                     source: source,
                     localeOverride: self.preferences.localeOverride
                 )
+                // The wait ran out with no network at all: say so directly.
+                if errorState.kind == .metadataTimeout, await self.networkIsOffline() {
+                    guard !Task.isCancelled else { return }
+                    errorState = ShatlErrorCatalog.offlineMetadataError(
+                        localeOverride: self.preferences.localeOverride
+                    )
+                }
                 self.presentInvalidDraft(
                     for: source,
                     errorState: errorState,

@@ -38,6 +38,8 @@ final class ShatlMessageTextTests: XCTestCase {
                 ).title
                 XCTAssertTrue(title.hasSuffix(".") || title.hasSuffix("。"), "\(locale) \(kind): \(title)")
             }
+            let offline = ShatlErrorCatalog.offlineMetadataError(localeOverride: locale).title
+            XCTAssertTrue(offline.hasSuffix(".") || offline.hasSuffix("。"), "\(locale) offline: \(offline)")
         }
     }
 
@@ -50,24 +52,28 @@ final class ShatlMessageTextTests: XCTestCase {
             source: source,
             localeOverride: .russian
         )
-        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в\u{00A0}список загрузок.")
+        XCTAssertTrue(named.message.hasPrefix("Загрузка «Northstar.S01» уже есть в\u{00A0}списке."), named.message)
 
         let unnamed = ShatlErrorCatalog.reviewError(
             for: TorrentEngineError(kind: .duplicateTorrent),
             source: source,
             localeOverride: .russian
         )
-        XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в\u{00A0}список загрузок.")
+        XCTAssertTrue(unnamed.message.hasPrefix("Эта загрузка уже есть в\u{00A0}списке."), unnamed.message)
     }
 
     func testDuplicateMessageNamesTheTorrent() {
         let named = ShatlErrorCatalog.duplicateDraftError(torrentName: "Northstar.S01", localeOverride: .russian)
-        XCTAssertEqual(named.message, "Торрент «Northstar.S01» уже добавлен в\u{00A0}список загрузок.")
+        XCTAssertEqual(
+            named.message,
+            "Загрузка «Northstar.S01» уже есть в\u{00A0}списке. Возможно, этот файл или\u{00A0}ссылку уже открывали "
+                + "раньше. Добавлять её\u{00A0}заново не\u{00A0}нужно\u{00A0}— закройте окно и\u{00A0}найдите загрузку в\u{00A0}списке."
+        )
         XCTAssertEqual(named.title, "Такая загрузка уже есть.")
 
         for name in [nil, "", "  "] as [String?] {
             let unnamed = ShatlErrorCatalog.duplicateDraftError(torrentName: name, localeOverride: .russian)
-            XCTAssertEqual(unnamed.message, "Этот торрент уже добавлен в\u{00A0}список загрузок.", "\(String(describing: name))")
+            XCTAssertTrue(unnamed.message.hasPrefix("Эта загрузка уже есть в\u{00A0}списке."), "\(String(describing: name))")
         }
     }
 }

@@ -13,6 +13,8 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         case invalidTorrentFile
         case invalidMagnet
         case metadataTimeout
+        /// The wait for a file list ran out with no network at all.
+        case noConnection
         case draftPreparationLost
         case insufficientDiskSpace
         case duplicateTorrent

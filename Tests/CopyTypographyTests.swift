@@ -126,6 +126,15 @@ final class CopyTypographyTests: XCTestCase {
         )
     }
 
+    func testLatinCompoundsDoNotBreakAtTheHyphen() {
+        XCTAssertEqual(
+            ShatlTypograph.apply("Вставьте magnet-ссылку или выберите .torrent-файл", language: "ru"),
+            "Вставьте magnet\u{2011}ссылку или\(nbsp)выберите .torrent\u{2011}файл"
+        )
+        XCTAssertEqual(ShatlTypograph.apply("торрент-клиент", language: "ru"), "торрент-клиент")
+        XCTAssertEqual(ShatlTypograph.apply("a magnet-link", language: "en"), "a\(nbsp)magnet-link")
+    }
+
     func testRussianParticlesStayWithTheWordBefore() {
         XCTAssertEqual(
             ShatlTypograph.apply("Файлы скачаются в ту же папку", language: "ru"),

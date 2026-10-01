@@ -99,7 +99,6 @@
 "torrent.status.checking" = "Comprobando";
 
 "torrent.card.original_title" = "Nombre del torrent — %@";
-"torrent.card.adding_title" = "Se está añadiendo la descarga «%@»…";
 
 "torrent.metric.seeds_and_peers" = "Seeds y peers";
 "torrent.metric.upload_speed" = "Velocidad de subida";
@@ -137,19 +136,22 @@
 "payload_deletion.safety_refused.message" = "Shatl quitó el torrent de la lista, pero conservó los archivos porque una ruta o un tipo de objeto ya no coincide con los datos del torrent.";
 "payload_deletion.cleanup_failure.message" = "Los archivos del torrent se eliminaron, pero Shatl conservó algunas carpetas o archivos del sistema porque no se podían limpiar de forma segura.";
 
-"add_torrent.loading_metadata" = "Obteniendo metadatos…";
+"add_torrent.loading_metadata" = "Obteniendo la lista de archivos…";
 "add_torrent.title" = "Añadir descarga";
 "add_torrent.entry.empty_title" = "La lista de descargas está vacía";
-"add_torrent.entry.subtitle" = "Pega un enlace .magnet abajo o elige un archivo .torrent de tu Mac.";
+"add_torrent.entry.subtitle" = "Pega un enlace magnet abajo o elige un archivo .torrent de tu Mac.";
 "add_torrent.entry.choose_file" = "Elegir archivo .torrent…";
 "add_torrent.entry.continue" = "Continuar";
 "add_torrent.review.search_files" = "Buscar archivos…";
 "add_torrent.review.invalid_placeholder" = "No se pudo preparar la descarga.";
-"add_torrent.review.files_after_metadata" = "Los archivos aparecerán después de obtener los metadatos.";
-"add_torrent.review.no_files" = "No hay archivos para descargar.";
-"add_torrent.review.no_draft" = "El borrador de descarga aún no se ha creado.";
-"add_torrent.review.alias_caption" = "El alias se mostrará en la tarjeta del torrent en lugar del nombre original. Puedes ver el nombre original al expandir la tarjeta del torrent.";
-"add_torrent.review.download_to_folder" = "Descargar en «%@»";
+"add_torrent.review.loading.title" = "Obteniendo la lista de archivos.";
+"add_torrent.review.loading.message" = "La envían los peers, normalmente en unos segundos. Si nadie responde, aquí aparecerá una indicación.";
+"add_torrent.review.no_files.title" = "Este torrent no tiene archivos.";
+"add_torrent.review.no_files.message" = "No hay nada que descargar: este torrent no contiene ningún archivo. Puede que se creara con un error; busca otro archivo .torrent u otro enlace magnet del mismo torrent.";
+"add_torrent.review.preparing.title" = "Preparando la descarga.";
+"add_torrent.review.preparing.message" = "La lista de archivos y los ajustes aparecerán en un momento.";
+"add_torrent.review.alias_caption" = "La tarjeta de la descarga mostrará el alias en lugar del nombre del torrent. El nombre del torrent se ve en la vista ampliada de la tarjeta.";
+"add_torrent.review.download_to_folder" = "Guardar en «%@»";
 "add_torrent.review.set_as_default_folder" = "Establecer como predeterminada";
 "add_torrent.review.folder_not_selected" = "No se eligió carpeta";
 "add_torrent.review.stop_after_download" = "Detener la siembra al terminar la descarga";
@@ -167,24 +169,27 @@
 "add_torrent.review.folder.files.count.other" = "%lld archivos";
 "add_torrent.review.folder.files.partial.one" = "Seleccionado %lld archivo de %lld";
 "add_torrent.review.folder.files.partial.other" = "Seleccionados %lld archivos de %lld";
-"add_torrent.error.empty_magnet.title" = "Añade un enlace magnet";
-"add_torrent.error.empty_magnet.message" = "El campo está vacío. Pega un enlace magnet e inténtalo de nuevo.";
+"add_torrent.error.empty_magnet.title" = "El campo del enlace está vacío";
+"add_torrent.error.empty_magnet.message" = "Copia un enlace magnet, pégalo en el campo y haz clic en «Continuar».";
 "add_torrent.error.unrecognized_link.title" = "No se pudo reconocer el enlace";
-"add_torrent.error.unrecognized_link.message" = "Comprueba que empieza por magnet:? y que se copió completo.";
+"add_torrent.error.unrecognized_link.message" = "No parece un enlace magnet: estos enlaces empiezan por «magnet:?». Vuelve a copiar el enlace completo y pégalo en el campo.";
 "add_torrent.error.invalid_magnet.title" = "No se pudo reconocer el enlace magnet.";
-"add_torrent.error.invalid_magnet.message" = "Comprueba que el enlace se copió completo e inténtalo de nuevo.";
-"add_torrent.error.invalid_torrent_file.title" = "No se pudo abrir el archivo.";
-"add_torrent.error.invalid_torrent_file.message" = "El archivo puede estar dañado o no ser compatible. Elige otro archivo .torrent e inténtalo de nuevo.";
-"add_torrent.error.metadata_timeout.title" = "No se pudieron obtener los metadatos.";
-"add_torrent.error.metadata_timeout.message" = "Las fuentes no enviaron los datos a tiempo. Inténtalo más tarde.";
+"add_torrent.error.invalid_magnet.message" = "Puede que el enlace se cortara al copiarlo: los enlaces magnet son largos y es fácil perder el final. Cierra esta ventana, copia el enlace de nuevo y vuelve a añadirlo.";
+"add_torrent.error.invalid_torrent_file.title" = "No se pudo abrir el archivo .torrent.";
+"add_torrent.error.invalid_torrent_file.message" = "Puede que el archivo esté dañado o incompleto. Cierra esta ventana, vuelve a descargar el archivo y añádelo de nuevo.";
+"add_torrent.error.metadata_timeout.title" = "No se pudo obtener la lista de archivos.";
+"add_torrent.error.metadata_timeout.message" = "Los peers no respondieron a tiempo. Ocurre con torrents poco compartidos, sin conexión a internet o con una conexión lenta. Comprueba la conexión o añade el enlace más tarde.";
+"add_torrent.error.offline.title" = "No hay conexión a internet.";
+"add_torrent.error.offline.message" = "La lista de archivos la envían los peers, y sin internet no se puede contactar con ellos. Cierra esta ventana, conéctate a una red y vuelve a añadir el enlace.";
 "add_torrent.error.draft_lost.title" = "La preparación de la descarga se interrumpió.";
-"add_torrent.error.draft_lost.message" = "Los datos no se guardaron. Cierra esta ventana y vuelve a añadir el torrent.";
+"add_torrent.error.draft_lost.message" = "Los datos de la descarga se perdieron antes de añadirla. Cierra esta ventana y vuelve a añadir el archivo o el enlace.";
 "add_torrent.error.duplicate.title" = "Esta descarga ya está añadida.";
-"add_torrent.error.duplicate.message" = "Este torrent ya está en la lista de descargas.";
-"add_torrent.error.duplicate.named_message" = "El torrent «%@» ya está en la lista de descargas.";
+"add_torrent.error.duplicate.message" = "Esta descarga ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: cierra esta ventana y búscala en la lista.";
+"add_torrent.error.duplicate.named_message" = "La descarga «%@» ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: cierra esta ventana y búscala en la lista.";
 "add_torrent.error.generic.title" = "No se pudo preparar la descarga.";
 "add_torrent.error.not_found.title" = "Descarga no disponible.";
-"add_torrent.error.generic.message" = "Inténtalo de nuevo. Si el error se repite, comprueba el archivo o el enlace.";
+"add_torrent.error.not_found.message" = "La descarga preparada desapareció mientras la ventana estaba abierta. Cierra la ventana y vuelve a añadir el archivo o el enlace.";
+"add_torrent.error.generic.message" = "Cierra esta ventana y vuelve a añadir el archivo o el enlace. Si el error se repite, descarga el archivo .torrent o copia el enlace magnet de nuevo desde su origen.";
 
 "settings.tab.downloads" = "Descargas";
 "settings.tab.appearance" = "Aspecto";

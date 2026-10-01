@@ -76,13 +76,11 @@ enum ShatlErrorCatalog {
                 kind: .invalidMagnet,
                 title: L10n.string(
                     "add_torrent.error.empty_magnet.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Добавьте magnet-ссылку"
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.empty_magnet.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Поле пустое. Вставьте magnet-ссылку и попробуйте снова."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.dismiss]
             )
@@ -93,13 +91,11 @@ enum ShatlErrorCatalog {
                 kind: .invalidMagnet,
                 title: L10n.string(
                     "add_torrent.error.unrecognized_link.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Не удалось распознать ссылку"
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.unrecognized_link.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Проверьте, что она начинается с magnet:? и скопирована полностью."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.dismiss]
             )
@@ -121,13 +117,11 @@ enum ShatlErrorCatalog {
                 kind: .invalidMagnet,
                 title: L10n.string(
                     "add_torrent.error.invalid_magnet.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Не удалось распознать magnet-ссылку."
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.invalid_magnet.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Проверьте, что ссылка скопирована полностью, и попробуйте снова."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.retry, .dismiss]
             )
@@ -137,13 +131,11 @@ enum ShatlErrorCatalog {
                 kind: .invalidTorrentFile,
                 title: L10n.string(
                     "add_torrent.error.invalid_torrent_file.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Не удалось открыть файл."
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.invalid_torrent_file.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Файл может быть повреждён или не поддерживается. Выберите другой .torrent-файл и попробуйте снова."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.retry, .dismiss]
             )
@@ -153,13 +145,11 @@ enum ShatlErrorCatalog {
                 kind: .metadataTimeout,
                 title: L10n.string(
                     "add_torrent.error.metadata_timeout.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Не удалось получить метаданные."
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.metadata_timeout.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Источники не успели передать данные. Попробуйте снова через некоторое время."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.retry, .dismiss]
             )
@@ -169,13 +159,11 @@ enum ShatlErrorCatalog {
                 kind: .draftPreparationLost,
                 title: L10n.string(
                     "add_torrent.error.draft_lost.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Подготовка загрузки прервана."
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
                     "add_torrent.error.draft_lost.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Данные не сохранились. Закройте окно и добавьте торрент заново."
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.retry, .dismiss]
             )
@@ -190,13 +178,11 @@ enum ShatlErrorCatalog {
                 // which takes no full stop.
                 title: L10n.string(
                     "add_torrent.error.not_found.title",
-                    localeOverride: localeOverride,
-                    defaultValue: "Загрузка недоступна."
+                    localeOverride: localeOverride
                 ),
                 message: L10n.string(
-                    "torrent.error.not_found.message",
-                    localeOverride: localeOverride,
-                    defaultValue: "Не удалось найти этот торрент. Попробуйте добавить его заново."
+                    "add_torrent.error.not_found.message",
+                    localeOverride: localeOverride
                 ),
                 recoveryOptions: [.dismiss]
             )
@@ -239,6 +225,20 @@ enum ShatlErrorCatalog {
         )
     }
 
+    /// A magnet link's file list comes from other peers; with no network at
+    /// all the wait could not succeed, and the message says so instead of
+    /// guessing at slow or missing peers.
+    nonisolated static func offlineMetadataError(
+        localeOverride: AppLocaleOverride = .russian
+    ) -> TorrentErrorState {
+        TorrentErrorState(
+            kind: .noConnection,
+            title: L10n.string("add_torrent.error.offline.title", localeOverride: localeOverride),
+            message: L10n.string("add_torrent.error.offline.message", localeOverride: localeOverride),
+            recoveryOptions: [.retry, .dismiss]
+        )
+    }
+
     /// Names the torrent when its name is known, so the message says which
     /// one is already in the list.
     nonisolated static func duplicateDraftError(
@@ -249,21 +249,19 @@ enum ShatlErrorCatalog {
         let message = name.isEmpty
             ? L10n.string(
                 "add_torrent.error.duplicate.message",
-                localeOverride: localeOverride,
-                defaultValue: "Этот торрент уже добавлен в список загрузок."
+                localeOverride: localeOverride
             )
             : L10n.format(
                 "add_torrent.error.duplicate.named_message",
                 localeOverride: localeOverride,
-                defaultValue: "Торрент «%@» уже добавлен в список загрузок.",
+                defaultValue: "",
                 shortenedTorrentName(name)
             )
         return TorrentErrorState(
             kind: .duplicateTorrent,
             title: L10n.string(
                 "add_torrent.error.duplicate.title",
-                localeOverride: localeOverride,
-                defaultValue: "Такая загрузка уже есть."
+                localeOverride: localeOverride
             ),
             message: message,
             recoveryOptions: [.dismiss]
@@ -290,13 +288,11 @@ enum ShatlErrorCatalog {
             kind: .engineFailure,
             title: L10n.string(
                 "add_torrent.error.generic.title",
-                localeOverride: localeOverride,
-                defaultValue: "Не удалось подготовить загрузку."
+                localeOverride: localeOverride
             ),
             message: L10n.string(
                 "add_torrent.error.generic.message",
-                localeOverride: localeOverride,
-                defaultValue: "Попробуйте ещё раз. Если ошибка повторится, проверьте файл или ссылку."
+                localeOverride: localeOverride
             ),
             recoveryOptions: [.retry, .dismiss]
         )

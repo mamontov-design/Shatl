@@ -99,7 +99,6 @@
 "torrent.status.checking" = "確認中";
 
 "torrent.card.original_title" = "Torrent名：%@";
-"torrent.card.adding_title" = "ダウンロード「%@」を追加中…";
 
 "torrent.metric.seeds_and_peers" = "シードとピア";
 "torrent.metric.upload_speed" = "アップロード速度";
@@ -136,19 +135,22 @@
 "payload_deletion.safety_refused.message" = "ShatlはTorrentをリストから削除しましたが、パスまたはオブジェクトの種類がTorrentデータと一致しなくなったため、ファイルは残しました。";
 "payload_deletion.cleanup_failure.message" = "Torrentファイルは削除されましたが、安全にクリーンアップできなかった一部のフォルダまたはシステムファイルは残されました。";
 
-"add_torrent.loading_metadata" = "メタデータを取得中…";
+"add_torrent.loading_metadata" = "ファイルリストを取得中…";
 "add_torrent.title" = "ダウンロードを追加";
 "add_torrent.entry.empty_title" = "ダウンロードリストは空です";
-"add_torrent.entry.subtitle" = "下に.magnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
+"add_torrent.entry.subtitle" = "下にmagnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";
 "add_torrent.review.search_files" = "ファイルを検索…";
 "add_torrent.review.invalid_placeholder" = "ダウンロードを準備できませんでした。";
-"add_torrent.review.files_after_metadata" = "メタデータ取得後にファイルが表示されます。";
-"add_torrent.review.no_files" = "ダウンロードするファイルがありません。";
-"add_torrent.review.no_draft" = "ダウンロードの下書きはまだ作成されていません。";
-"add_torrent.review.alias_caption" = "エイリアスはTorrentカードで元のTorrent名の代わりに表示されます。元のTorrent名はカードを展開すると確認できます。";
-"add_torrent.review.download_to_folder" = "「%@」にダウンロード";
+"add_torrent.review.loading.title" = "ファイルリストを取得しています。";
+"add_torrent.review.loading.message" = "ファイルリストはピアから送られてきます。通常は数秒で届きます。応答がない場合は、ここにヒントが表示されます。";
+"add_torrent.review.no_files.title" = "このTorrentにはファイルがありません。";
+"add_torrent.review.no_files.message" = "ダウンロードするものがありません。このTorrentにはファイルが1つも含まれていません。作成時の誤りの可能性があります。同じTorrentの別の.torrentファイルまたはmagnetリンクを探してください。";
+"add_torrent.review.preparing.title" = "ダウンロードを準備しています。";
+"add_torrent.review.preparing.message" = "まもなくファイルリストと設定が表示されます。";
+"add_torrent.review.alias_caption" = "ダウンロードのカードにはTorrent名の代わりにエイリアスが表示されます。Torrent名はカードの拡大表示で確認できます。";
+"add_torrent.review.download_to_folder" = "「%@」に保存";
 "add_torrent.review.set_as_default_folder" = "デフォルトに設定";
 "add_torrent.review.folder_not_selected" = "フォルダが選択されていません";
 "add_torrent.review.stop_after_download" = "ダウンロード完了後にシードを停止";
@@ -164,24 +166,27 @@
 "add_torrent.review.folder.files.none" = "ファイルは選択されていません";
 "add_torrent.review.folder.files.count.other" = "%lld件のファイル";
 "add_torrent.review.folder.files.partial.other" = "%2$lld件中%1$lld件を選択";
-"add_torrent.error.empty_magnet.title" = "magnetリンクを追加してください";
-"add_torrent.error.empty_magnet.message" = "フィールドが空です。magnetリンクを貼り付けてもう一度試してください。";
+"add_torrent.error.empty_magnet.title" = "リンクの欄が空です";
+"add_torrent.error.empty_magnet.message" = "magnetリンクをコピーして欄に貼り付け、「続ける」をクリックしてください。";
 "add_torrent.error.unrecognized_link.title" = "リンクを認識できませんでした";
-"add_torrent.error.unrecognized_link.message" = "magnet:?で始まり、完全にコピーされていることを確認してください。";
+"add_torrent.error.unrecognized_link.message" = "magnetリンクではないようです。magnetリンクは「magnet:?」で始まります。リンク全体をもう一度コピーして欄に貼り付けてください。";
 "add_torrent.error.invalid_magnet.title" = "magnetリンクを認識できませんでした。";
-"add_torrent.error.invalid_magnet.message" = "リンクが完全にコピーされていることを確認して、もう一度試してください。";
-"add_torrent.error.invalid_torrent_file.title" = "ファイルを開けませんでした。";
-"add_torrent.error.invalid_torrent_file.message" = "ファイルが破損しているか、対応していない可能性があります。別の.torrentファイルを選択してもう一度試してください。";
-"add_torrent.error.metadata_timeout.title" = "メタデータを取得できませんでした。";
-"add_torrent.error.metadata_timeout.message" = "ソースから時間内にデータが送信されませんでした。後でもう一度試してください。";
+"add_torrent.error.invalid_magnet.message" = "コピーの際にリンクが途中で切れた可能性があります。magnetリンクは長く、末尾が欠けやすいためです。このウインドウを閉じ、リンクをもう一度コピーして追加し直してください。";
+"add_torrent.error.invalid_torrent_file.title" = ".torrentファイルを開けませんでした。";
+"add_torrent.error.invalid_torrent_file.message" = "ファイルが破損しているか、ダウンロードが不完全な可能性があります。このウインドウを閉じ、ファイルをもう一度ダウンロードして追加し直してください。";
+"add_torrent.error.metadata_timeout.title" = "ファイルリストを取得できませんでした。";
+"add_torrent.error.metadata_timeout.message" = "ピアが時間内に応答しませんでした。共有の少ないTorrent、インターネット未接続、または低速な接続で起こります。接続を確認するか、後でリンクを追加してください。";
+"add_torrent.error.offline.title" = "インターネットに接続されていません。";
+"add_torrent.error.offline.message" = "ファイルリストはピアから送られてきますが、インターネットに接続していないとピアに接続できません。このウインドウを閉じ、ネットワークに接続して、リンクをもう一度追加してください。";
 "add_torrent.error.draft_lost.title" = "ダウンロードの準備が中断されました。";
-"add_torrent.error.draft_lost.message" = "データは保存されませんでした。このウインドウを閉じて、Torrentをもう一度追加してください。";
+"add_torrent.error.draft_lost.message" = "追加する前にダウンロードのデータが失われました。このウインドウを閉じ、ファイルまたはリンクをもう一度追加してください。";
 "add_torrent.error.duplicate.title" = "このダウンロードはすでに追加されています。";
-"add_torrent.error.duplicate.message" = "このTorrentはすでにダウンロードリストにあります。";
-"add_torrent.error.duplicate.named_message" = "Torrent「%@」はすでにダウンロードリストにあります。";
+"add_torrent.error.duplicate.message" = "このダウンロードはすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。このウインドウを閉じ、リストでダウンロードを探してください。";
+"add_torrent.error.duplicate.named_message" = "ダウンロード「%@」はすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。このウインドウを閉じ、リストでダウンロードを探してください。";
 "add_torrent.error.generic.title" = "ダウンロードを準備できませんでした。";
 "add_torrent.error.not_found.title" = "ダウンロードを利用できません。";
-"add_torrent.error.generic.message" = "もう一度試してください。エラーが繰り返される場合は、ファイルまたはリンクを確認してください。";
+"add_torrent.error.not_found.message" = "ウインドウを開いている間に、準備したダウンロードが見つからなくなりました。ウインドウを閉じ、ファイルまたはリンクをもう一度追加してください。";
+"add_torrent.error.generic.message" = "このウインドウを閉じ、ファイルまたはリンクをもう一度追加してください。エラーが繰り返される場合は、.torrentファイルをダウンロードし直すか、magnetリンクを入手元からコピーし直してください。";
 
 "settings.tab.downloads" = "ダウンロード";
 "settings.tab.appearance" = "外観";

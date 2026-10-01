@@ -453,7 +453,6 @@ enum AddTorrentReviewLayout {
     static let summaryContainerHorizontalPadding: CGFloat = 6
     static let summaryContainerBottomPadding: CGFloat = 6
 
-    static let filesContainerCornerRadius: CGFloat = 12
     static let standardListItemHeight: CGFloat = 32
     static let cjkListItemHeight: CGFloat = 34
     static let standardDetailedListItemHeight: CGFloat = 46
@@ -1059,13 +1058,21 @@ struct AddTorrentReviewView: View {
             )
         )
         .disabled(!areSettingsControlsEnabled)
-        // Over the disabled window, in the place of Download, so it can be
-        // pressed.
+        // Over the window, which waiting or a failure disables, so they can
+        // always be pressed: Cancel beside Download, or Close in its place.
         .overlay(alignment: .bottomTrailing) {
-            if isInvalidDraft {
-                closeButton
-                    .padding(AddTorrentReviewLayout.settingsColumnPadding)
+            Group {
+                if isInvalidDraft {
+                    closeButton
+                } else {
+                    HStack(spacing: 8) {
+                        cancelButton
+                        confirmButtonBody
+                            .hidden()
+                    }
+                }
             }
+            .padding(AddTorrentReviewLayout.settingsColumnPadding)
         }
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
@@ -1257,69 +1264,67 @@ struct AddTorrentReviewView: View {
         )
     }
 
-    private var invalidReviewContent: some View {
-        let errorState = draft?.errorState
-        let message = errorState?.message
-        return ShatlMessageBlockPrimary(
-            title: errorState?.title ?? L10n.string(
-                "add_torrent.review.invalid_placeholder",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Не удалось подготовить загрузку."
-            ),
-            message: (message?.isEmpty ?? true) ? nil : message
-        )
+    /// What the files column says while it has no files to show. One block
+    /// for all of it, so waiting turns into the result in place.
+    private struct ReviewMessage: Equatable {
+        var systemImage: String
+        var title: String
+        var message: String?
+    }
+
+    private var reviewMessage: ReviewMessage? {
+        let locale = store.preferences.localeOverride
+        switch draft?.reviewState {
+        case .ready?:
+            guard let draft, draft.files.isEmpty else { return nil }
+            return ReviewMessage(
+                systemImage: "tray",
+                title: L10n.string("add_torrent.review.no_files.title", localeOverride: locale),
+                message: L10n.string("add_torrent.review.no_files.message", localeOverride: locale)
+            )
+
+        case .loadingMetadata?:
+            // Only a magnet link waits for peers; a file is read at once.
+            let waitsForPeers = draft?.source.rawValue.hasPrefix("magnet:") ?? false
+            return ReviewMessage(
+                systemImage: "doc.text.magnifyingglass",
+                title: L10n.string("add_torrent.review.loading.title", localeOverride: locale),
+                message: waitsForPeers
+                    ? L10n.string("add_torrent.review.loading.message", localeOverride: locale)
+                    : nil
+            )
+
+        case .invalid?:
+            let errorState = draft?.errorState
+            let message = errorState?.message ?? ""
+            return ReviewMessage(
+                systemImage: errorState?.kind == .noConnection ? "wifi.slash" : "exclamationmark.circle",
+                title: errorState?.title ?? L10n.string("add_torrent.review.invalid_placeholder", localeOverride: locale),
+                message: message.isEmpty ? nil : message
+            )
+
+        case .none:
+            return ReviewMessage(
+                systemImage: "hourglass",
+                title: L10n.string("add_torrent.review.preparing.title", localeOverride: locale),
+                message: L10n.string("add_torrent.review.preparing.message", localeOverride: locale)
+            )
+        }
     }
 
     @ViewBuilder
     private var filesTabContent: some View {
-        switch draft?.reviewState {
-        case .loadingMetadata?:
-            placeholderBlock(
-                localizedTitle: "add_torrent.review.files_after_metadata",
-                defaultValue: "Файлы появятся после получения метаданных."
+        if let reviewMessage {
+            ShatlMessageBlockPrimary(
+                systemImage: reviewMessage.systemImage,
+                title: reviewMessage.title,
+                message: reviewMessage.message
             )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(ShatlColor.backgroundTertiary)
-                .clipShape(filesContainerShape)
-                .overlay {
-                    filesContainerShape
-                        .strokeBorder(ShatlColor.outlineSecondary, lineWidth: 1)
-                }
-
-        case .invalid?:
-            invalidReviewContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .transition(ShatlMotion.stickyPinInsertion)
-
-        case .ready?:
-            if let draft, !draft.files.isEmpty {
-                filesContainer()
-            } else {
-                placeholderBlock(
-                    localizedTitle: "add_torrent.review.no_files",
-                    defaultValue: "Нет файлов для загрузки."
-                )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(ShatlColor.backgroundTertiary)
-                    .clipShape(filesContainerShape)
-                    .overlay {
-                        filesContainerShape
-                            .strokeBorder(ShatlColor.outlineSecondary, lineWidth: 1)
-                    }
-            }
-
-        case .none:
-            placeholderBlock(
-                localizedTitle: "add_torrent.review.no_draft",
-                defaultValue: "Черновик загрузки пока не создан."
-            )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(ShatlColor.backgroundTertiary)
-                .clipShape(filesContainerShape)
-                .overlay {
-                    filesContainerShape
-                        .strokeBorder(ShatlColor.outlineSecondary, lineWidth: 1)
-                }
+            .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .transition(ShatlMotion.stickyPinInsertion)
+        } else {
+            filesContainer()
         }
     }
 
@@ -1506,13 +1511,6 @@ struct AddTorrentReviewView: View {
                 showsFolderSummary: row.node.isFolder && row.node.fileCount >= 3
             )
         }
-    }
-
-    private var filesContainerShape: RoundedRectangle {
-        RoundedRectangle(
-            cornerRadius: AddTorrentReviewLayout.filesContainerCornerRadius,
-            style: .continuous
-        )
     }
 
     private func flattenedFileRows(
@@ -2337,6 +2335,20 @@ struct AddTorrentReviewView: View {
         ) {
             store.dismissModal()
         }
+        .keyboardShortcut(.cancelAction)
+    }
+
+    /// Closes the window and stops preparing the download, as the window's
+    /// close button does.
+    private var cancelButton: some View {
+        ShatlButton(
+            title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
+            role: .borderedNeutral
+        ) {
+            isAliasFocused = false
+            store.dismissModal()
+        }
+        .keyboardShortcut(.cancelAction)
     }
 
     @ViewBuilder
@@ -2350,6 +2362,11 @@ struct AddTorrentReviewView: View {
     }
 
     private var confirmButton: some View {
+        confirmButtonBody
+            .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    private var confirmButtonBody: some View {
         ShatlButton(
             title: L10n.string(
                 "add_torrent.review.confirm",
@@ -2362,20 +2379,6 @@ struct AddTorrentReviewView: View {
             isAliasFocused = false
             store.confirmDraft()
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
-    }
-
-    private func placeholderBlock(localizedTitle key: String, defaultValue: String) -> some View {
-        VStack(alignment: .center, spacing: 6) {
-            Image(systemName: "doc.text")
-                .font(.title2)
-                .foregroundStyle(ShatlColor.typographyTertiary)
-
-            Text(L10n.string(key, localeOverride: store.preferences.localeOverride, defaultValue: defaultValue))
-                .shatlTypography(ShatlTypography.bodyRegular)
-                .foregroundStyle(ShatlColor.typographySecondary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 110, alignment: .center)
     }
 
     private var displayedFolderPath: String {
@@ -2387,7 +2390,8 @@ struct AddTorrentReviewView: View {
         let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !path.isEmpty else { return folderNotSelectedTitle }
 
-        let folderName = URL(fileURLWithPath: path).lastPathComponent
+        // As Finder names it: "Загрузки", not the "Downloads" on disk.
+        let folderName = ShatlErrorCatalog.folderDisplayName(forPath: path)
         return folderName.isEmpty ? path : folderName
     }
 

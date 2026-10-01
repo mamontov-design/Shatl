@@ -99,7 +99,6 @@
 "torrent.status.checking" = "检查中";
 
 "torrent.card.original_title" = "Torrent 名称：%@";
-"torrent.card.adding_title" = "正在添加下载“%@”…";
 
 "torrent.metric.seeds_and_peers" = "种子和节点";
 "torrent.metric.upload_speed" = "上传速度";
@@ -136,19 +135,22 @@
 "payload_deletion.safety_refused.message" = "Shatl 已将 Torrent 从列表中移除，但由于路径或对象类型不再与 Torrent 数据匹配，因此保留了文件。";
 "payload_deletion.cleanup_failure.message" = "Torrent 文件已删除，但 Shatl 保留了部分文件夹或系统文件，因为无法安全清理它们。";
 
-"add_torrent.loading_metadata" = "正在获取元数据…";
+"add_torrent.loading_metadata" = "正在获取文件列表…";
 "add_torrent.title" = "添加下载";
 "add_torrent.entry.empty_title" = "下载列表为空";
-"add_torrent.entry.subtitle" = "在下方粘贴 .magnet 链接，或从你的 Mac 选择 .torrent 文件。";
+"add_torrent.entry.subtitle" = "在下方粘贴 magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.entry.continue" = "继续";
 "add_torrent.review.search_files" = "搜索文件…";
 "add_torrent.review.invalid_placeholder" = "无法准备下载。";
-"add_torrent.review.files_after_metadata" = "获取元数据后会显示文件。";
-"add_torrent.review.no_files" = "没有可下载的文件。";
-"add_torrent.review.no_draft" = "下载草稿尚未创建。";
-"add_torrent.review.alias_caption" = "别名会显示在 Torrent 卡片上，替代原始 Torrent 名称。展开 Torrent 卡片即可查看原始名称。";
-"add_torrent.review.download_to_folder" = "下载到“%@”";
+"add_torrent.review.loading.title" = "正在获取文件列表。";
+"add_torrent.review.loading.message" = "文件列表由节点发送，通常几秒内即可收到。如果没有节点响应，这里会显示提示。";
+"add_torrent.review.no_files.title" = "此 Torrent 不包含文件。";
+"add_torrent.review.no_files.message" = "没有可下载的内容：此 Torrent 不包含任何文件。它可能在创建时出错，请查找同一 Torrent 的其他 .torrent 文件或 magnet 链接。";
+"add_torrent.review.preparing.title" = "正在准备下载。";
+"add_torrent.review.preparing.message" = "文件列表和设置稍后就会显示。";
+"add_torrent.review.alias_caption" = "下载卡片将显示别名，而不是 Torrent 名称。可以在卡片的展开视图中查看 Torrent 名称。";
+"add_torrent.review.download_to_folder" = "保存到“%@”";
 "add_torrent.review.set_as_default_folder" = "设为默认";
 "add_torrent.review.folder_not_selected" = "未选择文件夹";
 "add_torrent.review.stop_after_download" = "下载完成后停止做种";
@@ -164,24 +166,27 @@
 "add_torrent.review.folder.files.none" = "未选择文件";
 "add_torrent.review.folder.files.count.other" = "%lld个文件";
 "add_torrent.review.folder.files.partial.other" = "已选择%1$lld个，共%2$lld个";
-"add_torrent.error.empty_magnet.title" = "添加 magnet 链接";
-"add_torrent.error.empty_magnet.message" = "该字段为空。请粘贴 magnet 链接后重试。";
+"add_torrent.error.empty_magnet.title" = "链接栏为空";
+"add_torrent.error.empty_magnet.message" = "请复制 magnet 链接，粘贴到栏中，然后点按“继续”。";
 "add_torrent.error.unrecognized_link.title" = "无法识别链接";
-"add_torrent.error.unrecognized_link.message" = "请确认它以 magnet:? 开头，并且已完整复制。";
+"add_torrent.error.unrecognized_link.message" = "这似乎不是 magnet 链接：此类链接以“magnet:?”开头。请重新完整复制链接并粘贴到栏中。";
 "add_torrent.error.invalid_magnet.title" = "无法识别 magnet 链接。";
-"add_torrent.error.invalid_magnet.message" = "请确认链接已完整复制，然后重试。";
-"add_torrent.error.invalid_torrent_file.title" = "无法打开文件。";
-"add_torrent.error.invalid_torrent_file.message" = "文件可能已损坏或不受支持。请选择其他 .torrent 文件后重试。";
-"add_torrent.error.metadata_timeout.title" = "无法获取元数据。";
-"add_torrent.error.metadata_timeout.message" = "来源未及时发送数据。请稍后重试。";
+"add_torrent.error.invalid_magnet.message" = "复制时链接可能被截断：magnet 链接很长，结尾容易丢失。请关闭此窗口，重新复制链接后再次添加。";
+"add_torrent.error.invalid_torrent_file.title" = "无法打开 .torrent 文件。";
+"add_torrent.error.invalid_torrent_file.message" = "文件可能已损坏或未下载完整。请关闭此窗口，重新下载文件后再次添加。";
+"add_torrent.error.metadata_timeout.title" = "无法获取文件列表。";
+"add_torrent.error.metadata_timeout.message" = "节点未及时响应。这种情况常见于冷门 Torrent、未连接互联网或网络较慢时。请检查网络连接，或稍后再添加链接。";
+"add_torrent.error.offline.title" = "未连接互联网。";
+"add_torrent.error.offline.message" = "文件列表由节点发送，未连接互联网时无法联系它们。请关闭此窗口，连接网络后再次添加链接。";
 "add_torrent.error.draft_lost.title" = "下载准备已中断。";
-"add_torrent.error.draft_lost.message" = "数据未保存。请关闭此窗口，然后重新添加 Torrent。";
+"add_torrent.error.draft_lost.message" = "下载数据在添加前丢失。请关闭此窗口，然后再次添加文件或链接。";
 "add_torrent.error.duplicate.title" = "此下载已添加。";
-"add_torrent.error.duplicate.message" = "此 Torrent 已在下载列表中。";
-"add_torrent.error.duplicate.named_message" = "Torrent“%@”已在下载列表中。";
+"add_torrent.error.duplicate.message" = "此下载已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，请关闭此窗口并在列表中找到该下载。";
+"add_torrent.error.duplicate.named_message" = "下载“%@”已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，请关闭此窗口并在列表中找到该下载。";
 "add_torrent.error.generic.title" = "无法准备下载。";
 "add_torrent.error.not_found.title" = "下载不可用。";
-"add_torrent.error.generic.message" = "请重试。如果错误再次出现，请检查文件或链接。";
+"add_torrent.error.not_found.message" = "窗口打开期间，准备好的下载已不存在。请关闭窗口，然后再次添加文件或链接。";
+"add_torrent.error.generic.message" = "请关闭此窗口，然后再次添加文件或链接。如果错误再次出现，请重新下载 .torrent 文件，或从来源重新复制 magnet 链接。";
 
 "settings.tab.downloads" = "下载";
 "settings.tab.appearance" = "外观";

@@ -15,6 +15,7 @@ nonisolated enum ShatlTypograph {
 
     static let noBreakSpace = "\u{00A0}"
     static let narrowNoBreakSpace = "\u{202F}"
+    static let noBreakHyphen = "\u{2011}"
 
     /// Short Russian prepositions, conjunctions and particles that must not
     /// end a line: every word of one or two letters, plus a few of three.
@@ -36,6 +37,7 @@ nonisolated enum ShatlTypograph {
 
         switch language {
         case "ru":
+            result = bindLatinCompounds(result)
             result = bindTrailing(result, words: russianTrailingWords)
             result = bindLeading(result, words: russianLeadingWords.filter { !russianTrailingWords.contains($0) })
         case "en":
@@ -64,6 +66,12 @@ nonisolated enum ShatlTypograph {
     private static func bindNumbers(_ text: String) -> String {
         let grouped = replace(#"(?<=\d) (?=\d{3}(?!\d))"#, in: text, with: narrowNoBreakSpace)
         return replace(#"(?<=\d|%l{0,2}[dui]|%\d\$l{0,2}[dui]) (?=[\p{L}%])"#, in: grouped, with: noBreakSpace)
+    }
+
+    /// "magnet-ссылка", ".torrent-файл": a Latin word joined to a Russian one
+    /// stays on one line, the hyphen does not break.
+    private static func bindLatinCompounds(_ text: String) -> String {
+        replace(#"(?<=[A-Za-z])-(?=[А-Яа-яЁё])"#, in: text, with: noBreakHyphen)
     }
 
     /// The space after a short word does not break, so the word starts the
