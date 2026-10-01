@@ -41,29 +41,21 @@ struct MainWindowView: View {
     @State private var displayedSessionPersistenceIssue: SessionPersistenceIssue?
     @State private var isCheckingSessionPersistence = false
     @State private var didRequestNativeNotificationAuthorization = false
+    /// The stage the window shows; it follows `currentStage` one step at a
+    /// time, see `MainWindowStageStep`.
+    @State private var displayedStage: MainWindowStage?
+    @State private var stageChangeTask: Task<Void, Never>?
 
-    private enum ContentMode: Equatable {
-        case loadingInitialSession
-        case sessionLoadFailure(SessionLoadIssue)
-        case empty
-        case list
+    private var currentStage: MainWindowStage {
+        MainWindowStage.current(
+            hasLoadedInitialSession: store.hasLoadedInitialSession,
+            sessionLoadIssue: store.sessionLoadIssue,
+            hasRows: !store.torrentRowIDs.isEmpty
+        )
     }
 
-    private var contentMode: ContentMode {
-        guard store.hasLoadedInitialSession else { return .loadingInitialSession }
-        if let issue = store.sessionLoadIssue {
-            return .sessionLoadFailure(issue)
-        }
-        return store.torrentRowIDs.isEmpty ? .empty : .list
-    }
-
-    private var showsBlockedToolbarControls: Bool {
-        switch contentMode {
-        case .loadingInitialSession, .sessionLoadFailure:
-            true
-        case .empty, .list:
-            false
-        }
+    private var stage: MainWindowStage {
+        displayedStage ?? currentStage
     }
 
     private var activeAlert: Binding<MainWindowAlert?> {
@@ -112,6 +104,9 @@ struct MainWindowView: View {
             guard presentation.isPresented else { return }
             requestNativeNotificationAuthorizationIfNeeded()
         }
+        .onChange(of: currentStage, initial: true) { _, targetStage in
+            updateDisplayedStage(to: targetStage)
+        }
         .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
             updateRestoreStatus(isRestoringSession: isRestoringSession)
         }
@@ -139,6 +134,7 @@ struct MainWindowView: View {
         }
         .onDisappear {
             restoreStatusTask?.cancel()
+            stageChangeTask?.cancel()
         }
     }
 
@@ -166,74 +162,72 @@ struct MainWindowView: View {
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
         }
-        .background(WindowChromeConfigurator(isTitleVisible: contentMode != .empty))
+        .background(WindowChromeConfigurator(isSearchEnabled: stage.allowsListActions))
+        // The same buttons and search in every stage, so the top of the window
+        // never changes under a stage transition; what a stage does not allow
+        // is only disabled.
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                if contentMode != .empty {
-                    ShatlToolbarButton(
-                        title: L10n.string(
-                            "toolbar.add",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: "Добавить"
-                        ),
-                        systemImage: "plus",
-                        isDisabled: !store.canAddTorrent
-                    ) {
-                        store.presentAddTorrentEntry()
+                ShatlToolbarButton(
+                    title: L10n.string(
+                        "toolbar.add",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Добавить"
+                    ),
+                    systemImage: "plus",
+                    isDisabled: !stage.allowsListActions || !store.canAddTorrent
+                ) {
+                    store.presentAddTorrentEntry()
+                }
+
+                let selectedTorrentIsSleeping = store.selectedTorrent?.status.isSleeping == true
+
+                ShatlToolbarButton(
+                    title: L10n.string(
+                        selectedTorrentIsSleeping ? "toolbar.start" : "toolbar.stop",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: selectedTorrentIsSleeping ? "Пуск" : "Стоп"
+                    ),
+                    systemImage: selectedTorrentIsSleeping ? "play" : "stop",
+                    isDisabled: stage != .list || !store.isToolbarStartStopEnabled
+                ) {
+                    if selectedTorrentIsSleeping {
+                        store.startSelectedTorrent()
+                    } else {
+                        store.stopSelectedTorrent()
                     }
                 }
 
-                if contentMode == .list || showsBlockedToolbarControls {
-                    let selectedTorrentIsSleeping = store.selectedTorrent?.status.isSleeping == true
-
-                    ShatlToolbarButton(
-                        title: L10n.string(
-                            selectedTorrentIsSleeping ? "toolbar.start" : "toolbar.stop",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: selectedTorrentIsSleeping ? "Пуск" : "Стоп"
-                        ),
-                        systemImage: selectedTorrentIsSleeping ? "play" : "stop",
-                        isDisabled: contentMode != .list || !store.isToolbarStartStopEnabled
-                    ) {
-                        if selectedTorrentIsSleeping {
-                            store.startSelectedTorrent()
-                        } else {
-                            store.stopSelectedTorrent()
-                        }
-                    }
-
-                    ShatlToolbarButton(
-                        title: L10n.string(
-                            "toolbar.delete",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: "Удалить"
-                        ),
-                        systemImage: "trash",
-                        role: .destructive,
-                        isDisabled: contentMode != .list || !store.isToolbarRemoveEnabled
-                    ) {
-                        presentToolbarRemovalDialog()
-                    }
+                ShatlToolbarButton(
+                    title: L10n.string(
+                        "toolbar.delete",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Удалить"
+                    ),
+                    systemImage: "trash",
+                    role: .destructive,
+                    isDisabled: stage != .list || !store.isToolbarRemoveEnabled
+                ) {
+                    presentToolbarRemovalDialog()
                 }
             }
         }
         .modifier(
-            SearchToolbarModifier(
-                isVisible: contentMode == .list,
+            MainWindowSearchModifier(
+                isEnabled: stage.allowsListActions,
                 searchText: $searchText,
                 prompt: L10n.string(
                     "toolbar.search",
                     localeOverride: store.preferences.localeOverride,
                     defaultValue: "Поиск"
                 )
-                )
+            )
         )
-        .onChange(of: store.torrentRowIDs.isEmpty) { _, isEmpty in
-            if isEmpty {
+        .onChange(of: stage.allowsListActions) { _, allowsListActions in
+            if !allowsListActions {
                 searchText = ""
             }
         }
-        .animation(ShatlMotion.mainContentMode, value: contentMode)
         .sheet(isPresented: isAddTorrentEntryPresented) {
             AddTorrentEntryView(
                 placement: .modal,
@@ -280,30 +274,70 @@ struct MainWindowView: View {
     @ViewBuilder
     private var contentView: some View {
         ZStack(alignment: .topLeading) {
-            switch contentMode {
-            case .loadingInitialSession:
+            switch stage {
+            case .loadingSession:
                 SessionLoadBlockingView(issue: nil, localeOverride: store.preferences.localeOverride)
-                    .transition(.opacity)
+                    .transition(stageTransition)
             case .sessionLoadFailure(let issue):
                 SessionLoadBlockingView(
                     issue: issue,
                     localeOverride: store.preferences.localeOverride
                 )
-                    .transition(.opacity)
+                    .transition(stageTransition)
             case .empty:
                 EmptyStateView(onEntryValidationError: presentAddTorrentEntryAlert)
-                    .transition(ShatlMotion.mainContent)
+                    .transition(stageTransition)
                     .zIndex(1)
             case .list:
                 TorrentListViewport(
                     summaryVisibility: store.torrentTransferSummary.visibility,
                     searchText: searchText
                 )
-                    .transition(ShatlMotion.mainContent)
+                    .transition(stageTransition)
                     .zIndex(0)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var stageTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.mainContent
+    }
+
+    /// The only place the stage changes, always in one transaction with one
+    /// animation; a newer target cancels a change still waiting.
+    private func updateDisplayedStage(to targetStage: MainWindowStage) {
+        stageChangeTask?.cancel()
+        stageChangeTask = nil
+
+        guard let displayedStage else {
+            // The first stage appears as it is, without a transition.
+            self.displayedStage = targetStage
+            return
+        }
+
+        switch MainWindowStageStep.step(from: displayedStage, to: targetStage) {
+        case .stay:
+            break
+        case .switchNow(let stage):
+            showStage(stage)
+        case .switchAfterCardRemoval(let stage):
+            stageChangeTask = Task {
+                do {
+                    try await Task.sleep(for: .seconds(ShatlMotion.cardListMutationDuration))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                showStage(stage)
+            }
+        }
+    }
+
+    private func showStage(_ stage: MainWindowStage) {
+        withAnimation(ShatlMotion.mainContentMode) {
+            displayedStage = stage
+        }
     }
 
     private var restoreStatusTransition: AnyTransition {
@@ -938,7 +972,7 @@ private enum MainWindowAlert: Identifiable {
 }
 
 private struct WindowChromeConfigurator: NSViewRepresentable {
-    let isTitleVisible: Bool
+    let isSearchEnabled: Bool
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -955,28 +989,8 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
             guard let window = view.window else { return }
 
             ShatlAppDelegate.configureWindowChrome(window)
-            window.titleVisibility = isTitleVisible ? .visible : .hidden
-        }
-    }
-}
-
-private struct SearchToolbarModifier: ViewModifier {
-    let isVisible: Bool
-    @Binding var searchText: String
-    let prompt: String
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if isVisible {
-            content
-                .searchable(
-                    text: $searchText,
-                    placement: .toolbar,
-                    prompt: Text(prompt)
-                )
-                .searchToolbarBehavior(.automatic)
-        } else {
-            content
+            window.titleVisibility = .visible
+            MainWindowSearchToolbarItem.setEnabled(isSearchEnabled, in: window)
         }
     }
 }

@@ -45,7 +45,10 @@ enum ShatlMotion {
 
     /// Local animation for inserting and removing cards in the list.
     /// Bind only to stable torrent IDs, never to card runtime metrics.
-    static let cardListMutation = Animation.smooth(duration: 0.42)
+    static let cardListMutation = Animation.smooth(duration: cardListMutationDuration)
+    /// The main window waits this long after the last card leaves before it
+    /// shows the empty state.
+    static let cardListMutationDuration: TimeInterval = 0.42
 
     /// List-item transition with a subtle appearance and no movement of internal metrics.
     static let cardListItem = AnyTransition.asymmetric(
@@ -53,12 +56,13 @@ enum ShatlMotion {
         removal: .scale(scale: 0.985, anchor: .center).combined(with: .opacity)
     )
 
-    /// Transition between main window modes: empty state, list, and initial placeholder.
+    /// Transition between main window stages: the session placeholder, its
+    /// failure, the empty state and the list. Every stage uses this one.
     static let mainContent = AnyTransition
         .scale(scale: 0.985, anchor: .center)
         .combined(with: .opacity)
 
-    /// Local animation for changing the main window mode.
+    /// Animation of a main window stage change; also the bottom chips.
     static let mainContentMode = Animation.smooth(duration: 0.24)
 
     /// Reveals the session-restore status below the toolbar and replaces its completion content.
