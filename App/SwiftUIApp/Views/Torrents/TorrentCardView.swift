@@ -458,6 +458,7 @@ struct TorrentCardView: View, Equatable {
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             showsShadows: showsMetricShadows,
             foldsDownloadSpeed: foldsDownloadSpeed,
+            outlinesUnfoldedSpeedLevelChange: row.simplification.outlinesUnfoldedSpeedLevelChange,
             diagnosticsContext: metricDiagnosticsContext(source: "compactTransfer")
         )
     }

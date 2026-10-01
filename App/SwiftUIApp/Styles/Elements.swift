@@ -1485,6 +1485,9 @@ struct ShatlMetricSet: View {
     /// The download speed shows its level icon alone; its number comes back
     /// while the pointer rests on the set.
     var foldsDownloadSpeed = false
+    /// With the bounce off, the set opened under the pointer still marks a new
+    /// speed level with its outline, without growing.
+    var outlinesUnfoldedSpeedLevelChange = false
     var diagnosticsContext: MetricSetDiagnosticsContext? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -1564,14 +1567,16 @@ struct ShatlMetricSet: View {
                 }
                 .scaleEffect(value.scale, anchor: .center)
         } keyframes: { _ in
+            // With the bounce off, only the outline marks the new level.
+            let peakScale = metricSetBounceEnabled ? ShatlMotion.metricSetBounceScale : 1
             KeyframeTrack(\.scale) {
                 SpringKeyframe(
-                    ShatlMotion.metricSetBounceScale,
+                    peakScale,
                     duration: ShatlMotion.metricSetBounceUpDuration,
                     spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
                 )
                 LinearKeyframe(
-                    ShatlMotion.metricSetBounceScale,
+                    peakScale,
                     duration: ShatlMotion.metricSetBounceHoldDuration
                 )
                 SpringKeyframe(
@@ -1615,14 +1620,16 @@ struct ShatlMetricSet: View {
             unfoldDownloadSpeed(isInside)
         }
         .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
-            guard metricSetBounceEnabled else { return }
             // Only the download speed bounces; the upload speed changes its
             // icon quietly.
             guard items.contains(where: { $0.id == "download-speed" }),
                   hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
                 return
             }
-            bounceMetricSet()
+            if metricSetBounceEnabled
+                || (outlinesUnfoldedSpeedLevelChange && foldsDownloadSpeed && isDownloadSpeedUnfolded) {
+                bounceMetricSet()
+            }
         }
         .onChange(of: metricSetOutlineFlashTrigger) { _, newTrigger in
             guard newTrigger > 0 else { return }

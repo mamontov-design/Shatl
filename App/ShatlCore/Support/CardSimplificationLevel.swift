@@ -12,22 +12,26 @@ import Foundation
 nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendable {
     /// Rolling digits, bouncing speed sets and metric shadows.
     case full
-    /// No bounce and no metric shadows; the progress bar steps 5 %.
+    /// No bounce and no metric shadows; the progress bar steps 5 %, and the
+    /// download speed shows its level icon alone, its number under the
+    /// pointer.
     case lighter
     /// Also digits that change without rolling, in cards and speed chips; the
-    /// progress bar steps 10 %, a finished card folds in a single move, and
-    /// the download speed shows its level icon alone.
+    /// progress bar steps 10 %, and a finished card folds in a single move.
     case lightest
-
-    /// For now the download speed folds at every level, while the owner tries
-    /// it on a single download; afterwards only at the deepest one.
-    static let foldsDownloadSpeedAtEveryLevel = true
 
     /// The download speed shows its level icon alone, and its number only
     /// under the pointer: a number that changes every second no longer
     /// resizes the speed set every second.
     var foldsDownloadSpeed: Bool {
-        Self.foldsDownloadSpeedAtEveryLevel || self == .lightest
+        self >= .lighter
+    }
+
+    /// Opened under the pointer at the first level, the speed set still marks
+    /// a new speed level with its outline, without growing. The deepest level
+    /// marks nothing.
+    var outlinesUnfoldedSpeedLevelChange: Bool {
+        self == .lighter
     }
 
     /// Active downloads from which each level starts.
