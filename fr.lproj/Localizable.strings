@@ -118,23 +118,22 @@
 "torrent.error.action_failed.message" = "Une erreur s’est produite. Réessayez.";
 
 "remove_dialog.choice.title" = "Supprimer « %@ » ?";
-"remove_dialog.choice.message.with_files" = "Vous pouvez retirer seulement l’entrée de la liste ou la supprimer avec les fichiers téléchargés.";
-"remove_dialog.choice.message.list_only" = "Shatl retirera seulement l’entrée de la liste. La suppression des fichiers n’est pas disponible pour cette carte.";
+"remove_dialog.choice.message.with_files" = "Si vous le retirez seulement de la liste, les fichiers téléchargés resteront sur le disque. Si vous le supprimez avec les fichiers, ceux-ci seront définitivement supprimés du disque.";
+"remove_dialog.choice.message.list_only" = "Ce téléchargement présente une erreur : il ne peut donc qu’être retiré de la liste. Ses fichiers, s’il y en a sur le disque, y resteront ; vous pouvez les supprimer dans le Finder.";
 "remove_dialog.delete_with_files.title" = "Supprimer « %@ » avec les fichiers ?";
-"remove_dialog.delete_with_files.message" = "Shatl retirera le torrent de la liste et supprimera tous les fichiers associés du disque.";
-"add_torrent.cancel.title" = "Annuler l’ajout de « %@ » ?";
-"add_torrent.cancel.message" = "Shatl arrêtera l’ajout et supprimera le téléchargement de la liste. Cette action est irréversible.";
-"add_torrent.cancel.delete_action" = "Supprimer le téléchargement";
-"add_torrent.cancel.cancel_action" = "Annuler";
+"remove_dialog.delete_with_files.message" = "Le téléchargement disparaîtra de la liste et ses fichiers seront définitivement supprimés du disque : ils n’iront pas dans la corbeille.";
+"add_torrent.cancel.title" = "Supprimer « %@ » ?";
+"add_torrent.cancel.message" = "Le téléchargement est encore en cours d’ajout. Si vous le supprimez maintenant, l’ajout s’arrêtera ; pour le télécharger, il faudra ajouter à nouveau le fichier .torrent ou le lien magnet.";
 
 "payload_deletion.files_not_deleted.title" = "Les fichiers n’ont pas été supprimés";
-"payload_deletion.not_all_files_deleted.title" = "Certains fichiers n’ont pas été supprimés";
-"payload_deletion.engine_stop_failed.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu l’arrêter correctement dans le moteur avant de supprimer les fichiers.";
-"payload_deletion.partial_failure.message.one" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichier du disque.";
-"payload_deletion.partial_failure.message.other" = "Shatl a retiré le torrent de la liste, mais n’a pas pu supprimer %lld fichiers du disque.";
-"payload_deletion.unresolved.message" = "Shatl a retiré le torrent de la liste, mais n’a pas pu identifier correctement les fichiers associés sur le disque.";
-"payload_deletion.safety_refused.message" = "Shatl a retiré le torrent de la liste, mais a conservé les fichiers car un chemin ou un type d’objet ne correspond plus aux données du torrent.";
-"payload_deletion.cleanup_failure.message" = "Les fichiers du torrent ont été supprimés, mais Shatl a conservé certains dossiers ou fichiers système, car ils ne pouvaient pas être nettoyés en toute sécurité.";
+"payload_deletion.partial_failure.title.one" = "%lld fichier n’a pas été supprimé";
+"payload_deletion.partial_failure.title.other" = "%lld fichiers n’ont pas été supprimés";
+"payload_deletion.partial_failure.message" = "Le téléchargement a été retiré de la liste, mais ces fichiers sont inaccessibles ou ont été modifiés après le téléchargement. Vous pouvez les supprimer dans le Finder.";
+"payload_deletion.cleanup_failure.title" = "Des dossiers vides sont restés";
+"payload_deletion.engine_stop_failed.message" = "Le téléchargement a été retiré de la liste, mais ses fichiers sont toujours sur le disque : il n’a pas pu être arrêté en toute sécurité avant la suppression. Vous pouvez les supprimer dans le Finder.";
+"payload_deletion.unresolved.message" = "Le téléchargement a été retiré de la liste, mais ses fichiers sont toujours sur le disque : impossible de savoir exactement quels fichiers lui appartiennent. Vous pouvez les supprimer dans le Finder.";
+"payload_deletion.safety_refused.message" = "Le téléchargement a été retiré de la liste, mais ses fichiers sont toujours sur le disque : ils ont été modifiés après le téléchargement, les supprimer automatiquement n’est donc pas sûr. Vous pouvez les supprimer dans le Finder.";
+"payload_deletion.cleanup_failure.message" = "Les fichiers du téléchargement ont été supprimés, mais quelques dossiers vides sont restés : ils sont inaccessibles ou ont été modifiés. Vous pouvez les supprimer dans le Finder.";
 
 "add_torrent.loading_metadata" = "Récupération de la liste des fichiers…";
 "add_torrent.title" = "Ajouter un téléchargement";

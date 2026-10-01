@@ -25,26 +25,18 @@ enum TorrentRemovalDialogPresenter {
         alert.messageText = L10n.format(
             "add_torrent.cancel.title",
             localeOverride: localeOverride,
-            defaultValue: "Отменить добавление «%@»?",
+            defaultValue: "",
             shortDisplayName
         )
         alert.informativeText = L10n.string(
             "add_torrent.cancel.message",
-            localeOverride: localeOverride,
-            defaultValue: "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо."
+            localeOverride: localeOverride
         )
+        // The same buttons as every other removal: the title asks "Удалить «X»?".
         addSafeConfirmationButtons(
             to: alert,
-            cancelTitle: L10n.string(
-                "add_torrent.cancel.cancel_action",
-                localeOverride: localeOverride,
-                defaultValue: "Отмена"
-            ),
-            destructiveTitle: L10n.string(
-                "add_torrent.cancel.delete_action",
-                localeOverride: localeOverride,
-                defaultValue: "Удалить загрузку"
-            )
+            cancelTitle: L10n.string("common.cancel", localeOverride: localeOverride, defaultValue: "Отменить"),
+            destructiveTitle: L10n.string("common.delete", localeOverride: localeOverride, defaultValue: "Удалить")
         )
         return alert
     }
@@ -61,19 +53,17 @@ enum TorrentRemovalDialogPresenter {
         alert.messageText = L10n.format(
             "remove_dialog.choice.title",
             localeOverride: localeOverride,
-            defaultValue: "Удалить «%@»?",
+            defaultValue: "",
             record.displayName
         )
         alert.informativeText = allowsDeleteWithFiles
             ? L10n.string(
                 "remove_dialog.choice.message.with_files",
-                localeOverride: localeOverride,
-                defaultValue: "Можно удалить только запись из списка или удалить запись вместе с загруженными файлами."
+                localeOverride: localeOverride
             )
             : L10n.string(
                 "remove_dialog.choice.message.list_only",
-                localeOverride: localeOverride,
-                defaultValue: "Shatl удалит только запись из списка. Удаление файлов для этой карточки недоступно."
+                localeOverride: localeOverride
             )
         alert.addButton(withTitle: L10n.string("torrent.action.remove_from_list", localeOverride: localeOverride, defaultValue: "Удалить из списка"))
         if allowsDeleteWithFiles {
@@ -115,13 +105,12 @@ enum TorrentRemovalDialogPresenter {
         alert.messageText = L10n.format(
             "remove_dialog.delete_with_files.title",
             localeOverride: localeOverride,
-            defaultValue: "Удалить «%@» вместе с файлами?",
+            defaultValue: "",
             record.displayName
         )
         alert.informativeText = L10n.string(
             "remove_dialog.delete_with_files.message",
-            localeOverride: localeOverride,
-            defaultValue: "Shatl удалит торрент из списка, а также все связанные файлы с диска."
+            localeOverride: localeOverride
         )
         addSafeConfirmationButtons(
             to: alert,

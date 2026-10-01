@@ -118,22 +118,21 @@
 "torrent.error.action_failed.message" = "問題が発生しました。もう一度試してください。";
 
 "remove_dialog.choice.title" = "「%@」を削除しますか？";
-"remove_dialog.choice.message.with_files" = "リスト項目だけを削除するか、ダウンロード済みファイルごと削除できます。";
-"remove_dialog.choice.message.list_only" = "Shatlはリスト項目だけを削除します。このカードではファイル削除を利用できません。";
+"remove_dialog.choice.message.with_files" = "リストからのみ削除すると、ダウンロードしたファイルはディスクに残ります。ファイルごと削除すると、ディスクから完全に削除されます。";
+"remove_dialog.choice.message.list_only" = "このダウンロードにはエラーがあるため、リストからの削除のみ行えます。ディスク上のファイルは残ります。Finderで削除できます。";
 "remove_dialog.delete_with_files.title" = "「%@」をファイルごと削除しますか？";
-"remove_dialog.delete_with_files.message" = "ShatlはTorrentをリストから削除し、関連するすべてのファイルをディスクから削除します。";
-"add_torrent.cancel.title" = "「%@」の追加をキャンセルしますか？";
-"add_torrent.cancel.message" = "Shatlは追加を停止し、ダウンロードをリストから削除します。この操作は取り消せません。";
-"add_torrent.cancel.delete_action" = "ダウンロードを削除";
-"add_torrent.cancel.cancel_action" = "キャンセル";
+"remove_dialog.delete_with_files.message" = "ダウンロードはリストから消え、そのファイルはディスクから完全に削除されます。ゴミ箱には移動しません。";
+"add_torrent.cancel.title" = "「%@」を削除しますか？";
+"add_torrent.cancel.message" = "このダウンロードはまだ追加中です。今削除すると追加は中止されます。ダウンロードするには、.torrentファイルまたはmagnetリンクをもう一度追加する必要があります。";
 
 "payload_deletion.files_not_deleted.title" = "ファイルは削除されませんでした";
-"payload_deletion.not_all_files_deleted.title" = "一部のファイルは削除されませんでした";
-"payload_deletion.engine_stop_failed.message" = "ShatlはTorrentをリストから削除しましたが、ファイル削除前にエンジン内で安全に停止できませんでした。";
-"payload_deletion.partial_failure.message.other" = "ShatlはTorrentをリストから削除しましたが、ディスク上の%lld個のファイルを削除できませんでした。";
-"payload_deletion.unresolved.message" = "ShatlはTorrentをリストから削除しましたが、ディスク上の関連ファイルを安全に特定できませんでした。";
-"payload_deletion.safety_refused.message" = "ShatlはTorrentをリストから削除しましたが、パスまたはオブジェクトの種類がTorrentデータと一致しなくなったため、ファイルは残しました。";
-"payload_deletion.cleanup_failure.message" = "Torrentファイルは削除されましたが、安全にクリーンアップできなかった一部のフォルダまたはシステムファイルは残されました。";
+"payload_deletion.partial_failure.title.other" = "%lld個のファイルを削除できませんでした";
+"payload_deletion.partial_failure.message" = "ダウンロードはリストから削除されましたが、これらのファイルにアクセスできないか、ダウンロード後に変更されています。Finderで削除できます。";
+"payload_deletion.cleanup_failure.title" = "空のフォルダが残りました";
+"payload_deletion.engine_stop_failed.message" = "ダウンロードはリストから削除されましたが、ファイルはディスクに残っています。削除前に安全に停止できませんでした。Finderで削除できます。";
+"payload_deletion.unresolved.message" = "ダウンロードはリストから削除されましたが、ファイルはディスクに残っています。どのファイルが属しているかを正確に特定できませんでした。Finderで削除できます。";
+"payload_deletion.safety_refused.message" = "ダウンロードはリストから削除されましたが、ファイルはディスクに残っています。ダウンロード後に変更されているため、自動で削除するのは安全ではありません。Finderで削除できます。";
+"payload_deletion.cleanup_failure.message" = "ダウンロードのファイルは削除されましたが、いくつかの空のフォルダが残りました。アクセスできないか、変更されています。Finderで削除できます。";
 
 "add_torrent.loading_metadata" = "ファイルリストを取得中…";
 "add_torrent.title" = "ダウンロードを追加";

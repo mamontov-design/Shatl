@@ -118,25 +118,24 @@
 "torrent.error.action_failed.message" = "Произошла ошибка. Попробуйте ещё раз.";
 
 "remove_dialog.choice.title" = "Удалить «%@»?";
-"remove_dialog.choice.message.with_files" = "Можно удалить только запись из списка или удалить запись вместе с загруженными файлами.";
-"remove_dialog.choice.message.list_only" = "Shatl удалит только запись из списка. Удаление файлов для этой карточки недоступно.";
+"remove_dialog.choice.message.with_files" = "Если удалить только из списка, скачанные файлы останутся на диске. Если вместе с файлами — они будут удалены с диска насовсем.";
+"remove_dialog.choice.message.list_only" = "У загрузки ошибка, поэтому её можно удалить только из списка. Файлы, если они есть на диске, останутся — их можно удалить в Finder.";
 "remove_dialog.delete_with_files.title" = "Удалить «%@» вместе с файлами?";
-"remove_dialog.delete_with_files.message" = "Shatl удалит торрент из списка, а также все связанные файлы с диска.";
-"add_torrent.cancel.title" = "Отменить добавление «%@»?";
-"add_torrent.cancel.message" = "Shatl остановит добавление и удалит загрузку из списка. Это действие необратимо.";
-"add_torrent.cancel.delete_action" = "Удалить загрузку";
-"add_torrent.cancel.cancel_action" = "Отмена";
+"remove_dialog.delete_with_files.message" = "Загрузка исчезнет из списка, а её файлы будут удалены с диска насовсем — в Корзину они не попадут.";
+"add_torrent.cancel.title" = "Удалить «%@»?";
+"add_torrent.cancel.message" = "Загрузка ещё добавляется. Если удалить её сейчас, добавление прекратится — чтобы скачать её, придётся добавить .torrent‑файл или magnet‑ссылку заново.";
 
 "payload_deletion.files_not_deleted.title" = "Файлы не удалены";
-"payload_deletion.not_all_files_deleted.title" = "Не все файлы удалены";
-"payload_deletion.engine_stop_failed.message" = "Shatl удалил торрент из списка, но не смог безопасно остановить его в движке перед удалением файлов.";
-"payload_deletion.partial_failure.message.one" = "Shatl удалил торрент из списка, но не смог удалить %lld файл с диска.";
-"payload_deletion.partial_failure.message.few" = "Shatl удалил торрент из списка, но не смог удалить %lld файла с диска.";
-"payload_deletion.partial_failure.message.many" = "Shatl удалил торрент из списка, но не смог удалить %lld файлов с диска.";
-"payload_deletion.partial_failure.message.other" = "Shatl удалил торрент из списка, но не смог удалить %lld файла с диска.";
-"payload_deletion.unresolved.message" = "Shatl удалил торрент из списка, но не смог безопасно определить связанные файлы на диске.";
-"payload_deletion.safety_refused.message" = "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента.";
-"payload_deletion.cleanup_failure.message" = "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить.";
+"payload_deletion.partial_failure.title.one" = "%lld файл не удалён";
+"payload_deletion.partial_failure.title.few" = "%lld файла не удалены";
+"payload_deletion.partial_failure.title.many" = "%lld файлов не удалены";
+"payload_deletion.partial_failure.title.other" = "%lld файла не удалены";
+"payload_deletion.partial_failure.message" = "Загрузка удалена из списка, но к этим файлам нет доступа или их изменили после скачивания. Их можно удалить в Finder.";
+"payload_deletion.cleanup_failure.title" = "Остались пустые папки";
+"payload_deletion.engine_stop_failed.message" = "Загрузка удалена из списка, но её файлы остались на диске: перед удалением её не удалось безопасно остановить. Их можно удалить в Finder.";
+"payload_deletion.unresolved.message" = "Загрузка удалена из списка, но её файлы остались на диске: не удалось точно определить, какие файлы к ней относятся. Их можно удалить в Finder.";
+"payload_deletion.safety_refused.message" = "Загрузка удалена из списка, но её файлы остались на диске: их изменили после скачивания, и удалять их автоматически небезопасно. Их можно удалить в Finder.";
+"payload_deletion.cleanup_failure.message" = "Файлы загрузки удалены, но несколько пустых папок остались: к ним нет доступа или их изменили. Их можно удалить в Finder.";
 
 "add_torrent.loading_metadata" = "Получение списка файлов…";
 "add_torrent.title" = "Добавление загрузки";

@@ -118,22 +118,21 @@
 "torrent.error.action_failed.message" = "出现问题。请再试一次。";
 
 "remove_dialog.choice.title" = "删除“%@”？";
-"remove_dialog.choice.message.with_files" = "你可以只移除列表项，也可以连同已下载文件一起删除。";
-"remove_dialog.choice.message.list_only" = "Shatl 只会移除列表项。此卡片无法删除文件。";
+"remove_dialog.choice.message.with_files" = "如果仅从列表中移除，已下载的文件会保留在磁盘上。如果连同文件一起删除，这些文件将从磁盘中永久删除。";
+"remove_dialog.choice.message.list_only" = "此下载出现错误，因此只能从列表中移除。磁盘上如有它的文件，将会保留，你可以在 Finder 中删除。";
 "remove_dialog.delete_with_files.title" = "连同文件删除“%@”？";
-"remove_dialog.delete_with_files.message" = "Shatl 会将 Torrent 从列表中移除，并删除磁盘上的所有相关文件。";
-"add_torrent.cancel.title" = "取消添加“%@”？";
-"add_torrent.cancel.message" = "Shatl 将停止添加并从列表中移除该下载。此操作无法撤销。";
-"add_torrent.cancel.delete_action" = "删除下载";
-"add_torrent.cancel.cancel_action" = "取消";
+"remove_dialog.delete_with_files.message" = "此下载将从列表中消失，其文件将从磁盘中永久删除，不会移到废纸篓。";
+"add_torrent.cancel.title" = "删除“%@”？";
+"add_torrent.cancel.message" = "此下载仍在添加中。如果现在删除，添加将停止；若要下载，需要重新添加 .torrent 文件或 magnet 链接。";
 
 "payload_deletion.files_not_deleted.title" = "文件未删除";
-"payload_deletion.not_all_files_deleted.title" = "部分文件未删除";
-"payload_deletion.engine_stop_failed.message" = "Shatl 已将 Torrent 从列表中移除，但在删除文件前无法安全停止引擎中的 Torrent。";
-"payload_deletion.partial_failure.message.other" = "Shatl 已将 Torrent 从列表中移除，但无法删除磁盘上的 %lld 个文件。";
-"payload_deletion.unresolved.message" = "Shatl 已将 Torrent 从列表中移除，但无法安全识别磁盘上的相关文件。";
-"payload_deletion.safety_refused.message" = "Shatl 已将 Torrent 从列表中移除，但由于路径或对象类型不再与 Torrent 数据匹配，因此保留了文件。";
-"payload_deletion.cleanup_failure.message" = "Torrent 文件已删除，但 Shatl 保留了部分文件夹或系统文件，因为无法安全清理它们。";
+"payload_deletion.partial_failure.title.other" = "%lld 个文件未被删除";
+"payload_deletion.partial_failure.message" = "此下载已从列表中移除，但无法访问这些文件，或它们在下载后已被更改。你可以在 Finder 中删除它们。";
+"payload_deletion.cleanup_failure.title" = "留下了空文件夹";
+"payload_deletion.engine_stop_failed.message" = "此下载已从列表中移除，但其文件仍在磁盘上：删除前无法安全地停止它。你可以在 Finder 中删除它们。";
+"payload_deletion.unresolved.message" = "此下载已从列表中移除，但其文件仍在磁盘上：无法确定哪些文件属于它。你可以在 Finder 中删除它们。";
+"payload_deletion.safety_refused.message" = "此下载已从列表中移除，但其文件仍在磁盘上：它们在下载后已被更改，自动删除并不安全。你可以在 Finder 中删除它们。";
+"payload_deletion.cleanup_failure.message" = "此下载的文件已删除，但留下了几个空文件夹：无法访问它们或它们已被更改。你可以在 Finder 中删除它们。";
 
 "add_torrent.loading_metadata" = "正在获取文件列表…";
 "add_torrent.title" = "添加下载";

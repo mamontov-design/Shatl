@@ -1761,6 +1761,10 @@ final class AppStoreTests: XCTestCase {
                 defaultValue: "Файлы не удалены"
             )
         )
+        // The download has left the list; the alert still knows where the
+        // files stayed.
+        let revealURL = try XCTUnwrap(bundle.store.payloadDeletionAlert?.revealURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: revealURL.path))
     }
 
     func testRemoveTorrentWithFilesShowsSafetyAlertAndPreservesReplacementDirectory() async throws {

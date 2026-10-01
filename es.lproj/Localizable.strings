@@ -118,23 +118,22 @@
 "torrent.error.action_failed.message" = "Algo salió mal. Inténtalo de nuevo.";
 
 "remove_dialog.choice.title" = "¿Eliminar «%@»?";
-"remove_dialog.choice.message.with_files" = "Puedes quitar solo la entrada de la lista o eliminarla junto con los archivos descargados.";
-"remove_dialog.choice.message.list_only" = "Shatl quitará solo la entrada de la lista. La eliminación de archivos no está disponible para esta tarjeta.";
+"remove_dialog.choice.message.with_files" = "Si la quitas solo de la lista, los archivos descargados se quedarán en el disco. Si la eliminas con los archivos, se borrarán del disco para siempre.";
+"remove_dialog.choice.message.list_only" = "Esta descarga tiene un error, así que solo se puede quitar de la lista. Sus archivos, si están en el disco, se quedarán; puedes eliminarlos en Finder.";
 "remove_dialog.delete_with_files.title" = "¿Eliminar «%@» con sus archivos?";
-"remove_dialog.delete_with_files.message" = "Shatl quitará el torrent de la lista y eliminará todos los archivos relacionados del disco.";
-"add_torrent.cancel.title" = "¿Cancelar la adición de «%@»?";
-"add_torrent.cancel.message" = "Shatl detendrá la adición y eliminará la descarga de la lista. Esta acción no se puede deshacer.";
-"add_torrent.cancel.delete_action" = "Eliminar descarga";
-"add_torrent.cancel.cancel_action" = "Cancelar";
+"remove_dialog.delete_with_files.message" = "La descarga desaparecerá de la lista y sus archivos se borrarán del disco para siempre: no irán a la Papelera.";
+"add_torrent.cancel.title" = "¿Eliminar «%@»?";
+"add_torrent.cancel.message" = "La descarga todavía se está añadiendo. Si la eliminas ahora, dejará de añadirse; para descargarla, tendrás que volver a añadir el archivo .torrent o el enlace magnet.";
 
 "payload_deletion.files_not_deleted.title" = "Los archivos no se eliminaron";
-"payload_deletion.not_all_files_deleted.title" = "No se eliminaron todos los archivos";
-"payload_deletion.engine_stop_failed.message" = "Shatl quitó el torrent de la lista, pero no pudo detenerlo de forma segura en el motor antes de eliminar los archivos.";
-"payload_deletion.partial_failure.message.one" = "Shatl quitó el torrent de la lista, pero no pudo eliminar %lld archivo del disco.";
-"payload_deletion.partial_failure.message.other" = "Shatl quitó el torrent de la lista, pero no pudo eliminar %lld archivos del disco.";
-"payload_deletion.unresolved.message" = "Shatl quitó el torrent de la lista, pero no pudo identificar de forma segura los archivos relacionados en el disco.";
-"payload_deletion.safety_refused.message" = "Shatl quitó el torrent de la lista, pero conservó los archivos porque una ruta o un tipo de objeto ya no coincide con los datos del torrent.";
-"payload_deletion.cleanup_failure.message" = "Los archivos del torrent se eliminaron, pero Shatl conservó algunas carpetas o archivos del sistema porque no se podían limpiar de forma segura.";
+"payload_deletion.partial_failure.title.one" = "No se eliminó %lld archivo";
+"payload_deletion.partial_failure.title.other" = "No se eliminaron %lld archivos";
+"payload_deletion.partial_failure.message" = "La descarga se quitó de la lista, pero no hay acceso a estos archivos o se modificaron después de descargarlos. Puedes eliminarlos en Finder.";
+"payload_deletion.cleanup_failure.title" = "Quedaron carpetas vacías";
+"payload_deletion.engine_stop_failed.message" = "La descarga se quitó de la lista, pero sus archivos siguen en el disco: no se pudo detener de forma segura antes de eliminarlos. Puedes eliminarlos en Finder.";
+"payload_deletion.unresolved.message" = "La descarga se quitó de la lista, pero sus archivos siguen en el disco: no se pudo saber con certeza qué archivos le pertenecen. Puedes eliminarlos en Finder.";
+"payload_deletion.safety_refused.message" = "La descarga se quitó de la lista, pero sus archivos siguen en el disco: se modificaron después de descargarlos, así que eliminarlos automáticamente no es seguro. Puedes eliminarlos en Finder.";
+"payload_deletion.cleanup_failure.message" = "Los archivos de la descarga se eliminaron, pero quedaron algunas carpetas vacías: no hay acceso a ellas o se modificaron. Puedes eliminarlas en Finder.";
 
 "add_torrent.loading_metadata" = "Obteniendo la lista de archivos…";
 "add_torrent.title" = "Añadir descarga";

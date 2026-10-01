@@ -118,23 +118,22 @@
 "torrent.error.action_failed.message" = "Etwas ist schiefgelaufen. Versuchen Sie es erneut.";
 
 "remove_dialog.choice.title" = "„%@“ löschen?";
-"remove_dialog.choice.message.with_files" = "Sie können nur den Listeneintrag entfernen oder ihn zusammen mit den geladenen Dateien löschen.";
-"remove_dialog.choice.message.list_only" = "Shatl entfernt nur den Listeneintrag. Das Löschen von Dateien ist für diese Karte nicht verfügbar.";
+"remove_dialog.choice.message.with_files" = "Wenn Sie den Download nur aus der Liste entfernen, bleiben die geladenen Dateien auf dem Datenträger. Wenn Sie ihn mit Dateien löschen, werden sie endgültig vom Datenträger gelöscht.";
+"remove_dialog.choice.message.list_only" = "Dieser Download hat einen Fehler und kann daher nur aus der Liste entfernt werden. Seine Dateien bleiben, falls vorhanden, auf dem Datenträger – Sie können sie im Finder löschen.";
 "remove_dialog.delete_with_files.title" = "„%@“ mit Dateien löschen?";
-"remove_dialog.delete_with_files.message" = "Shatl entfernt den Torrent aus der Liste und löscht alle zugehörigen Dateien vom Datenträger.";
-"add_torrent.cancel.title" = "Hinzufügen von „%@“ abbrechen?";
-"add_torrent.cancel.message" = "Shatl bricht das Hinzufügen ab und entfernt den Download aus der Liste. Diese Aktion kann nicht rückgängig gemacht werden.";
-"add_torrent.cancel.delete_action" = "Download löschen";
-"add_torrent.cancel.cancel_action" = "Abbrechen";
+"remove_dialog.delete_with_files.message" = "Der Download verschwindet aus der Liste, und seine Dateien werden endgültig vom Datenträger gelöscht – sie landen nicht im Papierkorb.";
+"add_torrent.cancel.title" = "„%@“ löschen?";
+"add_torrent.cancel.message" = "Der Download wird noch hinzugefügt. Wenn Sie ihn jetzt löschen, wird das Hinzufügen abgebrochen – um ihn zu laden, müssen Sie die .torrent-Datei oder den Magnet-Link erneut hinzufügen.";
 
 "payload_deletion.files_not_deleted.title" = "Dateien wurden nicht gelöscht";
-"payload_deletion.not_all_files_deleted.title" = "Nicht alle Dateien wurden gelöscht";
-"payload_deletion.engine_stop_failed.message" = "Shatl hat den Torrent aus der Liste entfernt, konnte ihn vor dem Löschen der Dateien aber nicht sicher im Engine stoppen.";
-"payload_deletion.partial_failure.message.one" = "Shatl hat den Torrent aus der Liste entfernt, konnte aber %lld Datei nicht vom Datenträger löschen.";
-"payload_deletion.partial_failure.message.other" = "Shatl hat den Torrent aus der Liste entfernt, konnte aber %lld Dateien nicht vom Datenträger löschen.";
-"payload_deletion.unresolved.message" = "Shatl hat den Torrent aus der Liste entfernt, konnte die zugehörigen Dateien auf dem Datenträger aber nicht sicher bestimmen.";
-"payload_deletion.safety_refused.message" = "Shatl hat den Torrent aus der Liste entfernt, die Dateien aber beibehalten, weil ein Pfad oder Objekttyp nicht mehr den Torrent-Daten entspricht.";
-"payload_deletion.cleanup_failure.message" = "Die Torrent-Dateien wurden gelöscht, aber Shatl hat einige Ordner oder Systemdateien beibehalten, da sie nicht sicher bereinigt werden konnten.";
+"payload_deletion.partial_failure.title.one" = "%lld Datei wurde nicht gelöscht";
+"payload_deletion.partial_failure.title.other" = "%lld Dateien wurden nicht gelöscht";
+"payload_deletion.partial_failure.message" = "Der Download wurde aus der Liste entfernt, aber auf diese Dateien kann nicht zugegriffen werden oder sie wurden nach dem Laden geändert. Sie können sie im Finder löschen.";
+"payload_deletion.cleanup_failure.title" = "Leere Ordner sind geblieben";
+"payload_deletion.engine_stop_failed.message" = "Der Download wurde aus der Liste entfernt, aber seine Dateien sind noch auf dem Datenträger: Er konnte vor dem Löschen nicht sicher gestoppt werden. Sie können sie im Finder löschen.";
+"payload_deletion.unresolved.message" = "Der Download wurde aus der Liste entfernt, aber seine Dateien sind noch auf dem Datenträger: Es ließ sich nicht genau bestimmen, welche Dateien dazugehören. Sie können sie im Finder löschen.";
+"payload_deletion.safety_refused.message" = "Der Download wurde aus der Liste entfernt, aber seine Dateien sind noch auf dem Datenträger: Sie wurden nach dem Laden geändert, daher ist automatisches Löschen nicht sicher. Sie können sie im Finder löschen.";
+"payload_deletion.cleanup_failure.message" = "Die Dateien des Downloads wurden gelöscht, aber einige leere Ordner sind geblieben: Auf sie kann nicht zugegriffen werden oder sie wurden geändert. Sie können sie im Finder löschen.";
 
 "add_torrent.loading_metadata" = "Dateiliste wird abgerufen…";
 "add_torrent.title" = "Download hinzufügen";

@@ -118,23 +118,22 @@
 "torrent.error.action_failed.message" = "Something went wrong. Try again.";
 
 "remove_dialog.choice.title" = "Delete “%@”?";
-"remove_dialog.choice.message.with_files" = "You can remove only the list item or delete it together with downloaded files.";
-"remove_dialog.choice.message.list_only" = "Shatl will remove only the list item. File deletion is unavailable for this card.";
+"remove_dialog.choice.message.with_files" = "If you remove it from the list only, the downloaded files stay on disk. If you delete it with files, they’ll be deleted from disk permanently.";
+"remove_dialog.choice.message.list_only" = "This download has an error, so it can only be removed from the list. Its files, if any are on disk, will stay—you can delete them in Finder.";
 "remove_dialog.delete_with_files.title" = "Delete “%@” with files?";
-"remove_dialog.delete_with_files.message" = "Shatl will remove the torrent from the list and delete all related files from disk.";
-"add_torrent.cancel.title" = "Cancel adding “%@”?";
-"add_torrent.cancel.message" = "Shatl will stop adding the download and remove it from the list. This action can’t be undone.";
-"add_torrent.cancel.delete_action" = "Delete Download";
-"add_torrent.cancel.cancel_action" = "Cancel";
+"remove_dialog.delete_with_files.message" = "The download will leave the list, and its files will be deleted from disk permanently—they won’t go to the Trash.";
+"add_torrent.cancel.title" = "Delete “%@”?";
+"add_torrent.cancel.message" = "The download is still being added. If you delete it now, adding stops—to download it, you’ll need to add the .torrent file or magnet link again.";
 
 "payload_deletion.files_not_deleted.title" = "Files were not deleted";
-"payload_deletion.not_all_files_deleted.title" = "Some files were not deleted";
-"payload_deletion.engine_stop_failed.message" = "Shatl removed the torrent from the list, but could not safely stop it in the engine before deleting files.";
-"payload_deletion.partial_failure.message.one" = "Shatl removed the torrent from the list, but could not delete %lld file from disk.";
-"payload_deletion.partial_failure.message.other" = "Shatl removed the torrent from the list, but could not delete %lld files from disk.";
-"payload_deletion.unresolved.message" = "Shatl removed the torrent from the list, but could not safely identify the related files on disk.";
-"payload_deletion.safety_refused.message" = "Shatl removed the torrent from the list but left the files in place because a path or object type no longer matches the torrent data.";
-"payload_deletion.cleanup_failure.message" = "The torrent files were deleted, but Shatl left some folders or system files in place because they could not be cleaned up safely.";
+"payload_deletion.partial_failure.title.one" = "%lld file wasn’t deleted";
+"payload_deletion.partial_failure.title.other" = "%lld files weren’t deleted";
+"payload_deletion.partial_failure.message" = "The download was removed from the list, but these files can’t be accessed or were changed after downloading. You can delete them in Finder.";
+"payload_deletion.cleanup_failure.title" = "Empty folders remain";
+"payload_deletion.engine_stop_failed.message" = "The download was removed from the list, but its files are still on disk: it couldn’t be stopped safely before deletion. You can delete them in Finder.";
+"payload_deletion.unresolved.message" = "The download was removed from the list, but its files are still on disk: it wasn’t possible to tell exactly which files belong to it. You can delete them in Finder.";
+"payload_deletion.safety_refused.message" = "The download was removed from the list, but its files are still on disk: they were changed after downloading, so deleting them automatically isn’t safe. You can delete them in Finder.";
+"payload_deletion.cleanup_failure.message" = "The download’s files were deleted, but a few empty folders remain: they can’t be accessed or were changed. You can delete them in Finder.";
 
 "add_torrent.loading_metadata" = "Fetching the file list…";
 "add_torrent.title" = "Add Download";

@@ -1473,6 +1473,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         await removeTorrent(id: selectedTorrentID, policy: policy)
     }
 
+    /// Where the files that stayed behind can be found. The deletion alert's
+    /// "Show in Finder" is the last place that knows: the download has
+    /// already left the list. Read before the removal artifacts are cleared.
+    private func payloadRevealURL(for record: TorrentRecord) async -> URL? {
+        await torrentPayloadLocator.primaryLocation(for: record)?.revealItemURL
+    }
+
     func primaryLocation(for id: UUID) async -> ManagedTorrentLocation? {
         guard let record = torrentRecord(for: id) else { return nil }
         return await torrentPayloadLocator.primaryLocation(for: record)
@@ -1539,12 +1546,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         if resolvedPolicy == .removeFromListAndDeleteFiles, !canDeletePayload {
             payloadDeletionAlert = PayloadDeletionAlert(
-                title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                message: L10n.string(
-                    "payload_deletion.engine_stop_failed.message",
-                    localeOverride: preferences.localeOverride,
-                    defaultValue: "Shatl удалил торрент из списка, но не смог безопасно остановить его в движке перед удалением файлов."
-                )
+                title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                message: L10n.string("payload_deletion.engine_stop_failed.message", localeOverride: preferences.localeOverride),
+                revealURL: await payloadRevealURL(for: record)
             )
         }
 
@@ -1558,27 +1562,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     + deletionResult.unsafeManagedFileCount
                 if failedItemCount > 0 {
                     payloadDeletionAlert = PayloadDeletionAlert(
-                        title: L10n.string("payload_deletion.not_all_files_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Не все файлы удалены"),
-                        message: L10n.format(
+                        title: L10n.format(
                             L10n.pluralKey(
-                                "payload_deletion.partial_failure.message",
+                                "payload_deletion.partial_failure.title",
                                 count: failedItemCount,
                                 localeOverride: preferences.localeOverride
                             ),
                             localeOverride: preferences.localeOverride,
-                            defaultValue: "Shatl удалил торрент из списка, но не смог удалить часть файлов с диска: %lld.",
+                            defaultValue: "%lld",
                             failedItemCount
-                        )
+                        ),
+                        message: L10n.string("payload_deletion.partial_failure.message", localeOverride: preferences.localeOverride),
+                        revealURL: await payloadRevealURL(for: record)
                     )
                 } else if deletionResult.failedDirectoryCleanupCount > 0
                             || deletionResult.unsafeCleanupItemCount > 0 {
                     payloadDeletionAlert = PayloadDeletionAlert(
-                        title: L10n.string("payload_deletion.not_all_files_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Не все файлы удалены"),
-                        message: L10n.string(
-                            "payload_deletion.cleanup_failure.message",
-                            localeOverride: preferences.localeOverride,
-                            defaultValue: "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить."
-                        )
+                        title: L10n.string("payload_deletion.cleanup_failure.title", localeOverride: preferences.localeOverride),
+                        message: L10n.string("payload_deletion.cleanup_failure.message", localeOverride: preferences.localeOverride),
+                        revealURL: await payloadRevealURL(for: record)
                     )
                 }
             case .unsafe(let failure):
@@ -1586,12 +1588,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     "Payload deletion refused for torrent id=\(id.uuidString) unsafeIssueCount=\(failure.issues.count)"
                 )
                 payloadDeletionAlert = PayloadDeletionAlert(
-                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                    message: L10n.string(
-                        "payload_deletion.safety_refused.message",
-                        localeOverride: preferences.localeOverride,
-                        defaultValue: "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента."
-                    )
+                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                    message: L10n.string("payload_deletion.safety_refused.message", localeOverride: preferences.localeOverride),
+                    revealURL: await payloadRevealURL(for: record)
                 )
             case .unresolved(let failure):
                 let inspectedFileCount = failure.inspectedFileCount.map(String.init) ?? "-"
@@ -1612,12 +1611,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     ]
                 )
                 payloadDeletionAlert = PayloadDeletionAlert(
-                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                    message: L10n.string(
-                        "payload_deletion.unresolved.message",
-                        localeOverride: preferences.localeOverride,
-                        defaultValue: "Shatl удалил торрент из списка, но не смог безопасно определить связанные файлы на диске."
-                    )
+                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                    message: L10n.string("payload_deletion.unresolved.message", localeOverride: preferences.localeOverride),
+                    revealURL: await payloadRevealURL(for: record)
                 )
             }
         }

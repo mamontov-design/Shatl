@@ -53,3 +53,25 @@ final class SessionCopyTests: XCTestCase {
         }
     }
 }
+
+/// Removal dialogs say what each button does, and that files deleted with a
+/// download do not go to the Trash.
+final class RemovalCopyTests: XCTestCase {
+    func testDeleteWithFilesWarnsThatFilesSkipTheTrash() {
+        let message = L10n.string("remove_dialog.delete_with_files.message", localeOverride: .russian)
+        XCTAssertTrue(message.contains("насовсем"), message)
+        XCTAssertTrue(message.contains("Корзину"), message)
+    }
+
+    /// Deleting a download that is still being added asks the same question
+    /// as any removal, in every language.
+    func testPendingAdditionAsksTheRemovalQuestion() {
+        for language in AppLocaleOverride.allCases where language != .system {
+            XCTAssertEqual(
+                L10n.string("add_torrent.cancel.title", localeOverride: language),
+                L10n.string("remove_dialog.choice.title", localeOverride: language),
+                "\(language)"
+            )
+        }
+    }
+}

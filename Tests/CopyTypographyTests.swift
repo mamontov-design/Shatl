@@ -71,18 +71,6 @@ final class CopyTypographyTests: XCTestCase {
         let pending: Set<String> = [
             // Deferred with the folder's "Retry" button
             "torrent.error.save_path_unavailable.message",
-            // Stage 5: deletion
-            "remove_dialog.choice.message.list_only",
-            "remove_dialog.delete_with_files.message",
-            "add_torrent.cancel.message",
-            "payload_deletion.engine_stop_failed.message",
-            "payload_deletion.partial_failure.message.one",
-            "payload_deletion.partial_failure.message.few",
-            "payload_deletion.partial_failure.message.many",
-            "payload_deletion.partial_failure.message.other",
-            "payload_deletion.unresolved.message",
-            "payload_deletion.safety_refused.message",
-            "payload_deletion.cleanup_failure.message",
             // Stage 6: settings
             "settings.downloads.performance.caption.main",
             "settings.downloads.network.port_forwarding.caption",
@@ -184,7 +172,7 @@ final class CopyTypographyTests: XCTestCase {
     // MARK: - Plural forms
 
     func testPluralKeysFollowEachLanguage() {
-        let base = "payload_deletion.partial_failure.message"
+        let base = "payload_deletion.partial_failure.title"
         XCTAssertEqual(L10n.pluralKey(base, count: 1, localeOverride: .russian), base + ".one")
         XCTAssertEqual(L10n.pluralKey(base, count: 3, localeOverride: .russian), base + ".few")
         XCTAssertEqual(L10n.pluralKey(base, count: 6, localeOverride: .russian), base + ".many")
@@ -194,8 +182,8 @@ final class CopyTypographyTests: XCTestCase {
         XCTAssertEqual(L10n.pluralKey(base, count: 2, localeOverride: .japanese), base + ".other")
     }
 
-    func testPartialDeletionNamesTheCountInWords() {
-        let base = "payload_deletion.partial_failure.message"
+    func testPartialDeletionTitleNamesTheCountInWords() {
+        let base = "payload_deletion.partial_failure.title"
         for (count, word) in [(1, "файл"), (3, "файла"), (6, "файлов"), (21, "файл")] {
             let message = L10n.format(
                 L10n.pluralKey(base, count: count, localeOverride: .russian),

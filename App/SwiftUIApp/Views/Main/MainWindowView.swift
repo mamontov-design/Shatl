@@ -236,18 +236,24 @@ struct MainWindowView: View {
                 .environmentObject(store)
         }
         .alert(item: activeAlert) { alert in
-            Alert(
+            let okButton = Text(L10n.string("common.ok", localeOverride: store.preferences.localeOverride))
+            // Files left after a deletion can still be found from here.
+            if let revealURL = alert.revealURL {
+                return Alert(
+                    title: Text(alert.title),
+                    message: Text(alert.message),
+                    primaryButton: .default(okButton),
+                    secondaryButton: .default(
+                        Text(L10n.string("torrent.action.reveal_in_finder", localeOverride: store.preferences.localeOverride))
+                    ) {
+                        NSWorkspace.shared.activateFileViewerSelecting([revealURL])
+                    }
+                )
+            }
+            return Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
-                dismissButton: .default(
-                    Text(
-                        L10n.string(
-                            "common.ok",
-                            localeOverride: store.preferences.localeOverride,
-                            defaultValue: "ОК"
-                        )
-                    )
-                )
+                dismissButton: .default(okButton)
             )
         }
     }
@@ -976,6 +982,15 @@ private enum MainWindowAlert: Identifiable {
             errorState.message
         case let .payloadDeletion(alert):
             alert.message
+        }
+    }
+
+    var revealURL: URL? {
+        switch self {
+        case .addTorrentEntry:
+            nil
+        case let .payloadDeletion(alert):
+            alert.revealURL
         }
     }
 }
