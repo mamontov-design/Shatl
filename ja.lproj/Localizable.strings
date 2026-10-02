@@ -157,6 +157,7 @@
 "add_torrent.review.alias_placeholder" = "ダウンロード名を入力…";
 "add_torrent.review.confirm" = "ダウンロード";
 "add_torrent.review.close" = "閉じる";
+"add_torrent.review.show_in_list" = "リストで表示";
 "add_torrent.review.summary.selected_files" = "選択したファイル";
 "add_torrent.review.summary.size" = "サイズ";
 "add_torrent.review.summary.free_space" = "空き容量";
@@ -182,6 +183,8 @@
 "add_torrent.error.duplicate.title" = "このダウンロードはすでに追加されています。";
 "add_torrent.error.duplicate.message" = "このダウンロードはすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。このウインドウを閉じ、リストでダウンロードを探してください。";
 "add_torrent.error.duplicate.named_message" = "ダウンロード「%@」はすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。このウインドウを閉じ、リストでダウンロードを探してください。";
+"add_torrent.error.duplicate.in_list.message" = "このダウンロードはすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。「リストで表示」をクリックすると、そのダウンロードに移動します。";
+"add_torrent.error.duplicate.in_list.named_message" = "ダウンロード「%@」はすでにリストにあります。同じファイルまたはリンクを以前に開いた可能性があります。追加し直す必要はありません。「リストで表示」をクリックすると、そのダウンロードに移動します。";
 "add_torrent.error.generic.title" = "ダウンロードを準備できませんでした。";
 "add_torrent.error.not_found.title" = "ダウンロードを利用できません。";
 "add_torrent.error.not_found.message" = "ウインドウを開いている間に、準備したダウンロードが見つからなくなりました。ウインドウを閉じ、ファイルまたはリンクをもう一度追加してください。";

@@ -111,6 +111,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
+    /// The download a duplicate in the add window already is, so the window
+    /// can show it in the list rather than leave it to be found.
+    @Published private(set) var addTorrentDuplicateID: UUID?
+    /// Asks the main window to scroll the list to a download, clearing a
+    /// search that would hide it.
+    @Published private(set) var listRevealRequest: TorrentListRevealRequest?
     @Published var currentAddTorrentDraft: AddTorrentDraft? {
         didSet {
             guard let oldValue, oldValue.id != currentAddTorrentDraft?.id else { return }
@@ -1113,21 +1119,64 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         if !deferredAddTorrentFailures.isEmpty {
             let deferredAddTorrentFailure = deferredAddTorrentFailures.removeFirst()
+            var errorState = deferredAddTorrentFailure.errorState
+            var duplicateID: UUID?
+            // The download a duplicate repeats may have come or gone meanwhile.
+            if errorState.kind == .duplicateTorrent {
+                (errorState, duplicateID) = duplicateError(
+                    named: deferredAddTorrentFailure.draft.originalName,
+                    infoHash: deferredAddTorrentFailure.draft.infoHash
+                )
+            }
             presentInvalidDraft(
                 for: deferredAddTorrentFailure.draft.source,
-                errorState: deferredAddTorrentFailure.errorState,
+                errorState: errorState,
                 suggestedSavePath: deferredAddTorrentFailure.draft.suggestedSavePath,
                 stopAfterDownload: deferredAddTorrentFailure.draft.stopAfterDownload,
                 alias: deferredAddTorrentFailure.draft.alias,
-                savePathBookmarkData: deferredAddTorrentFailure.draft.savePathBookmarkData
+                savePathBookmarkData: deferredAddTorrentFailure.draft.savePathBookmarkData,
+                duplicateOfTorrentID: duplicateID
             )
         }
     }
 
     func dismissModal() {
+        addTorrentDuplicateID = nil
         draftPreparationTask?.cancel()
         presentedModal = nil
         currentAddTorrentDraft = nil
+    }
+
+    /// Closes the add window and shows the download it duplicates: selected,
+    /// scrolled to, and not hidden by a search.
+    func showAddTorrentDuplicateInList() {
+        guard let id = addTorrentDuplicateID else { return }
+        dismissModal()
+        selectTorrent(id: id)
+        listRevealRequest = TorrentListRevealRequest(torrentID: id)
+    }
+
+    /// A duplicate's error, pointing to "Show in List" when the download it
+    /// repeats is in the list, and that download. A list of one needs no
+    /// showing: closing the window is enough.
+    private func duplicateError(named name: String?, infoHash: String?) -> (errorState: TorrentErrorState, duplicateID: UUID?) {
+        let listsSeveralDownloads = torrents.count + pendingTorrentAdditions.count > 1
+        let duplicateID = listsSeveralDownloads ? torrentID(forInfoHash: infoHash) : nil
+        let errorState = ShatlErrorCatalog.duplicateDraftError(
+            torrentName: name,
+            showsInList: duplicateID != nil,
+            localeOverride: preferences.localeOverride
+        )
+        return (errorState, duplicateID)
+    }
+
+    /// The download with this info hash: in the list, or still being added.
+    func torrentID(forInfoHash infoHash: String?) -> UUID? {
+        guard let infoHash = infoHash?.lowercased(), !infoHash.isEmpty else { return nil }
+        if let record = torrents.first(where: { $0.infoHash?.lowercased() == infoHash }) {
+            return record.id
+        }
+        return pendingTorrentAdditions.first(where: { $0.draft.infoHash?.lowercased() == infoHash })?.id
     }
 
     func selectTorrent(id: UUID) {
@@ -2037,16 +2086,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func handlePendingAdditionFailure(_ error: Error, addition: PendingTorrentAddition) {
         removePendingTorrentAdditionFromPresentation(id: addition.id)
-        let errorState = isDuplicateError(error)
-            ? ShatlErrorCatalog.duplicateDraftError(
-                torrentName: addition.draft.originalName,
-                localeOverride: preferences.localeOverride
-            )
-            : ShatlErrorCatalog.reviewError(
+        var duplicateID: UUID?
+        let errorState: TorrentErrorState
+        if isDuplicateError(error) {
+            let infoHash = TorrentEngineError.normalized(from: error).infoHash ?? addition.draft.infoHash
+            (errorState, duplicateID) = duplicateError(named: addition.draft.originalName, infoHash: infoHash)
+        } else {
+            errorState = ShatlErrorCatalog.reviewError(
                 for: error,
                 source: addition.draft.source,
                 localeOverride: preferences.localeOverride
             )
+        }
         if isAddTorrentReviewWindowActive {
             deferredAddTorrentFailures.append(
                 DeferredAddTorrentFailure(
@@ -2063,7 +2114,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             suggestedSavePath: addition.draft.suggestedSavePath,
             stopAfterDownload: addition.draft.stopAfterDownload,
             alias: addition.draft.alias,
-            savePathBookmarkData: addition.draft.savePathBookmarkData
+            savePathBookmarkData: addition.draft.savePathBookmarkData,
+            duplicateOfTorrentID: duplicateID
         )
     }
 
@@ -2794,6 +2846,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return
         }
         draftPreparationTask?.cancel()
+        addTorrentDuplicateID = nil
         currentAddTorrentDraft = makeLoadingDraft(
             for: source,
             suggestedSavePath: suggestedSavePath,
@@ -2835,6 +2888,20 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     source: source,
                     localeOverride: self.preferences.localeOverride
                 )
+                let engineError = TorrentEngineError.normalized(from: error)
+                if engineError.kind == .duplicateTorrent {
+                    let duplicate = self.duplicateError(named: engineError.torrentName, infoHash: engineError.infoHash)
+                    self.presentInvalidDraft(
+                        for: source,
+                        errorState: duplicate.errorState,
+                        suggestedSavePath: suggestedSavePath,
+                        stopAfterDownload: stopAfterDownload,
+                        alias: alias,
+                        savePathBookmarkData: savePathBookmarkData,
+                        duplicateOfTorrentID: duplicate.duplicateID
+                    )
+                    return
+                }
                 // The wait ran out with no network at all: say so directly.
                 if errorState.kind == .metadataTimeout, await self.networkIsOffline() {
                     guard !Task.isCancelled else { return }
@@ -2871,8 +2938,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         suggestedSavePath: String,
         stopAfterDownload: Bool,
         alias: String,
-        savePathBookmarkData: Data? = nil
+        savePathBookmarkData: Data? = nil,
+        duplicateOfTorrentID: UUID? = nil
     ) {
+        addTorrentDuplicateID = duplicateOfTorrentID
         currentAddTorrentDraft = AddTorrentDraft(
             source: source,
             originalName: errorState.title,
@@ -2901,16 +2970,15 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func presentDuplicateDraft(for draft: AddTorrentDraft) {
+        let duplicate = duplicateError(named: draft.originalName, infoHash: draft.infoHash)
         presentInvalidDraft(
             for: draft.source,
-            errorState: ShatlErrorCatalog.duplicateDraftError(
-                torrentName: draft.originalName,
-                localeOverride: preferences.localeOverride
-            ),
+            errorState: duplicate.errorState,
             suggestedSavePath: draft.suggestedSavePath,
             stopAfterDownload: draft.stopAfterDownload,
             alias: draft.alias,
-            savePathBookmarkData: draft.savePathBookmarkData
+            savePathBookmarkData: draft.savePathBookmarkData,
+            duplicateOfTorrentID: duplicate.duplicateID
         )
     }
 

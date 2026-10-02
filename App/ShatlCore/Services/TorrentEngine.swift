@@ -91,11 +91,14 @@ nonisolated struct TorrentEngineError: Error, Equatable, Sendable {
     var debugReason: String?
     /// The torrent a duplicate already is, when the engine knows its name.
     var torrentName: String?
+    /// And its info hash, which finds that download in the list.
+    var infoHash: String?
 
-    init(kind: Kind, debugReason: String? = nil, torrentName: String? = nil) {
+    init(kind: Kind, debugReason: String? = nil, torrentName: String? = nil, infoHash: String? = nil) {
         self.kind = kind
         self.debugReason = debugReason
         self.torrentName = torrentName
+        self.infoHash = infoHash
     }
 
     static func normalized(from error: Error) -> TorrentEngineError {

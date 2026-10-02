@@ -241,18 +241,19 @@ enum ShatlErrorCatalog {
 
     /// Names the torrent when its name is known, so the message says which
     /// one is already in the list.
+    /// `showsInList`: the window offers "Show in List", and the message
+    /// points to it instead of asking to find the download by hand.
     nonisolated static func duplicateDraftError(
         torrentName: String? = nil,
+        showsInList: Bool = false,
         localeOverride: AppLocaleOverride = .russian
     ) -> TorrentErrorState {
         let name = torrentName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let prefix = showsInList ? "add_torrent.error.duplicate.in_list" : "add_torrent.error.duplicate"
         let message = name.isEmpty
-            ? L10n.string(
-                "add_torrent.error.duplicate.message",
-                localeOverride: localeOverride
-            )
+            ? L10n.string("\(prefix).message", localeOverride: localeOverride)
             : L10n.format(
-                "add_torrent.error.duplicate.named_message",
+                "\(prefix).named_message",
                 localeOverride: localeOverride,
                 defaultValue: "",
                 shortenedTorrentName(name)

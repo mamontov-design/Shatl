@@ -158,6 +158,7 @@
 "add_torrent.review.alias_placeholder" = "Nombra la descarga…";
 "add_torrent.review.confirm" = "Descargar";
 "add_torrent.review.close" = "Cerrar";
+"add_torrent.review.show_in_list" = "Mostrar en la lista";
 "add_torrent.review.summary.selected_files" = "Archivos seleccionados";
 "add_torrent.review.summary.size" = "Tamaño";
 "add_torrent.review.summary.free_space" = "Libre";
@@ -185,6 +186,8 @@
 "add_torrent.error.duplicate.title" = "Esta descarga ya está añadida.";
 "add_torrent.error.duplicate.message" = "Esta descarga ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: cierra esta ventana y búscala en la lista.";
 "add_torrent.error.duplicate.named_message" = "La descarga «%@» ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: cierra esta ventana y búscala en la lista.";
+"add_torrent.error.duplicate.in_list.message" = "Esta descarga ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: haz clic en «Mostrar en la lista» para ir a ella.";
+"add_torrent.error.duplicate.in_list.named_message" = "La descarga «%@» ya está en la lista. Puede que este archivo o enlace ya se haya abierto antes. No hace falta añadirla de nuevo: haz clic en «Mostrar en la lista» para ir a ella.";
 "add_torrent.error.generic.title" = "No se pudo preparar la descarga.";
 "add_torrent.error.not_found.title" = "Descarga no disponible.";
 "add_torrent.error.not_found.message" = "La descarga preparada desapareció mientras la ventana estaba abierta. Cierra la ventana y vuelve a añadir el archivo o el enlace.";
