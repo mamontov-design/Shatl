@@ -134,12 +134,6 @@ enum ShatlMotion {
         .scale(scale: 0.85, anchor: .center)
         .combined(with: .opacity)
 
-    /// Reverse transition for blocks that should fade gently upward.
-    static let disappearFromTop = AnyTransition.asymmetric(
-        insertion: appearFromTop,
-        removal: .scale(scale: 0.85, anchor: .center).combined(with: .opacity)
-    )
-
     /// The selection indicator appears from its center with a slight overshoot and shrinks away.
     static let selectedIndicator = AnyTransition.asymmetric(
         insertion: .scale(scale: 1.5, anchor: .center)

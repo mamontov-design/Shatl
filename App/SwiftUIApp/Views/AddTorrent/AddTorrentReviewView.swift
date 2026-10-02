@@ -301,7 +301,6 @@ private struct AddTorrentReviewScrollDiagnosticsSnapshot: Equatable {
 private final class AddTorrentReviewDiagnosticsState {
     var operationID = "-"
     var scrollGeometry = AddTorrentReviewScrollDiagnosticsSnapshot.zero
-    var rootSize = CGSize.zero
 }
 
 private struct AddTorrentReviewWindowDiagnosticsReader: NSViewRepresentable {
@@ -1077,7 +1076,6 @@ struct AddTorrentReviewView: View {
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
-            addTorrentDiagnosticsState.rootSize = newSize
             logWindowRootSizeChange(from: oldSize, to: newSize)
         }
         .background {

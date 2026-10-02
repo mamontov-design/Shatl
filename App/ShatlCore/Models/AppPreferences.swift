@@ -47,27 +47,6 @@ nonisolated enum AppPerformanceProfile: String, CaseIterable, Codable, Sendable,
         }
     }
 
-    var sliderValue: Double {
-        switch self {
-        case .economical:
-            0
-        case .balanced:
-            1
-        case .maximum:
-            2
-        }
-    }
-
-    nonisolated static func fromSliderValue(_ value: Double) -> AppPerformanceProfile {
-        switch Int(value.rounded()) {
-        case 0:
-            .economical
-        case 2:
-            .maximum
-        default:
-            .balanced
-        }
-    }
 }
 
 nonisolated enum AppLocaleOverride: String, CaseIterable, Codable, Sendable, Identifiable {

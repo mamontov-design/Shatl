@@ -37,12 +37,6 @@ nonisolated struct TorrentRecord: Identifiable, Equatable, Codable, Sendable {
         alias?.isEmpty == false ? alias! : originalName
     }
 
-    /// Hides percentage until the first meaningful progress is reported.
-    var visibleProgressPercent: Int? {
-        let percent = Int((progress * 100).rounded(.down))
-        return percent >= 1 ? percent : nil
-    }
-
     /// Open is available only for a completed single-file payload.
     var isFinishedForOpening: Bool {
         status == .completed

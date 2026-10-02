@@ -63,36 +63,6 @@ enum ShatlTextContent {
     }
 }
 
-struct ShatlTabButton: View {
-    let title: String
-    let isActive: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .shatlTypography(ShatlTypography.bodyMedium)
-                .foregroundStyle(isActive ? ShatlColor.typographyPrimary : ShatlColor.typographySecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background {
-                    if isActive {
-                        RoundedRectangle(cornerRadius: ShatlCornerRadius.tab, style: .continuous)
-                            .fill(ShatlColor.metricBackground)
-                            .transition(ShatlMotion.appearFromTop)
-                    }
-                }
-                .animation(ShatlMotion.metricResize, value: isActive)
-                .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.tab, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.tab, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .shatlShadow(ShatlShadow.activeTab, isEnabled: isActive)
-        .frame(maxWidth: .infinity)
-    }
-}
-
 /// While `isBusy`, the button shows `busyTitle`, ignores clicks without
 /// dimming, and resizes to the new title. Neighbors slide only when their
 /// container animates the same change, e.g. `.geometryGroup()` plus
@@ -255,33 +225,6 @@ struct ShatlButton: View {
 
     private var cornerRadius: CGFloat {
         role == .lineMessage ? ShatlCornerRadius.tab : ShatlCornerRadius.button
-    }
-}
-
-struct ShatlModalCloseButton: View {
-    var action: () -> Void
-    var iconSize: CGFloat = ShatlIconSize.small
-    var foregroundColor: Color = ShatlColor.typographyTertiary
-    var hoverForegroundColor: Color = ShatlColor.cerisePink
-
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "xmark.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(isHovered ? hoverForegroundColor : foregroundColor)
-                .frame(width: iconSize, height: iconSize, alignment: .center)
-        }
-        .buttonStyle(.plain)
-        .frame(width: iconSize, height: iconSize)
-        .contentShape(Rectangle())
-        .onHover { isHovered in
-            withAnimation(ShatlMotion.interface) {
-                self.isHovered = isHovered
-            }
-        }
     }
 }
 
@@ -670,7 +613,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
     let title: ShatlTextContent
     let isSelected: Bool
     var isEnabled = true
-    var labelPlacement: ShatlSettingsInputCardLabelPlacement = .belowCard
     var imageContainerHeight: CGFloat? = nil
     var imageContentVerticalPadding: CGFloat? = nil
     var overlaysSelectionMark = false
@@ -683,7 +625,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         title: String,
         isSelected: Bool,
         isEnabled: Bool = true,
-        labelPlacement: ShatlSettingsInputCardLabelPlacement = .belowCard,
         imageContainerHeight: CGFloat? = nil,
         imageContentVerticalPadding: CGFloat? = nil,
         overlaysSelectionMark: Bool = false,
@@ -693,7 +634,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         self.title = .verbatim(title)
         self.isSelected = isSelected
         self.isEnabled = isEnabled
-        self.labelPlacement = labelPlacement
         self.imageContainerHeight = imageContainerHeight
         self.imageContentVerticalPadding = imageContentVerticalPadding
         self.overlaysSelectionMark = overlaysSelectionMark
@@ -705,7 +645,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         localizedTitle key: String,
         isSelected: Bool,
         isEnabled: Bool = true,
-        labelPlacement: ShatlSettingsInputCardLabelPlacement = .belowCard,
         imageContainerHeight: CGFloat? = nil,
         imageContentVerticalPadding: CGFloat? = nil,
         overlaysSelectionMark: Bool = false,
@@ -715,7 +654,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         self.title = .localized(key)
         self.isSelected = isSelected
         self.isEnabled = isEnabled
-        self.labelPlacement = labelPlacement
         self.imageContainerHeight = imageContainerHeight
         self.imageContentVerticalPadding = imageContentVerticalPadding
         self.overlaysSelectionMark = overlaysSelectionMark
@@ -725,12 +663,9 @@ struct ShatlSettingsInputCard<Content: View>: View {
 
     var body: some View {
         Button(action: activate) {
-            VStack(spacing: labelPlacement == .belowCard ? 6 : 0) {
+            VStack(spacing: 6) {
                 imageContainer
-
-                if labelPlacement == .belowCard {
-                    labelContainer
-                }
+                labelContainer
             }
             .contentShape(Rectangle())
         }
@@ -744,32 +679,24 @@ struct ShatlSettingsInputCard<Content: View>: View {
 
     private var imageContainer: some View {
         VStack(spacing: 0) {
-            if labelPlacement == .belowCard {
-                if overlaysSelectionMark {
-                    content
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else if usesCompactImageContainer {
-                    Color.clear
-                        .overlay(alignment: .top) {
-                            content
-                                .padding(.top, 25)
-                        }
-                } else {
-                    HStack {
-                        Spacer(minLength: 0)
-
-                        selectMark
+            if overlaysSelectionMark {
+                content
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else if usesCompactImageContainer {
+                Color.clear
+                    .overlay(alignment: .top) {
+                        content
+                            .padding(.top, 25)
                     }
-
-                    content
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
             } else {
-                labelContainer
-                    .frame(minHeight: 42)
-                    .overlay(alignment: .topTrailing) {
-                        selectMark
-                    }
+                HStack {
+                    Spacer(minLength: 0)
+
+                    selectMark
+                }
+
+                content
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
         .padding(.top, imageContainerTopPadding)
@@ -796,7 +723,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
     }
 
     private var usesCompactImageContainer: Bool {
-        labelPlacement == .belowCard && imageContainerHeight != nil && !overlaysSelectionMark
+        imageContainerHeight != nil && !overlaysSelectionMark
     }
 
     private var imageContainerTopPadding: CGFloat {
@@ -812,7 +739,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
             return 0
         }
 
-        return labelPlacement == .belowCard ? 26 : 10
+        return 26
     }
 
     private var selectMark: some View {
@@ -848,7 +775,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         .padding(.horizontal, 12)
         .frame(
             maxWidth: .infinity,
-            alignment: labelPlacement == .belowCard ? .leading : .center
+            alignment: .leading
         )
         .animation(ShatlMotion.cardState, value: isSelected)
     }
@@ -857,12 +784,12 @@ struct ShatlSettingsInputCard<Content: View>: View {
         title.text
             .shatlTypography(typography)
             .foregroundStyle(color)
-            .multilineTextAlignment(labelPlacement == .belowCard ? .leading : .center)
+            .multilineTextAlignment(.leading)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
             .frame(
                 maxWidth: .infinity,
-                alignment: labelPlacement == .belowCard ? .leading : .center
+                alignment: .leading
             )
     }
 
@@ -906,11 +833,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         activationPulseTask = nil
         isActivationPulseActive = false
     }
-}
-
-enum ShatlSettingsInputCardLabelPlacement {
-    case belowCard
-    case insideCard
 }
 
 private struct ShatlSettingsInputCardButtonStyle: ButtonStyle {
