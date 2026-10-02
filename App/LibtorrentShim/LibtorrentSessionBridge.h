@@ -261,6 +261,11 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 /// What the router answered since port forwarding was switched on.
 - (LTPortMappingStatus *)currentPortMappingStatus;
 
+/// Forgets the router's answer and asks again: port forwarding goes off and
+/// on, as the switch would. For a Mac that moved to another network; does
+/// nothing while port forwarding is off or before boot.
+- (BOOL)restartPortMappingCheck:(NSError * _Nullable * _Nullable)error;
+
 /// Prepares `.torrent` sources. Magnet links use the metadata fetch below,
 /// because their metadata arrives from the network over seconds.
 /// The metadata is kept under `draftIdentifier` until the draft is released.

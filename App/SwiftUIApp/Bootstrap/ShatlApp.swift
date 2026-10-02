@@ -45,7 +45,8 @@ struct ShatlApp: App {
                 userEventNotifier: environment.userEventNotifier,
                 userEventBadgeDisplay: environment.userEventBadgeDisplay,
                 usageTelemetryCoordinator: environment.usageTelemetryCoordinator,
-                usageTelemetrySender: environment.usageTelemetrySender
+                usageTelemetrySender: environment.usageTelemetrySender,
+                physicalNetworkMonitor: environment.physicalNetworkMonitor
             )
         )
     }

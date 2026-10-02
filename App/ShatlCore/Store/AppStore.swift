@@ -162,6 +162,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private let torrentPayloadDeletionService: TorrentPayloadDeletionService
     private let externalOpenRouter: ExternalOpenRouter
     private let userEventNotifier: (any TorrentUserEventNotifying)?
+    /// Watches for another network, so the router is asked again.
+    private let physicalNetworkMonitor: (any PhysicalNetworkMonitoring)?
     private let userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     private let usageTelemetryCoordinator: UsageTelemetryLocalCoordinator?
     private let usageTelemetrySender: (any UsageTelemetrySending)?
@@ -247,6 +249,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)? = nil,
         usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
         usageTelemetrySender: (any UsageTelemetrySending)? = nil,
+        physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
         torrents: [TorrentRecord] = [],
         preferences: AppPreferences? = nil,
         hasLoadedInitialSession: Bool = false,
@@ -264,6 +267,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.torrentPayloadDeletionService = torrentPayloadDeletionService
         self.externalOpenRouter = externalOpenRouter
         self.userEventNotifier = userEventNotifier
+        self.physicalNetworkMonitor = physicalNetworkMonitor
         self.userEventBadgeDisplay = userEventBadgeDisplay
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
@@ -715,6 +719,23 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         schedulePerformanceSettingsApply()
     }
 
+    /// The Mac moved to another network, or lost or found its connection: the
+    /// port the old router opened says nothing about the new one. The dot
+    /// turns grey and the router is asked again; a VPN is not a move.
+    private func physicalNetworkDidChange() {
+        guard didCompleteRuntimeBootstrap,
+              !isPreparingForTermination,
+              preferences.opensRouterPortAutomatically else { return }
+
+        Self.logger.notice("Network changed: asking the router to open the port again")
+        Task { [weak self, engine] in
+            await engine.restartPortMappingCheck()
+            // Grey once the old answer is gone, so Settings cannot read it back.
+            guard let self, self.preferences.opensRouterPortAutomatically else { return }
+            self.portForwardingIndicator = PortForwardingIndicator(isEnabled: true, status: nil)
+        }
+    }
+
     /// Asks the engine what the router answered. Settings calls it while the
     /// Downloads tab is shown; the last answer stays, so the dot is in place
     /// when the tab opens again.
@@ -1022,6 +1043,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func finishTermination(timeout: Duration) async {
         runtimeTask?.cancel()
         runtimeTask = nil
+        physicalNetworkMonitor?.stop()
         let engine = engine
         let gate = ResumeOnce()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -2397,6 +2419,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         allowsUserFacingNotifications = true
         didCompleteRuntimeBootstrap = true
         flushPendingIncomingURLs()
+        physicalNetworkMonitor?.start { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                self.physicalNetworkDidChange()
+            }
+        }
     }
 
     private func resolveInitialSessionLoad(_ result: SessionLoadResult) async -> Bool {
