@@ -246,10 +246,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(pendingRow.canExpand)
         XCTAssertEqual(pendingRow.progress, 0)
         XCTAssertEqual(pendingRow.statusTitle, "Добавляется…")
-        XCTAssertEqual(
-            pendingRow.title,
-            "Загрузка «12345678901234567890123456789…» в процессе добавления…"
-        )
+        XCTAssertEqual(pendingRow.title, "12345678901234567890123456789012345")
         XCTAssertNil(pendingRow.compactTransferMetricSet)
         XCTAssertFalse(pendingRow.canToggleRunningState)
         XCTAssertTrue(pendingRow.canRemoveFromList)
@@ -677,9 +674,12 @@ final class AppStoreTests: XCTestCase {
             debugReason: nil
         )
 
-        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue)
+        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue, localeOverride: .russian)
 
-        XCTAssertEqual(errorState.message, "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка")
+        XCTAssertEqual(
+            errorState.message,
+            L10n.string("torrent.error.save_path_unavailable.message", localeOverride: .russian)
+        )
         XCTAssertEqual(errorState.recoveryOptions, [.chooseAnotherFolder, .removeFromList])
     }
 
@@ -836,11 +836,13 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didNotify)
-        if case .persistentIssue(let torrentID, let issueKind, let torrentTitle, let issueTitle, _, _) = notifier.notifications.first {
+        if case .persistentIssue(let torrentID, let issueKind, let torrentTitle, let issueTitle, let issueMessage, let localeOverride) = notifier.notifications.first {
             XCTAssertEqual(torrentID, record.id)
             XCTAssertEqual(issueKind, .savePathUnavailable)
             XCTAssertEqual(torrentTitle, record.displayName)
-            XCTAssertEqual(issueTitle, "Папка загрузки недоступна")
+            XCTAssertEqual(issueTitle, L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride))
+            // Its own text, not the card's: a notification has no buttons.
+            XCTAssertEqual(issueMessage, L10n.string("torrent.error.save_path_unavailable.notification", localeOverride: localeOverride))
             XCTAssertEqual(notifier.badgeCounts, [1])
         } else {
             XCTFail("Expected persistent issue notification")
@@ -1759,6 +1761,10 @@ final class AppStoreTests: XCTestCase {
                 defaultValue: "Файлы не удалены"
             )
         )
+        // The download has left the list; the alert still knows where the
+        // files stayed.
+        let revealURL = try XCTUnwrap(bundle.store.payloadDeletionAlert?.revealURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: revealURL.path))
     }
 
     func testRemoveTorrentWithFilesShowsSafetyAlertAndPreservesReplacementDirectory() async throws {
@@ -3251,7 +3257,7 @@ final class AppStoreTests: XCTestCase {
     }
 
     /// Loading a repeated ID used to trap in `restoreSnapshot` on every launch,
-    /// so the blocked-load screen with «Запуск с пустым списком» never appeared.
+    /// so the blocked-load screen with its empty-list button never appeared.
     func testRepeatedTorrentIDInSessionBlocksLoadInsteadOfCrashing() async throws {
         let engine = FakeTorrentEngine()
         let bundle = makeTestStoreBundle(

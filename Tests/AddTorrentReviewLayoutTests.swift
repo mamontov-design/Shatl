@@ -518,43 +518,43 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
 
     func testPluralCategoriesFollowSupportedLocales() {
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 1, localeOverride: .russian),
+            L10nPluralCategory.resolve(count: 1, localeOverride: .russian),
             .one
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 2, localeOverride: .russian),
+            L10nPluralCategory.resolve(count: 2, localeOverride: .russian),
             .few
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 5, localeOverride: .russian),
+            L10nPluralCategory.resolve(count: 5, localeOverride: .russian),
             .many
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 11, localeOverride: .russian),
+            L10nPluralCategory.resolve(count: 11, localeOverride: .russian),
             .many
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 21, localeOverride: .russian),
+            L10nPluralCategory.resolve(count: 21, localeOverride: .russian),
             .one
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 1, localeOverride: .english),
+            L10nPluralCategory.resolve(count: 1, localeOverride: .english),
             .one
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 2, localeOverride: .english),
+            L10nPluralCategory.resolve(count: 2, localeOverride: .english),
             .other
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 1, localeOverride: .french),
+            L10nPluralCategory.resolve(count: 1, localeOverride: .french),
             .one
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 2, localeOverride: .french),
+            L10nPluralCategory.resolve(count: 2, localeOverride: .french),
             .other
         )
         XCTAssertEqual(
-            AddTorrentFilePluralCategory.resolve(count: 1, localeOverride: .japanese),
+            L10nPluralCategory.resolve(count: 1, localeOverride: .japanese),
             .other
         )
     }

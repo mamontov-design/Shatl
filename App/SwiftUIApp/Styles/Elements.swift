@@ -393,12 +393,17 @@ struct ShatlMessageBlockPrimaryButton {
 
 /// A message in the middle of a window: icon, title, text and buttons. One
 /// look everywhere: its own fill on the window's own background.
+///
+/// When the message changes, the block stays in place and its content is
+/// replaced, so waiting turns into the result without a jump.
 struct ShatlMessageBlockPrimary: View {
     var systemImage = "exclamationmark.circle"
     let title: String
     var message: String?
     var primaryButton: ShatlMessageBlockPrimaryButton?
     var secondaryButton: ShatlMessageBlockPrimaryButton?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let cornerRadius: CGFloat = 18
 
@@ -425,17 +430,24 @@ struct ShatlMessageBlockPrimary: View {
             Image(systemName: systemImage)
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(ShatlColor.typographyTertiary)
+                .contentTransition(.symbolEffect(.replace))
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .shatlTypography(ShatlTypography.bodySemibold)
-                    .foregroundStyle(ShatlColor.typographyPrimary)
+            // Old and new text overlap while one replaces the other.
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .shatlTypography(ShatlTypography.bodySemibold)
+                        .foregroundStyle(ShatlColor.typographyPrimary)
 
-                if let message {
-                    Text(message)
-                        .shatlTypography(ShatlTypography.bodyRegular)
-                        .foregroundStyle(ShatlColor.typographySecondary)
+                    if let message {
+                        Text(message)
+                            .shatlTypography(ShatlTypography.bodyRegular)
+                            .foregroundStyle(ShatlColor.typographySecondary)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .id(title + "\n" + (message ?? ""))
+                .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
             }
         }
         .padding(8)

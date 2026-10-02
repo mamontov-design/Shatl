@@ -32,6 +32,10 @@ enum ShatlMotion {
     /// Smooth content transformation for the pinned row when its folder changes.
     static let stickyContentReplace = Animation.smooth(duration: 0.38)
 
+    /// A message block replacing its content in place: waiting becomes an
+    /// error, or the files arrive.
+    static let messageBlockContent = Animation.smooth(duration: 0.38)
+
     /// Reveals the pinned row with a subtle lift from the list and no zoom.
     static let stickyPinInsertion = AnyTransition
         .offset(y: 8)
@@ -68,9 +72,8 @@ enum ShatlMotion {
     /// The session-reading message shows only if reading takes this long.
     static let sessionLoadMessageDelay = Duration.milliseconds(300)
 
-    /// Reveals the session-restore status below the toolbar and replaces its completion content.
+    /// Shows and hides the message bars under the toolbar.
     static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)
-    static let sessionRestoreStatusContent = Animation.smooth(duration: 0.36)
 
     /// Smooth presentation and caption change between onboarding steps.
     static let onboardingStepChange = Animation.smooth(duration: 0.48)

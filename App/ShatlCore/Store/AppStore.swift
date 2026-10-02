@@ -143,6 +143,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var automaticCardSimplification = CardSimplificationLevel.full
 
     private let engine: any TorrentEngine
+    /// Asked when a magnet link's file list does not arrive in time, so the
+    /// message can say the Mac is offline. Tests replace it.
+    var networkIsOffline: @Sendable () async -> Bool = { await NetworkReachability.isOffline() }
     private let preferencesStore: AppPreferencesStore?
     private let sessionStore: SessionStore
     private let torrentArchiveStore: TorrentArchiveStore
@@ -420,12 +423,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func makeRowState(for addition: PendingTorrentAddition) -> TorrentRowState {
         TorrentRowState(
             id: addition.id,
-            title: L10n.format(
-                "torrent.card.adding_title",
-                localeOverride: preferences.localeOverride,
-                defaultValue: "Загрузка «%@» в процессе добавления…",
-                addition.shortDisplayName
-            ),
+            // The name alone, as on any card; the badge says it is being added.
+            title: Self.pendingDisplayName(for: addition.draft),
             originalTitle: addition.draft.originalName,
             hasAlias: addition.draft.alias.isEmpty == false,
             status: .downloading,
@@ -455,9 +454,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    private static func shortenedPendingDisplayName(for draft: AddTorrentDraft) -> String {
+    private static func pendingDisplayName(for draft: AddTorrentDraft) -> String {
         let alias = draft.alias.trimmingCharacters(in: .whitespacesAndNewlines)
-        let sourceName = alias.isEmpty ? draft.originalName : alias
+        return alias.isEmpty ? draft.originalName : alias
+    }
+
+    private static func shortenedPendingDisplayName(for draft: AddTorrentDraft) -> String {
+        let sourceName = pendingDisplayName(for: draft)
         guard sourceName.count > 30 else { return sourceName }
 
         return String(sourceName.prefix(29)) + "…"
@@ -534,7 +537,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private static func makeRowState(_ inputs: TorrentRowInputs) -> TorrentRowState {
         let record = inputs.record
         let shared = inputs.shared
-        let errorState = TorrentRowErrorState(record.errorState, localeOverride: shared.localeOverride)
+        let errorState = TorrentRowErrorState(
+            record.errorState,
+            saveFolderPath: record.canonicalSavePath,
+            localeOverride: shared.localeOverride
+        )
         let compactTransferMetricSet = errorState == nil
             ? TorrentPresentation.compactTransferMetricSet(
                 for: record,
@@ -759,6 +766,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func presentDebugOnboarding() {
         onboardingPresentation = .debug
     }
+
+    #if DEBUG
+    /// Debug menu: the main window plays the preparing-downloads message as a
+    /// slow launch would, without touching the downloads.
+    @Published private(set) var debugRestoreStatusPreviewRequestID = 0
+
+    func previewRestoreStatusForDebug() {
+        debugRestoreStatusPreviewRequestID &+= 1
+    }
+    #endif
 
     func setPreferredBrandMark(_ brandMark: ShatlBrandMark) {
         guard preferences.preferredBrandMark != brandMark else { return }
@@ -1466,6 +1483,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         await removeTorrent(id: selectedTorrentID, policy: policy)
     }
 
+    /// Where the files that stayed behind can be found. The deletion alert's
+    /// "Show in Finder" is the last place that knows: the download has
+    /// already left the list. Read before the removal artifacts are cleared.
+    private func payloadRevealURL(for record: TorrentRecord) async -> URL? {
+        await torrentPayloadLocator.primaryLocation(for: record)?.revealItemURL
+    }
+
     func primaryLocation(for id: UUID) async -> ManagedTorrentLocation? {
         guard let record = torrentRecord(for: id) else { return nil }
         return await torrentPayloadLocator.primaryLocation(for: record)
@@ -1532,12 +1556,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         if resolvedPolicy == .removeFromListAndDeleteFiles, !canDeletePayload {
             payloadDeletionAlert = PayloadDeletionAlert(
-                title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                message: L10n.string(
-                    "payload_deletion.engine_stop_failed.message",
-                    localeOverride: preferences.localeOverride,
-                    defaultValue: "Shatl удалил торрент из списка, но не смог безопасно остановить его в движке перед удалением файлов."
-                )
+                title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                message: L10n.string("payload_deletion.engine_stop_failed.message", localeOverride: preferences.localeOverride),
+                revealURL: await payloadRevealURL(for: record)
             )
         }
 
@@ -1551,23 +1572,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     + deletionResult.unsafeManagedFileCount
                 if failedItemCount > 0 {
                     payloadDeletionAlert = PayloadDeletionAlert(
-                        title: L10n.string("payload_deletion.not_all_files_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Не все файлы удалены"),
-                        message: L10n.format(
-                            "payload_deletion.partial_failure.message",
+                        title: L10n.format(
+                            L10n.pluralKey(
+                                "payload_deletion.partial_failure.title",
+                                count: failedItemCount,
+                                localeOverride: preferences.localeOverride
+                            ),
                             localeOverride: preferences.localeOverride,
-                            defaultValue: "Shatl удалил торрент из списка, но не смог удалить %lld файл(ов) с диска.",
+                            defaultValue: "%lld",
                             failedItemCount
-                        )
+                        ),
+                        message: L10n.string("payload_deletion.partial_failure.message", localeOverride: preferences.localeOverride),
+                        revealURL: await payloadRevealURL(for: record)
                     )
                 } else if deletionResult.failedDirectoryCleanupCount > 0
                             || deletionResult.unsafeCleanupItemCount > 0 {
                     payloadDeletionAlert = PayloadDeletionAlert(
-                        title: L10n.string("payload_deletion.not_all_files_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Не все файлы удалены"),
-                        message: L10n.string(
-                            "payload_deletion.cleanup_failure.message",
-                            localeOverride: preferences.localeOverride,
-                            defaultValue: "Файлы торрента удалены, но Shatl оставил некоторые папки или служебные файлы, потому что их нельзя было безопасно очистить."
-                        )
+                        title: L10n.string("payload_deletion.cleanup_failure.title", localeOverride: preferences.localeOverride),
+                        message: L10n.string("payload_deletion.cleanup_failure.message", localeOverride: preferences.localeOverride),
+                        revealURL: await payloadRevealURL(for: record)
                     )
                 }
             case .unsafe(let failure):
@@ -1575,12 +1598,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     "Payload deletion refused for torrent id=\(id.uuidString) unsafeIssueCount=\(failure.issues.count)"
                 )
                 payloadDeletionAlert = PayloadDeletionAlert(
-                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                    message: L10n.string(
-                        "payload_deletion.safety_refused.message",
-                        localeOverride: preferences.localeOverride,
-                        defaultValue: "Shatl удалил торрент из списка, но оставил файлы: путь или тип объекта больше не соответствует данным торрента."
-                    )
+                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                    message: L10n.string("payload_deletion.safety_refused.message", localeOverride: preferences.localeOverride),
+                    revealURL: await payloadRevealURL(for: record)
                 )
             case .unresolved(let failure):
                 let inspectedFileCount = failure.inspectedFileCount.map(String.init) ?? "-"
@@ -1601,12 +1621,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     ]
                 )
                 payloadDeletionAlert = PayloadDeletionAlert(
-                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride, defaultValue: "Файлы не удалены"),
-                    message: L10n.string(
-                        "payload_deletion.unresolved.message",
-                        localeOverride: preferences.localeOverride,
-                        defaultValue: "Shatl удалил торрент из списка, но не смог безопасно определить связанные файлы на диске."
-                    )
+                    title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
+                    message: L10n.string("payload_deletion.unresolved.message", localeOverride: preferences.localeOverride),
+                    revealURL: await payloadRevealURL(for: record)
                 )
             }
         }
@@ -2813,11 +2830,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                let errorState = ShatlErrorCatalog.reviewError(
+                var errorState = ShatlErrorCatalog.reviewError(
                     for: error,
                     source: source,
                     localeOverride: self.preferences.localeOverride
                 )
+                // The wait ran out with no network at all: say so directly.
+                if errorState.kind == .metadataTimeout, await self.networkIsOffline() {
+                    guard !Task.isCancelled else { return }
+                    errorState = ShatlErrorCatalog.offlineMetadataError(
+                        localeOverride: self.preferences.localeOverride
+                    )
+                }
                 self.presentInvalidDraft(
                     for: source,
                     errorState: errorState,
@@ -3554,13 +3578,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
         guard !notifiedPersistentIssueKeys.contains(notificationKey) else { return }
 
-        let errorState = ShatlErrorCatalog.persistentIssueState(for: issue)
-        guard let rowErrorState = TorrentRowErrorState(
-            errorState,
+        let notification = ShatlErrorCatalog.persistentIssueNotification(
+            for: issue.kind,
             localeOverride: preferences.localeOverride
-        ) else {
-            return
-        }
+        )
 
         notifiedPersistentIssueKeys.insert(notificationKey)
         registerUnreadPersistentIssueIfNeeded(notificationKey)
@@ -3569,8 +3590,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 torrentID: torrent.id,
                 issueKind: issue.kind,
                 torrentTitle: torrent.displayName,
-                issueTitle: rowErrorState.title,
-                issueMessage: rowErrorState.message,
+                issueTitle: notification.title,
+                issueMessage: notification.body,
                 localeOverride: preferences.localeOverride
             ),
             badgeCount: userEventBadgeCount

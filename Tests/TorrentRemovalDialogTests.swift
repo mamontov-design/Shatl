@@ -24,7 +24,7 @@ final class TorrentRemovalDialogTests: XCTestCase {
             localeOverride: .russian
         )
 
-        assertSafeConfirmation(alert, cancelTitle: "Отмена", destructiveTitle: "Удалить загрузку")
+        assertSafeConfirmation(alert, cancelTitle: "Отменить", destructiveTitle: "Удалить")
     }
 
     func testEscapeCancelsOnlyAVisibleAlert() {

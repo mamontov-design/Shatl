@@ -28,7 +28,7 @@ nonisolated struct TorrentRecord: Identifiable, Equatable, Codable, Sendable {
 
     /// The UI prioritizes a persistent card issue over a transient runtime error.
     var errorState: TorrentErrorState? {
-        persistentIssue.flatMap(ShatlErrorCatalog.persistentIssueState(for:))
+        persistentIssue.map { ShatlErrorCatalog.persistentIssueState(for: $0) }
             ?? runtimeErrorState
     }
 

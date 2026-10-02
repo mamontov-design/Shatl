@@ -23,4 +23,6 @@ nonisolated struct PayloadDeletionAlert: Identifiable, Equatable, Sendable {
     var id = UUID()
     var title: String
     var message: String
+    /// The files that stayed on disk, shown by the alert's "Show in Finder".
+    var revealURL: URL?
 }
