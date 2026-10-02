@@ -271,10 +271,13 @@ struct ShatlSettingsView: View {
         )
     }
 
+    /// As Finder names it: "Загрузки", not the "Downloads" on disk, as the
+    /// add window shows it.
     private var defaultDownloadFolderName: String {
-        let url = URL(fileURLWithPath: store.preferences.defaultDownloadPath, isDirectory: true)
-        let name = url.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.isEmpty ? store.preferences.defaultDownloadPath : name
+        let path = store.preferences.defaultDownloadPath
+        let name = ShatlErrorCatalog.folderDisplayName(forPath: path)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? path : name
     }
 
     private func presentDefaultDownloadFolderPicker() {
