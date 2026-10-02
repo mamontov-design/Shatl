@@ -25,7 +25,13 @@ struct EngineFixture {
     }
 
     /// `announceURL` adds a tracker; without it no peers are contacted.
-    static func make(named name: String, announceURL: String? = nil) throws -> EngineFixture {
+    /// `webSeedURL` adds a web seed, the one source a test can download
+    /// from: see `LocalWebSeed`.
+    static func make(
+        named name: String,
+        announceURL: String? = nil,
+        webSeedURL: String? = nil
+    ) throws -> EngineFixture {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("LibtorrentEngine-\(name)-\(UUID().uuidString)", isDirectory: true)
         let directories = ShatlDirectories(
@@ -41,9 +47,10 @@ struct EngineFixture {
 
         let torrentURL = rootURL.appendingPathComponent("fixture.torrent", isDirectory: false)
         let info = makeInfoDictionary(fileName: "payload.bin", payload: payload, pieceLength: 16 * 1024)
-        // Bencoded dictionary keys must be sorted: "announce" before "info".
+        // Bencoded dictionary keys must be sorted: "announce", "info", "url-list".
         let announce = announceURL.map { Data("8:announce\($0.utf8.count):\($0)".utf8) } ?? Data()
-        try (Data("d".utf8) + announce + Data("4:info".utf8) + info + Data("e".utf8)).write(to: torrentURL)
+        let webSeed = webSeedURL.map { Data("8:url-list\($0.utf8.count):\($0)".utf8) } ?? Data()
+        try (Data("d".utf8) + announce + Data("4:info".utf8) + info + webSeed + Data("e".utf8)).write(to: torrentURL)
 
         let torrentID = UUID()
         return EngineFixture(

@@ -239,6 +239,11 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 /// The budget of the running session, read back from libtorrent. Nil before boot.
 - (nullable LTResourceBudget *)currentResourceBudget;
 
+/// Whether the running session writes payload through write calls, which
+/// report a full disk, rather than the memory map, which does not. Read back
+/// from libtorrent; NO before boot.
+@property (nonatomic, readonly) BOOL writesPayloadThroughWriteCalls;
+
 /// Descriptors the process has open right now.
 + (NSInteger)openFileDescriptorCount;
 

@@ -726,6 +726,13 @@ static lt::settings_pack LTMakeSessionSettingsPack(LTPerformanceProfile profile,
     pack.set_bool(lt::settings_pack::enable_upnp, portForwarding);
     pack.set_bool(lt::settings_pack::enable_natpmp, portForwarding);
     pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(diagnostics, portForwarding));
+    // Payload goes to disk through write calls, not the memory map. When
+    // the disk fills, macOS drops what was written into a mapping without a
+    // word: the download finished with almost all of its data missing,
+    // checked against pages still in memory. A write call is refused with
+    // ENOSPC, and the download stops with its cause. A torrent's storage
+    // reads this when the torrent is added.
+    pack.set_int(lt::settings_pack::disk_write_mode, lt::settings_pack::always_pwrite);
     return pack;
 }
 
@@ -917,6 +924,10 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     std::unordered_map<std::string, bool> _stopAfterDownloadByRecordID;
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
     std::unordered_map<std::string, LTSwarmSample> _lastSwarmByRecordID;
+    // The last file error libtorrent reported for a download, and the write
+    // error that stopped one: see `stopDownloadRefusedByDiskIfNeeded`.
+    std::unordered_map<std::string, lt::error_code> _lastFileErrorByRecordID;
+    std::unordered_map<std::string, lt::error_code> _writeErrorStopByRecordID;
     std::unordered_map<std::string, LTPeerEventCounts> _peerEventsByRecordID;
     std::chrono::steady_clock::time_point _peerEventsWindowStartedAt;
     BOOL _diagnosticAlertsEnabled;
@@ -1177,6 +1188,8 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     _stopAfterDownloadByRecordID.clear();
     _lastSnapshotStatusByRecordID.clear();
     _lastSwarmByRecordID.clear();
+    _lastFileErrorByRecordID.clear();
+    _writeErrorStopByRecordID.clear();
     _peerEventsByRecordID.clear();
 
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
@@ -1253,6 +1266,11 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                requestedFilePoolSize:requested.get_int(lt::settings_pack::file_pool_size)
                     connectionsLimit:applied.get_int(lt::settings_pack::connections_limit)
                         filePoolSize:applied.get_int(lt::settings_pack::file_pool_size)];
+}
+
+- (BOOL)writesPayloadThroughWriteCalls {
+    return _session != nullptr
+        && _session->get_settings().get_int(lt::settings_pack::disk_write_mode) == lt::settings_pack::always_pwrite;
 }
 
 - (BOOL)applyPortForwarding:(BOOL)enabled error:(NSError * _Nullable __autoreleasing *)error {
@@ -1883,6 +1901,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                 resumed.save_path = LTToStdString(normalizedSavePath);
                 resumed.storage_mode = lt::storage_mode_sparse;
                 resumed.flags &= ~lt::torrent_flags::auto_managed;
+                // Saved while the disk refused writes: a download never
+                // stays in upload mode, or it would seed without downloading.
+                resumed.flags &= ~lt::torrent_flags::upload_mode;
                 resumed.flags |= lt::torrent_flags::duplicate_is_error;
                 params = std::move(resumed);
                 resumeDataStatus = @"loaded";
@@ -2002,8 +2023,13 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     }
 
     // A torrent libtorrent stopped with an error stays stopped until the
-    // error is cleared; "Повторить" may reach a handle that was kept.
+    // error is cleared; "Повторить" may reach a handle that was kept. One
+    // the disk refused a write to also leaves upload mode, or it would seed
+    // without downloading.
     iterator->second.clear_error();
+    iterator->second.unset_flags(lt::torrent_flags::upload_mode);
+    self->_lastFileErrorByRecordID.erase(iterator->first);
+    self->_writeErrorStopByRecordID.erase(iterator->first);
     iterator->second.unset_flags(lt::torrent_flags::paused);
     iterator->second.resume();
     LT_BRIDGE_LOG(
@@ -2230,6 +2256,8 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     self->_stopAfterDownloadByRecordID.erase(key);
     self->_lastSnapshotStatusByRecordID.erase(key);
     self->_lastSwarmByRecordID.erase(key);
+    self->_lastFileErrorByRecordID.erase(key);
+    self->_writeErrorStopByRecordID.erase(key);
     LT_BRIDGE_LOG(
         @"remove.end",
         recordIdentifier,
@@ -2252,10 +2280,8 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         _peerEventsByRecordID.clear();
         _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
     }
-    if (!diagnostics && !_portForwardingEnabled) {
-        return;
-    }
-
+    // Read every tick: a file error arrives only as an alert. A quiet
+    // session posts errors alone, so the queue is mostly empty.
     std::vector<lt::alert *> alerts;
     _session->pop_alerts(&alerts);
     [self noteAlerts:alerts];
@@ -2271,8 +2297,90 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 }
 
 - (void)noteAlerts:(std::vector<lt::alert *> const&)alerts {
+    [self noteFileErrorAlerts:alerts];
     [self notePortMappingAlerts:alerts];
     [self logDiagnosticAlerts:alerts];
+}
+
+/// Keeps the last file error of each download: the status keeps no error
+/// when the disk refuses a write, and the alert alone says why.
+- (void)noteFileErrorAlerts:(std::vector<lt::alert *> const&)alerts {
+    for (lt::alert *alert : alerts) {
+        auto *fileError = lt::alert_cast<lt::file_error_alert>(alert);
+        if (fileError == nullptr) {
+            continue;
+        }
+        for (auto const& entry : _handlesByRecordID) {
+            if (entry.second == fileError->handle) {
+                _lastFileErrorByRecordID[entry.first] = fileError->error;
+                LT_BRIDGE_LOG(
+                    @"file.error",
+                    LTToNSString(entry.first),
+                    (@{
+                        @"operation": LTToNSString(lt::operation_name(fileError->op)),
+                        @"error": LTToNSString(fileError->error.message()),
+                        @"code": [NSString stringWithFormat:@"%ld", static_cast<long>(LTPOSIXErrorCode(fileError->error))]
+                    }),
+                    YES
+                );
+                break;
+            }
+        }
+    }
+}
+
+/// libtorrent answers a write the disk refuses (no space, no access, a
+/// read-only disk) by downloading no more and seeding what it has, trying
+/// again on its own every ten minutes, with no error in the status: the
+/// card showed "Скачивается" at no speed. Shatl stops such a download and
+/// reports the refusal as its error, so the card says why and "Повторить"
+/// starts it again. Returns the error that stopped the download, or none.
+- (lt::error_code)stopDownloadRefusedByDiskIfNeeded:(lt::torrent_handle const&)handle
+                                          recordKey:(std::string const&)recordKey
+                                             status:(lt::torrent_status&)status {
+    auto stop = _writeErrorStopByRecordID.find(recordKey);
+    if (stop != _writeErrorStopByRecordID.end()) {
+        return stop->second;
+    }
+    if (status.errc || !LTFlagEnabled(status.flags, lt::torrent_flags::upload_mode)) {
+        return {};
+    }
+
+    auto lastError = _lastFileErrorByRecordID.find(recordKey);
+    if (lastError == _lastFileErrorByRecordID.end()) {
+        // libtorrent posts the alert before it turns upload mode on, so an
+        // alert not read yet is already in the queue.
+        std::vector<lt::alert *> alerts;
+        _session->pop_alerts(&alerts);
+        [self noteAlerts:alerts];
+        lastError = _lastFileErrorByRecordID.find(recordKey);
+    }
+    // Without its alert the cause is unknown, and the card shows an
+    // internal error rather than guess one.
+    lt::error_code const refusal = lastError != _lastFileErrorByRecordID.end()
+        ? lastError->second
+        : lt::error_code(ECANCELED, boost::system::generic_category());
+    _writeErrorStopByRecordID[recordKey] = refusal;
+    handle.pause();
+    handle.set_flags(lt::torrent_flags::paused);
+    // libtorrent checks a piece against the blocks still in memory, so a
+    // piece whose write was refused may already count as downloaded and go
+    // into resume data as such. Checking the files again, paused, keeps
+    // only what reached the disk; resume data saved meanwhile keeps only
+    // the pieces checked so far.
+    handle.force_recheck();
+    LT_BRIDGE_LOG(
+        @"write.refused.stop",
+        LTToNSString(recordKey),
+        (@{
+            @"error": LTToNSString(refusal.message()),
+            @"code": [NSString stringWithFormat:@"%ld", static_cast<long>(LTPOSIXErrorCode(refusal))],
+            @"alertSeen": lastError != _lastFileErrorByRecordID.end() ? @"1" : @"0"
+        }),
+        YES
+    );
+    status = handle.status();
+    return refusal;
 }
 
 - (void)notePortMappingAlerts:(std::vector<lt::alert *> const&)alerts {
@@ -2717,6 +2825,11 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         );
     }
 
+    lt::error_code const writeRefusal = [self stopDownloadRefusedByDiskIfNeeded:handle
+                                                                      recordKey:recordKey
+                                                                         status:status];
+    lt::error_code const reportedError = status.errc ? status.errc : writeRefusal;
+
     // For partial selections, compute progress from wanted bytes instead of relying
     // on `status.progress`, whose calculation base can change between launches.
     double visibleProgress = status.progress;
@@ -2749,7 +2862,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     }
 
     return [[LTTorrentSnapshot alloc] initWithRecordIdentifier:recordIdentifier
-                                                        status:LTRuntimeStatusFromTorrentStatus(status)
+                                                        status:reportedError
+                                                                ? LTTorrentRuntimeStatusError
+                                                                : LTRuntimeStatusFromTorrentStatus(status)
                                                       progress:visibleProgress
                                     downloadSpeedBytesPerSecond:status.download_rate
                                       uploadSpeedBytesPerSecond:status.upload_payload_rate
@@ -2759,8 +2874,8 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                                                   uploadedBytes:status.all_time_upload
                                                      totalBytes:status.total
                                                   selectedBytes:status.total_wanted > 0 ? status.total_wanted : status.total
-                                                   errorMessage:status.errc ? LTToNSString(status.errc.message()) : nil
-                                                      errorCode:LTPOSIXErrorCode(status.errc)
+                                                   errorMessage:reportedError ? LTToNSString(reportedError.message()) : nil
+                                                      errorCode:LTPOSIXErrorCode(reportedError)
                                                resumeDataStatus:resumeDataStatus];
 	}
 
