@@ -60,7 +60,10 @@ struct ShatlSettingsView: View {
                             isSelected: store.preferences.performanceProfile == profile,
                             imageContainerHeight: 100,
                             imageContentVerticalPadding: 26,
-                            overlaysSelectionMark: true
+                            overlaysSelectionMark: true,
+                            // Halo saves the battery.
+                            titleSymbol: profile == .economical ? "leaf.fill" : nil,
+                            titleSymbolColor: ShatlColor.haloLeaf
                         ) {
                             store.setPerformanceProfile(profile)
                         } content: {
@@ -997,7 +1000,8 @@ private struct AppearanceSettingsTab: View {
                 showsExpansionToggle: false,
                 pulsesMetricSetOutlines: false,
                 metricSetOutlineFlashTrigger: metricPreviewPulseTrigger,
-                metricSetOutlineFlashColor: metricPreviewOutlineHighlightColor,
+                // The app's accent, or the one chosen in macOS.
+                metricSetOutlineFlashColor: ShatlColor.accent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 usesProductionProgressColors: true,
                 cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
@@ -1006,15 +1010,11 @@ private struct AppearanceSettingsTab: View {
                 cardWidth: nil
             )
             .padding(.horizontal, 28)
-
-            Label("settings.appearance.preview", systemImage: "play.display")
-            .shatlTypography(ShatlTypography.groupSemibold)
-            .foregroundStyle(ShatlColor.typographySecondary)
-            .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.top, 24)
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 8)
+        // With the tab's spacing, 24 pt down to the toggles.
+        .padding(.bottom, 16)
     }
 
     private var metricsModeSection: some View {
@@ -1104,16 +1104,6 @@ private struct AppearanceSettingsTab: View {
             get: { store.preferences.metricsMode == .simplified },
             set: { selectMetricsMode($0 ? .simplified : .detailed) }
         )
-    }
-
-    private var metricPreviewOutlineHighlightColor: Color {
-        metricPreviewAccentColor
-    }
-
-    private var metricPreviewAccentColor: Color {
-        accentState.isUsingAppAccent
-            ? ShatlColor.neonBlue
-            : accentState.systemAccentColor
     }
 
 }

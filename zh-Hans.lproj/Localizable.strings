@@ -69,7 +69,7 @@
 "onboarding.expanded_card.description.lead" = "每个下载任务都会像这样显示为一张卡片。";
 "onboarding.expanded_card.description.prefix" = "点击右上角的";
 "onboarding.expanded_card.description.suffix" = "按钮，查看更多数据：种子、节点、大小和上传。再次点击即可收起卡片。";
-"onboarding.expanded_card.demo_title" = "种子任务";
+"onboarding.expanded_card.demo_title" = "下载的显示效果";
 "onboarding.data.title" = "分享匿名统计？";
 "onboarding.data.description" = "你可以帮助了解 Shatl 对用户是否有用。报告每周最多发送一次。";
 "onboarding.done.title" = "全部就绪。";
@@ -275,7 +275,6 @@
 "settings.appearance.metrics.popover.precision" = "关闭简化模式后，速度和大小会显示得更精确：例如显示 10.5 MB/秒而不是 10 MB/秒，显示 7.7 GB 而不是 7 GB。";
 "settings.appearance.metrics.popover.eta" = "剩余时间不到一小时时会精确显示，不会取整到 5 秒或 5 分钟：例如显示 38 分钟而不是 35 分钟。一小时及以上的时间在两种模式下显示相同。";
 "settings.appearance.metrics.popover.unchanged" = "进度、种子和节点，以及下载本身都不受模式影响。";
-"settings.appearance.preview" = "预览";
 
 "settings.about.application_version" = "App 版本";
 "settings.about.check_updates" = "检查更新…";

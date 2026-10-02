@@ -69,7 +69,7 @@
 "onboarding.expanded_card.description.lead" = "Так будут выглядеть загрузки — каждая в своей карточке.";
 "onboarding.expanded_card.description.prefix" = "Нажмите кнопку ";
 "onboarding.expanded_card.description.suffix" = " в правом верхнем углу, чтобы увидеть больше данных: сиды, пиры, размер и раздачу. Нажмите ещё раз, чтобы свернуть карточку.";
-"onboarding.expanded_card.demo_title" = "Торрент";
+"onboarding.expanded_card.demo_title" = "Так выглядит загрузка";
 "onboarding.data.title" = "Делиться анонимной статистикой?";
 "onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю.";
 "onboarding.done.title" = "Всё готово.";
@@ -284,7 +284,6 @@
 "settings.appearance.metrics.popover.precision" = "Без упрощённого режима скорость и объём показываются точнее: например, 10,5 МБ/с вместо 10 МБ/с и 7,7 ГБ вместо 7 ГБ.";
 "settings.appearance.metrics.popover.eta" = "Оставшееся время меньше часа показывается точно, без округления до 5 секунд или 5 минут: например, 38 мин вместо 35 мин. Время от часа выглядит одинаково в обоих режимах.";
 "settings.appearance.metrics.popover.unchanged" = "Прогресс, сиды и пиры, а также сама загрузка от режима не зависят.";
-"settings.appearance.preview" = "Предпросмотр";
 
 "settings.about.application_version" = "Версия приложения";
 "settings.about.check_updates" = "Проверить обновления…";

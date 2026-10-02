@@ -58,6 +58,9 @@ enum ShatlColor {
     static let cerisePink = Color("cerisePink")
     static let slate = Color("slate")
     static let neonBlue = Color("neonBlue")
+    /// The leaf beside Halo, the mode that saves the battery: #22c55e in both
+    /// appearances.
+    static let haloLeaf = Color("haloLeaf")
 
     static let statusBadgeCompletedDefault = Color("statusBadgeCompletedDefault")
     static let statusBadgeCompletedHover = Color("statusBadgeCompletedHover")

@@ -69,7 +69,7 @@
 "onboarding.expanded_card.description.lead" = "This is how your downloads will look, each in its own card.";
 "onboarding.expanded_card.description.prefix" = "Click the ";
 "onboarding.expanded_card.description.suffix" = " button in the top-right corner to see more data: seeds, peers, size, and upload. Click it again to collapse the card.";
-"onboarding.expanded_card.demo_title" = "Torrent";
+"onboarding.expanded_card.demo_title" = "What a download looks like";
 "onboarding.data.title" = "Share Anonymous Statistics?";
 "onboarding.data.description" = "You can help understand whether Shatl is useful to people. A report is sent no more than once a week.";
 "onboarding.done.title" = "All Set.";
@@ -278,7 +278,6 @@
 "settings.appearance.metrics.popover.precision" = "Without simplified mode, speed and size are shown more precisely: for example, 10.5 MB/s instead of 10 MB/s and 7.7 GB instead of 7 GB.";
 "settings.appearance.metrics.popover.eta" = "Time remaining under an hour is shown exactly, without rounding to 5 seconds or 5 minutes: for example, 38 min instead of 35 min. Times of an hour or more look the same in both modes.";
 "settings.appearance.metrics.popover.unchanged" = "Progress, seeds and peers, and the download itself don’t depend on the mode.";
-"settings.appearance.preview" = "Preview";
 
 "settings.about.application_version" = "App version";
 "settings.about.check_updates" = "Check for Updates…";

@@ -69,7 +69,7 @@
 "onboarding.expanded_card.description.lead" = "ダウンロードは、このように1件ずつカードで表示されます。";
 "onboarding.expanded_card.description.prefix" = "右上の";
 "onboarding.expanded_card.description.suffix" = "ボタンをクリックすると、シード、ピア、サイズ、アップロードなどのデータを確認できます。もう一度クリックすると、カードを折りたためます。";
-"onboarding.expanded_card.demo_title" = "トレント";
+"onboarding.expanded_card.demo_title" = "ダウンロードの表示例";
 "onboarding.data.title" = "匿名統計を共有しますか？";
 "onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。レポートの送信は週1回までです。";
 "onboarding.done.title" = "準備完了。";
@@ -275,7 +275,6 @@
 "settings.appearance.metrics.popover.precision" = "簡易モードをオフにすると、速度とサイズがより正確に表示されます。例：10 MB/秒ではなく10.5 MB/秒、7 GBではなく7.7 GB。";
 "settings.appearance.metrics.popover.eta" = "残り時間が1時間未満の場合は、5秒や5分単位に丸めずに正確に表示されます。例：35分ではなく38分。1時間以上はどちらのモードでも同じ表示です。";
 "settings.appearance.metrics.popover.unchanged" = "進行状況、シードとピア、ダウンロード自体はモードによって変わりません。";
-"settings.appearance.preview" = "プレビュー";
 
 "settings.about.application_version" = "アプリのバージョン";
 "settings.about.check_updates" = "アップデートを確認…";
