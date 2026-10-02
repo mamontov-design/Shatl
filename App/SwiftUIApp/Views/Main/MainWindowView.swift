@@ -145,10 +145,15 @@ struct MainWindowView: View {
                     )
                     .transition(restoreStatusTransition)
                     .zIndex(1)
+                } else if store.isHaloSpeedNoticeVisible {
+                    haloSpeedNoticeBar
+                        .transition(restoreStatusTransition)
+                        .zIndex(1)
                 }
 
                 contentView
             }
+            .animation(ShatlMotion.sessionRestoreStatusBar, value: store.isHaloSpeedNoticeVisible)
 
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
@@ -462,25 +467,68 @@ struct MainWindowView: View {
         ShatlLineMessageBar(
             title: sessionPersistenceTitle,
             message: sessionPersistenceMessage(for: issue.kind),
-            primaryButtonTitle: L10n.string(
-                "session.persistence.line.check_again",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Проверить снова"
-            ),
-            primaryBusyTitle: L10n.string(
-                "session.persistence.line.checking",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Проверка…"
-            ),
-            isPrimaryBusy: isCheckingSessionPersistence,
-            closeButtonTitle: L10n.string(
-                "session.persistence.line.hide",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Скрыть"
-            ),
-            primaryAction: checkSessionPersistenceAgain,
-            closeAction: { store.hideSessionPersistenceIssue() }
+            buttons: [
+                ShatlLineMessageBarButton(
+                    title: L10n.string(
+                        "session.persistence.line.check_again",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Проверить снова"
+                    ),
+                    busyTitle: L10n.string(
+                        "session.persistence.line.checking",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Проверка…"
+                    ),
+                    isBusy: isCheckingSessionPersistence,
+                    action: checkSessionPersistenceAgain
+                ),
+                ShatlLineMessageBarButton(
+                    title: L10n.string(
+                        "session.persistence.line.hide",
+                        localeOverride: store.preferences.localeOverride,
+                        defaultValue: "Скрыть"
+                    ),
+                    action: { store.hideSessionPersistenceIssue() }
+                ),
+            ]
         )
+    }
+
+    /// Why speed is limited in Halo, with the way out on a button.
+    private var haloSpeedNoticeBar: some View {
+        ShatlLineMessageBar(
+            title: L10n.string("halo_notice.title", localeOverride: store.preferences.localeOverride),
+            message: L10n.string("halo_notice.message", localeOverride: store.preferences.localeOverride),
+            buttons: Self.haloSpeedNoticeButtons(
+                localeOverride: store.preferences.localeOverride,
+                dismiss: { store.dismissHaloSpeedNotice() },
+                switchToOrbit: { store.setPerformanceProfile(.balanced) },
+                stopShowing: { store.stopShowingHaloSpeedNotice() }
+            )
+        )
+    }
+
+    /// Kept apart so a test can measure them in every language.
+    static func haloSpeedNoticeButtons(
+        localeOverride: AppLocaleOverride,
+        dismiss: @escaping () -> Void = {},
+        switchToOrbit: @escaping () -> Void = {},
+        stopShowing: @escaping () -> Void = {}
+    ) -> [ShatlLineMessageBarButton] {
+        [
+            ShatlLineMessageBarButton(
+                title: L10n.string("halo_notice.got_it", localeOverride: localeOverride),
+                action: dismiss
+            ),
+            ShatlLineMessageBarButton(
+                title: L10n.string("halo_notice.switch_to_orbit", localeOverride: localeOverride),
+                action: switchToOrbit
+            ),
+            ShatlLineMessageBarButton(
+                title: L10n.string("halo_notice.never_show", localeOverride: localeOverride),
+                action: stopShowing
+            ),
+        ]
     }
 
     private func checkSessionPersistenceAgain() {
@@ -670,17 +718,25 @@ private struct TorrentTransferSummaryLayer: View {
 /// persistence failures that last until storage accepts writes again.
 /// A message under the toolbar: a title, a short text and, when there is
 /// something to do, buttons.
+/// A button of the line message bar.
+struct ShatlLineMessageBarButton: Identifiable {
+    var id: String { title }
+    let title: String
+    var busyTitle: String? = nil
+    /// While one button's action runs, it shows its busy title and the
+    /// others look disabled, so nothing interrupts it.
+    var isBusy = false
+    let action: () -> Void
+}
+
 struct ShatlLineMessageBar: View {
     let title: String
     let message: String
-    var primaryButtonTitle: String?
-    var primaryBusyTitle: String?
-    /// While the primary action runs, both buttons stay blocked and the close
-    /// button looks disabled, so neither can interrupt the running check.
-    var isPrimaryBusy = false
-    var closeButtonTitle: String?
-    var primaryAction: () -> Void = {}
-    var closeAction: () -> Void = {}
+    var buttons: [ShatlLineMessageBarButton] = []
+
+    private var isAnyButtonBusy: Bool {
+        buttons.contains(where: \.isBusy)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -696,27 +752,23 @@ struct ShatlLineMessageBar: View {
             }
             .padding(.horizontal, 6)
 
-            if let primaryButtonTitle, let closeButtonTitle {
+            if !buttons.isEmpty {
                 HStack(spacing: 8) {
-                    ShatlButton(
-                        title: primaryButtonTitle,
-                        busyTitle: primaryBusyTitle,
-                        isBusy: isPrimaryBusy,
-                        role: .lineMessage,
-                        action: primaryAction
-                    )
-
-                    ShatlButton(
-                        title: closeButtonTitle,
-                        role: .lineMessage,
-                        isDisabled: isPrimaryBusy,
-                        action: closeAction
-                    )
+                    ForEach(buttons) { button in
+                        ShatlButton(
+                            title: button.title,
+                            busyTitle: button.busyTitle,
+                            isBusy: button.isBusy,
+                            role: .lineMessage,
+                            isDisabled: isAnyButtonBusy && !button.isBusy,
+                            action: button.action
+                        )
+                    }
                 }
-                // The close button slides with the resizing primary button,
-                // like neighbors in the expanded metric row.
+                // The other buttons slide with a resizing busy button, like
+                // neighbors in the expanded metric row.
                 .geometryGroup()
-                .animation(ShatlMotion.metricResize, value: isPrimaryBusy)
+                .animation(ShatlMotion.metricResize, value: isAnyButtonBusy)
             }
         }
         .padding(.horizontal, 12)

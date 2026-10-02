@@ -254,6 +254,11 @@
 "settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "模式决定下载可以使用多少 Mac 资源。模式越高，连接越多，Mac 负载和能耗也越高。";
 "settings.downloads.performance.caption.economical" = "在 Halo 模式下，下载速度不超过 5 MB/秒，上传速度不超过 2.5 MB/秒。这样可以节省电量，但大文件下载时间会更长。";
+"halo_notice.title" = "速度受 Halo 模式限制";
+"halo_notice.message" = "为节省电量，下载速度不超过 5 MB/秒，上传速度不超过 2.5 MB/秒。若要取消限制，请切换到 Orbit 或 Nova 模式。";
+"halo_notice.got_it" = "知道了";
+"halo_notice.switch_to_orbit" = "开启 Orbit";
+"halo_notice.never_show" = "不再显示";
 "settings.downloads.folder.section" = "下载文件夹";
 "settings.downloads.network.section" = "网络";
 "settings.downloads.network.port_forwarding" = "自动在路由器上打开端口";

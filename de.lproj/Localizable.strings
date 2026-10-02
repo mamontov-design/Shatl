@@ -257,6 +257,11 @@
 "settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Der Modus legt fest, wie viele Ressourcen Ihres Mac die Downloads erhalten. Je höher er ist, desto mehr Verbindungen, Last auf dem Mac und Energieverbrauch.";
 "settings.downloads.performance.caption.economical" = "Im Modus Halo laden Downloads mit höchstens 5 MB/s und Uploads mit höchstens 2,5 MB/s. Das schont den Akku, große Dateien laden aber länger.";
+"halo_notice.title" = "Geschwindigkeit durch Halo begrenzt";
+"halo_notice.message" = "Downloads laden mit höchstens 5 MB/s und Uploads mit höchstens 2,5 MB/s, um den Akku zu schonen. Ohne Begrenzung laden sie im Modus Orbit oder Nova.";
+"halo_notice.got_it" = "Verstanden";
+"halo_notice.switch_to_orbit" = "Orbit einschalten";
+"halo_notice.never_show" = "Nicht mehr anzeigen";
 "settings.downloads.folder.section" = "Download-Ordner";
 "settings.downloads.network.section" = "Netzwerk";
 "settings.downloads.network.port_forwarding" = "Port am Router automatisch öffnen";

@@ -254,6 +254,11 @@
 "settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "モードによって、ダウンロードに割り当てるMacのリソース量が決まります。モードが高いほど、接続数、Macの負荷、電力消費が増えます。";
 "settings.downloads.performance.caption.economical" = "Haloモードでは、ダウンロードは最大5 MB/秒、アップロードは最大2.5 MB/秒です。バッテリーを節約できますが、大きなファイルのダウンロードには時間がかかります。";
+"halo_notice.title" = "Haloモードで速度が制限されています";
+"halo_notice.message" = "バッテリーを節約するため、ダウンロードは最大5 MB/秒、アップロードは最大2.5 MB/秒です。制限を解除するには、OrbitまたはNovaモードに切り替えてください。";
+"halo_notice.got_it" = "了解";
+"halo_notice.switch_to_orbit" = "Orbitをオンにする";
+"halo_notice.never_show" = "今後表示しない";
 "settings.downloads.folder.section" = "ダウンロードフォルダ";
 "settings.downloads.network.section" = "ネットワーク";
 "settings.downloads.network.port_forwarding" = "ルーターのポートを自動的に開く";

@@ -128,6 +128,12 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var preferredBrandMark: ShatlBrandMark = .wordmark
     /// Settings → Downloads → Network. On by default, like other torrent clients.
     var opensRouterPortAutomatically = true
+    /// The bar that tells why speed is limited in Halo; off after
+    /// "Больше не показывать".
+    var showsHaloSpeedNotice = true
+    /// Whether the bar was ever shown, so a Mac already in Halo sees it once
+    /// at launch.
+    var hasSeenHaloSpeedNotice = false
 }
 
 extension AppPreferences {
@@ -155,6 +161,8 @@ extension AppPreferences {
         case hasCompletedOnboarding
         case preferredBrandMark
         case opensRouterPortAutomatically
+        case showsHaloSpeedNotice
+        case hasSeenHaloSpeedNotice
     }
 
     nonisolated init(from decoder: Decoder) throws {
@@ -226,6 +234,14 @@ extension AppPreferences {
             Bool.self,
             forKey: .opensRouterPortAutomatically
         ) ?? true
+        showsHaloSpeedNotice = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showsHaloSpeedNotice
+        ) ?? true
+        hasSeenHaloSpeedNotice = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .hasSeenHaloSpeedNotice
+        ) ?? false
     }
 }
 

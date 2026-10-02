@@ -263,6 +263,11 @@
 "settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Режим определяет, сколько ресурсов Mac получают загрузки. Чем он выше, тем больше соединений, нагрузка на Mac и энергопотребление.";
 "settings.downloads.performance.caption.economical" = "В режиме Halo загрузка идёт не быстрее 5 МБ/с, раздача — 2,5 МБ/с. Это бережёт заряд, но большие файлы скачиваются дольше.";
+"halo_notice.title" = "Скорость ограничена режимом Halo";
+"halo_notice.message" = "Загрузка идёт не быстрее 5 МБ/с, раздача — 2,5 МБ/с, чтобы беречь заряд. Снять ограничение можно в режиме Orbit или Nova.";
+"halo_notice.got_it" = "Понятно";
+"halo_notice.switch_to_orbit" = "Включить Orbit";
+"halo_notice.never_show" = "Больше не показывать";
 "settings.downloads.folder.section" = "Папка загрузки";
 "settings.downloads.network.section" = "Сеть";
 "settings.downloads.network.port_forwarding" = "Открывать порт на роутере автоматически";

@@ -106,6 +106,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
     @Published var payloadDeletionAlert: PayloadDeletionAlert?
     @Published private(set) var sessionPersistenceIssue: SessionPersistenceIssue?
+    /// The bar under the toolbar that tells why speed is limited in Halo.
+    @Published private(set) var isHaloSpeedNoticeVisible = false
     /// Refreshed only while Settings shows it: `refreshPortForwardingIndicator`.
     @Published private(set) var portForwardingIndicator: PortForwardingIndicator = .hidden
     @Published var presentedModal: PresentedModal?
@@ -707,7 +709,32 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard preferences.performanceProfile != profile else { return }
 
         preferences.performanceProfile = profile
+        if profile == .economical {
+            if preferences.showsHaloSpeedNotice {
+                showHaloSpeedNotice()
+            }
+        } else {
+            isHaloSpeedNoticeVisible = false
+        }
         schedulePerformanceSettingsApply()
+    }
+
+    /// "Понятно": until the next switch to Halo.
+    func dismissHaloSpeedNotice() {
+        isHaloSpeedNoticeVisible = false
+    }
+
+    /// "Больше не показывать".
+    func stopShowingHaloSpeedNotice() {
+        preferences.showsHaloSpeedNotice = false
+        isHaloSpeedNoticeVisible = false
+    }
+
+    private func showHaloSpeedNotice() {
+        isHaloSpeedNoticeVisible = true
+        if !preferences.hasSeenHaloSpeedNotice {
+            preferences.hasSeenHaloSpeedNotice = true
+        }
     }
 
     func setOpensRouterPortAutomatically(_ isEnabled: Bool) {
@@ -2419,6 +2446,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         allowsUserFacingNotifications = true
         didCompleteRuntimeBootstrap = true
         flushPendingIncomingURLs()
+        // Halo chosen before the bar existed: shown once.
+        if preferences.performanceProfile == .economical,
+           preferences.showsHaloSpeedNotice,
+           !preferences.hasSeenHaloSpeedNotice {
+            showHaloSpeedNotice()
+        }
         physicalNetworkMonitor?.start { [weak self] in
             guard let self else { return }
             Task { @MainActor in

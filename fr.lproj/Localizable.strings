@@ -257,6 +257,11 @@
 "settings.downloads.performance.profile.maximum" = "Nova";
 "settings.downloads.performance.caption.main" = "Le mode détermine la part des ressources du Mac allouée aux téléchargements. Plus il est élevé, plus il y a de connexions, de charge sur le Mac et de consommation d’énergie.";
 "settings.downloads.performance.caption.economical" = "En mode Halo, le téléchargement ne dépasse pas 5 Mo/s et l’envoi 2,5 Mo/s. Cela économise la batterie, mais les gros fichiers se téléchargent plus lentement.";
+"halo_notice.title" = "Vitesse limitée par le mode Halo";
+"halo_notice.message" = "Le téléchargement ne dépasse pas 5 Mo/s et l’envoi 2,5 Mo/s, pour économiser la batterie. Pour lever la limite, passez en mode Orbit ou Nova.";
+"halo_notice.got_it" = "Compris";
+"halo_notice.switch_to_orbit" = "Activer Orbit";
+"halo_notice.never_show" = "Ne plus afficher";
 "settings.downloads.folder.section" = "Dossier de téléchargement";
 "settings.downloads.network.section" = "Réseau";
 "settings.downloads.network.port_forwarding" = "Ouvrir automatiquement un port sur le routeur";

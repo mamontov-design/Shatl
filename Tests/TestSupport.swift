@@ -407,7 +407,6 @@ actor SuspendedSessionReader {
     }
 }
 
-@MainActor
 /// Stands in for the network monitor: a test says when the network moved.
 final class FakePhysicalNetworkMonitor: PhysicalNetworkMonitoring, @unchecked Sendable {
     private let lock = NSLock()
@@ -435,6 +434,7 @@ final class FakePhysicalNetworkMonitor: PhysicalNetworkMonitoring, @unchecked Se
     }
 }
 
+@MainActor
 final class SpyTorrentUserEventNotifier: TorrentUserEventNotifying {
     private(set) var notifications: [TorrentUserNotification] = []
     private(set) var badgeCounts: [Int] = []
