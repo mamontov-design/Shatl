@@ -22,6 +22,12 @@ nonisolated struct SessionTorrentRecord: Codable, Equatable, Sendable {
     var persistentIssue: TorrentPersistentIssue?
     var resumeCheckpointedAt: Date? = nil
     var resumeCheckpointProgress: Double? = nil
+    /// The download's size, so a stopped card shows it after relaunch: the
+    /// engine has such a download only after Start. Optional and with no new
+    /// schema version, so an older Shatl skips it and a list without it reads
+    /// as before. Written only when known.
+    var totalBytes: Int64? = nil
+    var selectedBytes: Int64? = nil
 }
 
 /// Versions the session format from the start to support future migrations.

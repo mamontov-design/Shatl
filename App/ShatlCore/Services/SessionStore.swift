@@ -409,7 +409,9 @@ actor SessionStore {
             materializedSelectionFootprint: record.materializedSelectionFootprint,
             persistentIssue: record.persistentIssue,
             resumeCheckpointedAt: record.resumeCheckpointedAt,
-            resumeCheckpointProgress: record.resumeCheckpointProgress
+            resumeCheckpointProgress: record.resumeCheckpointProgress,
+            totalBytes: record.metrics.totalBytes > 0 ? record.metrics.totalBytes : nil,
+            selectedBytes: record.metrics.selectedBytes > 0 ? record.metrics.selectedBytes : nil
         )
     }
 
