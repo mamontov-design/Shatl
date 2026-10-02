@@ -112,6 +112,9 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 @property (nonatomic, readonly) long long totalBytes;
 @property (nonatomic, readonly) long long selectedBytes;
 @property (nonatomic, readonly, nullable) NSString *errorMessage;
+/// A file error's POSIX code (ENOSPC, EACCES…), so the app can name the
+/// cause; zero for any other error.
+@property (nonatomic, readonly) NSInteger errorCode;
 @property (nonatomic, readonly, nullable) NSString *resumeDataStatus;
 
 - (instancetype)initWithRecordIdentifier:(NSString *)recordIdentifier
@@ -126,6 +129,7 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
                                totalBytes:(long long)totalBytes
                             selectedBytes:(long long)selectedBytes
                              errorMessage:(nullable NSString *)errorMessage
+                                errorCode:(NSInteger)errorCode
                          resumeDataStatus:(nullable NSString *)resumeDataStatus NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;

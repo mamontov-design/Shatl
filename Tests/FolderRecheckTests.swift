@@ -139,7 +139,7 @@ final class FolderRecheckTests: XCTestCase {
 
         store.recheckUnavailableFolder(id: fixture.record.id)
         store.recheckUnavailableFolder(id: fixture.record.id)
-        XCTAssertEqual(store.rowState(for: fixture.record.id)?.isRecheckingFolder, true)
+        XCTAssertEqual(store.rowState(for: fixture.record.id)?.isRecovering, true)
 
         try await Task.sleep(for: .milliseconds(500))
         XCTAssertTrue(store.transitioningTorrentIDs.contains(fixture.record.id))

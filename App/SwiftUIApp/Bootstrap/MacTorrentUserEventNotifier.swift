@@ -42,6 +42,12 @@ final class MacTorrentUserEventNotifier: TorrentUserEventNotifying {
             // a name of any gender and number.
             content.body = torrentTitle
 
+        case .downloadStopped(let torrentID, let torrentTitle, let title, let body):
+            identifier = "torrent.stopped.\(torrentID.uuidString)"
+            content.title = title
+            content.subtitle = torrentTitle
+            content.body = body
+
         case .persistentIssue(
             let torrentID,
             let issueKind,

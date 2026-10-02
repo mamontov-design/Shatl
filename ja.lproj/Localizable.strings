@@ -91,6 +91,8 @@
 "torrent.action.download_to_another_folder" = "別のフォルダにダウンロード…";
 "torrent.action.recheck_folder" = "再確認";
 "torrent.action.checking" = "確認中…";
+"torrent.action.retry" = "再試行";
+"torrent.action.starting" = "開始中…";
 
 "torrent.status.downloading" = "ダウンロード中";
 "torrent.status.adding" = "追加中…";
@@ -116,9 +118,22 @@
 "torrent.error.save_path_unavailable.named_message" = "「%@」フォルダを利用できません。フォルダのあるディスクが取り外されたか、フォルダが削除された可能性があります。ディスクを接続して再確認するか、別のフォルダにダウンロードしてください。";
 "torrent.error.save_path_unavailable.notification" = "フォルダのあるディスクが取り外された可能性があります。ダウンロードリストで、フォルダを再確認するか別のフォルダを選択できます。";
 "torrent.error.not_found.title" = "ダウンロードを利用できません";
-"torrent.error.not_found.message" = "このTorrentが見つかりませんでした。もう一度追加してください。";
-"torrent.error.action_failed.title" = "操作できませんでした";
-"torrent.error.action_failed.message" = "問題が発生しました。もう一度試してください。";
+"torrent.error.not_found.message" = "再起動後もダウンロードを続けられるように、そのTorrentの情報はMacに保存されています。この情報が見つからないため、ダウンロードを続けられません。リストから削除し、.torrentファイルまたはmagnetリンクをもう一度追加してください。";
+"torrent.error.runtime.title" = "ダウンロードが停止しました";
+"torrent.error.runtime.disk_full.message" = "ディスクの空き容量がなくなったため、ダウンロードが停止しました。空き容量を増やしてから、再試行してください。";
+"torrent.error.runtime.disk_full.named_message" = "「%@」フォルダのあるディスクの空き容量がなくなったため、ダウンロードが停止しました。空き容量を増やしてから、再試行してください。";
+"torrent.error.runtime.disk_full.notification" = "ディスクの空き容量がなくなりました。空き容量を増やしてから、ダウンロードリストで再試行してください。";
+"torrent.error.runtime.no_write_access.message" = "ダウンロードフォルダへの書き込みが許可されていないため、ダウンロードが停止しました。Finderの「情報を見る」→「共有とアクセス権」で書き込みを許可してから、再試行してください。";
+"torrent.error.runtime.no_write_access.named_message" = "「%@」フォルダへの書き込みが許可されていないため、ダウンロードが停止しました。Finderの「情報を見る」→「共有とアクセス権」で書き込みを許可してから、再試行してください。";
+"torrent.error.runtime.no_write_access.notification" = "ダウンロードフォルダへの書き込みが許可されていません。ダウンロードリストで再試行できます。";
+"torrent.error.runtime.disk_error.message" = "ダウンロードフォルダのあるディスクで読み書きエラーが発生したため、ダウンロードが停止しました。ディスクユーティリティでディスクを確認してから、再試行してください。";
+"torrent.error.runtime.disk_error.named_message" = "「%@」フォルダのあるディスクで読み書きエラーが発生したため、ダウンロードが停止しました。ディスクユーティリティでディスクを確認してから、再試行してください。";
+"torrent.error.runtime.disk_error.notification" = "ディスクで読み書きエラーが発生しました。ダウンロードリストで再試行できます。";
+"torrent.error.runtime.files_missing.message" = "フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.named_message" = "「%@」フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.notification" = "フォルダからダウンロードのファイルがなくなりました。ダウンロードリストで再試行できます。";
+"torrent.error.runtime.other.message" = "内部エラーのため、ダウンロードが停止しました。再試行してください。エラーが続く場合は、ダウンロードをリストから削除し、.torrentファイルまたはmagnetリンクをもう一度追加してください。";
+"torrent.error.runtime.other.notification" = "内部エラーが発生しました。ダウンロードリストで再試行できます。";
 
 "remove_dialog.choice.title" = "「%@」を削除しますか？";
 "remove_dialog.choice.message.with_files" = "リストからのみ削除すると、ダウンロードしたファイルはディスクに残ります。ファイルごと削除すると、ディスクから完全に削除されます。";
@@ -200,6 +215,12 @@
 "settings.tab.debug" = "デバッグ";
 "menu.debug.show_onboarding" = "オンボーディングを開始";
 "menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
+"menu.debug.runtime_error" = "エラーでダウンロードを停止";
+"menu.debug.runtime_error.disk_full" = "空き容量なし";
+"menu.debug.runtime_error.no_write_access" = "書き込み権限なし";
+"menu.debug.runtime_error.disk_error" = "ディスクエラー";
+"menu.debug.runtime_error.files_missing" = "ファイルが見つからない";
+"menu.debug.runtime_error.other" = "内部エラー";
 
 "settings.data.section" = "使用統計";
 "settings.data.help_development" = "匿名の統計情報を送信";

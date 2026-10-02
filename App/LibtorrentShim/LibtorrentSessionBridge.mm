@@ -417,6 +417,19 @@ static NSNumber * _Nullable LTBoxedETA(lt::torrent_status const& status) {
     return etaSeconds > 0 ? @(etaSeconds) : nil;
 }
 
+/// A file error's POSIX code, which names the cause (a full disk, no write
+/// access); zero for libtorrent's own errors, which the app shows as general.
+static NSInteger LTPOSIXErrorCode(lt::error_code const& error) {
+    if (!error) {
+        return 0;
+    }
+    if (error.category() == boost::system::system_category()
+        || error.category() == boost::system::generic_category()) {
+        return error.value();
+    }
+    return 0;
+}
+
 static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_status const& status) {
     if (status.errc) {
         return LTTorrentRuntimeStatusError;
@@ -530,6 +543,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
                                totalBytes:(long long)totalBytes
                             selectedBytes:(long long)selectedBytes
                              errorMessage:(NSString *)errorMessage
+                                errorCode:(NSInteger)errorCode
                          resumeDataStatus:(NSString *)resumeDataStatus {
     self = [super init];
     if (self == nil) {
@@ -548,6 +562,7 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
     _totalBytes = totalBytes;
     _selectedBytes = selectedBytes;
     _errorMessage = [errorMessage copy];
+    _errorCode = errorCode;
     _resumeDataStatus = [resumeDataStatus copy];
     return self;
 }
@@ -1986,6 +2001,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         return NO;
     }
 
+    // A torrent libtorrent stopped with an error stays stopped until the
+    // error is cleared; "Повторить" may reach a handle that was kept.
+    iterator->second.clear_error();
     iterator->second.unset_flags(lt::torrent_flags::paused);
     iterator->second.resume();
     LT_BRIDGE_LOG(
@@ -2742,6 +2760,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                                                      totalBytes:status.total
                                                   selectedBytes:status.total_wanted > 0 ? status.total_wanted : status.total
                                                    errorMessage:status.errc ? LTToNSString(status.errc.message()) : nil
+                                                      errorCode:LTPOSIXErrorCode(status.errc)
                                                resumeDataStatus:resumeDataStatus];
 	}
 

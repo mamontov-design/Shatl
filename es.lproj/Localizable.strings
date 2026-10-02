@@ -91,6 +91,8 @@
 "torrent.action.download_to_another_folder" = "Descargar en otra carpeta…";
 "torrent.action.recheck_folder" = "Comprobar de nuevo";
 "torrent.action.checking" = "Comprobando…";
+"torrent.action.retry" = "Reintentar";
+"torrent.action.starting" = "Iniciando…";
 
 "torrent.status.downloading" = "Descargando";
 "torrent.status.adding" = "Añadiendo…";
@@ -116,9 +118,22 @@
 "torrent.error.save_path_unavailable.named_message" = "La carpeta «%@» no está disponible: puede que el disco donde está se haya desconectado o que la carpeta se haya eliminado. Conecta el disco y comprueba de nuevo, o descarga en otra carpeta.";
 "torrent.error.save_path_unavailable.notification" = "Puede que el disco donde está se haya desconectado. Puedes comprobar la carpeta de nuevo o elegir otra en la lista de descargas.";
 "torrent.error.not_found.title" = "Descarga no disponible";
-"torrent.error.not_found.message" = "No se pudo encontrar este torrent. Intenta añadirlo de nuevo.";
-"torrent.error.action_failed.title" = "No se pudo completar la acción";
-"torrent.error.action_failed.message" = "Algo salió mal. Inténtalo de nuevo.";
+"torrent.error.not_found.message" = "Para que una descarga pueda continuar después de reiniciar, los datos de su torrent se guardan en tu Mac. Ya no están, así que esta descarga no puede continuar. Quítala de la lista y vuelve a añadir el archivo .torrent o el enlace magnet.";
+"torrent.error.runtime.title" = "La descarga se ha detenido";
+"torrent.error.runtime.disk_full.message" = "El disco se quedó sin espacio y la descarga se detuvo. Libera espacio y vuelve a iniciarla.";
+"torrent.error.runtime.disk_full.named_message" = "El disco con la carpeta «%@» se quedó sin espacio y la descarga se detuvo. Libera espacio y vuelve a iniciarla.";
+"torrent.error.runtime.disk_full.notification" = "El disco se quedó sin espacio. Libera espacio y vuelve a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.no_write_access.message" = "No hay permiso de escritura en la carpeta de descarga y la descarga se detuvo. Permite la escritura en el Finder («Obtener información» → «Compartir y permisos») y vuelve a iniciarla.";
+"torrent.error.runtime.no_write_access.named_message" = "No hay permiso de escritura en la carpeta «%@» y la descarga se detuvo. Permite la escritura en el Finder («Obtener información» → «Compartir y permisos») y vuelve a iniciarla.";
+"torrent.error.runtime.no_write_access.notification" = "No hay permiso de escritura en la carpeta de descarga. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.disk_error.message" = "El disco con la carpeta de descarga informó de un error de lectura o escritura y la descarga se detuvo. Comprueba el disco en Utilidad de Discos y vuelve a iniciarla.";
+"torrent.error.runtime.disk_error.named_message" = "El disco con la carpeta «%@» informó de un error de lectura o escritura y la descarga se detuvo. Comprueba el disco en Utilidad de Discos y vuelve a iniciarla.";
+"torrent.error.runtime.disk_error.notification" = "El disco informó de un error de lectura o escritura. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.files_missing.message" = "Los archivos de la descarga desaparecieron de su carpeta y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
+"torrent.error.runtime.files_missing.named_message" = "Los archivos de la descarga desaparecieron de la carpeta «%@» y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
+"torrent.error.runtime.files_missing.notification" = "Los archivos de la descarga desaparecieron de su carpeta. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.other.message" = "La descarga se detuvo por un error interno. Vuelve a iniciarla. Si el error se repite, quita la descarga de la lista y vuelve a añadir el archivo .torrent o el enlace magnet.";
+"torrent.error.runtime.other.notification" = "Se produjo un error interno. Puedes volver a iniciarla desde la lista de descargas.";
 
 "remove_dialog.choice.title" = "¿Eliminar «%@»?";
 "remove_dialog.choice.message.with_files" = "Si la quitas solo de la lista, los archivos descargados se quedarán en el disco. Si la eliminas con los archivos, se borrarán del disco para siempre.";
@@ -203,6 +218,12 @@
 "settings.tab.debug" = "Depuración";
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
 "menu.debug.preview_restore_status" = "Mostrar «Preparando descargas»";
+"menu.debug.runtime_error" = "Detener la descarga con un error";
+"menu.debug.runtime_error.disk_full" = "Sin espacio";
+"menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";
+"menu.debug.runtime_error.disk_error" = "Error de disco";
+"menu.debug.runtime_error.files_missing" = "Faltan archivos";
+"menu.debug.runtime_error.other" = "Error interno";
 
 "settings.data.section" = "Estadísticas de uso";
 "settings.data.help_development" = "Enviar estadísticas anónimas";

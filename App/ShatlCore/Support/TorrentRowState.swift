@@ -10,8 +10,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     var message: String
     var recoveryOptions: [TorrentErrorState.RecoveryOption]
 
-    /// `saveFolderPath` lets a card with missing files name the folder they
-    /// were in.
+    /// `saveFolderPath` lets a card name the folder its error is about.
     init?(
         _ errorState: TorrentErrorState?,
         saveFolderPath: String? = nil,
@@ -41,7 +40,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
         case .torrentNotFound:
             L10n.string("torrent.error.not_found.title", localeOverride: localeOverride, defaultValue: errorState.title)
         case .engineFailure:
-            L10n.string("torrent.error.action_failed.title", localeOverride: localeOverride, defaultValue: errorState.title)
+            L10n.string("torrent.error.runtime.title", localeOverride: localeOverride, defaultValue: errorState.title)
         default:
             errorState.title
         }
@@ -70,7 +69,17 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
         case .torrentNotFound:
             L10n.string("torrent.error.not_found.message", localeOverride: localeOverride, defaultValue: errorState.message)
         case .engineFailure:
-            L10n.string("torrent.error.action_failed.message", localeOverride: localeOverride, defaultValue: errorState.message)
+            // A file error names its folder; any other cause has none to name.
+            if let cause = errorState.cause {
+                folderMessage(
+                    key: "torrent.error.runtime.\(ShatlErrorCatalog.causeKey(cause))",
+                    saveFolderPath: saveFolderPath,
+                    localeOverride: localeOverride,
+                    fallback: errorState.message
+                )
+            } else {
+                L10n.string("torrent.error.runtime.other.message", localeOverride: localeOverride, defaultValue: errorState.message)
+            }
         default:
             errorState.message
         }
@@ -124,8 +133,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var canExpand = true
     /// What the card leaves out with many downloads running.
     var simplification = CardSimplificationLevel.full
-    /// "Проверить снова" is looking for an unavailable folder.
-    var isRecheckingFolder = false
+    /// "Проверить снова" or "Повторить" is at work on the card's error.
+    var isRecovering = false
 }
 
 extension TorrentRowState {

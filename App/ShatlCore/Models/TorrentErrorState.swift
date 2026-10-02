@@ -33,9 +33,34 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         case dismiss
     }
 
+    /// Why the engine stopped a running download, read from its file error.
+    enum Cause: String, Codable, Sendable {
+        case diskFull
+        case noWriteAccess
+        case diskError
+        case filesMissing
+
+        init?(posixCode: Int) {
+            switch Int32(truncatingIfNeeded: posixCode) {
+            case ENOSPC, EDQUOT:
+                self = .diskFull
+            case EACCES, EPERM, EROFS:
+                self = .noWriteAccess
+            case EIO, ENXIO, ENODEV:
+                self = .diskError
+            case ENOENT:
+                self = .filesMissing
+            default:
+                return nil
+            }
+        }
+    }
+
     var id: UUID = UUID()
     var kind: Kind
     var title: String
     var message: String
     var recoveryOptions: [RecoveryOption]
+    /// For an error the engine reported while the download ran.
+    var cause: Cause?
 }

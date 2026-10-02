@@ -117,6 +117,8 @@ struct TorrentCardView: View, Equatable {
     var onCollapse: () -> Void = {}
     /// Looks for an unavailable folder again.
     var onRecheckFolder: () -> Void = {}
+    /// Stops and starts a download the engine stopped with an error.
+    var onRetry: () -> Void = {}
     var presentationMode: TorrentCardPresentationMode = .normal
     var isExpansionToggleEnabled = true
     var showsExpansionToggle = true
@@ -1009,7 +1011,7 @@ struct TorrentCardView: View, Equatable {
 
     /// The actions an error card shows as buttons.
     private static func cardActionCount(in errorState: TorrentRowErrorState) -> Int {
-        let shown: [TorrentErrorState.RecoveryOption] = [.recheckFolder, .redownload, .chooseAnotherFolder, .removeFromList]
+        let shown: [TorrentErrorState.RecoveryOption] = [.recheckFolder, .retry, .redownload, .chooseAnotherFolder, .removeFromList]
         return shown.filter(errorState.recoveryOptions.contains).count
     }
 
@@ -1026,9 +1028,19 @@ struct TorrentCardView: View, Equatable {
                         ShatlButton(
                             title: L10n.string("torrent.action.recheck_folder", localeOverride: row.localeOverride),
                             busyTitle: L10n.string("torrent.action.checking", localeOverride: row.localeOverride),
-                            isBusy: row.isRecheckingFolder,
+                            isBusy: row.isRecovering,
                             role: .borderedNeutral,
                             action: onRecheckFolder
+                        )
+                    }
+
+                    if errorState.recoveryOptions.contains(.retry) {
+                        ShatlButton(
+                            title: L10n.string("torrent.action.retry", localeOverride: row.localeOverride),
+                            busyTitle: L10n.string("torrent.action.starting", localeOverride: row.localeOverride),
+                            isBusy: row.isRecovering,
+                            role: .borderedNeutral,
+                            action: onRetry
                         )
                     }
 
@@ -1040,7 +1052,7 @@ struct TorrentCardView: View, Equatable {
                         ShatlButton(
                             localizedTitle: "torrent.action.download_to_another_folder",
                             role: .borderedNeutral,
-                            isDisabled: row.isRecheckingFolder,
+                            isDisabled: row.isRecovering,
                             action: onChooseAnotherFolder
                         )
                     }
@@ -1054,21 +1066,27 @@ struct TorrentCardView: View, Equatable {
                             ShatlButton(
                                 systemImage: "trash",
                                 role: .borderedNeutral,
-                                isDisabled: row.isRecheckingFolder,
+                                isDisabled: row.isRecovering,
                                 action: onRemove
                             )
                             .help(Text("torrent.action.remove_from_list"))
                             .accessibilityLabel(Text("torrent.action.remove_from_list"))
                         } else {
-                            ShatlButton(localizedTitle: "torrent.action.remove_from_list", role: .borderedNeutral, action: onRemove)
+                            ShatlButton(
+                                localizedTitle: "torrent.action.remove_from_list",
+                                role: .borderedNeutral,
+                                isDisabled: row.isRecovering,
+                                action: onRemove
+                            )
                         }
                     }
                 }
                 // The neighbours slide while "Проверить снова" narrows into
-                // "Проверка…", as in the line message and the expanded
-                // metric row; no button has a fixed width.
+                // "Проверка…" or "Повторить" into "Запуск…", as in the line
+                // message and the expanded metric row; no button has a fixed
+                // width.
                 .geometryGroup()
-                .animation(ShatlMotion.metricResize, value: row.isRecheckingFolder)
+                .animation(ShatlMotion.metricResize, value: row.isRecovering)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

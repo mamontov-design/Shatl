@@ -91,6 +91,8 @@
 "torrent.action.download_to_another_folder" = "In anderen Ordner laden…";
 "torrent.action.recheck_folder" = "Erneut prüfen";
 "torrent.action.checking" = "Wird geprüft…";
+"torrent.action.retry" = "Wiederholen";
+"torrent.action.starting" = "Wird gestartet…";
 
 "torrent.status.downloading" = "Lädt";
 "torrent.status.adding" = "Wird hinzugefügt…";
@@ -116,9 +118,22 @@
 "torrent.error.save_path_unavailable.named_message" = "Der Ordner „%@“ ist nicht verfügbar – vielleicht ist der Datenträger getrennt, auf dem er liegt, oder der Ordner wurde gelöscht. Schließen Sie den Datenträger an und prüfen Sie erneut, oder laden Sie den Download in einen anderen Ordner.";
 "torrent.error.save_path_unavailable.notification" = "Vielleicht ist der Datenträger getrennt, auf dem er liegt. In der Downloadliste können Sie den Ordner erneut prüfen oder einen anderen wählen.";
 "torrent.error.not_found.title" = "Download nicht verfügbar";
-"torrent.error.not_found.message" = "Dieser Torrent wurde nicht gefunden. Fügen Sie ihn erneut hinzu.";
-"torrent.error.action_failed.title" = "Aktion fehlgeschlagen";
-"torrent.error.action_failed.message" = "Etwas ist schiefgelaufen. Versuchen Sie es erneut.";
+"torrent.error.not_found.message" = "Damit ein Download nach einem Neustart fortgesetzt werden kann, werden die Angaben zu seinem Torrent auf Ihrem Mac gespeichert. Sie fehlen, daher kann dieser Download nicht fortgesetzt werden. Entfernen Sie ihn aus der Liste und fügen Sie die .torrent-Datei oder den Magnet-Link erneut hinzu.";
+"torrent.error.runtime.title" = "Download gestoppt";
+"torrent.error.runtime.disk_full.message" = "Auf dem Datenträger ist kein Platz mehr, und der Download wurde gestoppt. Geben Sie Speicherplatz frei und starten Sie ihn erneut.";
+"torrent.error.runtime.disk_full.named_message" = "Auf dem Datenträger mit dem Ordner „%@“ ist kein Platz mehr, und der Download wurde gestoppt. Geben Sie Speicherplatz frei und starten Sie ihn erneut.";
+"torrent.error.runtime.disk_full.notification" = "Auf dem Datenträger ist kein Platz mehr. Geben Sie Speicherplatz frei und starten Sie den Download in der Downloadliste erneut.";
+"torrent.error.runtime.no_write_access.message" = "In den Download-Ordner darf nicht geschrieben werden, und der Download wurde gestoppt. Erlauben Sie das Schreiben im Finder („Informationen“ → „Teilen & Zugriffsrechte“) und starten Sie ihn erneut.";
+"torrent.error.runtime.no_write_access.named_message" = "In den Ordner „%@“ darf nicht geschrieben werden, und der Download wurde gestoppt. Erlauben Sie das Schreiben im Finder („Informationen“ → „Teilen & Zugriffsrechte“) und starten Sie ihn erneut.";
+"torrent.error.runtime.no_write_access.notification" = "In den Download-Ordner darf nicht geschrieben werden. In der Downloadliste können Sie den Download erneut starten.";
+"torrent.error.runtime.disk_error.message" = "Der Datenträger mit dem Download-Ordner hat einen Lese- oder Schreibfehler gemeldet, und der Download wurde gestoppt. Prüfen Sie den Datenträger im Festplattendienstprogramm und starten Sie den Download erneut.";
+"torrent.error.runtime.disk_error.named_message" = "Der Datenträger mit dem Ordner „%@“ hat einen Lese- oder Schreibfehler gemeldet, und der Download wurde gestoppt. Prüfen Sie den Datenträger im Festplattendienstprogramm und starten Sie den Download erneut.";
+"torrent.error.runtime.disk_error.notification" = "Der Datenträger hat einen Lese- oder Schreibfehler gemeldet. In der Downloadliste können Sie den Download erneut starten.";
+"torrent.error.runtime.files_missing.message" = "Die Dateien des Downloads sind aus seinem Ordner verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.named_message" = "Die Dateien des Downloads sind aus dem Ordner „%@“ verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.notification" = "Die Dateien des Downloads sind aus seinem Ordner verschwunden. In der Downloadliste können Sie ihn erneut starten.";
+"torrent.error.runtime.other.message" = "Der Download wurde wegen eines internen Fehlers gestoppt. Starten Sie ihn erneut. Tritt der Fehler wieder auf, entfernen Sie den Download aus der Liste und fügen Sie die .torrent-Datei oder den Magnet-Link erneut hinzu.";
+"torrent.error.runtime.other.notification" = "Ein interner Fehler ist aufgetreten. In der Downloadliste können Sie den Download erneut starten.";
 
 "remove_dialog.choice.title" = "„%@“ löschen?";
 "remove_dialog.choice.message.with_files" = "Wenn Sie den Download nur aus der Liste entfernen, bleiben die geladenen Dateien auf dem Datenträger. Wenn Sie ihn mit Dateien löschen, werden sie endgültig vom Datenträger gelöscht.";
@@ -203,6 +218,12 @@
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Onboarding starten";
 "menu.debug.preview_restore_status" = "„Downloads werden vorbereitet“ zeigen";
+"menu.debug.runtime_error" = "Download mit Fehler stoppen";
+"menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
+"menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";
+"menu.debug.runtime_error.disk_error" = "Datenträgerfehler";
+"menu.debug.runtime_error.files_missing" = "Dateien fehlen";
+"menu.debug.runtime_error.other" = "Interner Fehler";
 
 "settings.data.section" = "Nutzungsstatistik";
 "settings.data.help_development" = "Anonyme Statistik senden";

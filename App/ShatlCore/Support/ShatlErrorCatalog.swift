@@ -192,36 +192,38 @@ enum ShatlErrorCatalog {
         }
     }
 
+    /// A Start or Stop the engine refused: "Повторить" runs Stop and Start
+    /// again, as a relaunch would.
     nonisolated static func torrentActionError(for error: Error) -> TorrentErrorState {
-        let engineError = TorrentEngineError.normalized(from: error)
-
-        switch engineError.kind {
-        case .torrentNotFound:
-            return TorrentErrorState(
-                kind: .torrentNotFound,
-                title: "Загрузка недоступна",
-                message: "Не удалось найти этот торрент. Попробуйте добавить его заново.",
-                recoveryOptions: [.removeFromList, .dismiss]
-            )
-
-        default:
-            return TorrentErrorState(
-                kind: .engineFailure,
-                title: "Не удалось выполнить действие",
-                message: "Произошла ошибка. Попробуйте ещё раз.",
-                recoveryOptions: [.removeFromList, .dismiss]
-            )
-        }
-    }
-
-    nonisolated static func runtimeSnapshotError(debugReason: String?) -> TorrentErrorState {
-        _ = debugReason
-
+        _ = error
         return TorrentErrorState(
             kind: .engineFailure,
-            title: "Не удалось обновить состояние загрузки",
-            message: "Во время работы произошла ошибка. Попробуйте остановить и запустить загрузку снова.",
-            recoveryOptions: [.removeFromList, .dismiss]
+            title: L10n.string("torrent.error.runtime.title"),
+            message: L10n.string("torrent.error.runtime.other.message"),
+            recoveryOptions: [.retry, .removeFromList]
+        )
+    }
+
+    /// The engine stopped a running download; a file error names its cause.
+    nonisolated static func runtimeSnapshotError(debugReason: String?, posixCode: Int = 0) -> TorrentErrorState {
+        _ = debugReason
+        return TorrentErrorState(
+            kind: .engineFailure,
+            title: L10n.string("torrent.error.runtime.title"),
+            message: L10n.string("torrent.error.runtime.other.message"),
+            recoveryOptions: [.retry, .removeFromList],
+            cause: TorrentErrorState.Cause(posixCode: posixCode)
+        )
+    }
+
+    /// The download's saved torrent is gone, so nothing can resume it: only
+    /// removing it and adding the torrent again helps.
+    nonisolated static func missingTorrentError() -> TorrentErrorState {
+        TorrentErrorState(
+            kind: .torrentNotFound,
+            title: L10n.string("torrent.error.not_found.title"),
+            message: L10n.string("torrent.error.not_found.message"),
+            recoveryOptions: [.removeFromList]
         )
     }
 
@@ -237,6 +239,28 @@ enum ShatlErrorCatalog {
             message: L10n.string("add_torrent.error.offline.message", localeOverride: localeOverride),
             recoveryOptions: [.retry, .dismiss]
         )
+    }
+
+    /// A download the engine stopped while the app was out of sight: the
+    /// event, then where to fix it, no buttons.
+    nonisolated static func runtimeErrorNotification(
+        for cause: TorrentErrorState.Cause?,
+        localeOverride: AppLocaleOverride = .system
+    ) -> (title: String, body: String) {
+        (
+            L10n.string("torrent.error.runtime.title", localeOverride: localeOverride),
+            L10n.string("torrent.error.runtime.\(cause.map(causeKey) ?? "other").notification", localeOverride: localeOverride)
+        )
+    }
+
+    /// The strings-file name of a cause.
+    nonisolated static func causeKey(_ cause: TorrentErrorState.Cause) -> String {
+        switch cause {
+        case .diskFull: "disk_full"
+        case .noWriteAccess: "no_write_access"
+        case .diskError: "disk_error"
+        case .filesMissing: "files_missing"
+        }
     }
 
     /// Names the torrent when its name is known, so the message says which
