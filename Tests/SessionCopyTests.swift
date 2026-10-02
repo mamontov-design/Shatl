@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import AppKit
 import Foundation
+import SwiftUI
 import XCTest
 @testable import Shatl
 
@@ -100,9 +102,28 @@ final class StatisticsCopyTests: XCTestCase {
                 .replacingOccurrences(of: "\u{2011}", with: "-")
         }
         XCTAssertEqual(plain, [
-            "Данные о торрентах и magnet-ссылках",
-            "Имена и пути файлов и папок",
-            "Содержимое загружаемых файлов",
+            "Торренты и ссылки",
+            "Имена и пути файлов",
+            "Содержимое файлов",
         ])
+    }
+
+    /// Every row of both columns stays on one line in Settings: the 440 pt
+    /// window, less 16 pt sides, the card's 12 pt padding, 10 pt between
+    /// the columns, and each row's 16 pt icon with 2 pt after it.
+    @MainActor
+    func testEveryRowFitsOneLineInEveryLanguage() {
+        let textWidth: CGFloat = (440 - 16 * 2 - 12 * 2 - 10) / 2 - 16 - 2
+        for language in AppLocaleOverride.allCases where language != .system {
+            for item in DataCollectionItem.allCases {
+                let title = L10n.string(item.titleKey, localeOverride: language)
+                let row = Text(title)
+                    .shatlTypography(ShatlTypography.bodyRegular)
+                    .fixedSize()
+                    .shatlTypographyProfile(localeOverride: language)
+                let width = NSHostingView(rootView: row).fittingSize.width
+                XCTAssertLessThanOrEqual(width, textWidth, "\(language.rawValue): \(title)")
+            }
+        }
     }
 }

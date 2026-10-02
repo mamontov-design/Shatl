@@ -656,7 +656,7 @@ private struct DataCollectionChecklistItem: View {
     }
 }
 
-private enum DataCollectionGroup: CaseIterable {
+enum DataCollectionGroup: CaseIterable {
     case collects
     case doesNotCollect
 
@@ -689,7 +689,9 @@ private enum DataCollectionGroup: CaseIterable {
 
 }
 
-private enum DataCollectionItem: CaseIterable, Identifiable {
+/// Each fits one line of its column in Settings, 169 pt in every language:
+/// `StatisticsCopyTests`.
+enum DataCollectionItem: CaseIterable, Identifiable {
     case launchCount
     case appVersion
     case interfaceLanguage

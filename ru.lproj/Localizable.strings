@@ -251,9 +251,9 @@
 "settings.data.collects.app_version" = "Версия приложения";
 "settings.data.collects.interface_language" = "Язык интерфейса";
 "settings.data.does_not_collect.title" = "Не отправляется:";
-"settings.data.does_not_collect.torrents_and_links" = "Данные о торрентах и magnet‑ссылках";
-"settings.data.does_not_collect.file_names_and_paths" = "Имена и пути файлов и папок";
-"settings.data.does_not_collect.file_contents" = "Содержимое загружаемых файлов";
+"settings.data.does_not_collect.torrents_and_links" = "Торренты и ссылки";
+"settings.data.does_not_collect.file_names_and_paths" = "Имена и пути файлов";
+"settings.data.does_not_collect.file_contents" = "Содержимое файлов";
 "settings.data.caption" = "Статистика показывает, сколько людей пользуется Shatl, — это помогает решать, стоит ли поддерживать приложение и выпускать обновления.";
 "settings.data.caption.technical" = "Ещё в отчёте есть случайный идентификатор установки и отчётная неделя — по ним еженедельные отчёты складываются в общую статистику.";
 

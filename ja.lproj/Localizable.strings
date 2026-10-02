@@ -242,9 +242,9 @@
 "settings.data.collects.app_version" = "アプリのバージョン";
 "settings.data.collects.interface_language" = "インターフェイスの言語";
 "settings.data.does_not_collect.title" = "送信されないもの：";
-"settings.data.does_not_collect.torrents_and_links" = "Torrentとmagnetリンクのデータ";
-"settings.data.does_not_collect.file_names_and_paths" = "ファイルとフォルダの名前とパス";
-"settings.data.does_not_collect.file_contents" = "ダウンロードするファイルの内容";
+"settings.data.does_not_collect.torrents_and_links" = "Torrentとリンク";
+"settings.data.does_not_collect.file_names_and_paths" = "ファイル名とパス";
+"settings.data.does_not_collect.file_contents" = "ファイルの内容";
 "settings.data.caption" = "統計情報から、Shatlを使っている人数がわかります。アプリのサポートやアップデートを続けるかどうかの判断に役立ちます。";
 "settings.data.caption.technical" = "レポートには、ランダムなインストールIDとレポート対象の週も含まれます。これらは毎週のレポートを全体の統計にまとめるために使われます。";
 

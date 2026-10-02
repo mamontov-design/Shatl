@@ -245,9 +245,9 @@
 "settings.data.collects.app_version" = "App version";
 "settings.data.collects.interface_language" = "Interface language";
 "settings.data.does_not_collect.title" = "Not sent:";
-"settings.data.does_not_collect.torrents_and_links" = "Torrent and magnet link data";
-"settings.data.does_not_collect.file_names_and_paths" = "File and folder names and paths";
-"settings.data.does_not_collect.file_contents" = "Contents of downloaded files";
+"settings.data.does_not_collect.torrents_and_links" = "Torrents and links";
+"settings.data.does_not_collect.file_names_and_paths" = "File names and paths";
+"settings.data.does_not_collect.file_contents" = "File contents";
 "settings.data.caption" = "Statistics show how many people use Shatl—this helps decide whether to keep supporting the app and releasing updates.";
 "settings.data.caption.technical" = "A report also includes a random installation identifier and the reporting week—they combine weekly reports into overall statistics.";
 

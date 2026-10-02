@@ -242,9 +242,9 @@
 "settings.data.collects.app_version" = "App 版本";
 "settings.data.collects.interface_language" = "界面语言";
 "settings.data.does_not_collect.title" = "不会发送：";
-"settings.data.does_not_collect.torrents_and_links" = "Torrent 和 magnet 链接数据";
-"settings.data.does_not_collect.file_names_and_paths" = "文件和文件夹的名称及路径";
-"settings.data.does_not_collect.file_contents" = "下载文件的内容";
+"settings.data.does_not_collect.torrents_and_links" = "Torrent 和链接";
+"settings.data.does_not_collect.file_names_and_paths" = "文件名和路径";
+"settings.data.does_not_collect.file_contents" = "文件内容";
 "settings.data.caption" = "统计数据显示有多少人在使用 Shatl，这有助于决定是否继续维护此 App 并发布更新。";
 "settings.data.caption.technical" = "报告还包含随机的安装标识符和报告周，用于将每周报告汇总为整体统计数据。";
 
