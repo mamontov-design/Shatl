@@ -2832,7 +2832,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 alias: $0.alias,
                 progress: $0.progress,
                 status: restoredStatus,
-                metrics: TorrentMetrics(),
+                // The saved size until the engine reports its own.
+                metrics: TorrentMetrics(totalBytes: $0.totalBytes ?? 0, selectedBytes: $0.selectedBytes ?? 0),
                 canonicalSavePath: $0.canonicalSavePath,
                 selectedFileIndices: $0.selectedFileIndices,
                 selectedFileRelativePaths: $0.selectedFileRelativePaths ?? [],
