@@ -1,6 +1,6 @@
 /* English is the fallback localization. Russian remains the canonical source copy. */
 
-"common.change" = "Change";
+"common.change" = "Change…";
 "common.choose" = "Choose";
 "common.ok" = "OK";
 "common.cancel" = "Cancel";
@@ -260,12 +260,12 @@
 "settings.appearance.preview" = "Preview";
 
 "settings.about.application_version" = "App version";
-"settings.about.check_updates" = "Check for Updates";
+"settings.about.check_updates" = "Check for Updates…";
 "settings.about.check_for_updates_automatically" = "Check for updates automatically";
 "settings.about.install_updates_automatically" = "Install updates automatically";
 "settings.about.contact_section" = "Contact the developer";
 "settings.about.contact_row" = "Send feedback or report a problem";
-"settings.about.write" = "Write";
+"settings.about.write" = "Write…";
 "settings.about.logo.caption" = "Made with love for your Mac";
 
 "settings.localization.section" = "Interface language";

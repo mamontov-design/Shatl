@@ -1,6 +1,6 @@
 /* Simplified Chinese localization. Russian remains the canonical source copy. */
 
-"common.change" = "更改";
+"common.change" = "更改…";
 "common.choose" = "选择";
 "common.ok" = "好";
 "common.cancel" = "取消";
@@ -257,12 +257,12 @@
 "settings.appearance.preview" = "预览";
 
 "settings.about.application_version" = "App 版本";
-"settings.about.check_updates" = "检查更新";
+"settings.about.check_updates" = "检查更新…";
 "settings.about.check_for_updates_automatically" = "自动检查更新";
 "settings.about.install_updates_automatically" = "自动安装更新";
 "settings.about.contact_section" = "联系开发者";
 "settings.about.contact_row" = "发送反馈或报告问题";
-"settings.about.write" = "撰写";
+"settings.about.write" = "撰写…";
 "settings.about.logo.caption" = "为你的 Mac 用心打造";
 
 "settings.localization.section" = "界面语言";

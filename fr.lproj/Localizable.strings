@@ -1,6 +1,6 @@
 /* French localization. Russian remains the canonical source copy. */
 
-"common.change" = "Modifier";
+"common.change" = "Modifier…";
 "common.choose" = "Choisir";
 "common.ok" = "OK";
 "common.cancel" = "Annuler";
@@ -260,12 +260,12 @@
 "settings.appearance.preview" = "Aperçu";
 
 "settings.about.application_version" = "Version de l’app";
-"settings.about.check_updates" = "Rechercher les mises à jour";
+"settings.about.check_updates" = "Rechercher les mises à jour…";
 "settings.about.check_for_updates_automatically" = "Rechercher automatiquement les mises à jour";
 "settings.about.install_updates_automatically" = "Installer les mises à jour automatiquement";
 "settings.about.contact_section" = "Contacter le développeur";
 "settings.about.contact_row" = "Envoyer un avis ou signaler un problème";
-"settings.about.write" = "Écrire";
+"settings.about.write" = "Écrire…";
 "settings.about.logo.caption" = "Créé avec amour pour votre Mac";
 
 "settings.localization.section" = "Langue de l’interface";

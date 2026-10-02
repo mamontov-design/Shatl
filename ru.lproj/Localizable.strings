@@ -1,6 +1,6 @@
 /* Russian is the canonical source for current product copy. */
 
-"common.change" = "Сменить";
+"common.change" = "Сменить…";
 "common.choose" = "Выбрать";
 "common.ok" = "ОК";
 "common.cancel" = "Отменить";
@@ -266,12 +266,12 @@
 "settings.appearance.preview" = "Предпросмотр";
 
 "settings.about.application_version" = "Версия приложения";
-"settings.about.check_updates" = "Проверить обновления";
+"settings.about.check_updates" = "Проверить обновления…";
 "settings.about.check_for_updates_automatically" = "Проверять обновления автоматически";
 "settings.about.install_updates_automatically" = "Устанавливать обновления автоматически";
 "settings.about.contact_section" = "Связаться с разработчиком";
 "settings.about.contact_row" = "Отправить отзыв или сообщить о проблеме";
-"settings.about.write" = "Написать";
+"settings.about.write" = "Написать…";
 "settings.about.logo.caption" = "Сделано с любовью для вашего Mac";
 
 "settings.localization.section" = "Язык интерфейса";
