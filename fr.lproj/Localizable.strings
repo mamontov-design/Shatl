@@ -1,6 +1,6 @@
 /* French localization. Russian remains the canonical source copy. */
 
-"common.change" = "Modifier";
+"common.change" = "Modifier…";
 "common.choose" = "Choisir";
 "common.ok" = "OK";
 "common.cancel" = "Annuler";
@@ -88,7 +88,11 @@
 "torrent.action.remove_from_list" = "Retirer de la liste";
 "torrent.action.remove_with_files" = "Supprimer avec les fichiers";
 "torrent.action.redownload" = "Télécharger à nouveau";
-"torrent.action.download_to_another_folder" = "Télécharger dans un autre dossier";
+"torrent.action.download_to_another_folder" = "Choisir un autre dossier…";
+"torrent.action.recheck_folder" = "Vérifier à nouveau";
+"torrent.action.checking" = "Vérification…";
+"torrent.action.retry" = "Réessayer";
+"torrent.action.starting" = "Démarrage…";
 
 "torrent.status.downloading" = "Téléchargement";
 "torrent.status.adding" = "Ajout…";
@@ -110,12 +114,26 @@
 "torrent.error.missing_content.named_message" = "Les fichiers de ce téléchargement ne sont pas dans le dossier « %@ » : ils ont peut-être été déplacés, renommés ou supprimés. Téléchargez-les à nouveau ou retirez le téléchargement de la liste.";
 "torrent.error.missing_content.notification" = "Ils ont peut-être été déplacés, renommés ou supprimés. Vous pouvez les télécharger à nouveau depuis la liste des téléchargements.";
 "torrent.error.save_path_unavailable.title" = "Dossier de téléchargement indisponible";
-"torrent.error.save_path_unavailable.message" = "Shatl n’a pas pu ouvrir le dossier d’enregistrement. Choisissez un autre dossier ou retirez le torrent de la liste.";
-"torrent.error.save_path_unavailable.notification" = "Vous pouvez lui choisir un autre dossier dans la liste des téléchargements.";
+"torrent.error.save_path_unavailable.message" = "Le dossier de téléchargement est indisponible : le disque qui le contient est peut-être déconnecté, ou le dossier a été supprimé. Connectez le disque et vérifiez à nouveau, ou choisissez un autre dossier.";
+"torrent.error.save_path_unavailable.named_message" = "Le dossier « %@ » est indisponible : le disque qui le contient est peut-être déconnecté, ou le dossier a été supprimé. Connectez le disque et vérifiez à nouveau, ou choisissez un autre dossier.";
+"torrent.error.save_path_unavailable.notification" = "Le disque qui le contient est peut-être déconnecté. Vous pouvez vérifier le dossier à nouveau ou en choisir un autre dans la liste des téléchargements.";
 "torrent.error.not_found.title" = "Téléchargement indisponible";
-"torrent.error.not_found.message" = "Ce torrent est introuvable. Essayez de l’ajouter à nouveau.";
-"torrent.error.action_failed.title" = "Action impossible";
-"torrent.error.action_failed.message" = "Une erreur s’est produite. Réessayez.";
+"torrent.error.not_found.message" = "Pour qu’un téléchargement puisse reprendre après un redémarrage, les informations sur son torrent sont conservées sur votre Mac. Elles ont disparu, ce téléchargement ne peut donc pas reprendre. Retirez-le de la liste et ajoutez à nouveau le fichier .torrent ou le lien magnet.";
+"torrent.error.runtime.title" = "Téléchargement arrêté";
+"torrent.error.runtime.disk_full.message" = "Le disque est plein, et le téléchargement s’est arrêté. Libérez de l’espace et relancez-le.";
+"torrent.error.runtime.disk_full.named_message" = "Le disque contenant le dossier « %@ » est plein, et le téléchargement s’est arrêté. Libérez de l’espace et relancez-le.";
+"torrent.error.runtime.disk_full.notification" = "Le disque est plein. Libérez de l’espace et relancez le téléchargement depuis la liste des téléchargements.";
+"torrent.error.runtime.no_write_access.message" = "L’écriture dans le dossier de téléchargement n’est pas autorisée, et le téléchargement s’est arrêté. Autorisez l’écriture dans le Finder (« Lire les informations » → « Partage et permissions ») et relancez-le.";
+"torrent.error.runtime.no_write_access.named_message" = "L’écriture dans le dossier « %@ » n’est pas autorisée, et le téléchargement s’est arrêté. Autorisez l’écriture dans le Finder (« Lire les informations » → « Partage et permissions ») et relancez-le.";
+"torrent.error.runtime.no_write_access.notification" = "L’écriture dans le dossier de téléchargement n’est pas autorisée. Vous pouvez relancer le téléchargement depuis la liste des téléchargements.";
+"torrent.error.runtime.disk_error.message" = "Le disque contenant le dossier de téléchargement a signalé une erreur de lecture ou d’écriture, et le téléchargement s’est arrêté. Vérifiez le disque dans Utilitaire de disque et relancez le téléchargement.";
+"torrent.error.runtime.disk_error.named_message" = "Le disque contenant le dossier « %@ » a signalé une erreur de lecture ou d’écriture, et le téléchargement s’est arrêté. Vérifiez le disque dans Utilitaire de disque et relancez le téléchargement.";
+"torrent.error.runtime.disk_error.notification" = "Le disque a signalé une erreur de lecture ou d’écriture. Vous pouvez relancer le téléchargement depuis la liste des téléchargements.";
+"torrent.error.runtime.files_missing.message" = "Les fichiers du téléchargement ont disparu de son dossier, et il s’est arrêté. Relancez-le : si les fichiers manquent, vous pourrez les télécharger à nouveau.";
+"torrent.error.runtime.files_missing.named_message" = "Les fichiers du téléchargement ont disparu du dossier « %@ », et il s’est arrêté. Relancez-le : si les fichiers manquent, vous pourrez les télécharger à nouveau.";
+"torrent.error.runtime.files_missing.notification" = "Les fichiers du téléchargement ont disparu de son dossier. Vous pouvez le relancer depuis la liste des téléchargements.";
+"torrent.error.runtime.other.message" = "Le téléchargement s’est arrêté à cause d’une erreur interne. Relancez-le. Si l’erreur revient, retirez le téléchargement de la liste et ajoutez à nouveau le fichier .torrent ou le lien magnet.";
+"torrent.error.runtime.other.notification" = "Une erreur interne s’est produite. Vous pouvez relancer le téléchargement depuis la liste des téléchargements.";
 
 "remove_dialog.choice.title" = "Supprimer « %@ » ?";
 "remove_dialog.choice.message.with_files" = "Si vous le retirez seulement de la liste, les fichiers téléchargés resteront sur le disque. Si vous le supprimez avec les fichiers, ceux-ci seront définitivement supprimés du disque.";
@@ -200,6 +218,12 @@
 "settings.tab.debug" = "Débogage";
 "menu.debug.show_onboarding" = "Lancer la configuration initiale";
 "menu.debug.preview_restore_status" = "Afficher « Préparation des téléchargements »";
+"menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
+"menu.debug.runtime_error.disk_full" = "Disque plein";
+"menu.debug.runtime_error.no_write_access" = "Écriture non autorisée";
+"menu.debug.runtime_error.disk_error" = "Erreur de disque";
+"menu.debug.runtime_error.files_missing" = "Fichiers manquants";
+"menu.debug.runtime_error.other" = "Erreur interne";
 
 "settings.data.section" = "Statistiques d’utilisation";
 "settings.data.help_development" = "Envoyer des statistiques anonymes";
@@ -257,12 +281,12 @@
 "settings.appearance.preview" = "Aperçu";
 
 "settings.about.application_version" = "Version de l’app";
-"settings.about.check_updates" = "Rechercher les mises à jour";
+"settings.about.check_updates" = "Rechercher les mises à jour…";
 "settings.about.check_for_updates_automatically" = "Rechercher automatiquement les mises à jour";
 "settings.about.install_updates_automatically" = "Installer les mises à jour automatiquement";
 "settings.about.contact_section" = "Contacter le développeur";
 "settings.about.contact_row" = "Envoyer un avis ou signaler un problème";
-"settings.about.write" = "Écrire";
+"settings.about.write" = "Écrire…";
 "settings.about.logo.caption" = "Créé avec amour pour votre Mac";
 
 "settings.localization.section" = "Langue de l’interface";

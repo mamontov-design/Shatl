@@ -213,6 +213,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var notifiedPersistentIssueKeys: Set<PersistentIssueNotificationKey> = []
     private var unreadCompletedTorrentIDs: Set<UUID> = []
     private var unreadPersistentIssueKeys: Set<PersistentIssueNotificationKey> = []
+    /// Downloads the engine stopped, told once per stop.
+    private var notifiedStoppedTorrentIDs: Set<UUID> = []
+    private var unreadStoppedTorrentIDs: Set<UUID> = []
     private var suppressesTorrentChangePublication = false
     private var torrentRowPresentationModelsByID: [UUID: TorrentRowPresentationModel] = [:]
     /// What each record card was last built from. The 1 Hz tick rebuilds only
@@ -608,7 +611,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ),
             navigationAvailabilityKey: navigationAvailabilityKey,
             localeOverride: shared.localeOverride,
-            simplification: shared.simplification
+            simplification: shared.simplification,
+            isRecovering: inputs.isTransitioning && (
+                record.persistentIssue?.kind == .savePathUnavailable
+                    || (record.persistentIssue == nil && record.runtimeErrorState != nil)
+            )
         )
     }
 
@@ -780,6 +787,33 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func previewRestoreStatusForDebug() {
         debugRestoreStatusPreviewRequestID &+= 1
+    }
+
+    /// Debug menu: the selected download stops as the engine stops it with
+    /// `cause` (nil: an internal error), notification included, so the card
+    /// and "Повторить" can be tried without filling a disk. The engine lets
+    /// the download go, so its next tick does not clear the error.
+    func canSimulateRuntimeErrorForDebug(id: UUID?) -> Bool {
+        guard let id, let record = torrents.first(where: { $0.id == id }) else { return false }
+        return record.persistentIssue == nil
+            && record.runtimeErrorState == nil
+            && !isPendingAddition(id: id)
+            && !transitioningTorrentIDs.contains(id)
+    }
+
+    func simulateRuntimeErrorForDebug(id: UUID, cause: TorrentErrorState.Cause?) {
+        guard canSimulateRuntimeErrorForDebug(id: id),
+              let index = torrents.firstIndex(where: { $0.id == id }) else { return }
+
+        var error = ShatlErrorCatalog.runtimeSnapshotError(debugReason: "debug")
+        error.cause = cause
+        detachedTorrentIDs.insert(id)
+        torrents[index].status = .error
+        torrents[index].runtimeErrorState = error
+        notifyDownloadStoppedIfNeeded(torrent: torrents[index], previousError: nil, error: error)
+        Task { [engine] in
+            try? await engine.removeTorrent(id: id)
+        }
     }
     #endif
 
@@ -1715,6 +1749,126 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
+    /// The shortest "Проверка…" or "Запуск…" shows, so the click is seen.
+    nonisolated static let recoveryMinimumDuration = Duration.seconds(1)
+
+    /// "Проверить снова" on a card whose folder was unavailable: looks for the
+    /// folder again and, when it is back, returns the download to where it
+    /// was before the error with its progress kept — downloading again, or
+    /// still stopped. Only on request: the contract leaves recovering a
+    /// persistent issue to the user.
+    func recheckUnavailableFolder(id: UUID) {
+        guard let record = torrents.first(where: { $0.id == id }),
+              record.persistentIssue?.kind == .savePathUnavailable,
+              !isRestoringSession,
+              !transitioningTorrentIDs.contains(id) else { return }
+
+        transitioningTorrentIDs.insert(id)
+        Task { [weak self] in
+            guard let self else { return }
+            let clock = ContinuousClock()
+            let startedAt = clock.now
+            await self.recheckUnavailableFolder(record: record)
+            let elapsed = clock.now - startedAt
+            if elapsed < Self.recoveryMinimumDuration {
+                try? await Task.sleep(for: Self.recoveryMinimumDuration - elapsed)
+            }
+            self.transitioningTorrentIDs.remove(id)
+        }
+    }
+
+    /// "Повторить" on a download the engine stopped with an error: the Stop
+    /// and Start a relaunch would make, progress kept. Start's own check runs
+    /// first, so files gone from the folder become "Файлы не найдены" with
+    /// its "Скачать заново".
+    func retryAfterRuntimeError(id: UUID) {
+        guard let record = torrents.first(where: { $0.id == id }),
+              record.persistentIssue == nil,
+              record.runtimeErrorState?.recoveryOptions.contains(.retry) == true,
+              !isRestoringSession,
+              !transitioningTorrentIDs.contains(id) else { return }
+
+        transitioningTorrentIDs.insert(id)
+        Task { [weak self] in
+            guard let self else { return }
+            let clock = ContinuousClock()
+            let startedAt = clock.now
+            await self.retryAfterRuntimeError(record: record)
+            let elapsed = clock.now - startedAt
+            if elapsed < Self.recoveryMinimumDuration {
+                try? await Task.sleep(for: Self.recoveryMinimumDuration - elapsed)
+            }
+            self.transitioningTorrentIDs.remove(id)
+        }
+    }
+
+    private func retryAfterRuntimeError(record: TorrentRecord) async {
+        // Stop: the engine saves resume data as it lets the download go.
+        detachedTorrentIDs.insert(record.id)
+        do {
+            try await engine.removeTorrent(id: record.id)
+        } catch {
+            // A handle the engine kept is reused by the restore below.
+            let engineError = TorrentEngineError.normalized(from: error)
+            if engineError.kind != .torrentNotFound {
+                Self.logger.error("Retry could not detach torrent id=\(record.id.uuidString) kind=\(engineError.kind.rawValue) reason=\(engineError.debugReason ?? "-")")
+            }
+        }
+
+        // Start: the same check and restore as Start, for the download as a
+        // Stop leaves it. The card keeps its error, "Запуск…" on the button,
+        // until the outcome replaces it: the download running, a missing
+        // folder or files, or the error again.
+        guard var stopped = torrents.first(where: { $0.id == record.id }) else { return }
+        stopped.runtimeErrorState = nil
+        stopped.status = inferredHealthyStatus(for: stopped)
+        let validation = await diskIssueDetector.validateAfterUserAction(for: stopped)
+        applyValidationResult(validation, to: record.id)
+        if validation.issue != nil {
+            await persistCriticalState()
+            return
+        }
+        await restoreAndStart(record: stopped)
+    }
+
+    private func recheckUnavailableFolder(record: TorrentRecord) async {
+        guard let saveURL = await bookmarkStore.resolveFreshURL(
+            for: record.id,
+            fallbackPath: record.canonicalSavePath
+        ) else {
+            // Still unavailable: the card keeps its error, nothing is saved.
+            return
+        }
+
+        // A folder renamed or moved in Finder: the bookmark followed it.
+        var candidate = record
+        let resolvedPath = NSString(string: saveURL.path).standardizingPath
+        if resolvedPath != NSString(string: record.canonicalSavePath).standardizingPath,
+           let index = torrents.firstIndex(where: { $0.id == record.id }) {
+            torrents[index].canonicalSavePath = resolvedPath
+            candidate.canonicalSavePath = resolvedPath
+        }
+
+        // The same check Start makes: the folder may be back without the files.
+        let validation = await diskIssueDetector.validateAfterUserAction(for: candidate)
+        applyValidationResult(validation, to: record.id)
+        if let issue = validation.issue {
+            if issue.kind != .savePathUnavailable {
+                await persistCriticalState()
+            }
+            return
+        }
+
+        applyPersistentIssue(nil, to: record.id)
+        guard let recovered = torrents.first(where: { $0.id == record.id }) else { return }
+        if recovered.status.isSleeping {
+            // Stopped before the error, stopped now: manual Start stays manual.
+            await persistCriticalState()
+            return
+        }
+        await restoreAndStart(record: recovered)
+    }
+
     func redownloadTorrent(id: UUID, toSaveLocation saveURL: URL, bookmarkData: Data?) {
         guard let record = torrents.first(where: { $0.id == id }),
               record.persistentIssue?.kind == .savePathUnavailable,
@@ -2465,7 +2619,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             // A torrent that stopped or finished starts its icons afresh.
             let previousSpeedLevels = resolvedStatus == previousStatus ? speedLevels[torrentID] : nil
             speedLevels[torrentID] = (previousSpeedLevels ?? TransferSpeedLevels()).following(snapshot.metrics)
+            let previousRuntimeError = updatedTorrents[index].runtimeErrorState
             updatedTorrents[index].runtimeErrorState = snapshot.errorState
+            notifyDownloadStoppedIfNeeded(
+                torrent: updatedTorrents[index],
+                previousError: previousRuntimeError,
+                error: snapshot.errorState
+            )
             clearRestoreProgressFloorIfSatisfied(torrentID: torrentID, snapshot: snapshot)
             notifyDownloadCompletionIfNeeded(
                 torrent: updatedTorrents[index],
@@ -3630,6 +3790,44 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
+    /// A download the engine stopped while running, told once per stop, so a
+    /// night with a full disk is not silent. Failed button presses are not
+    /// told: the reader is looking at the card.
+    private func notifyDownloadStoppedIfNeeded(
+        torrent: TorrentRecord,
+        previousError: TorrentErrorState?,
+        error: TorrentErrorState?
+    ) {
+        guard let error else {
+            notifiedStoppedTorrentIDs.remove(torrent.id)
+            return
+        }
+        guard allowsUserFacingNotifications,
+              previousError == nil,
+              !notifiedStoppedTorrentIDs.contains(torrent.id) else {
+            return
+        }
+
+        notifiedStoppedTorrentIDs.insert(torrent.id)
+        if !isApplicationUserAttentionActive {
+            unreadStoppedTorrentIDs.insert(torrent.id)
+            updateUserEventBadge()
+        }
+        let notification = ShatlErrorCatalog.runtimeErrorNotification(
+            for: error.cause,
+            localeOverride: preferences.localeOverride
+        )
+        userEventNotifier?.notify(
+            .downloadStopped(
+                torrentID: torrent.id,
+                torrentTitle: torrent.displayName,
+                title: notification.title,
+                body: notification.body
+            ),
+            badgeCount: userEventBadgeCount
+        )
+    }
+
     private func notifyPersistentIssueIfNeeded(
         torrent: TorrentRecord,
         previousIssue: TorrentPersistentIssue?,
@@ -3674,13 +3872,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func clearUserEventBadge() {
-        guard !unreadCompletedTorrentIDs.isEmpty || !unreadPersistentIssueKeys.isEmpty else {
+        guard !unreadCompletedTorrentIDs.isEmpty
+                || !unreadPersistentIssueKeys.isEmpty
+                || !unreadStoppedTorrentIDs.isEmpty else {
             updateUserEventBadge()
             return
         }
 
         unreadCompletedTorrentIDs.removeAll()
         unreadPersistentIssueKeys.removeAll()
+        unreadStoppedTorrentIDs.removeAll()
         updateUserEventBadge()
     }
 
@@ -3698,6 +3899,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func clearUnreadUserEvents(for torrentID: UUID) {
         unreadCompletedTorrentIDs.remove(torrentID)
+        unreadStoppedTorrentIDs.remove(torrentID)
         unreadPersistentIssueKeys = Set(
             unreadPersistentIssueKeys.filter { $0.torrentID != torrentID }
         )
@@ -3705,7 +3907,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private var userEventBadgeCount: Int {
-        unreadCompletedTorrentIDs.count + unreadPersistentIssueKeys.count
+        unreadCompletedTorrentIDs.count + unreadPersistentIssueKeys.count + unreadStoppedTorrentIDs.count
     }
 
     private func updateUserEventBadge() {
@@ -3946,10 +4148,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private func applyMissingArchivedTorrentError(to torrentID: UUID, debugReason: String) {
         guard let index = torrents.firstIndex(where: { $0.id == torrentID }) else { return }
 
-        let engineError = TorrentEngineError(kind: .torrentNotFound, debugReason: debugReason)
+        Self.logger.error("Archived torrent missing for torrent id=\(torrentID.uuidString) reason=\(debugReason)")
         torrents[index].persistentIssue = nil
         torrents[index].status = .error
-        torrents[index].runtimeErrorState = ShatlErrorCatalog.torrentActionError(for: engineError)
+        torrents[index].runtimeErrorState = ShatlErrorCatalog.missingTorrentError()
         detachedTorrentIDs.insert(torrentID)
     }
 

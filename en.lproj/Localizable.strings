@@ -1,6 +1,6 @@
 /* English is the fallback localization. Russian remains the canonical source copy. */
 
-"common.change" = "Change";
+"common.change" = "Change…";
 "common.choose" = "Choose";
 "common.ok" = "OK";
 "common.cancel" = "Cancel";
@@ -88,7 +88,11 @@
 "torrent.action.remove_from_list" = "Remove from List";
 "torrent.action.remove_with_files" = "Delete with Files";
 "torrent.action.redownload" = "Download Again";
-"torrent.action.download_to_another_folder" = "Download to Another Folder";
+"torrent.action.download_to_another_folder" = "Download to Another Folder…";
+"torrent.action.recheck_folder" = "Check Again";
+"torrent.action.checking" = "Checking…";
+"torrent.action.retry" = "Retry";
+"torrent.action.starting" = "Starting…";
 
 "torrent.status.downloading" = "Downloading";
 "torrent.status.adding" = "Adding…";
@@ -110,12 +114,26 @@
 "torrent.error.missing_content.named_message" = "The files for this download aren’t in the “%@” folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
 "torrent.error.missing_content.notification" = "They may have been moved, renamed, or deleted. You can download them again from the download list.";
 "torrent.error.save_path_unavailable.title" = "Download folder is unavailable";
-"torrent.error.save_path_unavailable.message" = "Shatl could not open the save folder. Choose another folder or remove the torrent from the list.";
-"torrent.error.save_path_unavailable.notification" = "You can choose another folder for it in the download list.";
+"torrent.error.save_path_unavailable.message" = "The download folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
+"torrent.error.save_path_unavailable.named_message" = "The “%@” folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
+"torrent.error.save_path_unavailable.notification" = "The disk it’s on may be disconnected. You can check the folder again or choose another one in the download list.";
 "torrent.error.not_found.title" = "Download unavailable";
-"torrent.error.not_found.message" = "This torrent could not be found. Try adding it again.";
-"torrent.error.action_failed.title" = "Action failed";
-"torrent.error.action_failed.message" = "Something went wrong. Try again.";
+"torrent.error.not_found.message" = "So that a download can continue after a restart, details of its torrent are kept on your Mac. They’re gone, so this download can’t continue. Remove it from the list and add the .torrent file or magnet link again.";
+"torrent.error.runtime.title" = "Download stopped";
+"torrent.error.runtime.disk_full.message" = "The disk ran out of space, and the download stopped. Free up space and retry.";
+"torrent.error.runtime.disk_full.named_message" = "The disk with the “%@” folder ran out of space, and the download stopped. Free up space and retry.";
+"torrent.error.runtime.disk_full.notification" = "The disk ran out of space. Free up space and retry from the download list.";
+"torrent.error.runtime.no_write_access.message" = "The download folder doesn’t allow writing, and the download stopped. Allow writing in Finder (Get Info → Sharing & Permissions) and retry.";
+"torrent.error.runtime.no_write_access.named_message" = "The “%@” folder doesn’t allow writing, and the download stopped. Allow writing in Finder (Get Info → Sharing & Permissions) and retry.";
+"torrent.error.runtime.no_write_access.notification" = "The download folder doesn’t allow writing. You can retry from the download list.";
+"torrent.error.runtime.disk_error.message" = "The disk with the download folder reported a read or write error, and the download stopped. Check the disk in Disk Utility and retry.";
+"torrent.error.runtime.disk_error.named_message" = "The disk with the “%@” folder reported a read or write error, and the download stopped. Check the disk in Disk Utility and retry.";
+"torrent.error.runtime.disk_error.notification" = "The disk reported a read or write error. You can retry from the download list.";
+"torrent.error.runtime.files_missing.message" = "The download’s files disappeared from its folder, and it stopped. Retry: if the files are gone, you’ll be able to download them again.";
+"torrent.error.runtime.files_missing.named_message" = "The download’s files disappeared from the “%@” folder, and it stopped. Retry: if the files are gone, you’ll be able to download them again.";
+"torrent.error.runtime.files_missing.notification" = "The download’s files disappeared from its folder. You can retry from the download list.";
+"torrent.error.runtime.other.message" = "The download stopped because of an internal error. Retry. If the error comes back, remove the download from the list and add the .torrent file or magnet link again.";
+"torrent.error.runtime.other.notification" = "An internal error occurred. You can retry from the download list.";
 
 "remove_dialog.choice.title" = "Delete “%@”?";
 "remove_dialog.choice.message.with_files" = "If you remove it from the list only, the downloaded files stay on disk. If you delete it with files, they’ll be deleted from disk permanently.";
@@ -200,6 +218,12 @@
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Start Onboarding";
 "menu.debug.preview_restore_status" = "Show “Preparing Downloads”";
+"menu.debug.runtime_error" = "Stop Download with Error";
+"menu.debug.runtime_error.disk_full" = "Out of Space";
+"menu.debug.runtime_error.no_write_access" = "No Write Access";
+"menu.debug.runtime_error.disk_error" = "Disk Error";
+"menu.debug.runtime_error.files_missing" = "Files Missing";
+"menu.debug.runtime_error.other" = "Internal Error";
 
 "settings.data.section" = "Usage statistics";
 "settings.data.help_development" = "Send anonymous statistics";
@@ -257,12 +281,12 @@
 "settings.appearance.preview" = "Preview";
 
 "settings.about.application_version" = "App version";
-"settings.about.check_updates" = "Check for Updates";
+"settings.about.check_updates" = "Check for Updates…";
 "settings.about.check_for_updates_automatically" = "Check for updates automatically";
 "settings.about.install_updates_automatically" = "Install updates automatically";
 "settings.about.contact_section" = "Contact the developer";
 "settings.about.contact_row" = "Send feedback or report a problem";
-"settings.about.write" = "Write";
+"settings.about.write" = "Write…";
 "settings.about.logo.caption" = "Made with love for your Mac";
 
 "settings.localization.section" = "Interface language";

@@ -680,7 +680,7 @@ final class AppStoreTests: XCTestCase {
             errorState.message,
             L10n.string("torrent.error.save_path_unavailable.message", localeOverride: .russian)
         )
-        XCTAssertEqual(errorState.recoveryOptions, [.chooseAnotherFolder, .removeFromList])
+        XCTAssertEqual(errorState.recoveryOptions, [.recheckFolder, .chooseAnotherFolder, .removeFromList])
     }
 
     func testDownloadCompletionSendsNotificationOnceWithBadgeCount() async {

@@ -21,6 +21,14 @@ struct ShatlCommands: Commands {
             Button("menu.debug.preview_restore_status") {
                 store.previewRestoreStatusForDebug()
             }
+            Menu("menu.debug.runtime_error") {
+                debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
+                debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)
+                debugRuntimeErrorButton("menu.debug.runtime_error.disk_error", cause: .diskError)
+                debugRuntimeErrorButton("menu.debug.runtime_error.files_missing", cause: .filesMissing)
+                debugRuntimeErrorButton("menu.debug.runtime_error.other", cause: nil)
+            }
+            .disabled(!store.canSimulateRuntimeErrorForDebug(id: selectedTorrentID))
         }
         #endif
 
@@ -116,6 +124,16 @@ struct ShatlCommands: Commands {
     private var selectedTorrentID: UUID? {
         store.selectedTorrentID
     }
+
+    #if DEBUG
+    /// Stops the selected download as the engine would with `cause`.
+    private func debugRuntimeErrorButton(_ titleKey: LocalizedStringKey, cause: TorrentErrorState.Cause?) -> some View {
+        Button(titleKey) {
+            guard let selectedTorrentID else { return }
+            store.simulateRuntimeErrorForDebug(id: selectedTorrentID, cause: cause)
+        }
+    }
+    #endif
 
     private var selectedTorrent: TorrentRecord? {
         store.selectedTorrent

@@ -476,7 +476,9 @@ actor LibtorrentEngine: TorrentEngine {
             status: status,
             progress: snapshot.progress,
             metrics: metrics,
-            errorState: snapshot.errorMessage.map { ShatlErrorCatalog.runtimeSnapshotError(debugReason: $0) },
+            errorState: snapshot.errorMessage.map {
+                ShatlErrorCatalog.runtimeSnapshotError(debugReason: $0, posixCode: snapshot.errorCode)
+            },
             resumeDataStatus: mapResumeDataStatus(snapshot.resumeDataStatus)
         )
 

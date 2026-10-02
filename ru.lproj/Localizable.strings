@@ -1,6 +1,6 @@
 /* Russian is the canonical source for current product copy. */
 
-"common.change" = "Сменить";
+"common.change" = "Сменить…";
 "common.choose" = "Выбрать";
 "common.ok" = "ОК";
 "common.cancel" = "Отменить";
@@ -88,7 +88,11 @@
 "torrent.action.remove_from_list" = "Удалить из списка";
 "torrent.action.remove_with_files" = "Удалить вместе с файлами";
 "torrent.action.redownload" = "Скачать заново";
-"torrent.action.download_to_another_folder" = "Скачать в другую папку";
+"torrent.action.download_to_another_folder" = "Скачать в другую папку…";
+"torrent.action.recheck_folder" = "Проверить снова";
+"torrent.action.checking" = "Проверка…";
+"torrent.action.retry" = "Повторить";
+"torrent.action.starting" = "Запуск…";
 
 "torrent.status.downloading" = "Скачивается";
 "torrent.status.adding" = "Добавляется…";
@@ -110,12 +114,26 @@
 "torrent.error.missing_content.named_message" = "В папке «%@» нет файлов этой загрузки — возможно, их переместили, переименовали или удалили. Скачайте их заново или удалите загрузку из списка.";
 "torrent.error.missing_content.notification" = "Возможно, их переместили, переименовали или удалили. Скачать их заново можно в списке загрузок.";
 "torrent.error.save_path_unavailable.title" = "Папка загрузки недоступна";
-"torrent.error.save_path_unavailable.message" = "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка.";
-"torrent.error.save_path_unavailable.notification" = "Выбрать для неё другую папку можно в списке загрузок.";
+"torrent.error.save_path_unavailable.message" = "Папка загрузки недоступна — возможно, отключён диск, на котором она лежит, или папку удалили. Подключите диск и проверьте снова или скачайте загрузку в другую папку.";
+"torrent.error.save_path_unavailable.named_message" = "Папка «%@» недоступна — возможно, отключён диск, на котором она лежит, или папку удалили. Подключите диск и проверьте снова или скачайте загрузку в другую папку.";
+"torrent.error.save_path_unavailable.notification" = "Возможно, отключён диск, на котором она лежит. Проверить папку снова или выбрать другую можно в списке загрузок.";
 "torrent.error.not_found.title" = "Загрузка недоступна";
-"torrent.error.not_found.message" = "Не удалось найти этот торрент. Попробуйте добавить его заново.";
-"torrent.error.action_failed.title" = "Не удалось выполнить действие";
-"torrent.error.action_failed.message" = "Произошла ошибка. Попробуйте ещё раз.";
+"torrent.error.not_found.message" = "Чтобы загрузку можно было продолжить после перезапуска, сведения о её торренте хранятся на вашем Mac. Они пропали, поэтому продолжить загрузку не получится. Удалите её из списка и добавьте .torrent‑файл или magnet‑ссылку заново.";
+"torrent.error.runtime.title" = "Загрузка остановилась";
+"torrent.error.runtime.disk_full.message" = "На диске закончилось место, и загрузка остановилась. Освободите место и повторите запуск.";
+"torrent.error.runtime.disk_full.named_message" = "На диске с папкой «%@» закончилось место, и загрузка остановилась. Освободите место и повторите запуск.";
+"torrent.error.runtime.disk_full.notification" = "На диске закончилось место. Освободите его и повторите запуск в списке загрузок.";
+"torrent.error.runtime.no_write_access.message" = "Нет доступа на запись в папку загрузки, и загрузка остановилась. Разрешите запись в Finder («Свойства» → «Общий доступ и права доступа») и повторите запуск.";
+"torrent.error.runtime.no_write_access.named_message" = "Нет доступа на запись в папку «%@», и загрузка остановилась. Разрешите запись в Finder («Свойства» → «Общий доступ и права доступа») и повторите запуск.";
+"torrent.error.runtime.no_write_access.notification" = "Нет доступа на запись в папку загрузки. Повторить запуск можно в списке загрузок.";
+"torrent.error.runtime.disk_error.message" = "Диск с папкой загрузки сообщил об ошибке чтения или записи, и загрузка остановилась. Проверьте диск в Дисковой утилите и повторите запуск.";
+"torrent.error.runtime.disk_error.named_message" = "Диск с папкой «%@» сообщил об ошибке чтения или записи, и загрузка остановилась. Проверьте диск в Дисковой утилите и повторите запуск.";
+"torrent.error.runtime.disk_error.notification" = "Диск сообщил об ошибке чтения или записи. Повторить запуск можно в списке загрузок.";
+"torrent.error.runtime.files_missing.message" = "Файлы загрузки пропали из её папки, и она остановилась. Повторите запуск: если файлов нет, их можно будет скачать заново.";
+"torrent.error.runtime.files_missing.named_message" = "Файлы загрузки пропали из папки «%@», и она остановилась. Повторите запуск: если файлов нет, их можно будет скачать заново.";
+"torrent.error.runtime.files_missing.notification" = "Файлы загрузки пропали из папки. Повторить запуск можно в списке загрузок.";
+"torrent.error.runtime.other.message" = "Загрузка остановилась из-за внутренней ошибки. Повторите запуск. Если ошибка вернётся, удалите загрузку из списка и добавьте .torrent‑файл или magnet‑ссылку заново.";
+"torrent.error.runtime.other.notification" = "Произошла внутренняя ошибка. Повторить запуск можно в списке загрузок.";
 
 "remove_dialog.choice.title" = "Удалить «%@»?";
 "remove_dialog.choice.message.with_files" = "Если удалить только из списка, скачанные файлы останутся на диске. Если вместе с файлами — они будут удалены с диска насовсем.";
@@ -206,6 +224,12 @@
 "settings.tab.debug" = "Отладка";
 "menu.debug.show_onboarding" = "Запустить онбординг";
 "menu.debug.preview_restore_status" = "Показать «Подготовка загрузок»";
+"menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
+"menu.debug.runtime_error.disk_full" = "Закончилось место";
+"menu.debug.runtime_error.no_write_access" = "Нет доступа на запись";
+"menu.debug.runtime_error.disk_error" = "Ошибка диска";
+"menu.debug.runtime_error.files_missing" = "Пропали файлы";
+"menu.debug.runtime_error.other" = "Внутренняя ошибка";
 
 "settings.data.section" = "Статистика использования";
 "settings.data.help_development" = "Отправлять анонимную статистику";
@@ -263,12 +287,12 @@
 "settings.appearance.preview" = "Предпросмотр";
 
 "settings.about.application_version" = "Версия приложения";
-"settings.about.check_updates" = "Проверить обновления";
+"settings.about.check_updates" = "Проверить обновления…";
 "settings.about.check_for_updates_automatically" = "Проверять обновления автоматически";
 "settings.about.install_updates_automatically" = "Устанавливать обновления автоматически";
 "settings.about.contact_section" = "Связаться с разработчиком";
 "settings.about.contact_row" = "Отправить отзыв или сообщить о проблеме";
-"settings.about.write" = "Написать";
+"settings.about.write" = "Написать…";
 "settings.about.logo.caption" = "Сделано с любовью для вашего Mac";
 
 "settings.localization.section" = "Язык интерфейса";

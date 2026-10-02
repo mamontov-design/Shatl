@@ -9,6 +9,13 @@ nonisolated enum TorrentUserNotification: Equatable, Sendable {
         torrentTitle: String,
         localeOverride: AppLocaleOverride
     )
+    /// The engine stopped a running download with an error.
+    case downloadStopped(
+        torrentID: UUID,
+        torrentTitle: String,
+        title: String,
+        body: String
+    )
     case persistentIssue(
         torrentID: UUID,
         issueKind: TorrentPersistentIssue.Kind,
