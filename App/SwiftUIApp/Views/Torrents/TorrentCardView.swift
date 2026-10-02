@@ -439,12 +439,28 @@ struct TorrentCardView: View, Equatable {
         HStack(spacing: 8) {
             progressGroup
 
-            if statusKind != .error {
-                statusTitle
-                    .transition(.blurReplace)
+            // A box that stays as the status changes, empty beside an error:
+            // it slides with the plate's edge, and the status inside comes,
+            // goes and is replaced in place.
+            ZStack(alignment: .leading) {
+                if statusKind != .error {
+                    statusTitle
+                        .transition(Self.statusTitleReplace)
+                }
             }
         }
-        .animation(ShatlMotion.progressStatusReplace, value: statusPresentationKey)
+        // The status follows the plate's edge at the plate's pace, as the
+        // plate widens or narrows with its value and with a new status. It
+        // jumped there at once, while the plate was still on its way.
+        .geometryGroup()
+        .animation(ShatlMotion.progressGroupResize, value: progressGroupResizeAnimationKey)
+        .animation(ShatlMotion.progressGroupResize, value: statusPresentationKey)
+    }
+
+    /// The status blurs into the next one at its own pace while its box
+    /// slides.
+    private static var statusTitleReplace: AnyTransition {
+        AnyTransition(.blurReplace).animation(ShatlMotion.progressStatusReplace)
     }
 
     private var statusTitle: some View {
