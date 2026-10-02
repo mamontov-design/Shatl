@@ -39,6 +39,7 @@ actor FakeTorrentEngine: TorrentEngine {
     private var queuedActiveSnapshots: [[EngineTorrentSnapshot]] = []
     private var appliedPerformanceSettingsValue: [EnginePerformanceSettings] = []
     private var portMappingStatusValue: EnginePortMappingStatus?
+    private var restartPortMappingCheckCountValue = 0
     private var checkpointedTorrentIDsValue: [UUID] = []
 
     func boot() async throws {
@@ -298,6 +299,14 @@ actor FakeTorrentEngine: TorrentEngine {
         portMappingStatusValue = status
     }
 
+    func restartPortMappingCheck() async {
+        restartPortMappingCheckCountValue += 1
+    }
+
+    func restartPortMappingCheckCount() -> Int {
+        restartPortMappingCheckCountValue
+    }
+
     func recordedPerformanceSettings() async -> [EnginePerformanceSettings] {
         appliedPerformanceSettingsValue
     }
@@ -399,6 +408,33 @@ actor SuspendedSessionReader {
 }
 
 @MainActor
+/// Stands in for the network monitor: a test says when the network moved.
+final class FakePhysicalNetworkMonitor: PhysicalNetworkMonitoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var onChange: (@Sendable () -> Void)?
+    private var startCountValue = 0
+    private var stopCountValue = 0
+
+    var startCount: Int { lock.withLock { startCountValue } }
+    var stopCount: Int { lock.withLock { stopCountValue } }
+
+    func start(onChange: @escaping @Sendable () -> Void) {
+        lock.withLock {
+            self.onChange = onChange
+            startCountValue += 1
+        }
+    }
+
+    func stop() {
+        lock.withLock { stopCountValue += 1 }
+    }
+
+    func simulateNetworkChange() {
+        let onChange = lock.withLock { self.onChange }
+        onChange?()
+    }
+}
+
 final class SpyTorrentUserEventNotifier: TorrentUserEventNotifying {
     private(set) var notifications: [TorrentUserNotification] = []
     private(set) var badgeCounts: [Int] = []
@@ -491,6 +527,7 @@ func makeTestStoreBundle(
     userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)? = nil,
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
     usageTelemetrySender: (any UsageTelemetrySending)? = nil,
+    physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
@@ -552,6 +589,7 @@ func makeTestStoreBundle(
         userEventBadgeDisplay: userEventBadgeDisplay,
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
+        physicalNetworkMonitor: physicalNetworkMonitor,
         torrents: torrents,
         preferences: preferences,
         hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
@@ -583,6 +621,7 @@ func makeTestStoreBundle(
     userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)? = nil,
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
     usageTelemetrySender: (any UsageTelemetrySending)? = nil,
+    physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
@@ -602,6 +641,7 @@ func makeTestStoreBundle(
         userEventBadgeDisplay: userEventBadgeDisplay,
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
+        physicalNetworkMonitor: physicalNetworkMonitor,
         sessionStoreStartupMode: sessionStoreStartupMode,
         sessionReadData: sessionReadData,
         sessionWriteData: sessionWriteData,

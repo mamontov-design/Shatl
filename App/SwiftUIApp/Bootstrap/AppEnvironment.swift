@@ -43,6 +43,7 @@ struct AppEnvironment {
     var userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     var usageTelemetryCoordinator: UsageTelemetryLocalCoordinator
     var usageTelemetrySender: (any UsageTelemetrySending)?
+    var physicalNetworkMonitor: (any PhysicalNetworkMonitoring)?
 
     static func live() -> AppEnvironment {
         let directories = liveDirectories
@@ -91,7 +92,8 @@ struct AppEnvironment {
             userEventNotifier: MacTorrentUserEventNotifier(),
             userEventBadgeDisplay: MacTorrentUserEventBadgeDisplay(),
             usageTelemetryCoordinator: usageTelemetryCoordinator,
-            usageTelemetrySender: usageTelemetrySender
+            usageTelemetrySender: usageTelemetrySender,
+            physicalNetworkMonitor: PhysicalNetworkMonitor()
         )
     }
 

@@ -70,6 +70,14 @@ actor LibtorrentEngine: TorrentEngine {
         )
     }
 
+    func restartPortMappingCheck() async {
+        do {
+            try bridge.restartPortMappingCheck()
+        } catch {
+            ShatlLog.bridge.error("Failed to ask the router again: \(String(describing: error))")
+        }
+    }
+
     func portMappingStatus() async -> EnginePortMappingStatus? {
         let status = bridge.currentPortMappingStatus()
         switch status.state {

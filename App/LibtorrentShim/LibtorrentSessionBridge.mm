@@ -1304,6 +1304,33 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     return YES;
 }
 
+- (BOOL)restartPortMappingCheck:(NSError * _Nullable __autoreleasing *)error {
+    if (!_portForwardingEnabled || _session == nullptr) {
+        return YES;
+    }
+    _portMapping = LTPortMappingSummary();
+    _portMapping.startedAt = std::chrono::steady_clock::now();
+
+    try {
+        // Off and on again, in order: the mappings of the old router are
+        // dropped, and UPnP and NAT-PMP look for the router anew. With the
+        // Mac's address unchanged, libtorrent would not ask by itself.
+        for (bool const enabled : {false, true}) {
+            lt::settings_pack pack;
+            pack.set_bool(lt::settings_pack::enable_upnp, enabled);
+            pack.set_bool(lt::settings_pack::enable_natpmp, enabled);
+            _session->apply_settings(pack);
+        }
+    } catch (std::exception const& exception) {
+        if (error != nullptr) {
+            *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
+        }
+        return NO;
+    }
+
+    return YES;
+}
+
 + (BOOL)sessionSettingsForwardPortForProfile:(LTPerformanceProfile)profile
                               portForwarding:(BOOL)portForwarding {
     lt::settings_pack const pack = LTMakeSessionSettingsPack(profile, OPEN_MAX, portForwarding, NO);

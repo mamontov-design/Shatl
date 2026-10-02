@@ -146,6 +146,9 @@ nonisolated protocol TorrentEngine: Sendable {
     func resourceBudget() async -> EngineResourceBudget?
     /// What the router answered to port forwarding; `nil` for engines without it.
     func portMappingStatus() async -> EnginePortMappingStatus?
+    /// Forgets the router's answer and asks again, for a Mac that moved to
+    /// another network. Nothing happens while port forwarding is off.
+    func restartPortMappingCheck() async
     /// Stops the engine before the app exits; it accepts no commands afterwards.
     func shutdown() async
 }
@@ -153,5 +156,6 @@ nonisolated protocol TorrentEngine: Sendable {
 extension TorrentEngine {
     nonisolated func resourceBudget() async -> EngineResourceBudget? { nil }
     nonisolated func portMappingStatus() async -> EnginePortMappingStatus? { nil }
+    nonisolated func restartPortMappingCheck() async {}
     nonisolated func shutdown() async {}
 }
