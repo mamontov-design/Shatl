@@ -18,6 +18,19 @@ Current pipeline:
 - libtorrent is built into `Vendor/Artifacts/libtorrent/macos-arm64/`.
 - Boost headers live in `Vendor/Artifacts/boost/include/`.
 
+Boost 1.90.0 is kept to the headers that are actually included: 1,782 of
+the 15,987 in the release, 12 MB instead of 179 MB. The set is the union
+of the headers `LibtorrentSessionBridge.mm` includes in Debug and
+Release and the headers libtorrent 2.0.14 includes when
+`Scripts/build-libtorrent.sh` builds it; that script was run from scratch
+against the pruned set. A libtorrent update, a new compiler flag or a new
+Boost include may need headers that are gone: put the full
+`boost/` folder of the same Boost release back into
+`Vendor/Artifacts/boost/include/`, build libtorrent and the app, and prune
+again to the union of the build's dependency files (`ninja -t deps` in
+`.build/vendor-build/libtorrent-rasterbar-2.0.14` and the bridge's `.d`
+files in DerivedData).
+
 Rebuild scripts:
 
 - `Scripts/build-openssl.sh`
