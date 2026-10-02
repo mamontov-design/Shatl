@@ -158,6 +158,7 @@
 "add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
 "add_torrent.review.close" = "Fermer";
+"add_torrent.review.show_in_list" = "Afficher dans la liste";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
 "add_torrent.review.summary.size" = "Taille";
 "add_torrent.review.summary.free_space" = "Disponible";
@@ -185,6 +186,8 @@
 "add_torrent.error.duplicate.title" = "Ce téléchargement existe déjà.";
 "add_torrent.error.duplicate.message" = "Ce téléchargement est déjà dans la liste. Ce fichier ou ce lien a peut-être déjà été ouvert. Inutile de l’ajouter à nouveau : fermez cette fenêtre et retrouvez le téléchargement dans la liste.";
 "add_torrent.error.duplicate.named_message" = "Le téléchargement « %@ » est déjà dans la liste. Ce fichier ou ce lien a peut-être déjà été ouvert. Inutile de l’ajouter à nouveau : fermez cette fenêtre et retrouvez le téléchargement dans la liste.";
+"add_torrent.error.duplicate.in_list.message" = "Ce téléchargement est déjà dans la liste. Ce fichier ou ce lien a peut-être déjà été ouvert. Inutile de l’ajouter à nouveau : cliquez sur « Afficher dans la liste » pour y accéder.";
+"add_torrent.error.duplicate.in_list.named_message" = "Le téléchargement « %@ » est déjà dans la liste. Ce fichier ou ce lien a peut-être déjà été ouvert. Inutile de l’ajouter à nouveau : cliquez sur « Afficher dans la liste » pour y accéder.";
 "add_torrent.error.generic.title" = "Impossible de préparer le téléchargement.";
 "add_torrent.error.not_found.title" = "Téléchargement indisponible.";
 "add_torrent.error.not_found.message" = "Le téléchargement préparé a disparu pendant que la fenêtre était ouverte. Fermez la fenêtre et ajoutez à nouveau le fichier ou le lien.";

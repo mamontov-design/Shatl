@@ -158,6 +158,7 @@
 "add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
 "add_torrent.review.close" = "Schließen";
+"add_torrent.review.show_in_list" = "In Liste zeigen";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";
 "add_torrent.review.summary.size" = "Größe";
 "add_torrent.review.summary.free_space" = "Frei";
@@ -185,6 +186,8 @@
 "add_torrent.error.duplicate.title" = "Dieser Download ist bereits vorhanden.";
 "add_torrent.error.duplicate.message" = "Dieser Download ist bereits in der Liste. Vielleicht wurde dieselbe Datei oder derselbe Link schon einmal geöffnet. Sie müssen ihn nicht erneut hinzufügen – schließen Sie das Fenster und suchen Sie den Download in der Liste.";
 "add_torrent.error.duplicate.named_message" = "Der Download „%@“ ist bereits in der Liste. Vielleicht wurde dieselbe Datei oder derselbe Link schon einmal geöffnet. Sie müssen ihn nicht erneut hinzufügen – schließen Sie das Fenster und suchen Sie den Download in der Liste.";
+"add_torrent.error.duplicate.in_list.message" = "Dieser Download ist bereits in der Liste. Vielleicht wurde dieselbe Datei oder derselbe Link schon einmal geöffnet. Sie müssen ihn nicht erneut hinzufügen – klicken Sie auf „In Liste zeigen“, um zu ihm zu wechseln.";
+"add_torrent.error.duplicate.in_list.named_message" = "Der Download „%@“ ist bereits in der Liste. Vielleicht wurde dieselbe Datei oder derselbe Link schon einmal geöffnet. Sie müssen ihn nicht erneut hinzufügen – klicken Sie auf „In Liste zeigen“, um zu ihm zu wechseln.";
 "add_torrent.error.generic.title" = "Download konnte nicht vorbereitet werden.";
 "add_torrent.error.not_found.title" = "Download nicht verfügbar.";
 "add_torrent.error.not_found.message" = "Der vorbereitete Download ist verschwunden, während das Fenster offen war. Schließen Sie das Fenster und fügen Sie die Datei oder den Link erneut hinzu.";

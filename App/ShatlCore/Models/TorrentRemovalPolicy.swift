@@ -26,3 +26,10 @@ nonisolated struct PayloadDeletionAlert: Identifiable, Equatable, Sendable {
     /// The files that stayed on disk, shown by the alert's "Show in Finder".
     var revealURL: URL?
 }
+
+/// One request to scroll the list to a download; a new one each time, so
+/// asking twice for the same download scrolls twice.
+nonisolated struct TorrentListRevealRequest: Identifiable, Equatable, Sendable {
+    var id = UUID()
+    var torrentID: UUID
+}

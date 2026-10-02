@@ -160,6 +160,7 @@
 "add_torrent.review.alias_placeholder" = "Назовите загрузку…";
 "add_torrent.review.confirm" = "Скачать";
 "add_torrent.review.close" = "Закрыть";
+"add_torrent.review.show_in_list" = "Показать в списке";
 "add_torrent.review.summary.selected_files" = "Выбрано файлов";
 "add_torrent.review.summary.size" = "Размер";
 "add_torrent.review.summary.free_space" = "Свободно";
@@ -191,6 +192,8 @@
 "add_torrent.error.duplicate.title" = "Такая загрузка уже есть.";
 "add_torrent.error.duplicate.message" = "Эта загрузка уже есть в списке. Возможно, этот файл или ссылку уже открывали раньше. Добавлять её заново не нужно — закройте окно и найдите загрузку в списке.";
 "add_torrent.error.duplicate.named_message" = "Загрузка «%@» уже есть в списке. Возможно, этот файл или ссылку уже открывали раньше. Добавлять её заново не нужно — закройте окно и найдите загрузку в списке.";
+"add_torrent.error.duplicate.in_list.message" = "Эта загрузка уже есть в списке. Возможно, этот файл или ссылку уже открывали раньше. Добавлять её заново не нужно — нажмите «Показать в списке», чтобы перейти к ней.";
+"add_torrent.error.duplicate.in_list.named_message" = "Загрузка «%@» уже есть в списке. Возможно, этот файл или ссылку уже открывали раньше. Добавлять её заново не нужно — нажмите «Показать в списке», чтобы перейти к ней.";
 "add_torrent.error.generic.title" = "Не удалось подготовить загрузку.";
 "add_torrent.error.not_found.title" = "Загрузка недоступна.";
 "add_torrent.error.not_found.message" = "Подготовленная загрузка пропала, пока окно было открыто. Закройте окно и добавьте файл или ссылку ещё раз.";

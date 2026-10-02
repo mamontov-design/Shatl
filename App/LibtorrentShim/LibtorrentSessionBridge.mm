@@ -82,14 +82,17 @@ static NSError *LTMakeError(ShatlLibtorrentErrorCode code, NSString *message) {
 }
 
 /// Names the torrent already in the session, when its name is known, so the
-/// add window can say which one it is.
+/// add window can say which one it is, and gives its info hash, so the window
+/// can show that download in the list.
 static NSString * const ShatlLibtorrentTorrentNameKey = @"mamontov.design.shatl.libtorrent.torrent-name";
+static NSString * const ShatlLibtorrentInfoHashKey = @"mamontov.design.shatl.libtorrent.info-hash";
 
-static NSError *LTMakeDuplicateError(std::string const& torrentName) {
+static NSError *LTMakeDuplicateError(std::string const& torrentName, lt::info_hash_t const& infoHashes) {
     NSMutableDictionary *userInfo = [@{NSLocalizedDescriptionKey: @"Такая загрузка уже есть."} mutableCopy];
     if (!torrentName.empty()) {
         userInfo[ShatlLibtorrentTorrentNameKey] = LTToNSString(torrentName);
     }
+    userInfo[ShatlLibtorrentInfoHashKey] = LTInfoHashString(infoHashes);
     return [NSError errorWithDomain:ShatlLibtorrentErrorDomain
                                code:ShatlLibtorrentErrorCodeDuplicateTorrent
                            userInfo:userInfo];
@@ -1371,7 +1374,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 
     if (self->_session->find_torrent(params.info_hashes.get_best()).is_valid()) {
         if (error != nullptr) {
-            *error = LTMakeDuplicateError(params.name);
+            *error = LTMakeDuplicateError(params.name, params.info_hashes);
         }
         return nil;
     }
@@ -1535,7 +1538,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     if (self->_session->find_torrent(torrentInfo->info_hashes().get_best()).is_valid()) {
         if (error != nullptr) {
-            *error = LTMakeDuplicateError(torrentInfo->name());
+            *error = LTMakeDuplicateError(torrentInfo->name(), torrentInfo->info_hashes());
         }
         return nil;
     }
@@ -1642,7 +1645,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     if (self->_session->find_torrent(bestHash).is_valid()) {
         LT_BRIDGE_LOG(@"add.duplicate", recordIdentifier, nil, YES);
         if (error != nullptr) {
-            *error = LTMakeDuplicateError(torrentInfo->name());
+            *error = LTMakeDuplicateError(torrentInfo->name(), torrentInfo->info_hashes());
         }
         return nil;
     }

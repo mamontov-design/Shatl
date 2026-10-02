@@ -943,7 +943,10 @@ final class AppStoreTests: XCTestCase {
         }
 
         XCTAssertTrue(didApplyDuplicate)
-        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.reviewState, duplicateDraftReviewState(named: "Duplicate Torrent"))
+        XCTAssertEqual(
+            bundle.store.currentAddTorrentDraft?.reviewState,
+            duplicateDraftReviewState(named: "Duplicate Torrent")
+        )
         XCTAssertTrue(bundle.store.torrents.isEmpty)
     }
 
@@ -3487,7 +3490,15 @@ final class AppStoreTests: XCTestCase {
         return urls
     }
 
-    private func duplicateDraftReviewState(named name: String) -> AddTorrentReviewState {
-        .invalid(message: ShatlErrorCatalog.duplicateDraftError(torrentName: name, localeOverride: .system).message)
+    /// These lists hold one download or none, so no "Show in List": the
+    /// message asks to close the window. DuplicateRevealTests cover the rest.
+    private func duplicateDraftReviewState(named name: String, showsInList: Bool = false) -> AddTorrentReviewState {
+        .invalid(
+            message: ShatlErrorCatalog.duplicateDraftError(
+                torrentName: name,
+                showsInList: showsInList,
+                localeOverride: .system
+            ).message
+        )
     }
 }

@@ -1270,6 +1270,8 @@ struct AddTorrentReviewView: View {
         var systemImage: String
         var title: String
         var message: String?
+        /// A duplicate whose download is known offers to show it in the list.
+        var showsDuplicateInList = false
     }
 
     private var reviewMessage: ReviewMessage? {
@@ -1300,7 +1302,8 @@ struct AddTorrentReviewView: View {
             return ReviewMessage(
                 systemImage: errorState?.kind == .noConnection ? "wifi.slash" : "exclamationmark.circle",
                 title: errorState?.title ?? L10n.string("add_torrent.review.invalid_placeholder", localeOverride: locale),
-                message: message.isEmpty ? nil : message
+                message: message.isEmpty ? nil : message,
+                showsDuplicateInList: errorState?.kind == .duplicateTorrent && store.addTorrentDuplicateID != nil
             )
 
         case .none:
@@ -1312,14 +1315,28 @@ struct AddTorrentReviewView: View {
         }
     }
 
+    private var showInListButton: ShatlMessageBlockPrimaryButton {
+        ShatlMessageBlockPrimaryButton(
+            title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride),
+            role: .borderedColored
+        ) {
+            store.showAddTorrentDuplicateInList()
+        }
+    }
+
     @ViewBuilder
     private var filesTabContent: some View {
         if let reviewMessage {
             ShatlMessageBlockPrimary(
                 systemImage: reviewMessage.systemImage,
                 title: reviewMessage.title,
-                message: reviewMessage.message
+                message: reviewMessage.message,
+                primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
             )
+            // A failure disables the window; the block's own action stays
+            // pressable, as the main window keeps its content under a
+            // disabled search.
+            .environment(\.isEnabled, true)
             .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .transition(ShatlMotion.stickyPinInsertion)
@@ -2331,7 +2348,8 @@ struct AddTorrentReviewView: View {
                 localeOverride: store.preferences.localeOverride,
                 defaultValue: "Закрыть"
             ),
-            role: .borderedColored
+            // Neutral beside the message's own action, the only action otherwise.
+            role: reviewMessage?.showsDuplicateInList == true ? .borderedNeutral : .borderedColored
         ) {
             store.dismissModal()
         }

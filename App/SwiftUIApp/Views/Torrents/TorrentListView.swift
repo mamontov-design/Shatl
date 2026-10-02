@@ -41,100 +41,121 @@ struct TorrentListView: View {
         // A plain stack, not a lazy one: every card is built once and scrolling
         // moves finished layers. A lazy stack builds and lays out cards as they
         // scroll in, and on a short list the start of every scroll jerked.
-        ScrollView {
-            VStack(spacing: 8) {
-                ForEach(visibleTorrentIDs, id: \.self) { torrentID in
-                    if let rowModel = store.torrentRowPresentationModel(for: torrentID) {
-                        TorrentRowPresentationObserver(model: rowModel) { row in
-                            TorrentCardView(
-                                row: row,
-                                resolvePrimaryLocation: {
-                                    await store.primaryLocation(for: torrentID)
-                                },
-                                onSelect: { store.toggleTorrentSelection(id: torrentID) },
-                                onToggleExpanded: {
-                                    withAnimation(ShatlMotion.cardLayout) {
-                                        store.toggleExpanded(for: torrentID)
-                                    }
-                                },
-                                onOpen: {
-                                    Task {
-                                        guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                        await MainActor.run {
-                                            TorrentFileNavigationPresenter.open(location)
+        // The list scrolls to a download when asked, for "Show in List" in
+        // the add window.
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(visibleTorrentIDs, id: \.self) { torrentID in
+                        if let rowModel = store.torrentRowPresentationModel(for: torrentID) {
+                            TorrentRowPresentationObserver(model: rowModel) { row in
+                                TorrentCardView(
+                                    row: row,
+                                    resolvePrimaryLocation: {
+                                        await store.primaryLocation(for: torrentID)
+                                    },
+                                    onSelect: { store.toggleTorrentSelection(id: torrentID) },
+                                    onToggleExpanded: {
+                                        withAnimation(ShatlMotion.cardLayout) {
+                                            store.toggleExpanded(for: torrentID)
                                         }
-                                    }
-                                },
-                                onRevealInFinder: {
-                                    Task {
-                                        guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                        await MainActor.run {
-                                            TorrentFileNavigationPresenter.revealInFinder(location)
+                                    },
+                                    onOpen: {
+                                        Task {
+                                            guard let location = await store.primaryLocation(for: torrentID) else { return }
+                                            await MainActor.run {
+                                                TorrentFileNavigationPresenter.open(location)
+                                            }
                                         }
-                                    }
-                                },
-                                onToggleRunningState: {
-                                    store.toggleTorrentRunningState(id: torrentID)
-                                },
-                                onRedownload: { store.redownloadTorrent(id: torrentID) },
-                                onChooseAnotherFolder: {
-                                    presentRedownloadFolderPicker(for: torrentID)
-                                },
-                                onRemove: {
-                                    Task {
-                                        if let shortDisplayName = store.pendingAdditionShortDisplayName(for: torrentID) {
-                                            guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
-                                                named: shortDisplayName,
+                                    },
+                                    onRevealInFinder: {
+                                        Task {
+                                            guard let location = await store.primaryLocation(for: torrentID) else { return }
+                                            await MainActor.run {
+                                                TorrentFileNavigationPresenter.revealInFinder(location)
+                                            }
+                                        }
+                                    },
+                                    onToggleRunningState: {
+                                        store.toggleTorrentRunningState(id: torrentID)
+                                    },
+                                    onRedownload: { store.redownloadTorrent(id: torrentID) },
+                                    onChooseAnotherFolder: {
+                                        presentRedownloadFolderPicker(for: torrentID)
+                                    },
+                                    onRemove: {
+                                        Task {
+                                            if let shortDisplayName = store.pendingAdditionShortDisplayName(for: torrentID) {
+                                                guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
+                                                    named: shortDisplayName,
+                                                    localeOverride: store.preferences.localeOverride
+                                                ) else {
+                                                    return
+                                                }
+                                                if store.isPendingAddition(id: torrentID) {
+                                                    store.cancelPendingAddition(id: torrentID)
+                                                } else {
+                                                    await store.removeTorrent(
+                                                        id: torrentID,
+                                                        policy: .removeFromListOnly
+                                                    )
+                                                }
+                                                return
+                                            }
+                                            await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
+                                        }
+                                    },
+                                    onRemoveWithFiles: {
+                                        Task {
+                                            guard let record = store.torrentRecord(for: torrentID) else {
+                                                return
+                                            }
+                                            guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
+                                                for: record,
                                                 localeOverride: store.preferences.localeOverride
                                             ) else {
                                                 return
                                             }
-                                            if store.isPendingAddition(id: torrentID) {
-                                                store.cancelPendingAddition(id: torrentID)
-                                            } else {
-                                                await store.removeTorrent(
-                                                    id: torrentID,
-                                                    policy: .removeFromListOnly
-                                                )
-                                            }
-                                            return
-                                        }
-                                        await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
-                                    }
-                                },
-                                onRemoveWithFiles: {
-                                    Task {
-                                        guard let record = store.torrentRecord(for: torrentID) else {
-                                            return
-                                        }
-                                        guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
-                                            for: record,
-                                            localeOverride: store.preferences.localeOverride
-                                        ) else {
-                                            return
-                                        }
 
-                                        await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
-                                    }
-                                },
-                                onCollapse: { store.collapseExpanded(for: torrentID) },
-                                usesCompactExpandedMetricsLayout: usesCompactExpandedMetricsLayout
-                            )
-                            .equatable()
+                                            await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
+                                        }
+                                    },
+                                    onCollapse: { store.collapseExpanded(for: torrentID) },
+                                    usesCompactExpandedMetricsLayout: usesCompactExpandedMetricsLayout
+                                )
+                                .equatable()
+                            }
+                            .transition(ShatlMotion.cardListItem)
                         }
-                        .transition(ShatlMotion.cardListItem)
                     }
                 }
+                // Full width even with no cards: an empty stack shrank to its
+                // padding and sat in the middle, and the last card, leaving from
+                // it, was cut off there and slid to the right.
+                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.top, 8)
+                .padding(.horizontal, Self.horizontalContentPadding)
+                .padding(.bottom, bottomContentPadding)
+                .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
+                .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
+                .background {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            store.clearTorrentSelection()
+                            withAnimation(ShatlMotion.cardLayout) {
+                                store.collapseExpandedTorrent()
+                            }
+                        }
+                }
             }
-            // Full width even with no cards: an empty stack shrank to its
-            // padding and sat in the middle, and the last card, leaving from
-            // it, was cut off there and slid to the right.
-            .frame(maxWidth: .infinity, alignment: .top)
-            .padding(.top, 8)
-            .padding(.horizontal, Self.horizontalContentPadding)
-            .padding(.bottom, bottomContentPadding)
-            .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
-            .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onGeometryChange(for: Bool.self) { proxy in
+                let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
+                return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
+            } action: { newValue in
+                usesCompactExpandedMetricsLayout = newValue
+            }
             .background {
                 Color.clear
                     .contentShape(Rectangle())
@@ -145,40 +166,38 @@ struct TorrentListView: View {
                         }
                     }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onGeometryChange(for: Bool.self) { proxy in
-            let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
-            return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
-        } action: { newValue in
-            usesCompactExpandedMetricsLayout = newValue
-        }
-        .background {
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    store.clearTorrentSelection()
-                    withAnimation(ShatlMotion.cardLayout) {
-                        store.collapseExpandedTorrent()
-                    }
+            .overlay {
+                if showsSearchEmptyState {
+                    TorrentSearchEmptyStateView(
+                        query: displayedSearchText,
+                        localeOverride: store.preferences.localeOverride
+                    )
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, bottomContentPadding)
+                        .allowsHitTesting(false)
                 }
-        }
-        .overlay {
-            if showsSearchEmptyState {
-                TorrentSearchEmptyStateView(
-                    query: displayedSearchText,
-                    localeOverride: store.preferences.localeOverride
-                )
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, bottomContentPadding)
-                    .allowsHitTesting(false)
+            }
+            .onAppear {
+                store.clearHiddenSelection(visibleTorrentIDs: visibleTorrentIDs)
+            }
+            .onChange(of: visibleTorrentIDs) { _, newVisibleTorrentIDs in
+                store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)
+            }
+            .onChange(of: store.listRevealRequest) { _, request in
+                guard let request else { return }
+                reveal(request.torrentID, with: scrollProxy)
             }
         }
-        .onAppear {
-            store.clearHiddenSelection(visibleTorrentIDs: visibleTorrentIDs)
-        }
-        .onChange(of: visibleTorrentIDs) { _, newVisibleTorrentIDs in
-            store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)
+    }
+
+    /// Waits a moment, so a search cleared for this download has put its card
+    /// back into the list, then scrolls it to the middle.
+    private func reveal(_ torrentID: UUID, with scrollProxy: ScrollViewProxy) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(50))
+            withAnimation(ShatlMotion.cardLayout) {
+                scrollProxy.scrollTo(torrentID, anchor: .center)
+            }
         }
     }
 

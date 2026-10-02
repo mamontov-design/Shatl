@@ -158,6 +158,7 @@
 "add_torrent.review.alias_placeholder" = "Name your download…";
 "add_torrent.review.confirm" = "Download";
 "add_torrent.review.close" = "Close";
+"add_torrent.review.show_in_list" = "Show in List";
 "add_torrent.review.summary.selected_files" = "Files selected";
 "add_torrent.review.summary.size" = "Size";
 "add_torrent.review.summary.free_space" = "Available";
@@ -185,6 +186,8 @@
 "add_torrent.error.duplicate.title" = "This download already exists.";
 "add_torrent.error.duplicate.message" = "This download is already in the list. The same file or link may have been opened before. There’s no need to add it again—close this window and find the download in the list.";
 "add_torrent.error.duplicate.named_message" = "The download “%@” is already in the list. The same file or link may have been opened before. There’s no need to add it again—close this window and find the download in the list.";
+"add_torrent.error.duplicate.in_list.message" = "This download is already in the list. The same file or link may have been opened before. There’s no need to add it again—click Show in List to go to it.";
+"add_torrent.error.duplicate.in_list.named_message" = "The download “%@” is already in the list. The same file or link may have been opened before. There’s no need to add it again—click Show in List to go to it.";
 "add_torrent.error.generic.title" = "Couldn’t prepare the download.";
 "add_torrent.error.not_found.title" = "Download unavailable.";
 "add_torrent.error.not_found.message" = "The prepared download disappeared while this window was open. Close the window and add the file or link again.";

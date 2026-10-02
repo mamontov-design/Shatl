@@ -219,6 +219,12 @@ struct MainWindowView: View {
                 searchText = ""
             }
         }
+        // A download shown from the add window must not stay hidden by a search.
+        .onChange(of: store.listRevealRequest) { _, request in
+            if request != nil, !searchText.isEmpty {
+                searchText = ""
+            }
+        }
         .sheet(isPresented: isAddTorrentEntryPresented) {
             AddTorrentEntryView(
                 placement: .modal,

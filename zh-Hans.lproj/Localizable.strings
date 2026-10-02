@@ -157,6 +157,7 @@
 "add_torrent.review.alias_placeholder" = "为下载命名…";
 "add_torrent.review.confirm" = "下载";
 "add_torrent.review.close" = "关闭";
+"add_torrent.review.show_in_list" = "在列表中显示";
 "add_torrent.review.summary.selected_files" = "已选文件";
 "add_torrent.review.summary.size" = "大小";
 "add_torrent.review.summary.free_space" = "可用空间";
@@ -182,6 +183,8 @@
 "add_torrent.error.duplicate.title" = "此下载已添加。";
 "add_torrent.error.duplicate.message" = "此下载已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，请关闭此窗口并在列表中找到该下载。";
 "add_torrent.error.duplicate.named_message" = "下载“%@”已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，请关闭此窗口并在列表中找到该下载。";
+"add_torrent.error.duplicate.in_list.message" = "此下载已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，点按“在列表中显示”即可前往该下载。";
+"add_torrent.error.duplicate.in_list.named_message" = "下载“%@”已在列表中。这个文件或链接可能之前已经打开过。无需再次添加，点按“在列表中显示”即可前往该下载。";
 "add_torrent.error.generic.title" = "无法准备下载。";
 "add_torrent.error.not_found.title" = "下载不可用。";
 "add_torrent.error.not_found.message" = "窗口打开期间，准备好的下载已不存在。请关闭窗口，然后再次添加文件或链接。";
