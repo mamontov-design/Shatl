@@ -4,29 +4,22 @@
 import XCTest
 @testable import Shatl
 
+/// A quick launch shows no message about preparing downloads; a slower one
+/// shows it long enough to read, and it leaves without a "ready" step.
 final class SessionRestoreStatusTests: XCTestCase {
-    func testBannerAppearsOnlyAfterOneSecond() {
-        XCTAssertEqual(SessionRestoreStatusTiming.revealDelay, 1)
+    func testMessageAppearsOnlyAfterHalfASecond() {
+        XCTAssertEqual(SessionRestoreStatusTiming.revealDelay, 0.5)
     }
 
-    func testCompletionSequenceStopsSpinnerBeforeReplacingIconAndText() {
-        XCTAssertEqual(SessionRestoreStatusTiming.spinnerStopDuration, 0.25)
-        XCTAssertEqual(SessionRestoreStatusTiming.iconReplacementDuration, 0.36)
-    }
-
-    func testEarlyCompletionExtendsSuccessToMinimumTotalVisibility() {
+    func testEarlyCompletionKeepsTheMessageForTwoSeconds() {
         XCTAssertEqual(
-            SessionRestoreStatusTiming.completionVisibilityDuration(visibleFor: 0.25),
+            SessionRestoreStatusTiming.remainingVisibility(visibleFor: 0.25),
             1.75,
             accuracy: 0.001
         )
     }
 
-    func testLateCompletionStillShowsSuccessForOneSecond() {
-        XCTAssertEqual(
-            SessionRestoreStatusTiming.completionVisibilityDuration(visibleFor: 5),
-            1,
-            accuracy: 0.001
-        )
+    func testLateCompletionHidesTheMessageAtOnce() {
+        XCTAssertEqual(SessionRestoreStatusTiming.remainingVisibility(visibleFor: 5), 0)
     }
 }

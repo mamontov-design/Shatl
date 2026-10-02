@@ -75,3 +75,34 @@ final class RemovalCopyTests: XCTestCase {
         }
     }
 }
+
+/// The statistics table names what a report never contains exactly as the
+/// project contract and the landing page do.
+final class StatisticsCopyTests: XCTestCase {
+    private let rows = [
+        "settings.data.does_not_collect.torrents_and_links",
+        "settings.data.does_not_collect.file_names_and_paths",
+        "settings.data.does_not_collect.file_contents",
+    ]
+
+    func testEveryRowIsTranslated() {
+        for language in AppLocaleOverride.allCases where language != .system {
+            for key in rows {
+                XCTAssertNotEqual(L10n.string(key, localeOverride: language), key, "\(language) \(key)")
+            }
+        }
+    }
+
+    func testRussianRowsMatchTheContract() {
+        let plain = rows.map {
+            L10n.string($0, localeOverride: .russian)
+                .replacingOccurrences(of: "\u{00A0}", with: " ")
+                .replacingOccurrences(of: "\u{2011}", with: "-")
+        }
+        XCTAssertEqual(plain, [
+            "Данные о торрентах и magnet-ссылках",
+            "Имена и пути файлов и папок",
+            "Содержимое загружаемых файлов",
+        ])
+    }
+}

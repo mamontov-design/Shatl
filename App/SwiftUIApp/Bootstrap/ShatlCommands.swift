@@ -18,6 +18,9 @@ struct ShatlCommands: Commands {
             Button("menu.debug.show_onboarding") {
                 store.presentDebugOnboarding()
             }
+            Button("menu.debug.preview_restore_status") {
+                store.previewRestoreStatusForDebug()
+            }
         }
         #endif
 

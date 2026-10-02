@@ -19,17 +19,17 @@ nonisolated enum TorrentStatus: String, CaseIterable, Codable, Sendable {
     nonisolated func localizedTitle(localeOverride: AppLocaleOverride) -> String {
         switch self {
         case .downloading:
-            L10n.string("torrent.status.downloading", localeOverride: localeOverride, defaultValue: "Загружается")
+            L10n.string("torrent.status.downloading", localeOverride: localeOverride)
         case .stopped:
-            L10n.string("torrent.status.stopped", localeOverride: localeOverride, defaultValue: "Остановлен")
+            L10n.string("torrent.status.stopped", localeOverride: localeOverride)
         case .seeding:
-            L10n.string("torrent.status.seeding", localeOverride: localeOverride, defaultValue: "Раздаётся")
+            L10n.string("torrent.status.seeding", localeOverride: localeOverride)
         case .completed:
-            L10n.string("torrent.status.completed", localeOverride: localeOverride, defaultValue: "Загружен")
+            L10n.string("torrent.status.completed", localeOverride: localeOverride)
         case .error:
-            L10n.string("torrent.status.error", localeOverride: localeOverride, defaultValue: "Ошибка")
+            L10n.string("torrent.status.error", localeOverride: localeOverride)
         case .checking:
-            L10n.string("torrent.status.checking", localeOverride: localeOverride, defaultValue: "Проверяется")
+            L10n.string("torrent.status.checking", localeOverride: localeOverride)
         }
     }
 

@@ -33,8 +33,8 @@
 "search.empty.title" = "「%@」の検索結果はありません";
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 
-"session.restore.in_progress" = "ダウンロードを準備しています…";
-"session.restore.completed" = "ダウンロードの準備ができました";
+"session.restore.title" = "ダウンロードを準備しています";
+"session.restore.message" = "再起動後、ダウンロードを再開しています。数秒かかります。準備中は、ダウンロードの開始、停止、削除はできません。";
 "session.load.in_progress.title" = "ダウンロードリストを開いています。";
 "session.load.in_progress.message" = "ダウンロードを終了時の状態に戻しています。しばらくお待ちください。";
 "session.load.failure.title" = "ダウンロードリストを復元できませんでした。";
@@ -78,8 +78,8 @@
 "onboarding.done.performance.caption" = "Halo、Orbit、Novaから、負荷に合わせたモードを選べます。";
 
 "menu.view.enter_full_screen" = "フルスクリーンにする";
-"menu.torrent" = "Torrent";
-"menu.torrent.add" = "Torrentを追加";
+"menu.torrent" = "ダウンロード";
+"menu.torrent.add" = "ダウンロードを追加…";
 
 "torrent.action.open" = "開く";
 "torrent.action.reveal_in_finder" = "Finderに表示";
@@ -190,46 +190,47 @@
 "settings.tab.downloads" = "ダウンロード";
 "settings.tab.appearance" = "外観";
 "settings.tab.data" = "データ";
-"settings.tab.about" = "Shatlについて";
+"settings.tab.about" = "情報";
 "settings.tab.debug" = "デバッグ";
 "menu.debug.show_onboarding" = "オンボーディングを開始";
+"menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
 
 "settings.data.section" = "使用統計";
-"settings.data.help_development" = "匿名の統計で改善に協力する";
+"settings.data.help_development" = "匿名の統計情報を送信";
 "settings.data.sent_data" = "送信されるデータ";
-"settings.data.sent_data.description" = "送信されるデータを確認できます";
+"settings.data.sent_data.description" = "レポートの内容を確認できます";
 "settings.data.sent_data.show" = "表示";
-"settings.data.status.never_sent.enabled" = "使用統計はまだ送信されていません。";
-"settings.data.status.never_sent.disabled" = "統計がオフのため、データは送信されません。";
-"settings.data.status.sent_today.enabled" = "使用統計は今日送信されました。";
-"settings.data.status.sent_today.disabled" = "使用統計は今日送信されました。新しいデータは送信されません。";
-"settings.data.status.sent_yesterday.enabled" = "使用統計は昨日送信されました。";
-"settings.data.status.sent_yesterday.disabled" = "使用統計は昨日送信されました。新しいデータは送信されません。";
-"settings.data.status.sent_two_days_ago.enabled" = "使用統計は一昨日送信されました。";
-"settings.data.status.sent_two_days_ago.disabled" = "使用統計は一昨日送信されました。新しいデータは送信されません。";
-"settings.data.status.sent_earlier.enabled" = "使用統計は%@（%@）に送信されました。";
-"settings.data.status.sent_earlier.disabled" = "使用統計は%@（%@）に送信されました。新しいデータは送信されません。";
+"settings.data.status.never_sent.enabled" = "まだレポートは送信されていません。";
+"settings.data.status.never_sent.disabled" = "レポートは送信されていません。送信はオフです。";
+"settings.data.status.sent_today.enabled" = "最後のレポートは今日送信されました。";
+"settings.data.status.sent_today.disabled" = "最後のレポートは今日送信されました。 送信はオフです。";
+"settings.data.status.sent_yesterday.enabled" = "最後のレポートは昨日送信されました。";
+"settings.data.status.sent_yesterday.disabled" = "最後のレポートは昨日送信されました。 送信はオフです。";
+"settings.data.status.sent_two_days_ago.enabled" = "最後のレポートは一昨日送信されました。";
+"settings.data.status.sent_two_days_ago.disabled" = "最後のレポートは一昨日送信されました。 送信はオフです。";
+"settings.data.status.sent_earlier.enabled" = "最後のレポートは%@（%@）に送信されました。";
+"settings.data.status.sent_earlier.disabled" = "最後のレポートは%@（%@）に送信されました。 送信はオフです。";
 "settings.data.collects.title" = "送信されるもの：";
 "settings.data.collects.launch_count" = "起動回数";
 "settings.data.collects.app_version" = "アプリのバージョン";
 "settings.data.collects.interface_language" = "インターフェイスの言語";
 "settings.data.does_not_collect.title" = "送信されないもの：";
-"settings.data.does_not_collect.torrent_data" = "Torrentデータ";
-"settings.data.does_not_collect.link_data" = "リンクのデータ";
-"settings.data.does_not_collect.file_data" = "ファイルのデータ";
-"settings.data.caption" = "この統計は、Shatlがどれだけ必要とされているかを把握し、サポート方針を決めるために役立ちます。";
-"settings.data.caption.technical" = "技術上、レポートにはランダムなインストール識別子と集計対象の週も含まれます。これらは週ごとの統計をまとめるために使用されます。";
+"settings.data.does_not_collect.torrents_and_links" = "Torrentとmagnetリンクのデータ";
+"settings.data.does_not_collect.file_names_and_paths" = "ファイルとフォルダの名前とパス";
+"settings.data.does_not_collect.file_contents" = "ダウンロードするファイルの内容";
+"settings.data.caption" = "統計情報から、Shatlを使っている人数がわかります。アプリのサポートやアップデートを続けるかどうかの判断に役立ちます。";
+"settings.data.caption.technical" = "レポートには、ランダムなインストールIDとレポート対象の週も含まれます。これらは毎週のレポートを全体の統計にまとめるために使われます。";
 
 "settings.downloads.performance.section" = "パフォーマンスモード";
 "settings.downloads.performance.profile.economical" = "Halo";
 "settings.downloads.performance.profile.balanced" = "Orbit";
 "settings.downloads.performance.profile.maximum" = "Nova";
-"settings.downloads.performance.caption.main" = "Shatlは、選択したモードに応じて低速にも高速にも動作できます。高いモードほどダウンロードとシードが活発になり、Macへの負荷も増えます。";
-"settings.downloads.performance.caption.economical" = "Haloモードでは、バッテリーを節約するためにダウンロードとアップロードの速度も抑えます。";
+"settings.downloads.performance.caption.main" = "モードによって、ダウンロードに割り当てるMacのリソース量が決まります。モードが高いほど、接続数、Macの負荷、電力消費が増えます。";
+"settings.downloads.performance.caption.economical" = "Haloモードでは、ダウンロードは最大5 MB/秒、アップロードは最大2.5 MB/秒です。バッテリーを節約できますが、大きなファイルのダウンロードには時間がかかります。";
 "settings.downloads.folder.section" = "ダウンロードフォルダ";
 "settings.downloads.network.section" = "ネットワーク";
 "settings.downloads.network.port_forwarding" = "ルーターのポートを自動的に開く";
-"settings.downloads.network.port_forwarding.caption" = "ほかのピアが Shatl に直接接続できるようになり、通常はダウンロードとアップロードが速くなります。";
+"settings.downloads.network.port_forwarding.caption" = "ルーターがポートを開き、ほかのピアがこのMacに直接接続できるようになります。通常、ダウンロードとアップロードが速くなります。";
 "settings.downloads.network.port_status.checking" = "ポートを確認中…";
 "settings.downloads.network.port_status.open" = "ポートは開いています";
 "settings.downloads.network.port_status.closed" = "ポートは閉じています";
@@ -241,12 +242,12 @@
 "settings.appearance.metrics.section" = "データ表示";
 "settings.appearance.speed_colors.toggle" = "ダウンロード速度を色分けして表示";
 "settings.appearance.metrics.toggle" = "データをシンプルモードで表示";
-"settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。推奨モードです。";
+"settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。";
 "settings.appearance.metrics.info.help" = "値の精度について";
 "settings.appearance.metrics.popover.title" = "値の精度";
-"settings.appearance.metrics.popover.precision" = "シンプルモードをオフにすると、速度とデータ容量は必要に応じて小数第1位まで、より正確に表示されます。たとえば、10 MB/秒が10.5 MB/秒に、8 GBが7.7 GBになる場合があります。";
-"settings.appearance.metrics.popover.eta" = "1時間未満の残り時間は、5秒または5分刻みにまとめず表示されます。たとえば、35分が38分になる場合があります。1時間以上の時間表示は変わりません。";
-"settings.appearance.metrics.popover.unchanged" = "進捗、シードとピアの数、およびTorrentの動作は変わりません。";
+"settings.appearance.metrics.popover.precision" = "簡易モードをオフにすると、速度とサイズがより正確に表示されます。例：10 MB/秒ではなく10.5 MB/秒、7 GBではなく7.7 GB。";
+"settings.appearance.metrics.popover.eta" = "残り時間が1時間未満の場合は、5秒や5分単位に丸めずに正確に表示されます。例：35分ではなく38分。1時間以上はどちらのモードでも同じ表示です。";
+"settings.appearance.metrics.popover.unchanged" = "進行状況、シードとピア、ダウンロード自体はモードによって変わりません。";
 "settings.appearance.preview" = "プレビュー";
 
 "settings.about.application_version" = "アプリのバージョン";

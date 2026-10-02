@@ -71,10 +71,6 @@ final class CopyTypographyTests: XCTestCase {
         let pending: Set<String> = [
             // Deferred with the folder's "Retry" button
             "torrent.error.save_path_unavailable.message",
-            // Stage 6: settings
-            "settings.downloads.performance.caption.main",
-            "settings.downloads.network.port_forwarding.caption",
-            "settings.tab.about",
         ]
         let debugPrefixes = ["settings.debug.", "settings.localization.", "menu.debug."]
 

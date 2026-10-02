@@ -33,8 +33,8 @@
 "search.empty.title" = "No hay resultados para «%@»";
 "search.empty.description" = "Prueba con otro nombre o alias.";
 
-"session.restore.in_progress" = "Preparando descargas…";
-"session.restore.completed" = "Descargas listas";
+"session.restore.title" = "Preparando descargas";
+"session.restore.message" = "Las descargas vuelven a funcionar tras el reinicio; tardará unos segundos. Mientras se preparan, no se pueden iniciar, detener ni eliminar.";
 "session.load.in_progress.title" = "Abriendo la lista de descargas.";
 "session.load.in_progress.message" = "Las descargas vuelven al estado en que estaban al cerrar. Espera, por favor.";
 "session.load.failure.title" = "No se pudo restaurar la lista de descargas.";
@@ -78,8 +78,8 @@
 "onboarding.done.performance.caption" = "Elige Halo, Orbit o Nova, del modo ahorrador al máximo.";
 
 "menu.view.enter_full_screen" = "Usar pantalla completa";
-"menu.torrent" = "Torrent";
-"menu.torrent.add" = "Añadir torrent";
+"menu.torrent" = "Descargas";
+"menu.torrent.add" = "Añadir descarga…";
 
 "torrent.action.open" = "Abrir";
 "torrent.action.reveal_in_finder" = "Mostrar en Finder";
@@ -92,9 +92,9 @@
 
 "torrent.status.downloading" = "Descargando";
 "torrent.status.adding" = "Añadiendo…";
-"torrent.status.stopped" = "Detenido";
+"torrent.status.stopped" = "Detenida";
 "torrent.status.seeding" = "Compartiendo";
-"torrent.status.completed" = "Descargado";
+"torrent.status.completed" = "Descargada";
 "torrent.status.error" = "Error";
 "torrent.status.checking" = "Comprobando";
 
@@ -196,43 +196,44 @@
 "settings.tab.about" = "Acerca de";
 "settings.tab.debug" = "Depuración";
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
+"menu.debug.preview_restore_status" = "Mostrar «Preparando descargas»";
 
 "settings.data.section" = "Estadísticas de uso";
-"settings.data.help_development" = "Contribuir al desarrollo con estadísticas anónimas";
+"settings.data.help_development" = "Enviar estadísticas anónimas";
 "settings.data.sent_data" = "Datos que se enviarán";
-"settings.data.sent_data.description" = "Puedes revisar qué datos se enviarán";
+"settings.data.sent_data.description" = "Puedes ver qué contiene el informe";
 "settings.data.sent_data.show" = "Mostrar";
-"settings.data.status.never_sent.enabled" = "Las estadísticas de uso aún no se han enviado.";
-"settings.data.status.never_sent.disabled" = "No se envían datos porque las estadísticas están desactivadas.";
-"settings.data.status.sent_today.enabled" = "Las estadísticas de uso se enviaron hoy.";
-"settings.data.status.sent_today.disabled" = "Las estadísticas de uso se enviaron hoy. No se enviarán datos nuevos.";
-"settings.data.status.sent_yesterday.enabled" = "Las estadísticas de uso se enviaron ayer.";
-"settings.data.status.sent_yesterday.disabled" = "Las estadísticas de uso se enviaron ayer. No se enviarán datos nuevos.";
-"settings.data.status.sent_two_days_ago.enabled" = "Las estadísticas de uso se enviaron anteayer.";
-"settings.data.status.sent_two_days_ago.disabled" = "Las estadísticas de uso se enviaron anteayer. No se enviarán datos nuevos.";
-"settings.data.status.sent_earlier.enabled" = "Las estadísticas de uso se enviaron %@ (%@).";
-"settings.data.status.sent_earlier.disabled" = "Las estadísticas de uso se enviaron %@ (%@). No se enviarán datos nuevos.";
+"settings.data.status.never_sent.enabled" = "Aún no se ha enviado ningún informe.";
+"settings.data.status.never_sent.disabled" = "No se ha enviado ningún informe: el envío está desactivado.";
+"settings.data.status.sent_today.enabled" = "Último informe enviado hoy.";
+"settings.data.status.sent_today.disabled" = "Último informe enviado hoy. El envío está desactivado.";
+"settings.data.status.sent_yesterday.enabled" = "Último informe enviado ayer.";
+"settings.data.status.sent_yesterday.disabled" = "Último informe enviado ayer. El envío está desactivado.";
+"settings.data.status.sent_two_days_ago.enabled" = "Último informe enviado anteayer.";
+"settings.data.status.sent_two_days_ago.disabled" = "Último informe enviado anteayer. El envío está desactivado.";
+"settings.data.status.sent_earlier.enabled" = "Último informe enviado %@ (%@).";
+"settings.data.status.sent_earlier.disabled" = "Último informe enviado %@ (%@). El envío está desactivado.";
 "settings.data.collects.title" = "Se envía:";
 "settings.data.collects.launch_count" = "Número de inicios";
 "settings.data.collects.app_version" = "Versión de la app";
 "settings.data.collects.interface_language" = "Idioma de la interfaz";
 "settings.data.does_not_collect.title" = "No se envía:";
-"settings.data.does_not_collect.torrent_data" = "Datos de torrents";
-"settings.data.does_not_collect.link_data" = "Datos de enlaces";
-"settings.data.does_not_collect.file_data" = "Datos de archivos";
-"settings.data.caption" = "Estas estadísticas ayudan a evaluar cuánto se usa Shatl y a tomar decisiones sobre su mantenimiento.";
-"settings.data.caption.technical" = "Por motivos técnicos, el informe también incluye un identificador aleatorio de la instalación y la semana del informe. Estos datos se utilizan para agrupar las estadísticas semanales.";
+"settings.data.does_not_collect.torrents_and_links" = "Datos de torrents y enlaces magnet";
+"settings.data.does_not_collect.file_names_and_paths" = "Nombres y rutas de archivos y carpetas";
+"settings.data.does_not_collect.file_contents" = "Contenido de los archivos descargados";
+"settings.data.caption" = "Las estadísticas muestran cuántas personas usan Shatl; esto ayuda a decidir si vale la pena seguir manteniendo la app y publicando actualizaciones.";
+"settings.data.caption.technical" = "El informe también incluye un identificador aleatorio de instalación y la semana del informe: con ellos, los informes semanales se combinan en estadísticas generales.";
 
 "settings.downloads.performance.section" = "Modo de rendimiento";
 "settings.downloads.performance.profile.economical" = "Halo";
 "settings.downloads.performance.profile.balanced" = "Orbit";
 "settings.downloads.performance.profile.maximum" = "Nova";
-"settings.downloads.performance.caption.main" = "Shatl puede funcionar más lento o más rápido según el modo elegido. Los modos más altos hacen que la descarga y la subida sean más activas y aumentan la carga del Mac.";
-"settings.downloads.performance.caption.economical" = "El modo Halo también reduce la velocidad de descarga y subida para ahorrar batería.";
+"settings.downloads.performance.caption.main" = "El modo determina cuántos recursos del Mac reciben las descargas. Cuanto más alto, más conexiones, más carga para el Mac y más consumo de energía.";
+"settings.downloads.performance.caption.economical" = "En el modo Halo, las descargas no superan los 5 MB/s y las subidas, los 2,5 MB/s. Así se ahorra batería, pero los archivos grandes tardan más en descargarse.";
 "settings.downloads.folder.section" = "Carpeta de descargas";
 "settings.downloads.network.section" = "Red";
 "settings.downloads.network.port_forwarding" = "Abrir un puerto en el router automáticamente";
-"settings.downloads.network.port_forwarding.caption" = "Otros peers podrán conectarse a Shatl por su cuenta; normalmente esto acelera la descarga y la subida.";
+"settings.downloads.network.port_forwarding.caption" = "El router abrirá un puerto y otros peers podrán conectarse directamente a tu Mac. Normalmente esto acelera la descarga y la subida.";
 "settings.downloads.network.port_status.checking" = "Comprobando el puerto…";
 "settings.downloads.network.port_status.open" = "El puerto está abierto";
 "settings.downloads.network.port_status.closed" = "El puerto está cerrado";
@@ -244,12 +245,12 @@
 "settings.appearance.metrics.section" = "Visualización de datos";
 "settings.appearance.speed_colors.toggle" = "Indicar la velocidad de descarga con colores";
 "settings.appearance.metrics.toggle" = "Mostrar los datos en modo simplificado";
-"settings.appearance.metrics.caption" = "Oculta detalles poco relevantes, redondea los valores y facilita la lectura de los datos. Modo recomendado.";
+"settings.appearance.metrics.caption" = "Oculta detalles poco relevantes, redondea los valores y facilita la lectura de los datos.";
 "settings.appearance.metrics.info.help" = "Más información sobre la precisión de los valores";
 "settings.appearance.metrics.popover.title" = "Precisión de los valores";
-"settings.appearance.metrics.popover.precision" = "Con el modo simplificado desactivado, las velocidades y los tamaños de datos se muestran con mayor precisión, con un decimal cuando es necesario. Por ejemplo, 10 MB/s puede convertirse en 10,5 MB/s y 8 GB en 7,7 GB.";
-"settings.appearance.metrics.popover.eta" = "El tiempo restante inferior a una hora se muestra sin redondearlo a intervalos de cinco segundos o minutos: por ejemplo, 35 min puede convertirse en 38 min. A partir de una hora, el formato no cambia.";
-"settings.appearance.metrics.popover.unchanged" = "El progreso, el número de seeds y peers y el funcionamiento del torrent no cambian.";
+"settings.appearance.metrics.popover.precision" = "Sin el modo simplificado, la velocidad y el tamaño se muestran con más precisión: por ejemplo, 10,5 MB/s en lugar de 10 MB/s y 7,7 GB en lugar de 7 GB.";
+"settings.appearance.metrics.popover.eta" = "El tiempo restante inferior a una hora se muestra con exactitud, sin redondear a 5 segundos o 5 minutos: por ejemplo, 38 min en lugar de 35 min. A partir de una hora, el tiempo se ve igual en ambos modos.";
+"settings.appearance.metrics.popover.unchanged" = "El progreso, los seeds y peers y la propia descarga no dependen del modo.";
 "settings.appearance.preview" = "Vista previa";
 
 "settings.about.application_version" = "Versión de la app";

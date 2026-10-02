@@ -4,25 +4,16 @@
 import AppKit
 import SwiftUI
 
-nonisolated enum SessionRestoreStatusPhase: Equatable, Sendable {
-    case hidden
-    case restoring
-    case restored
-
-    var isVisible: Bool {
-        self != .hidden
-    }
-}
-
+/// The message about preparing downloads appears only when preparing takes a
+/// while, and then stays long enough to be read: a quick launch shows
+/// nothing, a slower one never flashes it for an instant. It just leaves when
+/// the downloads are ready.
 nonisolated enum SessionRestoreStatusTiming {
-    static let revealDelay: TimeInterval = 1
+    static let revealDelay: TimeInterval = 0.5
     static let minimumVisibleDuration: TimeInterval = 2
-    static let completionHoldDuration: TimeInterval = 1
-    static let spinnerStopDuration: TimeInterval = 0.25
-    static let iconReplacementDuration: TimeInterval = 0.36
 
-    static func completionVisibilityDuration(visibleFor elapsed: TimeInterval) -> TimeInterval {
-        max(completionHoldDuration, minimumVisibleDuration - max(0, elapsed))
+    static func remainingVisibility(visibleFor elapsed: TimeInterval) -> TimeInterval {
+        max(0, minimumVisibleDuration - max(0, elapsed))
     }
 }
 
@@ -32,10 +23,7 @@ struct MainWindowView: View {
     @Environment(\.openWindow) private var openWindow
     @State private var searchText = ""
     @State private var addTorrentEntryAlert: TorrentErrorState?
-    @State private var restoreStatusPhase = SessionRestoreStatusPhase.hidden
-    @State private var isRestoreStatusSpinnerActive = false
-    @State private var showsRestoreCompletionIcon = false
-    @State private var showsRestoreCompletionText = false
+    @State private var showsRestoreStatus = false
     @State private var restoreStatusShownAt: Date?
     @State private var restoreStatusTask: Task<Void, Never>?
     @State private var displayedSessionPersistenceIssue: SessionPersistenceIssue?
@@ -110,6 +98,11 @@ struct MainWindowView: View {
         .onChange(of: store.isRestoringSession, initial: true) { _, isRestoringSession in
             updateRestoreStatus(isRestoringSession: isRestoringSession)
         }
+        #if DEBUG
+        .onChange(of: store.debugRestoreStatusPreviewRequestID) { _, _ in
+            previewRestoreStatusForDebug()
+        }
+        #endif
         .onChange(of: store.sessionPersistenceIssue, initial: true) { _, newIssue in
             updateSessionPersistenceMessage(to: newIssue)
         }
@@ -145,12 +138,10 @@ struct MainWindowView: View {
                     sessionPersistenceMessageBar(for: displayedSessionPersistenceIssue)
                         .transition(restoreStatusTransition)
                         .zIndex(1)
-                } else if restoreStatusPhase.isVisible {
-                    SessionRestoreStatusBar(
-                        isSpinnerActive: isRestoreStatusSpinnerActive,
-                        showsCompletionIcon: showsRestoreCompletionIcon,
-                        showsCompletionText: showsRestoreCompletionText,
-                        localeOverride: store.preferences.localeOverride
+                } else if showsRestoreStatus {
+                    ShatlLineMessageBar(
+                        title: L10n.string("session.restore.title", localeOverride: store.preferences.localeOverride),
+                        message: L10n.string("session.restore.message", localeOverride: store.preferences.localeOverride)
                     )
                     .transition(restoreStatusTransition)
                     .zIndex(1)
@@ -357,14 +348,13 @@ struct MainWindowView: View {
         if isRestoringSession {
             beginRestoreStatusDelay()
         } else {
-            completeVisibleRestoreStatus()
+            hideRestoreStatusOnceRead()
         }
     }
 
     private func beginRestoreStatusDelay() {
         restoreStatusTask?.cancel()
-        restoreStatusShownAt = nil
-        setRestoreStatusPhase(.hidden)
+        guard !showsRestoreStatus else { return }
 
         restoreStatusTask = Task {
             do {
@@ -381,86 +371,59 @@ struct MainWindowView: View {
             }
 
             restoreStatusShownAt = Date()
-            setRestoreStatusPhase(.restoring)
+            setRestoreStatusVisible(true)
         }
     }
 
-    private func completeVisibleRestoreStatus() {
+    private func hideRestoreStatusOnceRead() {
         restoreStatusTask?.cancel()
-        guard restoreStatusPhase == .restoring else {
+        guard showsRestoreStatus else {
             restoreStatusShownAt = nil
-            setRestoreStatusPhase(.hidden)
             return
         }
 
-        stopRestoreStatusSpinner()
-
+        let visibleFor = restoreStatusShownAt.map { Date().timeIntervalSince($0) } ?? 0
+        let remaining = SessionRestoreStatusTiming.remainingVisibility(visibleFor: visibleFor)
         restoreStatusTask = Task {
-            do {
-                try await Task.sleep(for: .seconds(SessionRestoreStatusTiming.spinnerStopDuration))
-            } catch {
-                return
-            }
-
-            guard !Task.isCancelled, restoreStatusPhase == .restoring else { return }
-            withAnimation(ShatlMotion.sessionRestoreStatusContent) {
-                showsRestoreCompletionIcon = true
-            }
-
-            do {
-                try await Task.sleep(
-                    for: .seconds(SessionRestoreStatusTiming.iconReplacementDuration)
-                )
-            } catch {
-                return
-            }
-
-            guard !Task.isCancelled, restoreStatusPhase == .restoring else { return }
-            withAnimation(ShatlMotion.sessionRestoreStatusContent) {
-                showsRestoreCompletionText = true
-                restoreStatusPhase = .restored
-            }
-
-            let visibleFor = restoreStatusShownAt.map { Date().timeIntervalSince($0) } ?? 0
-            let completionDuration = SessionRestoreStatusTiming.completionVisibilityDuration(
-                visibleFor: visibleFor
-            )
-
-            do {
-                try await Task.sleep(for: .seconds(completionDuration))
-            } catch {
-                return
+            if remaining > 0 {
+                do {
+                    try await Task.sleep(for: .seconds(remaining))
+                } catch {
+                    return
+                }
             }
 
             guard !Task.isCancelled else { return }
             restoreStatusShownAt = nil
-            setRestoreStatusPhase(.hidden)
+            setRestoreStatusVisible(false)
         }
     }
 
-    private func setRestoreStatusPhase(_ phase: SessionRestoreStatusPhase) {
-        if phase == .restoring {
-            var transaction = Transaction(animation: nil)
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isRestoreStatusSpinnerActive = true
-                showsRestoreCompletionIcon = false
-                showsRestoreCompletionText = false
+    #if DEBUG
+    /// Plays the message as a launch whose preparation takes three seconds:
+    /// it appears after the reveal delay and leaves once read.
+    private func previewRestoreStatusForDebug() {
+        restoreStatusTask?.cancel()
+        restoreStatusTask = Task {
+            let preparation: TimeInterval = 3
+            do {
+                if !showsRestoreStatus {
+                    try await Task.sleep(for: .seconds(SessionRestoreStatusTiming.revealDelay))
+                    restoreStatusShownAt = Date()
+                    setRestoreStatusVisible(true)
+                }
+                try await Task.sleep(for: .seconds(preparation - SessionRestoreStatusTiming.revealDelay))
+            } catch {
+                return
             }
-        } else if phase == .hidden {
-            isRestoreStatusSpinnerActive = false
-        }
-
-        withAnimation(ShatlMotion.sessionRestoreStatusBar) {
-            restoreStatusPhase = phase
+            hideRestoreStatusOnceRead()
         }
     }
+    #endif
 
-    private func stopRestoreStatusSpinner() {
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isRestoreStatusSpinnerActive = false
+    private func setRestoreStatusVisible(_ isVisible: Bool) {
+        withAnimation(ShatlMotion.sessionRestoreStatusBar) {
+            showsRestoreStatus = isVisible
         }
     }
 
@@ -699,17 +662,19 @@ private struct TorrentTransferSummaryLayer: View {
 
 /// Reusable inline message shown above the main content, used for session
 /// persistence failures that last until storage accepts writes again.
+/// A message under the toolbar: a title, a short text and, when there is
+/// something to do, buttons.
 struct ShatlLineMessageBar: View {
     let title: String
     let message: String
-    let primaryButtonTitle: String
+    var primaryButtonTitle: String?
     var primaryBusyTitle: String?
     /// While the primary action runs, both buttons stay blocked and the close
     /// button looks disabled, so neither can interrupt the running check.
     var isPrimaryBusy = false
-    let closeButtonTitle: String
-    let primaryAction: () -> Void
-    let closeAction: () -> Void
+    var closeButtonTitle: String?
+    var primaryAction: () -> Void = {}
+    var closeAction: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -725,26 +690,28 @@ struct ShatlLineMessageBar: View {
             }
             .padding(.horizontal, 6)
 
-            HStack(spacing: 8) {
-                ShatlButton(
-                    title: primaryButtonTitle,
-                    busyTitle: primaryBusyTitle,
-                    isBusy: isPrimaryBusy,
-                    role: .lineMessage,
-                    action: primaryAction
-                )
+            if let primaryButtonTitle, let closeButtonTitle {
+                HStack(spacing: 8) {
+                    ShatlButton(
+                        title: primaryButtonTitle,
+                        busyTitle: primaryBusyTitle,
+                        isBusy: isPrimaryBusy,
+                        role: .lineMessage,
+                        action: primaryAction
+                    )
 
-                ShatlButton(
-                    title: closeButtonTitle,
-                    role: .lineMessage,
-                    isDisabled: isPrimaryBusy,
-                    action: closeAction
-                )
+                    ShatlButton(
+                        title: closeButtonTitle,
+                        role: .lineMessage,
+                        isDisabled: isPrimaryBusy,
+                        action: closeAction
+                    )
+                }
+                // The close button slides with the resizing primary button,
+                // like neighbors in the expanded metric row.
+                .geometryGroup()
+                .animation(ShatlMotion.metricResize, value: isPrimaryBusy)
             }
-            // The close button slides with the resizing primary button,
-            // like neighbors in the expanded metric row.
-            .geometryGroup()
-            .animation(ShatlMotion.metricResize, value: isPrimaryBusy)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -856,78 +823,6 @@ private struct SessionLoadBlockingView: View {
                 localeOverride: localeOverride,
                 defaultValue: "Сессия создана другой версией Shatl и пока не может быть открыта. Загруженные с прошлого запуска файлы остались на диске."
             )
-        }
-    }
-}
-
-private struct SessionRestoreStatusBar: View {
-    @EnvironmentObject private var accentState: ShatlAccentState
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let isSpinnerActive: Bool
-    let showsCompletionIcon: Bool
-    let showsCompletionText: Bool
-    let localeOverride: AppLocaleOverride
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(
-                systemName: showsCompletionIcon ? "checkmark.circle" : "progress.indicator"
-            )
-            .shatlTypography(ShatlTypography.metricSemibold)
-            .symbolEffect(
-                .rotate.byLayer,
-                options: .repeat(.continuous),
-                isActive: isSpinnerActive
-            )
-            .symbolEffectsRemoved(!isSpinnerActive)
-            .contentTransition(.symbolEffect(.replace))
-            .frame(width: 14, height: ShatlMetricLayout.contentHeight, alignment: .center)
-
-            statusText
-        }
-        .geometryGroup()
-        .foregroundStyle(statusColor)
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .background(statusColor.opacity(0.16))
-        .animation(ShatlMotion.sessionRestoreStatusContent, value: showsCompletionText)
-        .allowsHitTesting(false)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var title: String {
-        if showsCompletionText {
-            return L10n.string(
-                "session.restore.completed",
-                localeOverride: localeOverride,
-                defaultValue: "Сессия восстановлена"
-            )
-        }
-
-        return L10n.string(
-            "session.restore.in_progress",
-            localeOverride: localeOverride,
-            defaultValue: "Восстановление сессии…"
-        )
-    }
-
-    private var statusColor: Color {
-        accentState.isUsingAppAccent ? ShatlColor.neonBlue : accentState.systemAccentColor
-    }
-
-    @ViewBuilder
-    private var statusText: some View {
-        let text = Text(title)
-            .id(showsCompletionText)
-            .shatlTypography(ShatlTypography.metricSemibold)
-            .multilineTextAlignment(.center)
-
-        if reduceMotion {
-            text.transition(.opacity)
-        } else {
-            text.transition(.blurReplace)
         }
     }
 }

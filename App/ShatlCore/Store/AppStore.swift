@@ -767,6 +767,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         onboardingPresentation = .debug
     }
 
+    #if DEBUG
+    /// Debug menu: the main window plays the preparing-downloads message as a
+    /// slow launch would, without touching the downloads.
+    @Published private(set) var debugRestoreStatusPreviewRequestID = 0
+
+    func previewRestoreStatusForDebug() {
+        debugRestoreStatusPreviewRequestID &+= 1
+    }
+    #endif
+
     func setPreferredBrandMark(_ brandMark: ShatlBrandMark) {
         guard preferences.preferredBrandMark != brandMark else { return }
         preferences.preferredBrandMark = brandMark

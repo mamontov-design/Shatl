@@ -675,7 +675,7 @@ private enum DataCollectionGroup: CaseIterable {
         case .collects:
             [.launchCount, .appVersion, .interfaceLanguage]
         case .doesNotCollect:
-            [.torrentData, .linkData, .fileData]
+            [.torrentsAndLinks, .fileNamesAndPaths, .fileContents]
         }
     }
 
@@ -694,9 +694,9 @@ private enum DataCollectionItem: CaseIterable, Identifiable {
     case launchCount
     case appVersion
     case interfaceLanguage
-    case torrentData
-    case linkData
-    case fileData
+    case torrentsAndLinks
+    case fileNamesAndPaths
+    case fileContents
 
     var id: Self { self }
 
@@ -704,7 +704,7 @@ private enum DataCollectionItem: CaseIterable, Identifiable {
         switch self {
         case .launchCount, .appVersion, .interfaceLanguage:
             .collects
-        case .torrentData, .linkData, .fileData:
+        case .torrentsAndLinks, .fileNamesAndPaths, .fileContents:
             .doesNotCollect
         }
     }
@@ -717,12 +717,12 @@ private enum DataCollectionItem: CaseIterable, Identifiable {
             "settings.data.collects.app_version"
         case .interfaceLanguage:
             "settings.data.collects.interface_language"
-        case .torrentData:
-            "settings.data.does_not_collect.torrent_data"
-        case .linkData:
-            "settings.data.does_not_collect.link_data"
-        case .fileData:
-            "settings.data.does_not_collect.file_data"
+        case .torrentsAndLinks:
+            "settings.data.does_not_collect.torrents_and_links"
+        case .fileNamesAndPaths:
+            "settings.data.does_not_collect.file_names_and_paths"
+        case .fileContents:
+            "settings.data.does_not_collect.file_contents"
         }
     }
 }

@@ -33,8 +33,8 @@
 "search.empty.title" = "未找到“%@”的结果";
 "search.empty.description" = "请尝试其他名称或别名。";
 
-"session.restore.in_progress" = "正在准备下载…";
-"session.restore.completed" = "下载已就绪";
+"session.restore.title" = "正在准备下载";
+"session.restore.message" = "重新启动后，下载正在恢复，这需要几秒钟。准备期间无法开始、停止或删除下载。";
 "session.load.in_progress.title" = "正在打开下载列表。";
 "session.load.in_progress.message" = "正在将下载恢复到关闭时的状态。请稍候。";
 "session.load.failure.title" = "无法恢复下载列表。";
@@ -78,8 +78,8 @@
 "onboarding.done.performance.caption" = "可选择 Halo、Orbit 或 Nova，从轻量到最高性能。";
 
 "menu.view.enter_full_screen" = "进入全屏幕";
-"menu.torrent" = "Torrent";
-"menu.torrent.add" = "添加 Torrent";
+"menu.torrent" = "下载";
+"menu.torrent.add" = "添加下载…";
 
 "torrent.action.open" = "打开";
 "torrent.action.reveal_in_finder" = "在 Finder 中显示";
@@ -193,43 +193,44 @@
 "settings.tab.about" = "关于";
 "settings.tab.debug" = "调试";
 "menu.debug.show_onboarding" = "启动新手引导";
+"menu.debug.preview_restore_status" = "显示“正在准备下载”";
 
 "settings.data.section" = "使用统计";
-"settings.data.help_development" = "通过匿名统计协助改进";
+"settings.data.help_development" = "发送匿名统计数据";
 "settings.data.sent_data" = "将发送的数据";
-"settings.data.sent_data.description" = "你可以查看将要发送的数据";
+"settings.data.sent_data.description" = "可以查看报告包含的内容";
 "settings.data.sent_data.show" = "显示";
-"settings.data.status.never_sent.enabled" = "使用统计尚未发送。";
-"settings.data.status.never_sent.disabled" = "统计已关闭，数据不会发送。";
-"settings.data.status.sent_today.enabled" = "使用统计已于今天发送。";
-"settings.data.status.sent_today.disabled" = "使用统计已于今天发送。不会发送新的数据。";
-"settings.data.status.sent_yesterday.enabled" = "使用统计已于昨天发送。";
-"settings.data.status.sent_yesterday.disabled" = "使用统计已于昨天发送。不会发送新的数据。";
-"settings.data.status.sent_two_days_ago.enabled" = "使用统计已于前天发送。";
-"settings.data.status.sent_two_days_ago.disabled" = "使用统计已于前天发送。不会发送新的数据。";
-"settings.data.status.sent_earlier.enabled" = "使用统计已于 %@（%@）发送。";
-"settings.data.status.sent_earlier.disabled" = "使用统计已于 %@（%@）发送。不会发送新的数据。";
+"settings.data.status.never_sent.enabled" = "尚未发送过报告。";
+"settings.data.status.never_sent.disabled" = "未发送报告：发送已关闭。";
+"settings.data.status.sent_today.enabled" = "最近一次报告于今天发送。";
+"settings.data.status.sent_today.disabled" = "最近一次报告于今天发送。 发送已关闭。";
+"settings.data.status.sent_yesterday.enabled" = "最近一次报告于昨天发送。";
+"settings.data.status.sent_yesterday.disabled" = "最近一次报告于昨天发送。 发送已关闭。";
+"settings.data.status.sent_two_days_ago.enabled" = "最近一次报告于前天发送。";
+"settings.data.status.sent_two_days_ago.disabled" = "最近一次报告于前天发送。 发送已关闭。";
+"settings.data.status.sent_earlier.enabled" = "最近一次报告于 %@（%@）发送。";
+"settings.data.status.sent_earlier.disabled" = "最近一次报告于 %@（%@）发送。 发送已关闭。";
 "settings.data.collects.title" = "会发送：";
 "settings.data.collects.launch_count" = "启动次数";
 "settings.data.collects.app_version" = "App 版本";
 "settings.data.collects.interface_language" = "界面语言";
 "settings.data.does_not_collect.title" = "不会发送：";
-"settings.data.does_not_collect.torrent_data" = "Torrent 数据";
-"settings.data.does_not_collect.link_data" = "链接数据";
-"settings.data.does_not_collect.file_data" = "文件数据";
-"settings.data.caption" = "这些统计有助于评估 Shatl 是否被用户需要，并指导后续维护决策。";
-"settings.data.caption.technical" = "从技术上讲，报告还包含随机安装标识符和报告周。这些信息用于汇总每周统计数据。";
+"settings.data.does_not_collect.torrents_and_links" = "Torrent 和 magnet 链接数据";
+"settings.data.does_not_collect.file_names_and_paths" = "文件和文件夹的名称及路径";
+"settings.data.does_not_collect.file_contents" = "下载文件的内容";
+"settings.data.caption" = "统计数据显示有多少人在使用 Shatl，这有助于决定是否继续维护此 App 并发布更新。";
+"settings.data.caption.technical" = "报告还包含随机的安装标识符和报告周，用于将每周报告汇总为整体统计数据。";
 
 "settings.downloads.performance.section" = "性能模式";
 "settings.downloads.performance.profile.economical" = "Halo";
 "settings.downloads.performance.profile.balanced" = "Orbit";
 "settings.downloads.performance.profile.maximum" = "Nova";
-"settings.downloads.performance.caption.main" = "Shatl 可根据所选模式更慢或更快地工作。模式越高，下载和做种越活跃，对 Mac 的负载也越大。";
-"settings.downloads.performance.caption.economical" = "Halo 模式还会降低下载和上传速度，以节省电池电量。";
+"settings.downloads.performance.caption.main" = "模式决定下载可以使用多少 Mac 资源。模式越高，连接越多，Mac 负载和能耗也越高。";
+"settings.downloads.performance.caption.economical" = "在 Halo 模式下，下载速度不超过 5 MB/秒，上传速度不超过 2.5 MB/秒。这样可以节省电量，但大文件下载时间会更长。";
 "settings.downloads.folder.section" = "下载文件夹";
 "settings.downloads.network.section" = "网络";
 "settings.downloads.network.port_forwarding" = "自动在路由器上打开端口";
-"settings.downloads.network.port_forwarding.caption" = "其他节点将能够主动连接到 Shatl，这通常会加快下载和上传。";
+"settings.downloads.network.port_forwarding.caption" = "路由器会打开端口，其他节点可以直接连接到你的 Mac。这通常会加快下载和上传速度。";
 "settings.downloads.network.port_status.checking" = "正在检查端口…";
 "settings.downloads.network.port_status.open" = "端口已打开";
 "settings.downloads.network.port_status.closed" = "端口已关闭";
@@ -241,12 +242,12 @@
 "settings.appearance.metrics.section" = "数据显示";
 "settings.appearance.speed_colors.toggle" = "以颜色区分下载速度";
 "settings.appearance.metrics.toggle" = "以简洁模式显示数据";
-"settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。推荐模式。";
+"settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。";
 "settings.appearance.metrics.info.help" = "了解数值精度";
 "settings.appearance.metrics.popover.title" = "数值精度";
-"settings.appearance.metrics.popover.precision" = "关闭简洁模式后，速度和数据大小会显示得更精确，并在需要时保留一位小数。例如，10 MB/秒可能会显示为10.5 MB/秒，8 GB可能会显示为7.7 GB。";
-"settings.appearance.metrics.popover.eta" = "不足一小时的剩余时间不会再按5秒或5分钟的步长取整：例如，35分钟可能会显示为38分钟。一小时及以上的时间格式保持不变。";
-"settings.appearance.metrics.popover.unchanged" = "进度、种子和节点数量以及Torrent的运行方式均保持不变。";
+"settings.appearance.metrics.popover.precision" = "关闭简化模式后，速度和大小会显示得更精确：例如显示 10.5 MB/秒而不是 10 MB/秒，显示 7.7 GB 而不是 7 GB。";
+"settings.appearance.metrics.popover.eta" = "剩余时间不到一小时时会精确显示，不会取整到 5 秒或 5 分钟：例如显示 38 分钟而不是 35 分钟。一小时及以上的时间在两种模式下显示相同。";
+"settings.appearance.metrics.popover.unchanged" = "进度、种子和节点，以及下载本身都不受模式影响。";
 "settings.appearance.preview" = "预览";
 
 "settings.about.application_version" = "App 版本";
