@@ -27,6 +27,8 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         case redownload
         case removeFromList
         case chooseAnotherFolder
+        /// Look for an unavailable folder again: a disk plugged back in.
+        case recheckFolder
         case downloadToDefaultFolder
         case dismiss
     }

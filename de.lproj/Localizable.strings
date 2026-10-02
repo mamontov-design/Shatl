@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "Aus Liste entfernen";
 "torrent.action.remove_with_files" = "Mit Dateien löschen";
 "torrent.action.redownload" = "Erneut laden";
-"torrent.action.download_to_another_folder" = "In anderen Ordner laden";
+"torrent.action.download_to_another_folder" = "In anderen Ordner laden…";
+"torrent.action.recheck_folder" = "Erneut prüfen";
+"torrent.action.checking" = "Wird geprüft…";
 
 "torrent.status.downloading" = "Lädt";
 "torrent.status.adding" = "Wird hinzugefügt…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "Im Ordner „%@“ fehlen die Dateien dieses Downloads – vielleicht wurden sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
 "torrent.error.missing_content.notification" = "Vielleicht wurden sie verschoben, umbenannt oder gelöscht. In der Downloadliste können Sie sie erneut laden.";
 "torrent.error.save_path_unavailable.title" = "Download-Ordner nicht verfügbar";
-"torrent.error.save_path_unavailable.message" = "Shatl konnte den Speicherordner nicht öffnen. Wählen Sie einen anderen Ordner oder entfernen Sie den Torrent aus der Liste.";
-"torrent.error.save_path_unavailable.notification" = "In der Downloadliste können Sie einen anderen Ordner dafür wählen.";
+"torrent.error.save_path_unavailable.message" = "Der Download-Ordner ist nicht verfügbar – vielleicht ist der Datenträger getrennt, auf dem er liegt, oder der Ordner wurde gelöscht. Schließen Sie den Datenträger an und prüfen Sie erneut, oder laden Sie den Download in einen anderen Ordner.";
+"torrent.error.save_path_unavailable.named_message" = "Der Ordner „%@“ ist nicht verfügbar – vielleicht ist der Datenträger getrennt, auf dem er liegt, oder der Ordner wurde gelöscht. Schließen Sie den Datenträger an und prüfen Sie erneut, oder laden Sie den Download in einen anderen Ordner.";
+"torrent.error.save_path_unavailable.notification" = "Vielleicht ist der Datenträger getrennt, auf dem er liegt. In der Downloadliste können Sie den Ordner erneut prüfen oder einen anderen wählen.";
 "torrent.error.not_found.title" = "Download nicht verfügbar";
 "torrent.error.not_found.message" = "Dieser Torrent wurde nicht gefunden. Fügen Sie ihn erneut hinzu.";
 "torrent.error.action_failed.title" = "Aktion fehlgeschlagen";

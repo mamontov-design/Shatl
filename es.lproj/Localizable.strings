@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "Quitar de la lista";
 "torrent.action.remove_with_files" = "Eliminar con archivos";
 "torrent.action.redownload" = "Descargar de nuevo";
-"torrent.action.download_to_another_folder" = "Descargar en otra carpeta";
+"torrent.action.download_to_another_folder" = "Descargar en otra carpeta…";
+"torrent.action.recheck_folder" = "Comprobar de nuevo";
+"torrent.action.checking" = "Comprobando…";
 
 "torrent.status.downloading" = "Descargando";
 "torrent.status.adding" = "Añadiendo…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "Los archivos de esta descarga no están en la carpeta «%@»: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
 "torrent.error.missing_content.notification" = "Puede que se hayan movido, renombrado o eliminado. Puedes volver a descargarlos desde la lista de descargas.";
 "torrent.error.save_path_unavailable.title" = "La carpeta de descarga no está disponible";
-"torrent.error.save_path_unavailable.message" = "Shatl no pudo abrir la carpeta de guardado. Elige otra carpeta o quita el torrent de la lista.";
-"torrent.error.save_path_unavailable.notification" = "Puedes elegir otra carpeta para ella en la lista de descargas.";
+"torrent.error.save_path_unavailable.message" = "La carpeta de descarga no está disponible: puede que el disco donde está se haya desconectado o que la carpeta se haya eliminado. Conecta el disco y comprueba de nuevo, o descarga en otra carpeta.";
+"torrent.error.save_path_unavailable.named_message" = "La carpeta «%@» no está disponible: puede que el disco donde está se haya desconectado o que la carpeta se haya eliminado. Conecta el disco y comprueba de nuevo, o descarga en otra carpeta.";
+"torrent.error.save_path_unavailable.notification" = "Puede que el disco donde está se haya desconectado. Puedes comprobar la carpeta de nuevo o elegir otra en la lista de descargas.";
 "torrent.error.not_found.title" = "Descarga no disponible";
 "torrent.error.not_found.message" = "No se pudo encontrar este torrent. Intenta añadirlo de nuevo.";
 "torrent.error.action_failed.title" = "No se pudo completar la acción";

@@ -25,7 +25,7 @@ enum ShatlErrorCatalog {
                 kind: .savePathUnavailable,
                 title: L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride),
                 message: L10n.string("torrent.error.save_path_unavailable.message", localeOverride: localeOverride),
-                recoveryOptions: [.chooseAnotherFolder, .removeFromList]
+                recoveryOptions: [.recheckFolder, .chooseAnotherFolder, .removeFromList]
             )
         }
     }

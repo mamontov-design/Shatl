@@ -68,10 +68,8 @@ final class CopyTypographyTests: XCTestCase {
             "onboarding.data.description",            // supporting the project
             "settings.data.caption",
         ]
-        let pending: Set<String> = [
-            // Deferred with the folder's "Retry" button
-            "torrent.error.save_path_unavailable.message",
-        ]
+        // Keys still naming Shatl as the actor, until their copy is rewritten.
+        let pending: Set<String> = []
         let debugPrefixes = ["settings.debug.", "settings.localization.", "menu.debug."]
 
         var namingKeys: Set<String> = []

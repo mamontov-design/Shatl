@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "从列表移除";
 "torrent.action.remove_with_files" = "连同文件删除";
 "torrent.action.redownload" = "重新下载";
-"torrent.action.download_to_another_folder" = "下载到其他文件夹";
+"torrent.action.download_to_another_folder" = "下载到其他文件夹…";
+"torrent.action.recheck_folder" = "再次检查";
+"torrent.action.checking" = "正在检查…";
 
 "torrent.status.downloading" = "下载中";
 "torrent.status.adding" = "正在添加…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "“%@”文件夹中没有此下载的文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
 "torrent.error.missing_content.notification" = "这些文件可能已被移动、重命名或删除。可以在下载列表中重新下载。";
 "torrent.error.save_path_unavailable.title" = "下载文件夹不可用";
-"torrent.error.save_path_unavailable.message" = "Shatl 无法打开保存文件夹。请选择其他文件夹，或将 Torrent 从列表中移除。";
-"torrent.error.save_path_unavailable.notification" = "可以在下载列表中为其选择其他文件夹。";
+"torrent.error.save_path_unavailable.message" = "下载文件夹不可用：所在磁盘可能已断开连接，或文件夹已被删除。请连接磁盘后再次检查，或下载到其他文件夹。";
+"torrent.error.save_path_unavailable.named_message" = "“%@”文件夹不可用：所在磁盘可能已断开连接，或文件夹已被删除。请连接磁盘后再次检查，或下载到其他文件夹。";
+"torrent.error.save_path_unavailable.notification" = "所在磁盘可能已断开连接。可以在下载列表中再次检查此文件夹，或选择其他文件夹。";
 "torrent.error.not_found.title" = "下载不可用";
 "torrent.error.not_found.message" = "找不到这个 Torrent。请尝试重新添加。";
 "torrent.error.action_failed.title" = "操作失败";

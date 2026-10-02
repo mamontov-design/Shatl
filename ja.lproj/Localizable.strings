@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "リストから削除";
 "torrent.action.remove_with_files" = "ファイルごと削除";
 "torrent.action.redownload" = "再ダウンロード";
-"torrent.action.download_to_another_folder" = "別のフォルダにダウンロード";
+"torrent.action.download_to_another_folder" = "別のフォルダにダウンロード…";
+"torrent.action.recheck_folder" = "再確認";
+"torrent.action.checking" = "確認中…";
 
 "torrent.status.downloading" = "ダウンロード中";
 "torrent.status.adding" = "追加中…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "「%@」フォルダにこのダウンロードのファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
 "torrent.error.missing_content.notification" = "移動、名前の変更、または削除された可能性があります。ダウンロードリストから再ダウンロードできます。";
 "torrent.error.save_path_unavailable.title" = "ダウンロードフォルダを利用できません";
-"torrent.error.save_path_unavailable.message" = "Shatlは保存先フォルダを開けませんでした。別のフォルダを選ぶか、Torrentをリストから削除してください。";
-"torrent.error.save_path_unavailable.notification" = "ダウンロードリストで別のフォルダを選択できます。";
+"torrent.error.save_path_unavailable.message" = "ダウンロードフォルダを利用できません。フォルダのあるディスクが取り外されたか、フォルダが削除された可能性があります。ディスクを接続して再確認するか、別のフォルダにダウンロードしてください。";
+"torrent.error.save_path_unavailable.named_message" = "「%@」フォルダを利用できません。フォルダのあるディスクが取り外されたか、フォルダが削除された可能性があります。ディスクを接続して再確認するか、別のフォルダにダウンロードしてください。";
+"torrent.error.save_path_unavailable.notification" = "フォルダのあるディスクが取り外された可能性があります。ダウンロードリストで、フォルダを再確認するか別のフォルダを選択できます。";
 "torrent.error.not_found.title" = "ダウンロードを利用できません";
 "torrent.error.not_found.message" = "このTorrentが見つかりませんでした。もう一度追加してください。";
 "torrent.error.action_failed.title" = "操作できませんでした";

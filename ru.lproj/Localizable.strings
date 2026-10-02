@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "Удалить из списка";
 "torrent.action.remove_with_files" = "Удалить вместе с файлами";
 "torrent.action.redownload" = "Скачать заново";
-"torrent.action.download_to_another_folder" = "Скачать в другую папку";
+"torrent.action.download_to_another_folder" = "Скачать в другую папку…";
+"torrent.action.recheck_folder" = "Проверить снова";
+"torrent.action.checking" = "Проверка…";
 
 "torrent.status.downloading" = "Скачивается";
 "torrent.status.adding" = "Добавляется…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "В папке «%@» нет файлов этой загрузки — возможно, их переместили, переименовали или удалили. Скачайте их заново или удалите загрузку из списка.";
 "torrent.error.missing_content.notification" = "Возможно, их переместили, переименовали или удалили. Скачать их заново можно в списке загрузок.";
 "torrent.error.save_path_unavailable.title" = "Папка загрузки недоступна";
-"torrent.error.save_path_unavailable.message" = "Shatl не смог открыть папку сохранения. Выберите другую папку для загрузки или удалите торрент из списка.";
-"torrent.error.save_path_unavailable.notification" = "Выбрать для неё другую папку можно в списке загрузок.";
+"torrent.error.save_path_unavailable.message" = "Папка загрузки недоступна — возможно, отключён диск, на котором она лежит, или папку удалили. Подключите диск и проверьте снова или скачайте загрузку в другую папку.";
+"torrent.error.save_path_unavailable.named_message" = "Папка «%@» недоступна — возможно, отключён диск, на котором она лежит, или папку удалили. Подключите диск и проверьте снова или скачайте загрузку в другую папку.";
+"torrent.error.save_path_unavailable.notification" = "Возможно, отключён диск, на котором она лежит. Проверить папку снова или выбрать другую можно в списке загрузок.";
 "torrent.error.not_found.title" = "Загрузка недоступна";
 "torrent.error.not_found.message" = "Не удалось найти этот торрент. Попробуйте добавить его заново.";
 "torrent.error.action_failed.title" = "Не удалось выполнить действие";

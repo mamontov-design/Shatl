@@ -608,7 +608,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ),
             navigationAvailabilityKey: navigationAvailabilityKey,
             localeOverride: shared.localeOverride,
-            simplification: shared.simplification
+            simplification: shared.simplification,
+            isRecheckingFolder: inputs.isTransitioning && record.persistentIssue?.kind == .savePathUnavailable
         )
     }
 
@@ -1713,6 +1714,72 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
             await self.redownloadTorrent(record: record, saveURL: saveURL, bookmarkData: nil)
         }
+    }
+
+    /// The shortest a folder check shows "Проверка…", so the click is seen.
+    nonisolated static let folderRecheckMinimumDuration = Duration.seconds(1)
+
+    /// "Проверить снова" on a card whose folder was unavailable: looks for the
+    /// folder again and, when it is back, returns the download to where it
+    /// was before the error with its progress kept — downloading again, or
+    /// still stopped. Only on request: the contract leaves recovering a
+    /// persistent issue to the user.
+    func recheckUnavailableFolder(id: UUID) {
+        guard let record = torrents.first(where: { $0.id == id }),
+              record.persistentIssue?.kind == .savePathUnavailable,
+              !isRestoringSession,
+              !transitioningTorrentIDs.contains(id) else { return }
+
+        transitioningTorrentIDs.insert(id)
+        Task { [weak self] in
+            guard let self else { return }
+            let clock = ContinuousClock()
+            let startedAt = clock.now
+            await self.recheckUnavailableFolder(record: record)
+            let elapsed = clock.now - startedAt
+            if elapsed < Self.folderRecheckMinimumDuration {
+                try? await Task.sleep(for: Self.folderRecheckMinimumDuration - elapsed)
+            }
+            self.transitioningTorrentIDs.remove(id)
+        }
+    }
+
+    private func recheckUnavailableFolder(record: TorrentRecord) async {
+        guard let saveURL = await bookmarkStore.resolveFreshURL(
+            for: record.id,
+            fallbackPath: record.canonicalSavePath
+        ) else {
+            // Still unavailable: the card keeps its error, nothing is saved.
+            return
+        }
+
+        // A folder renamed or moved in Finder: the bookmark followed it.
+        var candidate = record
+        let resolvedPath = NSString(string: saveURL.path).standardizingPath
+        if resolvedPath != NSString(string: record.canonicalSavePath).standardizingPath,
+           let index = torrents.firstIndex(where: { $0.id == record.id }) {
+            torrents[index].canonicalSavePath = resolvedPath
+            candidate.canonicalSavePath = resolvedPath
+        }
+
+        // The same check Start makes: the folder may be back without the files.
+        let validation = await diskIssueDetector.validateAfterUserAction(for: candidate)
+        applyValidationResult(validation, to: record.id)
+        if let issue = validation.issue {
+            if issue.kind != .savePathUnavailable {
+                await persistCriticalState()
+            }
+            return
+        }
+
+        applyPersistentIssue(nil, to: record.id)
+        guard let recovered = torrents.first(where: { $0.id == record.id }) else { return }
+        if recovered.status.isSleeping {
+            // Stopped before the error, stopped now: manual Start stays manual.
+            await persistCriticalState()
+            return
+        }
+        await restoreAndStart(record: recovered)
     }
 
     func redownloadTorrent(id: UUID, toSaveLocation saveURL: URL, bookmarkData: Data?) {

@@ -54,9 +54,19 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     ) -> String {
         switch errorState.kind {
         case .missingContent:
-            missingContentMessage(saveFolderPath: saveFolderPath, localeOverride: localeOverride, fallback: errorState.message)
+            folderMessage(
+                key: "torrent.error.missing_content",
+                saveFolderPath: saveFolderPath,
+                localeOverride: localeOverride,
+                fallback: errorState.message
+            )
         case .savePathUnavailable:
-            L10n.string("torrent.error.save_path_unavailable.message", localeOverride: localeOverride, defaultValue: errorState.message)
+            folderMessage(
+                key: "torrent.error.save_path_unavailable",
+                saveFolderPath: saveFolderPath,
+                localeOverride: localeOverride,
+                fallback: errorState.message
+            )
         case .torrentNotFound:
             L10n.string("torrent.error.not_found.message", localeOverride: localeOverride, defaultValue: errorState.message)
         case .engineFailure:
@@ -66,17 +76,20 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
         }
     }
 
-    private static func missingContentMessage(
+    /// The card names the folder in question, "Загрузки" rather than "the
+    /// download folder", when its name is known.
+    private static func folderMessage(
+        key: String,
         saveFolderPath: String?,
         localeOverride: AppLocaleOverride,
         fallback: String
     ) -> String {
         let folderName = saveFolderPath.map(ShatlErrorCatalog.folderDisplayName(forPath:)) ?? ""
         guard !folderName.isEmpty else {
-            return L10n.string("torrent.error.missing_content.message", localeOverride: localeOverride, defaultValue: fallback)
+            return L10n.string("\(key).message", localeOverride: localeOverride, defaultValue: fallback)
         }
         return L10n.format(
-            "torrent.error.missing_content.named_message",
+            "\(key).named_message",
             localeOverride: localeOverride,
             defaultValue: fallback,
             ShatlErrorCatalog.shortenedTorrentName(folderName)
@@ -111,6 +124,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var canExpand = true
     /// What the card leaves out with many downloads running.
     var simplification = CardSimplificationLevel.full
+    /// "Проверить снова" is looking for an unavailable folder.
+    var isRecheckingFolder = false
 }
 
 extension TorrentRowState {

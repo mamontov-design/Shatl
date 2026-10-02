@@ -115,6 +115,8 @@ struct TorrentCardView: View, Equatable {
     let onRemoveWithFiles: () -> Void
     /// Closes the card when its download finishes open.
     var onCollapse: () -> Void = {}
+    /// Looks for an unavailable folder again.
+    var onRecheckFolder: () -> Void = {}
     var presentationMode: TorrentCardPresentationMode = .normal
     var isExpansionToggleEnabled = true
     var showsExpansionToggle = true
@@ -1005,6 +1007,12 @@ struct TorrentCardView: View, Equatable {
         min(max(row.progress, 0), 1)
     }
 
+    /// The actions an error card shows as buttons.
+    private static func cardActionCount(in errorState: TorrentRowErrorState) -> Int {
+        let shown: [TorrentErrorState.RecoveryOption] = [.recheckFolder, .redownload, .chooseAnotherFolder, .removeFromList]
+        return shown.filter(errorState.recoveryOptions.contains).count
+    }
+
     private func errorBlock(_ errorState: TorrentRowErrorState) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(errorState.message)
@@ -1014,6 +1022,16 @@ struct TorrentCardView: View, Equatable {
 
             if !errorState.recoveryOptions.isEmpty {
                 HStack(spacing: 6) {
+                    if errorState.recoveryOptions.contains(.recheckFolder) {
+                        ShatlButton(
+                            title: L10n.string("torrent.action.recheck_folder", localeOverride: row.localeOverride),
+                            busyTitle: L10n.string("torrent.action.checking", localeOverride: row.localeOverride),
+                            isBusy: row.isRecheckingFolder,
+                            role: .borderedNeutral,
+                            action: onRecheckFolder
+                        )
+                    }
+
                     if errorState.recoveryOptions.contains(.redownload) {
                         ShatlButton(localizedTitle: "torrent.action.redownload", role: .borderedNeutral, action: onRedownload)
                     }
@@ -1022,14 +1040,35 @@ struct TorrentCardView: View, Equatable {
                         ShatlButton(
                             localizedTitle: "torrent.action.download_to_another_folder",
                             role: .borderedNeutral,
+                            isDisabled: row.isRecheckingFolder,
                             action: onChooseAnotherFolder
                         )
                     }
 
                     if errorState.recoveryOptions.contains(.removeFromList) {
-                        ShatlButton(localizedTitle: "torrent.action.remove_from_list", role: .borderedNeutral, action: onRemove)
+                        if Self.cardActionCount(in: errorState) >= 3 {
+                            // Three actions do not fit as words: removal shrinks
+                            // to its icon at the far edge, the label kept for
+                            // the pointer and VoiceOver.
+                            Spacer(minLength: 0)
+                            ShatlButton(
+                                systemImage: "trash",
+                                role: .borderedNeutral,
+                                isDisabled: row.isRecheckingFolder,
+                                action: onRemove
+                            )
+                            .help(Text("torrent.action.remove_from_list"))
+                            .accessibilityLabel(Text("torrent.action.remove_from_list"))
+                        } else {
+                            ShatlButton(localizedTitle: "torrent.action.remove_from_list", role: .borderedNeutral, action: onRemove)
+                        }
                     }
                 }
+                // The neighbours slide while "Проверить снова" narrows into
+                // "Проверка…", as in the line message and the expanded
+                // metric row; no button has a fixed width.
+                .geometryGroup()
+                .animation(ShatlMotion.metricResize, value: row.isRecheckingFolder)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -88,7 +88,9 @@
 "torrent.action.remove_from_list" = "Remove from List";
 "torrent.action.remove_with_files" = "Delete with Files";
 "torrent.action.redownload" = "Download Again";
-"torrent.action.download_to_another_folder" = "Download to Another Folder";
+"torrent.action.download_to_another_folder" = "Download to Another Folder…";
+"torrent.action.recheck_folder" = "Check Again";
+"torrent.action.checking" = "Checking…";
 
 "torrent.status.downloading" = "Downloading";
 "torrent.status.adding" = "Adding…";
@@ -110,8 +112,9 @@
 "torrent.error.missing_content.named_message" = "The files for this download aren’t in the “%@” folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
 "torrent.error.missing_content.notification" = "They may have been moved, renamed, or deleted. You can download them again from the download list.";
 "torrent.error.save_path_unavailable.title" = "Download folder is unavailable";
-"torrent.error.save_path_unavailable.message" = "Shatl could not open the save folder. Choose another folder or remove the torrent from the list.";
-"torrent.error.save_path_unavailable.notification" = "You can choose another folder for it in the download list.";
+"torrent.error.save_path_unavailable.message" = "The download folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
+"torrent.error.save_path_unavailable.named_message" = "The “%@” folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
+"torrent.error.save_path_unavailable.notification" = "The disk it’s on may be disconnected. You can check the folder again or choose another one in the download list.";
 "torrent.error.not_found.title" = "Download unavailable";
 "torrent.error.not_found.message" = "This torrent could not be found. Try adding it again.";
 "torrent.error.action_failed.title" = "Action failed";

@@ -121,6 +121,7 @@ struct TorrentListView: View {
                                         }
                                     },
                                     onCollapse: { store.collapseExpanded(for: torrentID) },
+                                    onRecheckFolder: { store.recheckUnavailableFolder(id: torrentID) },
                                     usesCompactExpandedMetricsLayout: usesCompactExpandedMetricsLayout
                                 )
                                 .equatable()

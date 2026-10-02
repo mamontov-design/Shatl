@@ -85,6 +85,16 @@ actor BookmarkStore {
         return fileManager.fileExists(atPath: fallbackURL.path) ? fallbackURL : nil
     }
 
+    /// Resolves the bookmark again instead of trusting the path kept since the
+    /// last access: a disk plugged back in, or a folder renamed in Finder,
+    /// is found where it is now. Only for an explicit "check again".
+    func resolveFreshURL(for torrentID: UUID, fallbackPath: String) async -> URL? {
+        if let activeURL = activeScopedURLs.removeValue(forKey: torrentID) {
+            activeURL.stopAccessingSecurityScopedResource()
+        }
+        return await resolveURL(for: torrentID, fallbackPath: fallbackPath)
+    }
+
     func removeBookmark(for torrentID: UUID) async {
         if let activeURL = activeScopedURLs.removeValue(forKey: torrentID) {
             activeURL.stopAccessingSecurityScopedResource()
