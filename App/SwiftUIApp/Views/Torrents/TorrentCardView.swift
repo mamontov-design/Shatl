@@ -156,6 +156,7 @@ struct TorrentCardView: View, Equatable {
 
             if showsProgressBar {
                 progressBar
+                    .shatlCardPreviewBlur(.progressBar)
                     .transition(progressBarTransition)
             }
 
@@ -409,6 +410,7 @@ struct TorrentCardView: View, Equatable {
     private var primaryMetricContainer: some View {
         HStack(spacing: 8) {
             statusBadge
+                .shatlCardPreviewBlur(.status)
             compactTransferMetricContainer
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -490,6 +492,7 @@ struct TorrentCardView: View, Equatable {
             }
 
             cardDivider
+                .shatlCardPreviewBlur(.divider)
             extraMetric(metricGroups)
         }
     }

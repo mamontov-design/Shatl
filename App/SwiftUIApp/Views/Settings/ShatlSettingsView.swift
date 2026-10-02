@@ -969,9 +969,12 @@ private struct AppearanceSettingsTab: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var metricPreviewPulseTrigger = 0
     @State private var downloadSpeedPreviewPulseTrigger = 0
     @State private var isMetricsInfoPresented = false
+    @State private var previewFocus: TorrentCardPreviewFocus?
+    @State private var previewFocusReleaseTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -985,6 +988,10 @@ private struct AppearanceSettingsTab: View {
             .padding(.bottom, 16)
         }
         .padding(.top, 0)
+        .onDisappear {
+            previewFocusReleaseTask?.cancel()
+            previewFocus = nil
+        }
     }
 
     private var previewCardContainer: some View {
@@ -1007,7 +1014,8 @@ private struct AppearanceSettingsTab: View {
                 cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
                 cardOutlineColorOverride: colorScheme == .light ? ShatlColor.outlinePrimary : nil,
                 shadowStyle: .settings,
-                cardWidth: nil
+                cardWidth: nil,
+                focus: previewFocus
             )
             .padding(.horizontal, 28)
         }
@@ -1027,6 +1035,7 @@ private struct AppearanceSettingsTab: View {
                         set: {
                             store.preferences.colorizesDownloadSpeed = $0
                             downloadSpeedPreviewPulseTrigger += 1
+                            focusPreview(on: .downloadSpeed)
                         }
                     )
                 )
@@ -1097,6 +1106,22 @@ private struct AppearanceSettingsTab: View {
     private func selectMetricsMode(_ mode: MetricsPresentationMode) {
         store.preferences.metricsMode = mode
         metricPreviewPulseTrigger += 1
+        focusPreview(on: .metrics)
+    }
+
+    /// Keeps the changed part of the preview sharp and blurs the rest while
+    /// it flashes and four seconds after; every toggle starts the wait again.
+    /// None with Reduce Motion, as there is no flash then either.
+    private func focusPreview(on focus: TorrentCardPreviewFocus) {
+        guard !reduceMotion else { return }
+
+        previewFocus = focus
+        previewFocusReleaseTask?.cancel()
+        previewFocusReleaseTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.previewFocusHold)
+            guard !Task.isCancelled else { return }
+            previewFocus = nil
+        }
     }
 
     private var simplifiedMetricsModeBinding: Binding<Bool> {

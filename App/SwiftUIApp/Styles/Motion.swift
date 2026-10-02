@@ -19,6 +19,13 @@ enum ShatlMotion {
     static let metricSetBounceTotalDuration =
         metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
 
+    /// The Settings preview blurs what a toggle did not change: in softly,
+    /// out slowly, and held for four seconds after the last flash.
+    static let previewFocusBlurRadius: CGFloat = 3
+    static let previewFocusIn = Animation.smooth(duration: 0.3)
+    static let previewFocusOut = Animation.smooth(duration: 0.5)
+    static let previewFocusHold = Duration.seconds(metricSetBounceTotalDuration + 4)
+
     /// Color changes stay in sync with the complete bounce, including in previews.
     static let speedMetricColor = Animation.easeInOut(duration: metricSetBounceTotalDuration)
 
@@ -175,6 +182,14 @@ private struct ShatlMetricSetOutlineFlashColorKey: EnvironmentKey {
     static let defaultValue = ShatlColor.metricPulseHighlight
 }
 
+private struct ShatlIsCardPreviewKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct ShatlCardPreviewFocusKey: EnvironmentKey {
+    static let defaultValue: TorrentCardPreviewFocus? = nil
+}
+
 extension EnvironmentValues {
     var shatlMetricSetOutlinePulseEnabled: Bool {
         get { self[ShatlMetricSetOutlinePulseEnabledKey.self] }
@@ -211,5 +226,82 @@ extension EnvironmentValues {
     var shatlMetricSetOutlineFlashColor: Color {
         get { self[ShatlMetricSetOutlineFlashColorKey.self] }
         set { self[ShatlMetricSetOutlineFlashColorKey.self] = newValue }
+    }
+
+    /// Inside the demo card, where a focus may blur parts of it.
+    var shatlIsCardPreview: Bool {
+        get { self[ShatlIsCardPreviewKey.self] }
+        set { self[ShatlIsCardPreviewKey.self] = newValue }
+    }
+
+    var shatlCardPreviewFocus: TorrentCardPreviewFocus? {
+        get { self[ShatlCardPreviewFocusKey.self] }
+        set { self[ShatlCardPreviewFocusKey.self] = newValue }
+    }
+}
+
+/// What the Settings preview keeps sharp after a toggle; the rest blurs so
+/// the change is seen.
+enum TorrentCardPreviewFocus: Equatable, Sendable {
+    /// "Цветовая индикация скорости загрузки": the speed row on top.
+    case downloadSpeed
+    /// "Отображать данные в упрощённом режиме": every metric.
+    case metrics
+
+    /// Whether `element` blurs under `focus`. The title never does, nor the
+    /// speed row on top that both toggles change.
+    static func blurs(_ element: TorrentCardPreviewElement, under focus: TorrentCardPreviewFocus?) -> Bool {
+        guard let focus else { return false }
+        switch element {
+        case .title, .compactMetrics:
+            return false
+        case .progressBar, .status, .divider, .metricGroupTitles:
+            return true
+        case .expandedMetrics:
+            return focus == .downloadSpeed
+        }
+    }
+}
+
+/// The parts of the demo card a focus keeps or blurs.
+enum TorrentCardPreviewElement: CaseIterable, Sendable {
+    case title
+    case progressBar
+    /// The progress plate and the status beside it.
+    case status
+    /// Speed and time left, on top.
+    case compactMetrics
+    case divider
+    /// "Сиды и пиры", "Размер" and the other group names.
+    case metricGroupTitles
+    /// The metric sets of the expanded card.
+    case expandedMetrics
+}
+
+private struct TorrentCardPreviewBlur: ViewModifier {
+    let element: TorrentCardPreviewElement
+    @Environment(\.shatlIsCardPreview) private var isCardPreview
+    @Environment(\.shatlCardPreviewFocus) private var focus
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        // Outside the demo card nothing is added: cards in the list stay
+        // as they were.
+        if isCardPreview {
+            let isBlurred = TorrentCardPreviewFocus.blurs(element, under: focus)
+            content
+                .blur(radius: isBlurred ? ShatlMotion.previewFocusBlurRadius : 0)
+                .animation(isBlurred ? ShatlMotion.previewFocusIn : ShatlMotion.previewFocusOut, value: isBlurred)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Blurs this part of the demo card while a Settings toggle puts
+    /// another part in focus.
+    func shatlCardPreviewBlur(_ element: TorrentCardPreviewElement) -> some View {
+        modifier(TorrentCardPreviewBlur(element: element))
     }
 }

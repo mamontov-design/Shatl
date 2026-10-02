@@ -908,6 +908,8 @@ struct TorrentCardPreviewView: View {
     var cardOutlineColorOverride: Color? = nil
     var shadowStyle: TorrentCardPreviewShadowStyle = .onboarding
     var cardWidth: CGFloat? = Layout.cardWidth
+    /// What a Settings toggle put in focus; the rest of the card blurs.
+    var focus: TorrentCardPreviewFocus? = nil
 
     @State private var isExpanded: Bool
     @State private var demoProgress = 0.01
@@ -935,7 +937,8 @@ struct TorrentCardPreviewView: View {
         cardBackgroundColorOverride: Color? = nil,
         cardOutlineColorOverride: Color? = nil,
         shadowStyle: TorrentCardPreviewShadowStyle = .onboarding,
-        cardWidth: CGFloat? = Layout.cardWidth
+        cardWidth: CGFloat? = Layout.cardWidth,
+        focus: TorrentCardPreviewFocus? = nil
     ) {
         self.localeOverride = localeOverride
         self.metricsMode = metricsMode
@@ -957,6 +960,7 @@ struct TorrentCardPreviewView: View {
         self.cardOutlineColorOverride = cardOutlineColorOverride
         self.shadowStyle = shadowStyle
         self.cardWidth = cardWidth
+        self.focus = focus
         _isExpanded = State(initialValue: initiallyExpanded)
     }
 
@@ -1008,6 +1012,8 @@ struct TorrentCardPreviewView: View {
                 .environment(\.shatlMetricSetBounceEnabled, false)
                 .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
                 .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
+                .environment(\.shatlIsCardPreview, true)
+                .environment(\.shatlCardPreviewFocus, focus)
 
             if !centersExpandedCard, showsExpansionToggle {
                 expandHint
@@ -2075,6 +2081,7 @@ struct ShatlMetricGroup: View {
                 .foregroundStyle(ShatlColor.typographySecondary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .shatlCardPreviewBlur(.metricGroupTitles)
 
             ShatlMetricSet(
                 items: group.items,
@@ -2084,6 +2091,7 @@ struct ShatlMetricGroup: View {
                 showsShadows: showsShadows,
                 diagnosticsContext: diagnosticsContext?.withGroupID(group.id)
             )
+            .shatlCardPreviewBlur(.expandedMetrics)
         }
         .layoutPriority(1)
     }
