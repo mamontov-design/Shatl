@@ -8,7 +8,6 @@ import Foundation
 nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable {
     enum Kind: String, Codable, Sendable {
         case missingContent
-        case missingFolder
         case savePathUnavailable
         case invalidTorrentFile
         case invalidMagnet
@@ -16,7 +15,6 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         /// The wait for a file list ran out with no network at all.
         case noConnection
         case draftPreparationLost
-        case insufficientDiskSpace
         case duplicateTorrent
         case torrentNotFound
         case engineFailure
@@ -29,7 +27,6 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         case chooseAnotherFolder
         /// Look for an unavailable folder again: a disk plugged back in.
         case recheckFolder
-        case downloadToDefaultFolder
         case dismiss
     }
 

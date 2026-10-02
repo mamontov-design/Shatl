@@ -40,7 +40,6 @@ actor FakeTorrentEngine: TorrentEngine {
     private var appliedPerformanceSettingsValue: [EnginePerformanceSettings] = []
     private var portMappingStatusValue: EnginePortMappingStatus?
     private var checkpointedTorrentIDsValue: [UUID] = []
-    private var checkpointResultsByTorrentID: [UUID: EngineResumeCheckpointStatus] = [:]
 
     func boot() async throws {
         bootCallCountValue += 1
@@ -211,7 +210,7 @@ actor FakeTorrentEngine: TorrentEngine {
         return ids.map {
             EngineResumeCheckpointResult(
                 id: $0,
-                status: checkpointResultsByTorrentID[$0] ?? (activeTorrentIDs.contains($0) ? .saved : .notFound)
+                status: activeTorrentIDs.contains($0) ? .saved : .notFound
             )
         }
     }
@@ -326,10 +325,6 @@ actor FakeTorrentEngine: TorrentEngine {
 
     func recordedCheckpointedTorrentIDs() async -> [UUID] {
         checkpointedTorrentIDsValue
-    }
-
-    func setCheckpointStatus(_ status: EngineResumeCheckpointStatus, for torrentID: UUID) async {
-        checkpointResultsByTorrentID[torrentID] = status
     }
 
     func recordedRemoveCalls() async -> [RemovedTorrentCall] {

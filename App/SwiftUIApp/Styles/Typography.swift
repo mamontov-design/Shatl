@@ -38,10 +38,6 @@ enum ShatlTypography {
         standard: ShatlTextStyleVariant(size: 20, lineHeight: 22, weight: .semibold),
         cjk: ShatlTextStyleVariant(size: 24, lineHeight: 26, weight: .medium)
     )
-    static let subheadlineBold = ShatlTextStyle(
-        standard: ShatlTextStyleVariant(size: 18, lineHeight: 20, weight: .semibold),
-        cjk: ShatlTextStyleVariant(size: 22, lineHeight: 24, weight: .medium)
-    )
     static let bodySemibold = ShatlTextStyle(
         standard: ShatlTextStyleVariant(size: 13, lineHeight: 16, weight: .medium),
         cjk: ShatlTextStyleVariant(size: 15, lineHeight: 18, weight: .regular)

@@ -14,15 +14,8 @@ nonisolated struct TorrentMetrics: Equatable, Codable, Sendable {
     var totalBytes: Int64 = 0
     var selectedBytes: Int64 = 0
 
-    var hasVisibleDownloadSpeed: Bool {
-        downloadSpeedBytesPerSecond > 0
-    }
-
     var hasVisibleUploadSpeed: Bool {
         uploadSpeedBytesPerSecond > 0
     }
 
-    var hasVisiblePeerStats: Bool {
-        (seeds ?? 0) > 0 || (peers ?? 0) > 0
-    }
 }

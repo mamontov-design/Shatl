@@ -264,13 +264,6 @@ struct ShatlSettingsView: View {
         }
     }
 
-    private var performanceProfileBinding: Binding<AppPerformanceProfile> {
-        Binding(
-            get: { store.preferences.performanceProfile },
-            set: { store.setPerformanceProfile($0) }
-        )
-    }
-
     /// As Finder names it: "Загрузки", not the "Downloads" on disk, as the
     /// add window shows it.
     private var defaultDownloadFolderName: String {
@@ -1274,48 +1267,6 @@ private extension AppTheme {
             "settingsCardImageThemeLight"
         case .dark:
             "settingsCardImageThemeDark"
-        }
-    }
-}
-
-private struct PerformanceProfileSlider: NSViewRepresentable {
-    @Binding var profile: AppPerformanceProfile
-    var isEnabled: Bool
-
-    func makeNSView(context: Context) -> NSSlider {
-        let slider = NSSlider(
-            value: profile.sliderValue,
-            minValue: 0,
-            maxValue: 2,
-            target: context.coordinator,
-            action: #selector(Coordinator.sliderChanged(_:))
-        )
-        slider.numberOfTickMarks = AppPerformanceProfile.allCases.count
-        slider.allowsTickMarkValuesOnly = true
-        slider.tickMarkPosition = .below
-        slider.isContinuous = false
-        return slider
-    }
-
-    func updateNSView(_ slider: NSSlider, context: Context) {
-        slider.doubleValue = profile.sliderValue
-        slider.isEnabled = isEnabled
-        context.coordinator.profile = $profile
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(profile: $profile)
-    }
-
-    final class Coordinator: NSObject {
-        var profile: Binding<AppPerformanceProfile>
-
-        init(profile: Binding<AppPerformanceProfile>) {
-            self.profile = profile
-        }
-
-        @objc func sliderChanged(_ sender: NSSlider) {
-            profile.wrappedValue = AppPerformanceProfile.fromSliderValue(sender.doubleValue)
         }
     }
 }

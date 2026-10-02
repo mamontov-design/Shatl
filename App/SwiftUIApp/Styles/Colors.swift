@@ -9,7 +9,6 @@ enum ShatlColor {
     static let backgroundSecondary = Color("backgroundSecondary")
     static let backgroundTertiary = Color("backgroundTertiary")
     static let backgroundPrimary = Color("backgroundPrimary")
-    static let backgroundFiles = Color("backgroundFiles")
 
     static let buttonNeutral = Color("buttonNeutral")
 
@@ -57,8 +56,6 @@ enum ShatlColor {
     static let outlineTertiary = Color("outlineTertiary")
 
     static let cerisePink = Color("cerisePink")
-    static let mangoTango = Color("mangoTango")
-    static let pictonBlue = Color("pictonBlue")
     static let slate = Color("slate")
     static let neonBlue = Color("neonBlue")
 
@@ -97,30 +94,14 @@ enum ShatlColor {
 
     static let onboardingForeground = Color("onboardingForeground")
     static let onboardingBackground = Color("onboardingBackground")
-    static let onboardingOutline = Color("onboardingOutline")
     static let onboardingButtonText = Color("onboardingButtonText")
     static let onboardingButtonBody = Color("onboardingButtonBody")
-
-    static func onboardingPresentationGradient(colorScheme: ColorScheme) -> LinearGradient {
-        let colors: [Color] = colorScheme == .dark
-            ? [
-                Color(red: 63.0 / 255.0, green: 63.0 / 255.0, blue: 70.0 / 255.0),
-                Color.black.opacity(0),
-            ]
-            : [
-                Color(red: 244.0 / 255.0, green: 244.0 / 255.0, blue: 245.0 / 255.0),
-                Color.white,
-            ]
-
-        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
-    }
 
 }
 
 enum ShatlCornerRadius {
     static let button: CGFloat = 8
     static let tab: CGFloat = 6
-    static let tabsContainer: CGFloat = 8
     static let container: CGFloat = 20
     static let expandButton: CGFloat = 5.5
 }
@@ -205,17 +186,6 @@ struct ShatlShadowToken {
 }
 
 enum ShatlShadow {
-    /// Shadow for the active tab in the add-torrent review window.
-    static let activeTab = ShatlShadowToken(
-        light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.45, radius: 1),
-            secondary: ShatlShadowLayer(opacity: 0.24, radius: 4, y: 2)
-        ),
-        dark: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.45, radius: 1),
-            secondary: ShatlShadowLayer(opacity: 0.24, radius: 4, y: 2)
-        )
-    )
 
     /// Shadow for the add-torrent error message overlay.
     static let messageBlock = ShatlShadowToken(
@@ -280,16 +250,6 @@ enum ShatlShadow {
         ),
         dark: ShatlShadowAppearance(
             primary: ShatlShadowLayer(opacity: 0.32, radius: 5.5)
-        )
-    )
-
-    /// Shadow for the pinned folder row in the add-torrent file tree.
-    static let addTorrentStickyRow = ShatlShadowToken(
-        light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.04, radius: 2, y: 2)
-        ),
-        dark: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.50, radius: 2, y: 2)
         )
     )
 

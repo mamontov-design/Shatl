@@ -1561,11 +1561,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    func removeSelectedTorrent(policy: TorrentRemovalPolicy = .removeFromListOnly) async {
-        guard let selectedTorrentID, isToolbarRemoveEnabled else { return }
-        await removeTorrent(id: selectedTorrentID, policy: policy)
-    }
-
     /// Where the files that stayed behind can be found. The deletion alert's
     /// "Show in Finder" is the last place that knows: the download has
     /// already left the list. Read before the removal artifacts are cleared.
@@ -2279,13 +2274,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         currentAddTorrentDraft = draft
     }
 
-    func updateDraftSavePath(_ path: String) {
-        guard var draft = currentAddTorrentDraft else { return }
-        draft.suggestedSavePath = NSString(string: path).standardizingPath
-        draft.savePathBookmarkData = nil
-        currentAddTorrentDraft = draft
-    }
-
     func updateDraftSaveLocation(_ url: URL, bookmarkData: Data?) {
         guard var draft = currentAddTorrentDraft else { return }
         draft.suggestedSavePath = NSString(string: url.path).standardizingPath
@@ -2296,15 +2284,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func updateDraftStopAfterDownload(_ isEnabled: Bool) {
         guard var draft = currentAddTorrentDraft else { return }
         draft.stopAfterDownload = isEnabled
-        currentAddTorrentDraft = draft
-    }
-
-    func toggleDraftFileSelection(id: UUID) {
-        guard var draft = currentAddTorrentDraft,
-              let index = draft.files.firstIndex(where: { $0.id == id }) else { return }
-
-        draft.files[index].isSelected.toggle()
-        draft.fileSelectionRevision &+= 1
         currentAddTorrentDraft = draft
     }
 
@@ -3580,20 +3559,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return fields
     }
 
-    private func scheduleDelayedDiskDiagnosticProbe(
-        torrentID: UUID,
-        event: String,
-        delayNanoseconds: UInt64
-    ) {
-        guard ShatlDiskDiagnosticsLog.isEnabled else { return }
-
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: delayNanoseconds)
-            guard let self else { return }
-            await self.logDiskDiagnostic(event, torrentID: torrentID)
-        }
-    }
-
     private func elapsedMilliseconds(sinceUptimeNs start: UInt64) -> String {
         let now = DispatchTime.now().uptimeNanoseconds
         let delta = now >= start ? now - start : 0
@@ -4153,69 +4118,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         torrents[index].status = .error
         torrents[index].runtimeErrorState = ShatlErrorCatalog.missingTorrentError()
         detachedTorrentIDs.insert(torrentID)
-    }
-
-    private func makeRestoreEntryForUserAction(
-        record: TorrentRecord,
-        shouldStart: Bool,
-        savePathFailureReason: String
-    ) async -> SessionRestoreEntry? {
-        traceTransition(torrentID: record.id, phase: "restore-entry.resolve-save-path.begin", level: .debug)
-        guard let saveURL = await bookmarkStore.resolveURL(
-            for: record.id,
-            fallbackPath: record.canonicalSavePath
-        ) else {
-            traceTransition(
-                torrentID: record.id,
-                phase: "restore-entry.resolve-save-path.failed",
-                level: .error,
-                flush: true,
-                extra: ["reason": savePathFailureReason]
-            )
-            applyPersistentIssue(
-                TorrentPersistentIssue(
-                    kind: .savePathUnavailable,
-                    detectedAt: Date(),
-                    statusBeforeIssue: record.persistentIssue?.statusBeforeIssue ?? record.status,
-                    debugReason: savePathFailureReason
-                ),
-                to: record.id
-            )
-            saveCriticalState()
-            return nil
-        }
-
-        traceTransition(
-            torrentID: record.id,
-            phase: "restore-entry.resolve-save-path.end",
-            level: .debug,
-            extra: ["savePath": saveURL.path]
-        )
-
-        guard let archiveURL = await archivedRestoreURL(for: record) else {
-            traceTransition(
-                torrentID: record.id,
-                phase: "restore-entry.archive-missing",
-                level: .error,
-                flush: true,
-                extra: [:]
-            )
-            applyMissingArchivedTorrentError(
-                to: record.id,
-                debugReason: "Не найден архивный torrent-файл для пользовательского действия."
-            )
-            return nil
-        }
-
-        return SessionRestoreEntry(
-            torrentID: record.id,
-            attemptID: record.attemptID,
-            archivedTorrentPath: archiveURL.path,
-            suggestedSavePath: saveURL.path,
-            selectedFileIndices: record.selectedFileIndices,
-            stopAfterDownload: record.stopAfterDownload,
-            shouldStart: shouldStart
-        )
     }
 
     private func detachSleepingHandlesIfNeeded() async {
