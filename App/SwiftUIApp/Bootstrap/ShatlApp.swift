@@ -137,13 +137,14 @@ private struct AddTorrentReviewWindowRoot: View {
 
     var body: some View {
         AddTorrentReviewView()
+            // SwiftUI keeps the scene's title in step; on macOS 26 it also
+            // cleared a subtitle set only through AppKit, leaving the room
+            // for it empty. Given here too, the torrent's name stays.
+            .navigationTitle(reviewWindowTitle)
+            .navigationSubtitle(reviewWindowSubtitle)
             .background {
                 AddTorrentReviewWindowChromeConfigurator(
-                    title: L10n.string(
-                        "add_torrent.title",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "Добавление загрузки"
-                    ),
+                    title: reviewWindowTitle,
                     subtitle: reviewWindowSubtitle,
                     onClose: finishReviewWindowClosure
                 )
@@ -157,6 +158,14 @@ private struct AddTorrentReviewWindowRoot: View {
                 guard presentation != .addTorrentReview else { return }
                 dismissWindow(id: AppWindowID.addTorrentReview)
             }
+    }
+
+    private var reviewWindowTitle: String {
+        L10n.string(
+            "add_torrent.title",
+            localeOverride: store.preferences.localeOverride,
+            defaultValue: "Добавление загрузки"
+        )
     }
 
     private var reviewWindowSubtitle: String {
