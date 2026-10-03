@@ -182,6 +182,7 @@ struct TorrentCardView: View, Equatable {
         .background {
             cardBackground
         }
+        #if DEBUG
         .background {
             if row.enablesCardLayoutDiagnostics {
                 TorrentCardLayoutDiagnosticsProbe(
@@ -191,6 +192,7 @@ struct TorrentCardView: View, Equatable {
                 )
             }
         }
+        #endif
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .animation(ShatlMotion.cardState, value: isHovered)
         .animation(ShatlMotion.cardState, value: row.isSelected)
@@ -480,9 +482,11 @@ struct TorrentCardView: View, Equatable {
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             showsShadows: showsMetricShadows,
             foldsDownloadSpeed: foldsDownloadSpeed,
-            outlinesUnfoldedSpeedLevelChange: row.simplification.outlinesUnfoldedSpeedLevelChange,
-            diagnosticsContext: metricDiagnosticsContext(source: "compactTransfer")
+            outlinesUnfoldedSpeedLevelChange: row.simplification.outlinesUnfoldedSpeedLevelChange
         )
+        #if DEBUG
+        .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "compactTransfer"))
+        #endif
     }
 
     private func expandedContent(_ metricGroups: ExpandedMetricGroupsPresentation) -> some View {
@@ -511,9 +515,11 @@ struct TorrentCardView: View, Equatable {
                     groups: dynamicGroups,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    showsShadows: showsMetricShadows,
-                    diagnosticsContext: metricDiagnosticsContext(source: "expandedDynamic")
+                    showsShadows: showsMetricShadows
                 )
+                    #if DEBUG
+                    .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedDynamic"))
+                    #endif
                     .layoutPriority(2)
                     .transition(ShatlMotion.appearFromTop)
 
@@ -525,9 +531,11 @@ struct TorrentCardView: View, Equatable {
                 group: sizeGroup,
                 metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                 metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                showsShadows: showsMetricShadows,
-                diagnosticsContext: metricDiagnosticsContext(source: "expandedSize")
+                showsShadows: showsMetricShadows
             )
+                #if DEBUG
+                .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedSize"))
+                #endif
                 .layoutPriority(1)
         }
         .geometryGroup()
@@ -550,6 +558,7 @@ struct TorrentCardView: View, Equatable {
             && usesCompactExpandedMetricsLayout
     }
 
+    #if DEBUG
     private func metricDiagnosticsContext(source: String) -> MetricSetDiagnosticsContext? {
         guard row.enablesMetricAnimationDiagnostics else { return nil }
 
@@ -563,6 +572,7 @@ struct TorrentCardView: View, Equatable {
             etaSeconds: nil
         )
     }
+    #endif
 
     private func compactedDynamicMetricGroups(_ groups: [MetricGroupPresentation]) -> [MetricGroupPresentation] {
         groups.map(compactedMetricGroup)
@@ -1136,6 +1146,7 @@ struct TorrentCardView: View, Equatable {
             .fill(backgroundColor)
     }
 
+    #if DEBUG
     private var layoutSignature: TorrentCardLayoutSignature {
         TorrentCardLayoutSignature(
             status: row.status,
@@ -1151,6 +1162,7 @@ struct TorrentCardView: View, Equatable {
             hasAlias: row.hasAlias
         )
     }
+    #endif
 
     @MainActor
     private func refreshNavigationAvailability() async {
@@ -1178,6 +1190,7 @@ struct TorrentCardView: View, Equatable {
 
 }
 
+#if DEBUG
 private struct TorrentCardLayoutDiagnosticsProbe: View {
     let torrentID: UUID
     let title: String
@@ -1291,3 +1304,4 @@ private func escapedLayoutValue(_ value: String) -> String {
         .replacingOccurrences(of: "\\", with: "\\\\")
         .replacingOccurrences(of: "\"", with: "\\\"")
 }
+#endif

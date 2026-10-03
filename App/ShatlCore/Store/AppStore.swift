@@ -17,10 +17,11 @@ enum OnboardingPresentation: Equatable {
 /// The main store is the single source of truth for the UI.
 @MainActor
 final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAttentionHandling {
-    private static let logger = ShatlLog.appStore
-    private static let traceLogger = ShatlLog.trace
+    private static var logger: ShatlLog { .appStore }
+    private static var traceLogger: ShatlLog { .trace }
     private static let restoreProgressRegressionTolerance = 0.02
 
+    #if DEBUG
     private struct TransitionTraceContext {
         let operationID: String
         let action: String
@@ -28,6 +29,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var slowTask: Task<Void, Never>?
         var stalledTask: Task<Void, Never>?
     }
+    #endif
 
     private struct PendingTorrentAddition {
         let id: UUID
@@ -76,6 +78,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 clearUsageTelemetryActiveState()
             }
             preferencesStore?.save(preferences)
+            #if DEBUG
             ShatlFileLogger.shared.setEnabled(preferences.isLoggingEnabled)
             ShatlDiskDiagnosticsLog.setEnabled(preferences.isDiskDiagnosticsLoggingEnabled)
             ShatlMetricAnimationDiagnosticsLog.setEnabled(
@@ -86,6 +89,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
                 preferences.isAddTorrentReviewDiagnosticsLoggingEnabled
             )
+            #endif
             refreshTorrentPresentations()
         }
     }
@@ -169,7 +173,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private let userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     private let usageTelemetryCoordinator: UsageTelemetryLocalCoordinator?
     private let usageTelemetrySender: (any UsageTelemetrySending)?
+    #if DEBUG
     private let launchID = UUID().uuidString
+    #endif
 
     private var runtimeTask: Task<Void, Never>?
     private var initialSessionLoadTask: Task<SessionLoadResult, Never>?
@@ -210,7 +216,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var pendingSleepingDetachIDs: Set<UUID> = []
     private var restoreProgressFloorByID: [UUID: Double] = [:]
     private var restoreRecheckRequestedIDs: Set<UUID> = []
+    #if DEBUG
     private var transitionTracesByTorrentID: [UUID: TransitionTraceContext] = [:]
+    #endif
     private var allowsUserFacingNotifications = false
     private var isApplicationUserAttentionActive = false
     private var notifiedCompletedTorrentIDs: Set<UUID> = []
@@ -292,6 +300,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             isEnabled: resolvedPreferences.opensRouterPortAutomatically,
             status: nil
         )
+        #if DEBUG
         ShatlFileLogger.shared.setEnabled(resolvedPreferences.isLoggingEnabled)
         ShatlDiskDiagnosticsLog.setEnabled(resolvedPreferences.isDiskDiagnosticsLoggingEnabled)
         ShatlMetricAnimationDiagnosticsLog.setEnabled(
@@ -302,6 +311,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         ShatlAddTorrentReviewDiagnosticsLog.setEnabled(
             resolvedPreferences.isAddTorrentReviewDiagnosticsLoggingEnabled
         )
+        #endif
         refreshTorrentPresentations()
 
         externalOpenRouter.attach { [weak self] url in
@@ -324,10 +334,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         for task in pendingTorrentAdditionTasks.values {
             task.cancel()
         }
+        #if DEBUG
         for context in transitionTracesByTorrentID.values {
             context.slowTask?.cancel()
             context.stalledTask?.cancel()
         }
+        #endif
     }
 
     var selectedTorrent: TorrentRecord? {
@@ -436,7 +448,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func makeRowState(for addition: PendingTorrentAddition) -> TorrentRowState {
-        TorrentRowState(
+        var state = TorrentRowState(
             id: addition.id,
             // The name alone, as on any card; the badge says it is being added.
             title: Self.pendingDisplayName(for: addition.draft),
@@ -453,8 +465,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetricGroups: nil,
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
-            enablesCardLayoutDiagnostics: ShatlCardLayoutDiagnosticsLog.isEnabled,
-            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
             errorState: nil,
             isSelected: selectedTorrentID == addition.id,
             isExpanded: false,
@@ -466,6 +476,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             isPendingAddition: true,
             canExpand: false
         )
+        #if DEBUG
+        state.enablesCardLayoutDiagnostics = ShatlCardLayoutDiagnosticsLog.isEnabled
+        state.enablesMetricAnimationDiagnostics = ShatlMetricAnimationDiagnosticsLog.isEnabled
+        #endif
+        return state
     }
 
     private static func pendingDisplayName(for draft: AddTorrentDraft) -> String {
@@ -487,10 +502,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             var metricsMode: MetricsPresentationMode
             var colorizesDownloadSpeed: Bool
             var localeOverride: AppLocaleOverride
-            var enablesCardLayoutDiagnostics: Bool
-            var enablesMetricAnimationDiagnostics: Bool
             var isRestoringSession: Bool
             var simplification: CardSimplificationLevel
+            #if DEBUG
+            var enablesCardLayoutDiagnostics = false
+            var enablesMetricAnimationDiagnostics = false
+            #endif
         }
 
         var record: TorrentRecord
@@ -503,15 +520,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private var sharedRowInputs: TorrentRowInputs.Shared {
-        TorrentRowInputs.Shared(
+        var shared = TorrentRowInputs.Shared(
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             localeOverride: preferences.localeOverride,
-            enablesCardLayoutDiagnostics: ShatlCardLayoutDiagnosticsLog.isEnabled,
-            enablesMetricAnimationDiagnostics: ShatlMetricAnimationDiagnosticsLog.isEnabled,
             isRestoringSession: isRestoringSession,
             simplification: cardSimplification
         )
+        #if DEBUG
+        shared.enablesCardLayoutDiagnostics = ShatlCardLayoutDiagnosticsLog.isEnabled
+        shared.enablesMetricAnimationDiagnostics = ShatlMetricAnimationDiagnosticsLog.isEnabled
+        #endif
+        return shared
     }
 
     /// The store-wide values every card reads, taken once per refresh:
@@ -581,7 +601,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             record.isFinishedForOpening ? "open-ready" : "open-not-ready",
         ].joined(separator: "|")
 
-        return TorrentRowState(
+        var state = TorrentRowState(
             id: record.id,
             title: record.displayName,
             originalTitle: record.originalName,
@@ -593,8 +613,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: shared.metricsMode,
             colorizesDownloadSpeed: shared.colorizesDownloadSpeed,
-            enablesCardLayoutDiagnostics: shared.enablesCardLayoutDiagnostics,
-            enablesMetricAnimationDiagnostics: shared.enablesMetricAnimationDiagnostics,
             errorState: errorState,
             isSelected: inputs.isSelected,
             isExpanded: inputs.isExpanded,
@@ -621,6 +639,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     || (record.persistentIssue == nil && record.runtimeErrorState != nil)
             )
         )
+        #if DEBUG
+        state.enablesCardLayoutDiagnostics = shared.enablesCardLayoutDiagnostics
+        state.enablesMetricAnimationDiagnostics = shared.enablesMetricAnimationDiagnostics
+        #endif
+        return state
     }
 
     private func refreshTorrentPresentations() {
@@ -1309,10 +1332,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         Task { [weak self] in
             guard let self else { return }
+            #if DEBUG
             var transitionOutcome = "cancelled"
+            #endif
             defer {
                 self.transitioningTorrentIDs.remove(record.id)
+                #if DEBUG
                 self.endTransitionTrace(torrentID: record.id, outcome: transitionOutcome)
+                #endif
             }
 
             if record.status.isSleeping {
@@ -1328,7 +1355,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
                 if validation.issue != nil {
                     Self.logger.notice("Start blocked by persistent issue for torrent id=\(record.id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
+                    #if DEBUG
                     transitionOutcome = "blocked.persistent-issue"
+                    #endif
                     await self.persistCriticalState()
                     return
                 }
@@ -1338,9 +1367,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 }
                 self.traceTransition(torrentID: record.id, phase: "restore-start.begin", level: .notice, extra: [:])
                 await self.restoreAndStart(record: record)
+                #if DEBUG
                 transitionOutcome = self.torrents.first(where: { $0.id == record.id })?.errorState == nil
                     ? "restore-start.completed"
                     : "restore-start.error"
+                #endif
                 return
             }
 
@@ -1369,7 +1400,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 }
 
                 Self.logger.notice("Direct start succeeded for torrent id=\(record.id.uuidString)")
+                #if DEBUG
                 transitionOutcome = "succeeded"
+                #endif
 
                 self.saveCriticalState()
                 await self.refreshActiveSnapshots()
@@ -1385,12 +1418,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 )
                 if engineError.kind == .torrentNotFound {
                     await self.restoreAndStart(record: record)
+                    #if DEBUG
                     transitionOutcome = self.torrents.first(where: { $0.id == record.id })?.errorState == nil
                         ? "restore-start.completed"
                         : "restore-start.error"
+                    #endif
                 } else {
                     self.applyEngineError(error, to: record.id)
+                    #if DEBUG
                     transitionOutcome = "failed.\(engineError.kind.rawValue)"
+                    #endif
                 }
             }
         }
@@ -1420,10 +1457,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         Task { [weak self] in
             guard let self else { return }
+            #if DEBUG
             var transitionOutcome = "cancelled"
+            #endif
             defer {
                 self.transitioningTorrentIDs.remove(id)
+                #if DEBUG
                 self.endTransitionTrace(torrentID: id, outcome: transitionOutcome)
+                #endif
             }
             guard let validationRecord = self.torrents.first(where: { $0.id == id }) else { return }
 
@@ -1486,7 +1527,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     extra: ["outcome": String(describing: sessionSaveOutcome)]
                 )
                 self.reportSessionPersistenceFailure(.stop)
+                #if DEBUG
                 transitionOutcome = "blocked.session-commit"
+                #endif
                 return
             }
             self.traceTransition(
@@ -1500,7 +1543,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 self.applyValidationResult(validation, to: id)
                 Self.logger.notice("Stop converted into persistent issue for torrent id=\(id.uuidString) issue=\(validation.issue?.kind.rawValue ?? "unknown")")
                 self.detachedTorrentIDs.insert(id)
+                #if DEBUG
                 transitionOutcome = "converted.persistent-issue"
+                #endif
 
                 do {
                     let engineCallStartedAt = DispatchTime.now().uptimeNanoseconds
@@ -1524,7 +1569,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                             extra: self.engineErrorFields(error)
                         )
                         self.applyEngineError(error, to: id)
+                        #if DEBUG
                         transitionOutcome = "failed.\(engineError.kind.rawValue)"
+                        #endif
                     } else {
                         self.traceTransition(
                             torrentID: id,
@@ -1563,7 +1610,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     flush: true,
                     extra: ["engineMs": self.elapsedMilliseconds(sinceUptimeNs: engineCallStartedAt)]
                 )
+                #if DEBUG
                 transitionOutcome = "succeeded"
+                #endif
             } catch {
                 let engineError = TorrentEngineError.normalized(from: error)
                 if engineError.kind == .torrentNotFound {
@@ -1580,9 +1629,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 )
                 if engineError.kind != .torrentNotFound {
                     self.applyEngineError(error, to: id)
+                    #if DEBUG
                     transitionOutcome = "failed.\(engineError.kind.rawValue)"
+                    #endif
                 } else {
+                    #if DEBUG
                     transitionOutcome = "succeeded.detached"
+                    #endif
                 }
             }
         }
@@ -3167,7 +3220,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    private func beginTransitionTrace(action: String, record: TorrentRecord) {
+    private func beginTransitionTrace(action: @autoclosure () -> String, record: TorrentRecord) {
+        #if DEBUG
         guard ShatlFileLogger.shared.loggingEnabled else { return }
 
         cancelTransitionTrace(for: record.id)
@@ -3175,7 +3229,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let operationID = UUID().uuidString
         var context = TransitionTraceContext(
             operationID: operationID,
-            action: action,
+            action: action(),
             startedAtUptimeNs: DispatchTime.now().uptimeNanoseconds
         )
         context.slowTask = makeTransitionWatchdogTask(
@@ -3201,15 +3255,19 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             flush: true,
             extra: recordSnapshotFields(for: record)
         )
+        #endif
     }
 
     private func cancelTransitionTrace(for torrentID: UUID) {
+        #if DEBUG
         guard let context = transitionTracesByTorrentID.removeValue(forKey: torrentID) else { return }
         context.slowTask?.cancel()
         context.stalledTask?.cancel()
+        #endif
     }
 
     private func endTransitionTrace(torrentID: UUID, outcome: String) {
+        #if DEBUG
         guard let context = transitionTracesByTorrentID.removeValue(forKey: torrentID) else { return }
         context.slowTask?.cancel()
         context.stalledTask?.cancel()
@@ -3227,27 +3285,31 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             flush: true,
             extra: extra
         )
+        #endif
     }
 
     private func traceTransition(
         torrentID: UUID,
-        phase: String,
+        phase: @autoclosure () -> String,
         level: ShatlLogLevel = .debug,
         flush: Bool = false,
         extra: @autoclosure () -> [String: String] = [:]
     ) {
+        #if DEBUG
         guard let context = transitionTracesByTorrentID[torrentID] else { return }
         emitTransition(
             action: context.action,
             operationID: context.operationID,
             torrentID: torrentID,
-            phase: phase,
+            phase: phase(),
             level: level,
             flush: flush,
             extra: extra()
         )
+        #endif
     }
 
+    #if DEBUG
     private func emitTransition(
         action: String,
         operationID: String,
@@ -3287,6 +3349,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             flush ? Self.traceLogger.criticalError(message) : Self.traceLogger.error(message)
         }
     }
+    #endif
 
     private func logUploadCounterDiagnostics(
         phase: String,
@@ -3298,6 +3361,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         appliedProgress: Double,
         appliedMetrics: TorrentMetrics
     ) {
+        #if DEBUG
         guard ShatlFileLogger.shared.loggingEnabled else { return }
 
         let snapshotUploadSpeed = snapshot.metrics.uploadSpeedBytesPerSecond
@@ -3346,8 +3410,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         } else {
             Self.traceLogger.debug(message)
         }
+        #endif
     }
 
+    #if DEBUG
     private func makeTransitionWatchdogTask(
         torrentID: UUID,
         operationID: String,
@@ -3372,6 +3438,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             )
         }
     }
+    #endif
 
     private func transitionStateSnapshot(for torrentID: UUID) -> [String: String] {
         let record = torrents.first(where: { $0.id == torrentID })
@@ -3439,6 +3506,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return fields
     }
 
+    #if DEBUG
     private func formatTraceField(key: String, value: String) -> String {
         let escaped = value
             .replacingOccurrences(of: "\\", with: "\\\\")
@@ -3446,6 +3514,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let needsQuotes = escaped.contains(where: { $0.isWhitespace || $0 == "=" || $0 == "\"" })
         return needsQuotes ? "\(key)=\"\(escaped)\"" : "\(key)=\(escaped)"
     }
+    #endif
 
     private func progressString(_ value: Double) -> String {
         String(format: "%.3f", value)
@@ -3455,49 +3524,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         value ? "1" : "0"
     }
 
-    private func logDiskDiagnostic(
-        _ event: String,
-        torrentID: UUID,
-        extra: [String: String] = [:]
-    ) async {
-        guard ShatlDiskDiagnosticsLog.isEnabled else { return }
-
-        guard let record = torrents.first(where: { $0.id == torrentID }) else {
-            var fields = baseDiskDiagnosticFields(torrentID: torrentID, record: nil)
-            fields.merge(extra) { _, new in new }
-            ShatlDiskDiagnosticsLog.event(event, fields: fields)
-            return
-        }
-
-        await logDiskDiagnostic(event, record: record, extra: extra)
-    }
-
-    private func logDiskDiagnostic(
-        _ event: String,
-        record: TorrentRecord,
-        extra: [String: String] = [:]
-    ) async {
-        guard ShatlDiskDiagnosticsLog.isEnabled else { return }
-
-        var fields = baseDiskDiagnosticFields(torrentID: record.id, record: record)
-        let fileState = await diskDiagnosticFileState(for: record)
-        fields.merge(fileState) { _, new in new }
-        fields.merge(extra) { _, new in new }
-        ShatlDiskDiagnosticsLog.event(event, fields: fields)
-    }
-
     private func logDiskDiagnosticSync(
-        _ event: String,
+        _ event: @autoclosure () -> String,
         record: TorrentRecord,
         extra: @autoclosure () -> [String: String] = [:]
     ) {
+        #if DEBUG
         guard ShatlDiskDiagnosticsLog.isEnabled else { return }
 
         var fields = baseDiskDiagnosticFields(torrentID: record.id, record: record)
         fields.merge(extra()) { _, new in new }
-        ShatlDiskDiagnosticsLog.event(event, fields: fields)
+        ShatlDiskDiagnosticsLog.event(event(), fields: fields)
+        #endif
     }
 
+    #if DEBUG
     private func baseDiskDiagnosticFields(torrentID: UUID, record: TorrentRecord?) -> [String: String] {
         var fields: [String: String] = [
             "launch": launchID,
@@ -3531,68 +3572,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         return fields
     }
-
-    private func diskDiagnosticFileState(for record: TorrentRecord) async -> [String: String] {
-        guard ShatlDiskDiagnosticsLog.isEnabled else { return [:] }
-
-        var fields: [String: String] = [:]
-        guard let saveURL = await bookmarkStore.resolveURL(
-            for: record.id,
-            fallbackPath: record.canonicalSavePath
-        ) else {
-            fields["savePathResolved"] = "0"
-            return fields
-        }
-
-        fields["savePathResolved"] = "1"
-        fields["savePathExists"] = boolString(FileManager.default.fileExists(atPath: saveURL.path))
-
-        guard let archiveURL = await archivedRestoreURL(for: record) else {
-            fields["archiveExists"] = "0"
-            return fields
-        }
-
-        fields["archiveExists"] = "1"
-
-        let contentFiles: [TorrentContentFileDescriptor]
-        do {
-            contentFiles = try await engine.inspectTorrentContents(at: archiveURL.path)
-        } catch {
-            fields["inspectContents"] = "failed"
-            fields.merge(engineErrorFields(error)) { _, new in new }
-            return fields
-        }
-
-        fields["inspectContents"] = "success"
-
-        let selectedFileIndices = Set(record.selectedFileIndices)
-        let selectedFiles = contentFiles
-            .filter { selectedFileIndices.contains($0.fileIndex) }
-            .sorted { $0.fileIndex < $1.fileIndex }
-
-        var existingPaths: [String] = []
-        var missingPaths: [String] = []
-
-        for file in selectedFiles {
-            let relativePath = file.relativePath
-                .replacingOccurrences(of: "\\", with: "/")
-                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            let fileURL = saveURL.appendingPathComponent(relativePath, isDirectory: false)
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                existingPaths.append(relativePath)
-            } else {
-                missingPaths.append(relativePath)
-            }
-        }
-
-        fields["selectedDescriptorCount"] = "\(selectedFiles.count)"
-        fields["selectedExistingCount"] = "\(existingPaths.count)"
-        fields["selectedMissingCount"] = "\(missingPaths.count)"
-        fields["selectedExistingFirst"] = existingPaths.prefix(3).joined(separator: "|")
-        fields["selectedMissingFirst"] = missingPaths.prefix(3).joined(separator: "|")
-
-        return fields
-    }
+    #endif
 
     private func elapsedMilliseconds(sinceUptimeNs start: UInt64) -> String {
         let now = DispatchTime.now().uptimeNanoseconds

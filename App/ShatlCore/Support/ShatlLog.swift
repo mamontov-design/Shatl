@@ -2,7 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import Foundation
+
+#if DEBUG
 import OSLog
+
+// Logging exists only in Debug builds; Release gets the empty stand-ins at
+// the end of this file.
 
 enum ShatlLogLevel: String {
     case debug = "DEBUG"
@@ -62,13 +67,7 @@ nonisolated final class ShatlFileLogger: @unchecked Sendable {
     }
 
     func setEnabled(_ enabled: Bool) {
-        #if DEBUG
         let effectiveEnabled = enabled
-        #else
-        // File diagnostics are a development tool and must stay inactive in release builds,
-        // even when preferences persisted by an earlier development build contain `true`.
-        let effectiveEnabled = false
-        #endif
 
         stateLock.lock()
         let wasEnabled = isEnabledStorage
@@ -506,3 +505,44 @@ final class ShatlDiagnosticsBridge: NSObject {
         }
     }
 }
+
+#else
+
+// Release builds carry no logging code. These stand in for the Debug loggers
+// so the call sites compile: every switch is a constant `false` and every
+// call is empty, so the optimizer drops the calls with their messages.
+
+nonisolated enum ShatlLogLevel {
+    case debug
+    case info
+    case notice
+    case error
+}
+
+nonisolated enum ShatlDiskDiagnosticsLog {
+    @inline(__always) static var isEnabled: Bool { false }
+    @inline(__always) static func event(
+        _ name: String,
+        fields: @autoclosure () -> [String: String] = [:],
+        flush: Bool = true
+    ) {}
+}
+
+nonisolated struct ShatlLog: Sendable {
+    @inline(__always) static var appStore: ShatlLog { ShatlLog() }
+    @inline(__always) static var trace: ShatlLog { ShatlLog() }
+    @inline(__always) static var bridge: ShatlLog { ShatlLog() }
+    @inline(__always) static var payload: ShatlLog { ShatlLog() }
+    @inline(__always) static var ui: ShatlLog { ShatlLog() }
+
+    @inline(__always) func debug(_ message: @autoclosure () -> String) {}
+    @inline(__always) func criticalDebug(_ message: @autoclosure () -> String) {}
+    @inline(__always) func info(_ message: @autoclosure () -> String) {}
+    @inline(__always) func criticalInfo(_ message: @autoclosure () -> String) {}
+    @inline(__always) func notice(_ message: @autoclosure () -> String) {}
+    @inline(__always) func criticalNotice(_ message: @autoclosure () -> String) {}
+    @inline(__always) func error(_ message: @autoclosure () -> String) {}
+    @inline(__always) func criticalError(_ message: @autoclosure () -> String) {}
+}
+
+#endif

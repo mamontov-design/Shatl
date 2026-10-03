@@ -178,6 +178,23 @@ static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile prof
     }
 }
 
+static NSString *LTMillisecondsString(std::chrono::steady_clock::time_point startedAt) {
+    auto now = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - startedAt);
+    return [NSString stringWithFormat:@"%lld", static_cast<long long>(duration.count())];
+}
+
+#if DEBUG
+static NSString *LTDiagnosticsField(NSString *key, NSString *value) {
+    NSString *escaped = [[value stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
+        stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
+    NSCharacterSet *quoteTriggers = [NSCharacterSet characterSetWithCharactersInString:@" =\""];
+    BOOL needsQuotes = [escaped rangeOfCharacterFromSet:quoteTriggers].location != NSNotFound;
+    return needsQuotes
+        ? [NSString stringWithFormat:@"%@=\"%@\"", key, escaped]
+        : [NSString stringWithFormat:@"%@=%@", key, escaped];
+}
+
 /// The Swift switch that says whether a diagnostics log is on, looked up once:
 /// the 1 Hz tick asks it for every torrent.
 struct LTLoggingSwitch {
@@ -217,22 +234,6 @@ static void LTDiagnosticsLog(NSString *category, NSString *level, NSString *mess
     void (*messageSend)(id, SEL, NSString *, NSString *, NSString *, BOOL) =
         reinterpret_cast<void (*)(id, SEL, NSString *, NSString *, NSString *, BOOL)>([bridgeClass methodForSelector:selector]);
     messageSend(bridgeClass, selector, category, level, message, flush);
-}
-
-static NSString *LTDiagnosticsField(NSString *key, NSString *value) {
-    NSString *escaped = [[value stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]
-        stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
-    NSCharacterSet *quoteTriggers = [NSCharacterSet characterSetWithCharactersInString:@" =\""];
-    BOOL needsQuotes = [escaped rangeOfCharacterFromSet:quoteTriggers].location != NSNotFound;
-    return needsQuotes
-        ? [NSString stringWithFormat:@"%@=\"%@\"", key, escaped]
-        : [NSString stringWithFormat:@"%@=%@", key, escaped];
-}
-
-static NSString *LTMillisecondsString(std::chrono::steady_clock::time_point startedAt) {
-    auto now = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - startedAt);
-    return [NSString stringWithFormat:@"%lld", static_cast<long long>(duration.count())];
 }
 
 static void LTDiagnosticsBridgeLog(NSString *phase,
@@ -282,6 +283,27 @@ static void LTSnapshotDiagnosticsLog(NSString *event,
         reinterpret_cast<void (*)(id, SEL, NSString *, NSDictionary<NSString *, NSString *> *, BOOL)>([bridgeClass methodForSelector:selector]);
     messageSend(bridgeClass, selector, event, fields ?: @{}, flush);
 }
+#else
+// Release builds carry no logging code. The switches are a constant NO, so
+// the compiler drops every diagnostics branch with its strings, and these
+// empty functions are never reached.
+static constexpr BOOL LTDiagnosticsLoggingEnabled(void) {
+    return NO;
+}
+
+static inline void LTDiagnosticsLog(NSString *, NSString *, NSString *, BOOL) {}
+
+static inline void LTDiagnosticsBridgeLog(NSString *,
+                                          NSString *,
+                                          NSDictionary<NSString *, NSString *> * _Nullable,
+                                          BOOL) {}
+
+static constexpr BOOL LTSnapshotDiagnosticsLoggingEnabled(void) {
+    return NO;
+}
+
+static inline void LTSnapshotDiagnosticsLog(NSString *, NSDictionary<NSString *, NSString *> *, BOOL) {}
+#endif
 
 // Every diagnostics call goes through these: the arguments, often dictionaries
 // of formatted strings, are built only while the log is on. Diagnostics are
@@ -299,6 +321,15 @@ static void LTSnapshotDiagnosticsLog(NSString *event,
         } \
     } while (0)
 
+// Diagnostics alerts exist only while the Debug log is on; Release asks
+// libtorrent for errors and router answers alone.
+#if DEBUG
+#define LT_DIAGNOSTIC_ALERTS_ENABLED (self->_diagnosticAlertsEnabled)
+#else
+#define LT_DIAGNOSTIC_ALERTS_ENABLED NO
+#endif
+
+#if DEBUG
 static NSString *LTStatusQueryFlagsDescription(void) {
     return @"query_name,query_torrent_file,query_accurate_download_counters";
 }
@@ -319,6 +350,7 @@ static NSMutableDictionary<NSString *, NSString *> *LTSnapshotBaseFields(NSStrin
     fields[@"queryFlags"] = LTStatusQueryFlagsDescription();
     return fields;
 }
+#endif
 
 static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle const& handle,
                                                           NSString *source,
@@ -327,6 +359,7 @@ static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle con
                                                           NSUInteger handleIndex,
                                                           NSString *phase,
                                                           BOOL stopAfterDownloadPending) {
+#if DEBUG
     if (!LTSnapshotDiagnosticsLoggingEnabled()) {
         return handle.status(LTMinimalStatusQueryFlags());
     }
@@ -391,6 +424,9 @@ static lt::torrent_status LTStatusWithSnapshotDiagnostics(lt::torrent_handle con
     LT_SNAPSHOT_LOG(@"snapshot.status.end", endFields, NO);
 
     return status;
+#else
+    return handle.status(LTMinimalStatusQueryFlags());
+#endif
 }
 
 static lt::status_flags_t LTMinimalStatusQueryFlags() {
@@ -705,9 +741,13 @@ static int LTSessionAlertMask(BOOL diagnostics, BOOL portForwarding) {
     if (portForwarding) {
         mask |= lt::alert_category::port_mapping;
     }
+#if DEBUG
     if (diagnostics) {
         mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
     }
+#else
+    (void)diagnostics;
+#endif
     return static_cast<int>(static_cast<std::uint32_t>(mask));
 }
 
@@ -770,6 +810,7 @@ struct LTPortMappingSummary {
     std::string lastErrorTransport;
 };
 
+#if DEBUG
 /// A tracker URL reduced to its scheme and host: private trackers keep the
 /// user's passkey in the path or the query, and the log must not carry it.
 static NSString *LTRedactedTrackerURL(char const *url) {
@@ -801,6 +842,7 @@ static NSString *LTTrackerEventName(lt::event_t event) {
     }
     return @"unknown";
 }
+#endif
 
 /// Compares a libtorrent address with one from the interface list. A missing
 /// IPv6 scope matches any: link-local addresses differ only by scope, which
@@ -878,6 +920,7 @@ private:
     std::vector<std::pair<lt::address, std::string>> _entries;
 };
 
+#if DEBUG
 /// What the swarm of a torrent looks like to the engine; logged when it changes.
 struct LTSwarmSample {
     int state = -1;
@@ -909,6 +952,7 @@ struct LTPeerEventCounts {
 static bool LTIsUTPSocket(lt::socket_type_t type) {
     return type == lt::socket_type_t::utp || type == lt::socket_type_t::utp_ssl;
 }
+#endif
 
 @interface LibtorrentSessionBridge () {
     NSURL *_resumeDataDirectoryURL;
@@ -923,14 +967,18 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     std::unordered_map<std::string, std::shared_ptr<const lt::torrent_info>> _preparedTorrentInfoByDraftID;
     std::unordered_map<std::string, bool> _stopAfterDownloadByRecordID;
     std::unordered_map<std::string, NSInteger> _lastSnapshotStatusByRecordID;
+#if DEBUG
     std::unordered_map<std::string, LTSwarmSample> _lastSwarmByRecordID;
+#endif
     // The last file error libtorrent reported for a download, and the write
     // error that stopped one: see `stopDownloadRefusedByDiskIfNeeded`.
     std::unordered_map<std::string, lt::error_code> _lastFileErrorByRecordID;
     std::unordered_map<std::string, lt::error_code> _writeErrorStopByRecordID;
+#if DEBUG
     std::unordered_map<std::string, LTPeerEventCounts> _peerEventsByRecordID;
     std::chrono::steady_clock::time_point _peerEventsWindowStartedAt;
     BOOL _diagnosticAlertsEnabled;
+#endif
     BOOL _portForwardingEnabled;
     LTPortMappingSummary _portMapping;
     LTPerformanceProfile _performanceProfile;
@@ -1132,14 +1180,16 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     _initialOpenFileLimit = LTCurrentOpenFileLimit();
     LTRaiseOpenFileLimit();
     int const openFileLimit = LTCurrentOpenFileLimit();
+#if DEBUG
     _diagnosticAlertsEnabled = LTDiagnosticsLoggingEnabled();
+    _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
+#endif
     lt::settings_pack pack = LTMakeSessionSettingsPack(
         _performanceProfile,
         openFileLimit,
         _portForwardingEnabled,
-        _diagnosticAlertsEnabled
+        LT_DIAGNOSTIC_ALERTS_ENABLED
     );
-    _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
 
     try {
         _session = std::make_unique<lt::session>(pack);
@@ -1187,10 +1237,12 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     _magnetMetadataFetchesByToken.clear();
     _stopAfterDownloadByRecordID.clear();
     _lastSnapshotStatusByRecordID.clear();
-    _lastSwarmByRecordID.clear();
     _lastFileErrorByRecordID.clear();
     _writeErrorStopByRecordID.clear();
+#if DEBUG
+    _lastSwarmByRecordID.clear();
     _peerEventsByRecordID.clear();
+#endif
 
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
     std::thread([proxy = std::move(proxy), finished]() mutable {
@@ -1226,7 +1278,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
             profile,
             LTCurrentOpenFileLimit(),
             _portForwardingEnabled,
-            _diagnosticAlertsEnabled
+            LT_DIAGNOSTIC_ALERTS_ENABLED
         ));
     } catch (std::exception const& exception) {
         if (error != nullptr) {
@@ -1292,7 +1344,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         lt::settings_pack pack;
         pack.set_bool(lt::settings_pack::enable_upnp, enabled);
         pack.set_bool(lt::settings_pack::enable_natpmp, enabled);
-        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(_diagnosticAlertsEnabled, enabled));
+        pack.set_int(lt::settings_pack::alert_mask, LTSessionAlertMask(LT_DIAGNOSTIC_ALERTS_ENABLED, enabled));
         _session->apply_settings(pack);
     } catch (std::exception const& exception) {
         if (error != nullptr) {
@@ -2282,7 +2334,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     self->_handlesByRecordID.erase(iterator);
     self->_stopAfterDownloadByRecordID.erase(key);
     self->_lastSnapshotStatusByRecordID.erase(key);
+#if DEBUG
     self->_lastSwarmByRecordID.erase(key);
+#endif
     self->_lastFileErrorByRecordID.erase(key);
     self->_writeErrorStopByRecordID.erase(key);
     LT_BRIDGE_LOG(
@@ -2298,6 +2352,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 /// forwarding is on, diagnostics while the log is on. Keeps the alert mask in
 /// step with the log, which can be switched on while the session runs.
 - (void)drainAlerts {
+#if DEBUG
     BOOL const diagnostics = LTDiagnosticsLoggingEnabled();
     if (diagnostics != _diagnosticAlertsEnabled) {
         _diagnosticAlertsEnabled = diagnostics;
@@ -2307,11 +2362,13 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         _peerEventsByRecordID.clear();
         _peerEventsWindowStartedAt = std::chrono::steady_clock::now();
     }
+#endif
     // Read every tick: a file error arrives only as an alert. A quiet
     // session posts errors alone, so the queue is mostly empty.
     std::vector<lt::alert *> alerts;
     _session->pop_alerts(&alerts);
     [self noteAlerts:alerts];
+#if DEBUG
     if (!diagnostics) {
         return;
     }
@@ -2321,12 +2378,15 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         [self flushPeerEventsWithWindow:now - _peerEventsWindowStartedAt];
         _peerEventsWindowStartedAt = now;
     }
+#endif
 }
 
 - (void)noteAlerts:(std::vector<lt::alert *> const&)alerts {
     [self noteFileErrorAlerts:alerts];
     [self notePortMappingAlerts:alerts];
+#if DEBUG
     [self logDiagnosticAlerts:alerts];
+#endif
 }
 
 /// Keeps the last file error of each download: the status keeps no error
@@ -2430,6 +2490,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     }
 }
 
+#if DEBUG
 /// Tracker replies, router answers and listen sockets go to the log one by
 /// one. Peer connections are only counted: a busy swarm makes hundreds a second.
 - (void)logDiagnosticAlerts:(std::vector<lt::alert *> const&)alerts {
@@ -2584,7 +2645,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         }
     }
 }
+#endif
 
+#if DEBUG
 /// One line per torrent with the peer connections of the window and the most
 /// common reasons they closed.
 - (void)flushPeerEventsWithWindow:(std::chrono::steady_clock::duration)window {
@@ -2628,7 +2691,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     }
     _peerEventsByRecordID.clear();
 }
+#endif
 
+#if DEBUG
 /// Writes how many peers a torrent knows and reaches when that changes: a
 /// slow download then shows whether peers are missing or refuse to connect.
 - (void)logSwarmChangeForStatus:(lt::torrent_status const&)status
@@ -2675,6 +2740,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         NO
     );
 }
+#endif
 
 /// Remembers the status of a torrent and returns whether it changed. The card
 /// of a torrent in error shows only a generic text, so the libtorrent reason
@@ -2684,6 +2750,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     BOOL didChange = previous == self->_lastSnapshotStatusByRecordID.end() || previous->second != snapshot.status;
     self->_lastSnapshotStatusByRecordID[key] = snapshot.status;
 
+#if DEBUG
     if (didChange && snapshot.status == LTTorrentRuntimeStatusError && LTDiagnosticsLoggingEnabled()) {
         NSString *message = [@[
             LTDiagnosticsField(@"torrent", snapshot.recordIdentifier),
@@ -2692,6 +2759,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         ] componentsJoinedByString:@" "];
         LTDiagnosticsLog(@"Bridge", @"ERROR", message, YES);
     }
+#endif
     return didChange;
 }
 
@@ -2864,9 +2932,11 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         visibleProgress = double(status.total_wanted_done) / double(status.total_wanted);
     }
 
+#if DEBUG
     if (LTDiagnosticsLoggingEnabled()) {
         [self logSwarmChangeForStatus:status recordKey:recordKey recordIdentifier:recordIdentifier];
     }
+#endif
 
     if (status.upload_rate > 0 || status.upload_payload_rate > 0 || status.all_time_upload > 0) {
         LT_BRIDGE_LOG(

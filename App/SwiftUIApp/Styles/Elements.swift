@@ -35,6 +35,7 @@ enum ShatlBottomChipLayout {
         + cardGap
 }
 
+#if DEBUG
 struct MetricSetDiagnosticsContext: Equatable {
     var source: String
     var torrentID: UUID?
@@ -50,6 +51,19 @@ struct MetricSetDiagnosticsContext: Equatable {
         return context
     }
 }
+
+private struct ShatlMetricSetDiagnosticsContextKey: EnvironmentKey {
+    static let defaultValue: MetricSetDiagnosticsContext? = nil
+}
+
+extension EnvironmentValues {
+    /// Which card and group a metric set belongs to, for its animation log.
+    var shatlMetricSetDiagnosticsContext: MetricSetDiagnosticsContext? {
+        get { self[ShatlMetricSetDiagnosticsContextKey.self] }
+        set { self[ShatlMetricSetDiagnosticsContextKey.self] = newValue }
+    }
+}
+#endif
 
 enum ShatlTextContent {
     case verbatim(String)
@@ -1159,8 +1173,6 @@ private extension TorrentRowState {
             expandedMetricGroups: isExpanded ? expandedMetricGroups : nil,
             metricsMode: metricsMode,
             colorizesDownloadSpeed: colorizesDownloadSpeed,
-            enablesCardLayoutDiagnostics: false,
-            enablesMetricAnimationDiagnostics: false,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,
@@ -1449,7 +1461,9 @@ struct ShatlMetricSet: View {
     /// With the bounce off, the set opened under the pointer still marks a new
     /// speed level with its outline, without growing.
     var outlinesUnfoldedSpeedLevelChange = false
-    var diagnosticsContext: MetricSetDiagnosticsContext? = nil
+    #if DEBUG
+    @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
+    #endif
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shatlMetricSetOutlinePulseEnabled) private var metricSetOutlinePulseEnabled
@@ -1576,7 +1590,9 @@ struct ShatlMetricSet: View {
             }
         }
         .frame(height: ShatlMetricLayout.containerHeight)
+        #if DEBUG
         .metricSetDiagnostics(items: items, context: diagnosticsContext)
+        #endif
         .onHover { isInside in
             unfoldDownloadSpeed(isInside)
         }
@@ -1653,6 +1669,7 @@ struct ShatlMetricSet: View {
     }
 
     private func bounceMetricSet() {
+        #if DEBUG
         let diagnosticsEnabled = diagnosticsContext != nil && ShatlMetricAnimationDiagnosticsLog.isEnabled
         let startedAt = diagnosticsEnabled ? DispatchTime.now().uptimeNanoseconds : nil
         let token = bounceTrigger + 1
@@ -1669,8 +1686,10 @@ struct ShatlMetricSet: View {
                 ]
             )
         }
+        #endif
 
         guard !reduceMotion else {
+            #if DEBUG
             if let startedAt {
                 logBounceEvent(
                     "metricset.bounce.skipped",
@@ -1681,10 +1700,12 @@ struct ShatlMetricSet: View {
                     ]
                 )
             }
+            #endif
             return
         }
 
         bounceTrigger += 1
+        #if DEBUG
         if let startedAt {
             logBounceEvent(
                 "metricset.bounce.keyframes-commanded",
@@ -1693,6 +1714,7 @@ struct ShatlMetricSet: View {
                 extra: ["trigger": String(bounceTrigger)]
             )
         }
+        #endif
     }
 
     private func flashMetricSetOutline() {
@@ -1719,6 +1741,7 @@ struct ShatlMetricSet: View {
         }
     }
 
+    #if DEBUG
     private func logBounceEvent(
         _ event: String,
         token: Int,
@@ -1737,8 +1760,10 @@ struct ShatlMetricSet: View {
 
         ShatlMetricAnimationDiagnosticsLog.event(event, fields: fields)
     }
+    #endif
 }
 
+#if DEBUG
 private extension View {
     @ViewBuilder
     func metricSetDiagnostics(
@@ -1917,6 +1942,8 @@ private struct MetricSetDiagnosticsModifier: ViewModifier {
 
 }
 
+#endif
+
 private func hasMetricSetIconReplacement(from oldIcons: [String?], to newIcons: [String?]) -> Bool {
     zip(oldIcons, newIcons).contains { oldIconName, newIconName in
         guard let oldIconName, let newIconName else { return false }
@@ -1924,6 +1951,7 @@ private func hasMetricSetIconReplacement(from oldIcons: [String?], to newIcons: 
     }
 }
 
+#if DEBUG
 private func metricSetDiagnosticsFields(
     context: MetricSetDiagnosticsContext,
     merging fields: [String: String]
@@ -1958,6 +1986,7 @@ private func formatMetricSetNumber(_ value: Double) -> String {
 private func formatMetricSetNumber(_ value: CGFloat) -> String {
     formatMetricSetNumber(Double(value))
 }
+#endif
 
 struct ShatlInfoBottomSpeedChip: View {
     let item: MetricItemPresentation
@@ -2079,7 +2108,9 @@ struct ShatlMetricGroup: View {
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
     var showsShadows = true
-    var diagnosticsContext: MetricSetDiagnosticsContext? = nil
+    #if DEBUG
+    @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
+    #endif
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -2095,9 +2126,11 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
-                showsShadows: showsShadows,
-                diagnosticsContext: diagnosticsContext?.withGroupID(group.id)
+                showsShadows: showsShadows
             )
+            #if DEBUG
+            .environment(\.shatlMetricSetDiagnosticsContext, diagnosticsContext?.withGroupID(group.id))
+            #endif
             .shatlCardPreviewBlur(.expandedMetrics)
         }
         .layoutPriority(1)
@@ -2110,7 +2143,6 @@ struct ShatlMetricGroupSet: View {
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
     var showsShadows = true
-    var diagnosticsContext: MetricSetDiagnosticsContext? = nil
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
@@ -2120,8 +2152,7 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    showsShadows: showsShadows,
-                    diagnosticsContext: diagnosticsContext
+                    showsShadows: showsShadows
                 )
                     .layoutPriority(1)
                     .transition(ShatlMotion.appearFromTop)

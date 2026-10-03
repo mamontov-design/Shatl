@@ -4,11 +4,15 @@
 import Foundation
 import Darwin
 
+#if DEBUG
+/// Lets tests give the logs folder another environment; logs exist only in
+/// Debug builds.
 protocol _AppPreferencesProcessInfoProviding: Sendable {
     nonisolated var environment: [String: String] { get }
 }
 
 extension ProcessInfo: _AppPreferencesProcessInfoProviding { }
+#endif
 
 nonisolated enum AppTheme: String, CaseIterable, Codable, Sendable, Identifiable {
     case system
@@ -269,6 +273,7 @@ extension AppPreferences {
         systemDownloadsDirectoryURL().path
     }
 
+    #if DEBUG
     nonisolated static func defaultLogsDirectoryURL(
         processInfo: any _AppPreferencesProcessInfoProviding = ProcessInfo.processInfo,
         fileManager: FileManager = .default
@@ -282,6 +287,7 @@ extension AppPreferences {
         return systemDownloadsDirectoryURL()
             .appendingPathComponent("Shatl Logs", isDirectory: true)
     }
+    #endif
 
     nonisolated static let defaultValue = AppPreferences(
         launchAtLogin: false,

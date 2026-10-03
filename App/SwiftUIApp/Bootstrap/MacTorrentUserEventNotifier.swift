@@ -6,7 +6,7 @@ import UserNotifications
 
 @MainActor
 final class MacTorrentUserEventNotifier: TorrentUserEventNotifying {
-    private static let logger = ShatlLog.ui
+    private static var logger: ShatlLog { .ui }
 
     func notify(_ notification: TorrentUserNotification, badgeCount: Int) {
         Task {
@@ -68,7 +68,7 @@ final class MacTorrentUserEventNotifier: TorrentUserEventNotifying {
 
 @MainActor
 final class MacTorrentUserEventBadgeDisplay: TorrentUserEventBadgeDisplaying {
-    private static let logger = ShatlLog.ui
+    private static var logger: ShatlLog { .ui }
 
     func setBadgeCount(_ count: Int) {
         Task {

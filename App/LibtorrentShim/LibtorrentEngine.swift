@@ -502,6 +502,7 @@ actor LibtorrentEngine: TorrentEngine {
         bridgeSnapshot: LTTorrentSnapshot,
         engineSnapshot: EngineTorrentSnapshot
     ) {
+        #if DEBUG
         // Runs for every torrent on every tick: build nothing while the log is off.
         guard ShatlFileLogger.shared.loggingEnabled else { return }
         let metrics = engineSnapshot.metrics
@@ -535,8 +536,10 @@ actor LibtorrentEngine: TorrentEngine {
         } else {
             ShatlLog.bridge.debug(message)
         }
+        #endif
     }
 
+    #if DEBUG
     private nonisolated static func formatDiagnosticField(key: String, value: String) -> String {
         let escaped = value
             .replacingOccurrences(of: "\\", with: "\\\\")
@@ -544,6 +547,7 @@ actor LibtorrentEngine: TorrentEngine {
         let needsQuotes = escaped.contains(where: { $0.isWhitespace || $0 == "=" || $0 == "\"" })
         return needsQuotes ? "\(key)=\"\(escaped)\"" : "\(key)=\(escaped)"
     }
+    #endif
 
     private func mapResumeDataStatus(_ status: String?) -> EngineResumeDataStatus? {
         guard let status else { return nil }

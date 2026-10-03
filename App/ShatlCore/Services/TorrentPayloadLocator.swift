@@ -55,7 +55,7 @@ nonisolated struct ManagedTorrentLocation: Sendable, Equatable {
 /// Provides one source of truth for payload file locations used by deletion,
 /// Reveal in Finder, and the future Open action.
 actor TorrentPayloadLocator {
-    private static let logger = ShatlLog.payload
+    private static var logger: ShatlLog { .payload }
 
     private let engine: any TorrentEngine
     private let archiveStore: TorrentArchiveStore

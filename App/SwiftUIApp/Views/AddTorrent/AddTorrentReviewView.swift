@@ -277,7 +277,9 @@ private struct AddTorrentFolderSummary: Equatable {
     let segments: [AddTorrentTextSegment]
 }
 
-private struct AddTorrentReviewScrollDiagnosticsSnapshot: Equatable {
+/// The files list's scroll geometry: it moves the pinned folder, and in Debug
+/// builds the review log records it.
+private struct AddTorrentReviewScrollGeometry: Equatable {
     let offsetY: CGFloat
     let contentHeight: CGFloat
     let containerHeight: CGFloat
@@ -286,7 +288,8 @@ private struct AddTorrentReviewScrollDiagnosticsSnapshot: Equatable {
     let insetTop: CGFloat
     let insetBottom: CGFloat
 
-    static let zero = AddTorrentReviewScrollDiagnosticsSnapshot(
+    #if DEBUG
+    static let zero = AddTorrentReviewScrollGeometry(
         offsetY: 0,
         contentHeight: 0,
         containerHeight: 0,
@@ -295,12 +298,14 @@ private struct AddTorrentReviewScrollDiagnosticsSnapshot: Equatable {
         insetTop: 0,
         insetBottom: 0
     )
+    #endif
 }
 
+#if DEBUG
 @MainActor
 private final class AddTorrentReviewDiagnosticsState {
     var operationID = "-"
-    var scrollGeometry = AddTorrentReviewScrollDiagnosticsSnapshot.zero
+    var scrollGeometry = AddTorrentReviewScrollGeometry.zero
 }
 
 private struct AddTorrentReviewWindowDiagnosticsReader: NSViewRepresentable {
@@ -426,11 +431,13 @@ private final class AddTorrentReviewWindowDiagnosticsNSView: NSView {
         observations.removeAll()
     }
 }
+#endif
 
 private let addTorrentIntegerFormatExpression = try? NSRegularExpression(
     pattern: #"%(?:(\d+)\$)?lld"#
 )
 
+#if DEBUG
 private func addTorrentDiagnosticsToken(_ value: String?) -> String {
     guard let value else { return "-" }
 
@@ -442,6 +449,7 @@ private func addTorrentDiagnosticsToken(_ value: String?) -> String {
 private func addTorrentDiagnosticsNumber(_ value: CGFloat) -> String {
     String(format: "%.2f", value)
 }
+#endif
 
 enum AddTorrentReviewLayout {
     static let minimumWindowWidth: CGFloat = 780
@@ -691,6 +699,7 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
 
     @ViewBuilder
     var body: some View {
+        #if DEBUG
         if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
             rowContent
                 .onAppear {
@@ -707,6 +716,9 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         } else {
             rowContent
         }
+        #else
+        rowContent
+        #endif
     }
 
     private var rowContent: some View {
@@ -915,6 +927,7 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         }
     }
 
+    #if DEBUG
     private func logFolderLifecycleEvent(_ event: String) {
         guard node.isFolder, ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
 
@@ -955,6 +968,7 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
             ]
         )
     }
+    #endif
 }
 
 private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentable {
@@ -1029,7 +1043,9 @@ struct AddTorrentReviewView: View {
     @State private var searchExpandedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
+    #if DEBUG
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
+    #endif
     @State private var filesScrollGeneration = 0
     @State private var pendingCollapsedFolderID: String?
     @State private var renderedDraft: AddTorrentDraft?
@@ -1074,6 +1090,7 @@ struct AddTorrentReviewView: View {
             }
             .padding(AddTorrentReviewLayout.settingsColumnPadding)
         }
+        #if DEBUG
         .onGeometryChange(for: CGSize.self) { geometry in
             geometry.size
         } action: { oldSize, newSize in
@@ -1086,6 +1103,7 @@ struct AddTorrentReviewView: View {
             )
             .frame(width: 0, height: 0)
         }
+        #endif
         .background {
             AddTorrentReviewAliasFocusWindowCloseObserver {
                 isAliasFocused = false
@@ -1226,7 +1244,9 @@ struct AddTorrentReviewView: View {
             rowBottomOffsets.append(rowBottom)
         }
 
+        #if DEBUG
         let oldRowCount = filePresentation.rows.count
+        #endif
         filePresentation = AddTorrentReviewFilePresentation(
             tree: tree,
             searchProjection: searchProjection,
@@ -1238,6 +1258,7 @@ struct AddTorrentReviewView: View {
             totalFileCount: newDraft?.files.count ?? filePresentation.totalFileCount
         )
 
+        #if DEBUG
         if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
             logRowsChange(
                 oldCount: oldRowCount,
@@ -1245,8 +1266,10 @@ struct AddTorrentReviewView: View {
                 rows: rows
             )
         }
+        #endif
     }
 
+    #if DEBUG
     private func logWindowRootSizeChange(from oldSize: CGSize, to newSize: CGSize) {
         guard ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
 
@@ -1262,6 +1285,7 @@ struct AddTorrentReviewView: View {
             flush: true
         )
     }
+    #endif
 
     /// What the files column says while it has no files to show. One block
     /// for all of it, so waiting turns into the result in place.
@@ -1368,11 +1392,13 @@ struct AddTorrentReviewView: View {
                 guard let targetID = pendingCollapsedFolderID else { return }
                 await Task.yield()
                 scrollProxy.scrollTo(targetID, anchor: .top)
+                #if DEBUG
                 logScrollRecreation(targetID: targetID)
+                #endif
                 pendingCollapsedFolderID = nil
             }
-            .onScrollGeometryChange(for: AddTorrentReviewScrollDiagnosticsSnapshot.self) { geometry in
-                AddTorrentReviewScrollDiagnosticsSnapshot(
+            .onScrollGeometryChange(for: AddTorrentReviewScrollGeometry.self) { geometry in
+                AddTorrentReviewScrollGeometry(
                     offsetY: geometry.contentOffset.y + geometry.contentInsets.top,
                     contentHeight: geometry.contentSize.height,
                     containerHeight: geometry.containerSize.height,
@@ -1382,6 +1408,7 @@ struct AddTorrentReviewView: View {
                     insetBottom: geometry.contentInsets.bottom
                 )
             } action: { oldSnapshot, newSnapshot in
+                #if DEBUG
                 if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
                     addTorrentDiagnosticsState.scrollGeometry = newSnapshot
                     logScrollGeometryChange(
@@ -1390,14 +1417,17 @@ struct AddTorrentReviewView: View {
                         rows: rows
                     )
                 }
+                #endif
                 updatePinnedFolder(scrollOffset: newSnapshot.offsetY, rows: rows)
             }
+            #if DEBUG
             .onAppear {
                 logFilesContainerLifecycleEvent("files.container.appeared", rows: rows)
             }
             .onDisappear {
                 logFilesContainerLifecycleEvent("files.container.disappeared", rows: rows)
             }
+            #endif
             .overlay(alignment: .top) {
                 Group {
                     if let pinnedFolderID,
@@ -1419,9 +1449,10 @@ struct AddTorrentReviewView: View {
         )
     }
 
+    #if DEBUG
     private func logScrollGeometryChange(
-        from oldSnapshot: AddTorrentReviewScrollDiagnosticsSnapshot,
-        to newSnapshot: AddTorrentReviewScrollDiagnosticsSnapshot,
+        from oldSnapshot: AddTorrentReviewScrollGeometry,
+        to newSnapshot: AddTorrentReviewScrollGeometry,
         rows: [AddTorrentFileTreeRow]
     ) {
         guard ShatlAddTorrentReviewDiagnosticsLog.isEnabled else { return }
@@ -1494,7 +1525,7 @@ struct AddTorrentReviewView: View {
 
     private func addTorrentDiagnosticsFields(
         rows: [AddTorrentFileTreeRow],
-        geometry: AddTorrentReviewScrollDiagnosticsSnapshot
+        geometry: AddTorrentReviewScrollGeometry
     ) -> [String: String] {
         [
             "contentHeight": addTorrentDiagnosticsNumber(geometry.contentHeight),
@@ -1528,6 +1559,7 @@ struct AddTorrentReviewView: View {
             )
         }
     }
+    #endif
 
     private func flattenedFileRows(
         _ nodes: [AddTorrentFileTreeNode],
@@ -1949,6 +1981,7 @@ struct AddTorrentReviewView: View {
         )
 
         if pinnedFolderID != newPinnedFolderID {
+            #if DEBUG
             if ShatlAddTorrentReviewDiagnosticsLog.isEnabled {
                 var fields = addTorrentDiagnosticsFields(
                     rows: rows,
@@ -1963,6 +1996,7 @@ struct AddTorrentReviewView: View {
                     flush: true
                 )
             }
+            #endif
             pinnedFolderID = newPinnedFolderID
         }
     }
@@ -2050,6 +2084,7 @@ struct AddTorrentReviewView: View {
     ) {
         let searchProjection = activeSearchProjection
         let wasExpanded = isFolderExpanded(node, searchProjection: searchProjection)
+        #if DEBUG
         let diagnosticsEnabled = ShatlAddTorrentReviewDiagnosticsLog.isEnabled
         let operationID = diagnosticsEnabled ? UUID().uuidString : "-"
         if diagnosticsEnabled {
@@ -2062,6 +2097,7 @@ struct AddTorrentReviewView: View {
                 operationID: operationID
             )
         }
+        #endif
 
         if searchProjection != nil {
             if searchExpandedFolderIDs.contains(node.id) {
@@ -2096,6 +2132,7 @@ struct AddTorrentReviewView: View {
 
         rebuildFilePresentation()
 
+        #if DEBUG
         guard diagnosticsEnabled else { return }
 
         logFolderToggleEvent(
@@ -2117,8 +2154,10 @@ struct AddTorrentReviewView: View {
                 operationID: operationID
             )
         }
+        #endif
     }
 
+    #if DEBUG
     private func logFolderToggleEvent(
         _ event: String,
         node: AddTorrentFileTreeNode,
@@ -2167,6 +2206,7 @@ struct AddTorrentReviewView: View {
     private var currentFlattenedFileRows: [AddTorrentFileTreeRow] {
         filePresentation.rows
     }
+    #endif
 
     private var activeSearchProjection: AddTorrentFileSearchProjection? {
         filePresentation.searchProjection
