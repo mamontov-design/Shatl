@@ -22,9 +22,13 @@ enum OnboardingWindowLayout {
 /// but regains its normal chrome and resize limits when the flow completes.
 struct OnboardingWindowSizeLock: NSViewRepresentable {
     let onWindowClose: () -> Void
+    /// The content height the window is locked to, for the onboarding to
+    /// take as its own height: SwiftUI then sizes the window as the lock
+    /// does instead of giving it back its resizing.
+    var onContentHeightChange: (CGFloat) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onWindowClose: onWindowClose)
+        Coordinator(onWindowClose: onWindowClose, onContentHeightChange: onContentHeightChange)
     }
 
     func makeNSView(context: Context) -> LockingView {
@@ -35,6 +39,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
 
     func updateNSView(_ nsView: LockingView, context: Context) {
         context.coordinator.onWindowClose = onWindowClose
+        context.coordinator.onContentHeightChange = onContentHeightChange
         if let window = nsView.window {
             context.coordinator.lock(window: window)
         }
@@ -64,8 +69,10 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
     @MainActor
     final class Coordinator {
         var onWindowClose: () -> Void
+        var onContentHeightChange: (CGFloat) -> Void
 
         private weak var window: NSWindow?
+        private var reportedContentHeight: CGFloat?
         private var originalContentMinSize: NSSize?
         private var originalContentMaxSize: NSSize?
         private var originalZoomButtonEnabled: Bool?
@@ -75,10 +82,19 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
         private var closeObservation: NSObjectProtocol?
         private var resizeObservation: NSObjectProtocol?
         private var activationObservation: NSObjectProtocol?
+        /// A safety net. SwiftUI gave the window back its resizing, and macOS
+        /// the zoom button, with no layout pass or window event to tell the
+        /// lock; since the onboarding has a fixed size it no longer does,
+        /// but whatever gives resizing back, the lock takes it again at once.
+        private var styleMaskObservation: NSKeyValueObservation?
         private var didHandleWindowClose = false
 
-        init(onWindowClose: @escaping () -> Void) {
+        init(
+            onWindowClose: @escaping () -> Void,
+            onContentHeightChange: @escaping (CGFloat) -> Void = { _ in }
+        ) {
             self.onWindowClose = onWindowClose
+            self.onContentHeightChange = onContentHeightChange
         }
 
         deinit {
@@ -129,10 +145,33 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
                         self?.enforceWindowLock()
                     }
                 }
+
+                // Any change: Swift's typed KVO leaves a style mask's new value
+                // empty, and the lock changes nothing when there is nothing
+                // to change, so the round ends at once.
+                styleMaskObservation = window.observe(\.styleMask) { [weak self] _, _ in
+                    Task { @MainActor [weak self] in
+                        self?.enforceWindowLock()
+                    }
+                }
             }
 
             enforceWindowLock()
+            reportContentHeight(for: window)
             scheduleWindowLockEnforcement()
+        }
+
+        /// Once per height: the onboarding's frame changes only when the
+        /// window's title bar does.
+        private func reportContentHeight(for window: NSWindow) {
+            let height = OnboardingWindowLayout.contentSize(for: window).height
+            guard height != reportedContentHeight else { return }
+            reportedContentHeight = height
+            // The lock runs inside a SwiftUI view update; the onboarding's
+            // state changes after it.
+            DispatchQueue.main.async { [weak self] in
+                self?.onContentHeightChange(height)
+            }
         }
 
         /// SwiftUI configures its scene window and standard buttons after
@@ -191,6 +230,10 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
                 NotificationCenter.default.removeObserver(activationObservation)
                 self.activationObservation = nil
             }
+            // Before the original style comes back, or the watch would take
+            // resizing away from the ordinary window.
+            styleMaskObservation?.invalidate()
+            styleMaskObservation = nil
 
             guard let window else { return }
             if let originalContentMinSize {
@@ -213,6 +256,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
             }
 
             self.window = nil
+            reportedContentHeight = nil
             originalContentMinSize = nil
             originalContentMaxSize = nil
             originalZoomButtonEnabled = nil

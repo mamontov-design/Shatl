@@ -33,6 +33,9 @@ struct MainWindowView: View {
     /// time, see `MainWindowStageStep`.
     @State private var displayedStage: MainWindowStage?
     @State private var stageChangeTask: Task<Void, Never>?
+    /// The content height of the locked onboarding window; until the lock
+    /// knows the window, the onboarding takes the height it is given.
+    @State private var onboardingContentHeight: CGFloat?
 
     private var currentStage: MainWindowStage {
         MainWindowStage.current(
@@ -158,6 +161,10 @@ struct MainWindowView: View {
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
         }
+        // The window's smallest size. Here and not on the whole window: the
+        // onboarding has a fixed size, and a lower minimum around it left
+        // the window resizable between the two.
+        .frame(minWidth: 440, minHeight: 440)
         .background(WindowChromeConfigurator(isSearchEnabled: stage.allowsListActions))
         // The same buttons and search in every stage, so the top of the window
         // never changes under a stage transition; what a stage does not allow
@@ -270,9 +277,15 @@ struct MainWindowView: View {
             }
         )
         .frame(width: OnboardingWindowLayout.windowSize.width)
-        .frame(maxHeight: .infinity)
+        // The height the window lock keeps, so SwiftUI sizes the window the
+        // same way. Open-ended, it gave the window back its resizing, and
+        // macOS its zoom button, on every animation frame (macOS 26).
+        .frame(minHeight: onboardingContentHeight, maxHeight: onboardingContentHeight ?? .infinity)
         .overlay {
-            OnboardingWindowSizeLock(onWindowClose: completeOnboarding)
+            OnboardingWindowSizeLock(
+                onWindowClose: completeOnboarding,
+                onContentHeightChange: { onboardingContentHeight = $0 }
+            )
                 .allowsHitTesting(false)
         }
         .environment(\.locale, L10n.locale(for: store.preferences.localeOverride))

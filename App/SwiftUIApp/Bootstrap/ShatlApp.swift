@@ -56,11 +56,15 @@ struct ShatlApp: App {
         // WindowGroup can create new scene instances, but external torrent or magnet
         // opening would then produce multiple unwanted windows.
         Window("Shatl", id: "main") {
+            // The 440 × 440 minimum belongs to the list's content, not to
+            // the onboarding: see `MainWindowView`.
             mainWindowContent
-                .frame(minWidth:440, minHeight: 440)
                 .windowFullScreenBehavior(.disabled)
         }
         .defaultSize(width: 440, height: 440)
+        // The window follows its content: the onboarding's fixed size keeps
+        // it fixed, the list stretches it from 440 × 440.
+        .windowResizability(.contentSize)
         .windowToolbarStyle(.unified(showsTitle: true))
         .commands {
             ShatlCommands(store: store)
