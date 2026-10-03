@@ -711,11 +711,22 @@ private struct TorrentTransferSummaryLayer: View {
         .padding(.horizontal, edgePadding)
         .padding(.bottom, edgePadding)
         .frame(maxWidth: .infinity, alignment: .bottom)
+        // The upload chip keeps to the right edge, so a wider or narrower
+        // number moves its left edge: the row slides it at the chip's own
+        // pace. It jumped there at once while the glass was on its way.
+        .geometryGroup()
+        // Inside the width animation, so a chip that comes or goes keeps
+        // its own pace.
         .animation(ShatlMotion.mainContentMode, value: chipStructureAnimationKey)
+        .animation(ShatlMotion.metricResize, value: chipWidthAnimationKey)
     }
 
     private var chipStructureAnimationKey: [String] {
         model.chips.map(\.kind.id)
+    }
+
+    private var chipWidthAnimationKey: [MetricItemWidthAnimationSignature] {
+        model.chips.map(\.item.widthAnimationSignature)
     }
 
     private var edgePadding: CGFloat {

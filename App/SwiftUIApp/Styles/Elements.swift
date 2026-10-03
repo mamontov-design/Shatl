@@ -1966,21 +1966,12 @@ struct ShatlInfoBottomSpeedChip: View {
     @ViewBuilder
     var body: some View {
         if #available(macOS 27.0, *) {
-            chipContent
-                .glassEffect(
-                    .regular
-                        .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
-                        .interactive(false),
-                    in: RoundedRectangle(
-                        cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
-                        style: .continuous
-                    )
-                )
-                .fixedSize()
+            glassChip
                 .animation(ShatlMotion.metricResize, value: item.widthAnimationSignature)
         } else {
-            chipContent
-                .fixedSize()
+            // The same glass as on macOS 27. The list leaves no room under
+            // the chips here, and a chip steps aside under the pointer.
+            glassChip
                 .scaleEffect(usesScaledHoverTransition && isHovered ? 0.85 : 1)
                 .opacity(isHovered ? 0 : 1)
                 .overlay {
@@ -1994,9 +1985,19 @@ struct ShatlInfoBottomSpeedChip: View {
         }
     }
 
-    private var chipContent: some View {
+    private var glassChip: some View {
         ShatlInfoBottomMetricItem(item: item)
             .padding(6)
+            .glassEffect(
+                .regular
+                    .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
+                    .interactive(false),
+                in: RoundedRectangle(
+                    cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
+                    style: .continuous
+                )
+            )
+            .fixedSize()
     }
 
     private var usesScaledHoverTransition: Bool {
@@ -2014,7 +2015,7 @@ private struct ShatlInfoBottomMetricItem: View {
             if let iconName = item.iconName {
                 Image(systemName: iconName)
                     .shatlTypography(iconTypography(for: iconName))
-                    .foregroundStyle(ShatlColor.typographyPrimary.opacity(0.50))
+                    .foregroundStyle(ShatlColor.typographyPrimary)
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
 
