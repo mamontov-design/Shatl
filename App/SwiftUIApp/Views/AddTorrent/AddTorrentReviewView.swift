@@ -447,7 +447,11 @@ enum AddTorrentReviewLayout {
     static let minimumWindowWidth: CGFloat = 780
     static let minimumWindowHeight: CGFloat = 570
     static let settingsColumnWidth: CGFloat = 380
-    static let settingsColumnPadding: CGFloat = 12
+    /// The window's corners are rounder on macOS 26: the buttons and cards
+    /// near them keep more room, so the two curves sit together.
+    static var settingsColumnPadding: CGFloat {
+        if #available(macOS 27.0, *) { 12 } else { 18 }
+    }
     static let leftColumnOutlineWidth: CGFloat = 1
     static let summaryContainerHorizontalPadding: CGFloat = 6
     static let summaryContainerBottomPadding: CGFloat = 6
@@ -470,7 +474,10 @@ enum AddTorrentReviewLayout {
     static let hoverAreaSpacing: CGFloat = 4
     static let hoverAreaPadding: CGFloat = 6
     static let hoverAreaCornerRadius: CGFloat = 8
-    static let summaryCornerRadius: CGFloat = 12
+    /// On macOS 26 the summary's corner follows the window's rounder one.
+    static var summaryCornerRadius: CGFloat {
+        if #available(macOS 27.0, *) { 12 } else { 20 }
+    }
     static let summaryHorizontalPadding: CGFloat = 6
     static let summaryVerticalPadding: CGFloat = 12
     static let summarySpacing: CGFloat = 24
@@ -737,18 +744,12 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
         }
     }
 
-    @ViewBuilder
     private var stickyBackground: some View {
-        if #available(macOS 27.0, *) {
-            Color.clear
-                .glassEffect(
-                    .regular.interactive(false),
-                    in: Rectangle()
-                )
-        } else {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-        }
+        Color.clear
+            .glassEffect(
+                .regular.interactive(false),
+                in: Rectangle()
+            )
     }
 
     private var hierarchyGuides: some View {
@@ -1677,16 +1678,11 @@ struct AddTorrentReviewView: View {
             value: "\(selectedFileCount)-\(selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
         )
 
-        if #available(macOS 27.0, *) {
-            content
-                .glassEffect(
-                    .regular.interactive(false),
-                    in: torrentSummaryShape
-                )
-        } else {
-            content
-                .background(.ultraThinMaterial, in: torrentSummaryShape)
-        }
+        content
+            .glassEffect(
+                .regular.interactive(false),
+                in: torrentSummaryShape
+            )
     }
 
     private var torrentSummarySupplementaryTransition: AnyTransition {

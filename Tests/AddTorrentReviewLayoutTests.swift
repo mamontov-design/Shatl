@@ -178,11 +178,18 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 780)
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowHeight, 570)
         XCTAssertEqual(AddTorrentReviewLayout.settingsColumnWidth, 380)
-        XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
+        // macOS 26 rounds window corners more: the column and the summary
+        // keep more room and a rounder corner there.
+        if #available(macOS 27.0, *) {
+            XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 12)
+        } else {
+            XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 18)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 20)
+        }
         XCTAssertEqual(AddTorrentReviewLayout.leftColumnOutlineWidth, 1)
         XCTAssertEqual(AddTorrentReviewLayout.summaryContainerHorizontalPadding, 6)
         XCTAssertEqual(AddTorrentReviewLayout.summaryContainerBottomPadding, 6)
-        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 12)
         XCTAssertEqual(AddTorrentReviewLayout.summarySpacing, 24)
         XCTAssertEqual(AddTorrentReviewLayout.summaryVerticalPadding, 12)
     }

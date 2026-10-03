@@ -17,9 +17,9 @@ import XCTest
 /// "Скачивается" at no speed. The bridge stops such a download and reports
 /// the refusal, so the card says why and "Повторить" starts it again.
 ///
-/// A test host in the sandbox cannot mount a disk image; a folder that
-/// refuses new files takes the same path with EACCES. The full disk itself
-/// was tried on APFS images by hand (October 2026).
+/// A folder that refuses new files takes the same path with EACCES, without
+/// mounting a disk image in a test. The full disk itself was tried on APFS
+/// images by hand (October 2026).
 final class PayloadWriteModeTests: XCTestCase {
     func testEveryProfileWritesPayloadThroughWriteCalls() throws {
         let bridge = LibtorrentSessionBridge(

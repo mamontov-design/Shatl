@@ -679,16 +679,27 @@ private struct ShatlLogomarkArtwork: View {
 
     @ViewBuilder
     private var backgroundLayer: some View {
-        if #available(macOS 27.0, *), renderingMode == .glass {
-            Color.clear
-                .glassEffect(
-                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
-                    in: ShatlLogomarkAppShape()
-                )
+        if #available(macOS 27.0, *) {
+            if renderingMode == .glass {
+                Color.clear
+                    .glassEffect(
+                        .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                        in: ShatlLogomarkAppShape()
+                    )
+            } else {
+                appShape
+                    .opacity(ShatlLogomarkOpacity.appShape)
+                specularHighlightsLayer
+            }
         } else {
-            appShape
-                .opacity(ShatlLogomarkOpacity.appShape)
-            specularHighlightsLayer
+            // macOS 26: a plain shape under the letter and the star, with no
+            // gradient or highlights.
+            ShatlLogomarkAppShape()
+                .fill(ShatlColor.backgroundSecondary)
+                .overlay {
+                    ShatlLogomarkAppShape()
+                        .stroke(ShatlColor.outlineTertiary, lineWidth: 0.5)
+                }
         }
     }
 

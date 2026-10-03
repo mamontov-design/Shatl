@@ -29,9 +29,14 @@ struct AddTorrentEntryView: View {
         self.onValidationError = onValidationError
     }
 
+    /// The modal's padding; the window's corners are rounder on macOS 26.
+    private static var modalPadding: CGFloat {
+        if #available(macOS 27.0, *) { 16 } else { 18 }
+    }
+
     var body: some View {
         contentContainer
-        .padding(placement == .modal ? 16 : 0)
+        .padding(placement == .modal ? Self.modalPadding : 0)
         .frame(width: 300)
         .overlay(alignment: .bottom) {
             validationToast
@@ -109,20 +114,14 @@ struct AddTorrentEntryView: View {
     private var addTorrentBox: some View {
         switch placement {
         case .emptyState:
-            if #available(macOS 27.0, *) {
-                addTorrentBoxContent
-                    .padding(12)
-                    .frame(width: 250)
-                    .glassEffect(
-                        .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
-                        in: addTorrentBoxShape
-                    )
-                    .background { addTorrentBoxShadow }
-            } else {
-                addTorrentBoxContent
-                    .padding(12)
-                    .frame(width: 250)
-            }
+            addTorrentBoxContent
+                .padding(12)
+                .frame(width: 250)
+                .glassEffect(
+                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                    in: addTorrentBoxShape
+                )
+                .background { addTorrentBoxShadow }
         case .modal:
             addTorrentBoxContent
                 .padding(8)

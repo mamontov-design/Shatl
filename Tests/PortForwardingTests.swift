@@ -83,8 +83,9 @@ final class PortForwardingTests: XCTestCase {
         XCTAssertFalse(filter.settle(PhysicalNetwork(serviceRecords: [home])))
     }
 
-    /// The app runs in the sandbox, and so do these tests: the registry must
-    /// be readable from it, or no move would ever be noticed.
+    /// The registry must be readable by the app, or no move would ever be
+    /// noticed. The app runs without App Sandbox, like this test host; if
+    /// the sandbox is ever turned on, this test tells whether it still is.
     func testNetworkRegistryIsReadableInTheSandbox() {
         XCTAssertNotNil(PhysicalNetworkMonitor.readCurrentNetwork())
     }
