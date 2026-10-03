@@ -12,6 +12,7 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(ShatlBottomChipLayout.cardGap, 6)
         XCTAssertEqual(ShatlBottomChipLayout.modernListBottomPadding, 39)
         XCTAssertEqual(ShatlBottomChipLayout.legacyEdgePadding, 12)
+        XCTAssertEqual(ShatlBottomChipLayout.legacyCornerRadius, 13.5)
         XCTAssertEqual(ShatlBottomChipLayout.standardListBottomPadding, 8)
     }
 

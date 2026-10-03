@@ -26,6 +26,8 @@ enum ShatlBottomChipLayout {
     static let legacyEdgePadding: CGFloat = 12
     static let modernEdgePadding: CGFloat = 6
     static let modernCornerRadius: CGFloat = 10
+    /// macOS 26 rounds window corners more: the chip is a capsule there.
+    static let legacyCornerRadius: CGFloat = 13.5
     static let cardGap: CGFloat = 6
     static let standardListBottomPadding: CGFloat = 8
     static let modernListBottomPadding = modernEdgePadding
@@ -1992,12 +1994,17 @@ struct ShatlInfoBottomSpeedChip: View {
                 .regular
                     .tint(.accent.opacity(ShatlGlassTint.subtleOpacity))
                     .interactive(false),
-                in: RoundedRectangle(
-                    cornerRadius: ShatlBottomChipLayout.modernCornerRadius,
-                    style: .continuous
-                )
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             )
             .fixedSize()
+    }
+
+    private var cornerRadius: CGFloat {
+        if #available(macOS 27.0, *) {
+            ShatlBottomChipLayout.modernCornerRadius
+        } else {
+            ShatlBottomChipLayout.legacyCornerRadius
+        }
     }
 
     private var usesScaledHoverTransition: Bool {

@@ -256,15 +256,6 @@ enum ShatlShadow {
         )
     )
 
-    /// Inner shadow of the logomark background shape in the light theme.
-    static let logomarkInner = ShatlShadowToken(
-        light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.08, radius: 0.5),
-            secondary: ShatlShadowLayer(opacity: 0.08, radius: 3)
-        ),
-        dark: nil
-    )
-
     /// Drop shadow of the add box on the empty main window.
     static let addTorrentEmptyStateBox = ShatlShadowToken(
         light: ShatlShadowAppearance(

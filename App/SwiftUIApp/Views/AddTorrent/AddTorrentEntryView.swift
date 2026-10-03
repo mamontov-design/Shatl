@@ -103,7 +103,7 @@ struct AddTorrentEntryView: View {
 
     private var windowContent: some View {
         VStack(spacing: 16) {
-            AddTorrentHeader(title: title, subtitle: subtitle, placement: placement)
+            AddTorrentHeader(title: title, subtitle: subtitle)
             addTorrentBox
         }
         .frame(width: placement == .emptyState ? 300 : nil)
@@ -489,18 +489,21 @@ struct AddTorrentEntryView: View {
     }
 }
 
+/// The empty window's header; the add modal has its own, without the mark.
 private struct AddTorrentHeader: View {
     @EnvironmentObject private var store: AppStore
 
     let title: String
     let subtitle: String
-    let placement: AddTorrentEntryPlacement
 
     var body: some View {
         VStack(spacing: 24) {
-            wordmark
+            ShatlWordmark(
+                renderingMode: .glass,
+                selection: preferredBrandMark
+            )
 
-            VStack(spacing: placement == .modal ? 4 : 6) {
+            VStack(spacing: 6) {
                 Text(title)
                     .shatlTypography(ShatlTypography.headlineSemibold)
                     .foregroundStyle(ShatlColor.typographyPrimary)
@@ -513,27 +516,9 @@ private struct AddTorrentHeader: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: placement == .emptyState ? 300 : nil)
-            .frame(maxWidth: placement == .modal ? .infinity : nil)
+            .frame(width: 300)
         }
-        .frame(width: placement == .emptyState ? 300 : nil)
-        .frame(maxWidth: placement == .modal ? .infinity : nil)
-    }
-
-    @ViewBuilder
-    private var wordmark: some View {
-        switch placement {
-        case .emptyState:
-            ShatlWordmark(
-                renderingMode: .glass,
-                selection: preferredBrandMark
-            )
-        case .modal:
-            ShatlWordmark(
-                renderingMode: .flat,
-                selection: preferredBrandMark
-            )
-        }
+        .frame(width: 300)
     }
 
     private var preferredBrandMark: Binding<ShatlBrandMark> {

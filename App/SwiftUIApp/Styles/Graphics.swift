@@ -431,7 +431,6 @@ private enum ShatlWordmarkOpacity {
 }
 
 private enum ShatlLogomarkOpacity {
-    static let appShape = 1.0
     static let aShapeAtMinimumWidth = 1.0
     static let aShapeAtMaximumWidth = 0.75
     static let starAtMinimumWidth = 1.0
@@ -620,7 +619,6 @@ private struct ShatlWordmarkStarMorphShape: Shape {
 
 private struct ShatlLogomarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
-    @Environment(\.colorScheme) private var colorScheme
 
     let animationPhase: CGFloat
     let renderingMode: ShatlBrandRenderingMode
@@ -677,23 +675,19 @@ private struct ShatlLogomarkArtwork: View {
         .frame(width: 84, height: 84)
     }
 
+    /// Flat is macOS 26 (see `ShatlWordmark.effectiveRenderingMode`): the
+    /// letter and the star take the glass's colors as solid ones, over a
+    /// plain shape.
     @ViewBuilder
     private var backgroundLayer: some View {
-        if #available(macOS 27.0, *) {
-            if renderingMode == .glass {
-                Color.clear
-                    .glassEffect(
-                        .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
-                        in: ShatlLogomarkAppShape()
-                    )
-            } else {
-                appShape
-                    .opacity(ShatlLogomarkOpacity.appShape)
-                specularHighlightsLayer
-            }
-        } else {
-            // macOS 26: a plain shape under the letter and the star, with no
-            // gradient or highlights.
+        switch renderingMode {
+        case .glass:
+            Color.clear
+                .glassEffect(
+                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                    in: ShatlLogomarkAppShape()
+                )
+        case .flat:
             ShatlLogomarkAppShape()
                 .fill(ShatlColor.backgroundSecondary)
                 .overlay {
@@ -717,19 +711,11 @@ private struct ShatlLogomarkArtwork: View {
                     in: ShatlLogomarkAStrokeGlassShape(lineWidth: strokeWidth)
                 )
         case .flat:
-            if accentState.isUsingAppAccent {
-                ShatlLogomarkAStrokeShape()
-                    .stroke(
-                        flatAGradient,
-                        style: StrokeStyle(lineWidth: strokeWidth)
-                    )
-            } else {
-                ShatlLogomarkAStrokeShape()
-                    .stroke(
-                        aColor,
-                        style: StrokeStyle(lineWidth: strokeWidth)
-                    )
-            }
+            ShatlLogomarkAStrokeShape()
+                .stroke(
+                    aColor,
+                    style: StrokeStyle(lineWidth: strokeWidth)
+                )
         }
     }
 
@@ -743,122 +729,9 @@ private struct ShatlLogomarkArtwork: View {
                     in: ShatlLogomarkStarMorphShape(progress: animationPhase)
                 )
         case .flat:
-            if accentState.isUsingAppAccent {
-                ShatlLogomarkStarMorphShape(progress: animationPhase)
-                    .fill(flatStarGradient)
-            } else {
-                ShatlLogomarkStarMorphShape(progress: animationPhase)
-                    .fill(starColor)
-            }
+            ShatlLogomarkStarMorphShape(progress: animationPhase)
+                .fill(starColor)
         }
-    }
-
-    @ViewBuilder
-    private var appShape: some View {
-        if
-            let appearance = ShatlShadow.logomarkInner.appearance(for: colorScheme),
-            let secondary = appearance.secondary
-        {
-            ShatlLogomarkAppShape()
-                .fill(appShapeGradient)
-                .overlay {
-                    ShatlLogomarkAppShape()
-                        .stroke(
-                            ShatlColor.shadowKeyColor.opacity(appearance.primary.opacity),
-                            lineWidth: 1
-                        )
-                        .blur(radius: appearance.primary.radius)
-                        .offset(x: appearance.primary.x, y: appearance.primary.y)
-                        .mask(ShatlLogomarkAppShape().fill(Color.white))
-                }
-                .overlay {
-                    ShatlLogomarkAppShape()
-                        .stroke(
-                            ShatlColor.shadowKeyColor.opacity(secondary.opacity),
-                            lineWidth: 3
-                        )
-                        .blur(radius: secondary.radius)
-                        .offset(x: secondary.x, y: secondary.y)
-                        .mask(ShatlLogomarkAppShape().fill(Color.white))
-                }
-        } else {
-            ShatlLogomarkAppShape()
-                .fill(appShapeGradient)
-        }
-    }
-
-    private var appShapeGradient: LinearGradient {
-        let colors: [Color] = colorScheme == .dark
-            ? [
-                Color(red: 82 / 255, green: 82 / 255, blue: 91 / 255),
-                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255),
-            ]
-            : [
-                Color(red: 244 / 255, green: 244 / 255, blue: 245 / 255),
-                Color(red: 228 / 255, green: 228 / 255, blue: 231 / 255),
-            ]
-
-        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
-    }
-
-    private var specularHighlightsLayer: some View {
-        ShatlLogomarkSpecularHighlightsShape()
-            .fill(specularHighlightsGradient)
-            .blur(radius: 0.25)
-    }
-
-    private var specularHighlightsGradient: LinearGradient {
-        let opacities: [Double] = colorScheme == .dark
-            ? [0.08, 0.2, 0.4, 0.2, 0.08]
-            : [0.2, 0.7, 1.0, 0.7, 0.2]
-        let locations: [CGFloat] = [0, 0.25, 0.5, 0.75, 1]
-        let stops = zip(opacities, locations).map { opacity, location in
-            Gradient.Stop(
-                color: Color.white.opacity(opacity),
-                location: location
-            )
-        }
-
-        return LinearGradient(
-            stops: stops,
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-    }
-
-    private var flatAGradient: LinearGradient {
-        let colors: [Color] = colorScheme == .dark
-            ? [
-                Color(red: 250 / 255, green: 250 / 255, blue: 250 / 255)
-                    .opacity(strokeOpacity),
-                Color(red: 228 / 255, green: 228 / 255, blue: 231 / 255)
-                    .opacity(strokeOpacity),
-            ]
-            : [
-                Color(red: 39 / 255, green: 39 / 255, blue: 42 / 255)
-                    .opacity(strokeOpacity),
-                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255)
-                    .opacity(strokeOpacity),
-            ]
-
-        return LinearGradient(
-            colors: colors,
-            startPoint: UnitPoint(x: 43.289 / 84, y: 19.0313 / 84),
-            endPoint: UnitPoint(x: 43.289 / 84, y: 70.875 / 84)
-        )
-    }
-
-    private var flatStarGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 63 / 255, green: 67 / 255, blue: 253 / 255)
-                    .opacity(starOpacity),
-                Color(red: 134 / 255, green: 136 / 255, blue: 253 / 255)
-                    .opacity(starOpacity),
-            ],
-            startPoint: UnitPoint(x: 19.025 / 84, y: 56.3181 / 84),
-            endPoint: UnitPoint(x: 19.025 / 84, y: 73.3696 / 84)
-        )
     }
 }
 
@@ -1278,19 +1151,6 @@ private struct ShatlLogomarkAppShape: Shape {
     func path(in rect: CGRect) -> Path {
         ShatlSVGPathShape(
             paths: ["M0 35.2C0 22.8788 0 16.7183 2.39786 12.0122C4.50707 7.87264 7.87264 4.50707 12.0122 2.39786C16.7183 0 22.8788 0 35.2 0H48.8C61.1212 0 67.2817 0 71.9878 2.39786C76.1274 4.50707 79.4929 7.87264 81.6021 12.0122C84 16.7183 84 22.8788 84 35.2V48.8C84 61.1212 84 67.2817 81.6021 71.9878C79.4929 76.1274 76.1274 79.4929 71.9878 81.6021C67.2817 84 61.1212 84 48.8 84H35.2C22.8788 84 16.7183 84 12.0122 81.6021C7.87264 79.4929 4.50707 76.1274 2.39786 71.9878C0 67.2817 0 61.1212 0 48.8V35.2Z"],
-            viewport: CGSize(width: 84, height: 84)
-        )
-        .path(in: rect)
-    }
-}
-
-private struct ShatlLogomarkSpecularHighlightsShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        ShatlSVGPathShape(
-            paths: [
-                "M80.7105 71.5342C78.6972 75.4853 75.4848 78.6976 71.5337 80.7109C67.0416 82.9998 61.1608 83 49.3999 83H34.5992C22.8383 83 16.9575 82.9998 12.4654 80.7109C8.51426 78.6976 5.3019 75.4853 3.28861 71.5342C1.82135 68.6545 1.29459 65.2042 1.10547 60C1.61009 66 3.01428 68.7937 4.17923 71.0801C6.09668 74.8432 9.15633 77.9029 12.9195 79.8203C17.1973 82 22.7976 82 33.9967 82H33.9995H49.9995H50.0024C61.2015 82 66.8017 82 71.0796 79.8203C74.8428 77.9029 77.9024 74.8432 79.8199 71.0801C80.9848 68.7937 82.389 66 82.8936 60C82.7045 65.2042 82.1777 68.6545 80.7105 71.5342Z",
-                "M49.3999 1C61.1608 1 67.0416 1.00022 71.5337 3.28906C75.4848 5.30235 78.6972 8.51472 80.7105 12.4658C82.1777 15.3455 82.7045 18.7958 82.8936 24C82.389 18 80.9848 15.2063 79.8199 12.9199C77.9024 9.15679 74.8428 6.09714 71.0796 4.17969C66.8017 2 61.2015 2 50.0023 2H49.9995H33.9995H33.9967C22.7976 2 17.1973 2 12.9195 4.17969C9.15633 6.09714 6.09668 9.15679 4.17923 12.9199C3.01428 15.2063 1.61009 18 1.10547 24C1.29459 18.7958 1.82135 15.3455 3.28861 12.4658C5.3019 8.51472 8.51426 5.30235 12.4654 3.28906C16.9575 1.00022 22.8383 1 34.5992 1H49.3999Z",
-            ],
             viewport: CGSize(width: 84, height: 84)
         )
         .path(in: rect)
