@@ -449,7 +449,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 defaultValue: "Добавляется…"
             ),
             progress: 0,
-            hasActiveTransfer: false,
             compactTransferMetricSet: nil,
             expandedMetricGroups: nil,
             metricsMode: preferences.metricsMode,
@@ -590,7 +589,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             status: record.status,
             statusTitle: record.status.localizedTitle(localeOverride: shared.localeOverride),
             progress: presentedProgress(for: record),
-            hasActiveTransfer: hasActiveTransfer(for: record),
             compactTransferMetricSet: compactTransferMetricSet,
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: shared.metricsMode,
@@ -692,17 +690,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         let percent = Int((clampedProgress * 100).rounded(.down))
         return Double(percent) / 100
-    }
-
-    private static func hasActiveTransfer(for record: TorrentRecord) -> Bool {
-        switch record.status {
-        case .downloading:
-            record.metrics.downloadSpeedBytesPerSecond > 0
-        case .seeding:
-            record.progress >= 1 && record.metrics.uploadSpeedBytesPerSecond > 1
-        case .stopped, .completed, .error, .checking:
-            false
-        }
     }
 
     func setPerformanceProfile(_ profile: AppPerformanceProfile) {
@@ -1991,19 +1978,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    func retryCurrentDraftPreparation() {
-        guard let draft = currentAddTorrentDraft else { return }
-
-        startDraftPreparation(
-            for: draft.source,
-            suggestedSavePath: draft.suggestedSavePath,
-            stopAfterDownload: draft.stopAfterDownload,
-            alias: draft.alias,
-            savePathBookmarkData: draft.savePathBookmarkData,
-            replacesCurrentReview: true
-        )
-    }
-
     private func redownloadTorrent(
         record: TorrentRecord,
         saveURL: URL,
@@ -3038,11 +3012,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         suggestedSavePath: String,
         stopAfterDownload: Bool,
         alias: String = "",
-        savePathBookmarkData: Data? = nil,
-        replacesCurrentReview: Bool = false
+        savePathBookmarkData: Data? = nil
     ) {
         guard canAddTorrent else { return }
-        if isAddTorrentReviewWindowActive, !replacesCurrentReview {
+        if isAddTorrentReviewWindowActive {
             requestAddTorrentReviewWindowActivation()
             return
         }

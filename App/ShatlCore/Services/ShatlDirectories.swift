@@ -75,12 +75,4 @@ nonisolated struct ShatlDirectories: Sendable {
         try fileManager.createDirectory(at: bookmarksDirectoryURL, withIntermediateDirectories: true, attributes: nil)
         try fileManager.createDirectory(at: resumeDataDirectoryURL, withIntermediateDirectories: true, attributes: nil)
     }
-
-    nonisolated func ensureTelemetryDirectory() throws {
-        try FileManager.default.createDirectory(
-            at: telemetryDirectoryURL,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
-    }
 }

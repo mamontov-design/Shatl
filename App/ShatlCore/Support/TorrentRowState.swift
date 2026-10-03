@@ -114,7 +114,6 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var status: TorrentStatus
     var statusTitle: String
     var progress: Double
-    var hasActiveTransfer: Bool
     var compactTransferMetricSet: CompactTransferMetricSet?
     var expandedMetricGroups: ExpandedMetricGroupsPresentation?
     var metricsMode: MetricsPresentationMode

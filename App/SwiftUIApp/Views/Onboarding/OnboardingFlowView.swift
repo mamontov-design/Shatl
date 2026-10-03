@@ -433,7 +433,6 @@ private struct OnboardingCompletionStep<Actions: View>: View {
     private var labelsContainer: some View {
         VStack(alignment: .leading, spacing: 16) {
             ShatlWordmark(
-                renderingMode: .glass,
                 initialSelection: .logomark,
                 artworkAlignment: .leading,
                 isInteractive: false

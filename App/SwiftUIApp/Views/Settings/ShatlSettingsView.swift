@@ -811,7 +811,6 @@ private struct AboutSettingsTab: View {
     private var aboutWordmarkContainer: some View {
         VStack(alignment: .center, spacing: 12) {
             ShatlWordmark(
-                renderingMode: .glass,
                 selection: Binding(
                     get: { store.preferences.preferredBrandMark },
                     set: { store.setPreferredBrandMark($0) }

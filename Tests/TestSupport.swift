@@ -412,10 +412,8 @@ final class FakePhysicalNetworkMonitor: PhysicalNetworkMonitoring, @unchecked Se
     private let lock = NSLock()
     private var onChange: (@Sendable () -> Void)?
     private var startCountValue = 0
-    private var stopCountValue = 0
 
     var startCount: Int { lock.withLock { startCountValue } }
-    var stopCount: Int { lock.withLock { stopCountValue } }
 
     func start(onChange: @escaping @Sendable () -> Void) {
         lock.withLock {
@@ -424,9 +422,7 @@ final class FakePhysicalNetworkMonitor: PhysicalNetworkMonitoring, @unchecked Se
         }
     }
 
-    func stop() {
-        lock.withLock { stopCountValue += 1 }
-    }
+    func stop() {}
 
     func simulateNetworkChange() {
         let onChange = lock.withLock { self.onChange }

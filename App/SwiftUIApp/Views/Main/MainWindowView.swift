@@ -738,10 +738,6 @@ private struct TorrentTransferSummaryLayer: View {
     }
 }
 
-/// Reusable inline message shown above the main content, used for session
-/// persistence failures that last until storage accepts writes again.
-/// A message under the toolbar: a title, a short text and, when there is
-/// something to do, buttons.
 /// A button of the line message bar.
 struct ShatlLineMessageBarButton: Identifiable {
     var id: String { title }
@@ -753,6 +749,8 @@ struct ShatlLineMessageBarButton: Identifiable {
     let action: () -> Void
 }
 
+/// A message under the toolbar: a title, a short text and, when there is
+/// something to do, buttons.
 struct ShatlLineMessageBar: View {
     let title: String
     let message: String

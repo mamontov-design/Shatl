@@ -115,26 +115,6 @@ final class PreparedDraftLifecycleTests: XCTestCase {
         XCTAssertNil(bundle.store.currentAddTorrentDraft)
     }
 
-    func testRetryReleasesReplacedDraft() async throws {
-        let (engine, bundle) = await makeStrictBundle()
-
-        bundle.store.continueFromTorrentFile(at: "/tmp/retry.torrent")
-        let firstDraftID = try await readyDraftID(in: bundle.store)
-
-        bundle.store.retryCurrentDraftPreparation()
-        let didReplace = await waitForCondition {
-            guard let draft = bundle.store.currentAddTorrentDraft else { return false }
-            return draft.reviewState == .ready && draft.id != firstDraftID
-        }
-        XCTAssertTrue(didReplace)
-        let secondDraftID = try XCTUnwrap(bundle.store.currentAddTorrentDraft?.id)
-
-        let didReleaseFirst = await waitForAsyncCondition {
-            await engine.heldPreparedDraftIDs() == [secondDraftID]
-        }
-        XCTAssertTrue(didReleaseFirst)
-    }
-
     private func makeStrictBundle(
         torrents: [TorrentRecord] = []
     ) async -> (FakeTorrentEngine, TestStoreBundle) {

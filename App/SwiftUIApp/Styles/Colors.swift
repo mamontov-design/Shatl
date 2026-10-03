@@ -106,7 +106,6 @@ enum ShatlCornerRadius {
     static let button: CGFloat = 8
     static let tab: CGFloat = 6
     static let container: CGFloat = 20
-    static let expandButton: CGFloat = 5.5
 }
 
 enum ShatlGlassTint {

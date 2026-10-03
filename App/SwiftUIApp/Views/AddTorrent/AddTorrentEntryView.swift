@@ -101,32 +101,25 @@ struct AddTorrentEntryView: View {
         !magnetInput.isEmpty
     }
 
+    /// The empty window's content; the add modal is `modalHeader` and
+    /// `modalActionBox`.
     private var windowContent: some View {
         VStack(spacing: 16) {
             AddTorrentHeader(title: title, subtitle: subtitle)
             addTorrentBox
         }
-        .frame(width: placement == .emptyState ? 300 : nil)
-        .frame(maxWidth: placement == .modal ? .infinity : nil)
+        .frame(width: 300)
     }
 
-    @ViewBuilder
     private var addTorrentBox: some View {
-        switch placement {
-        case .emptyState:
-            addTorrentBoxContent
-                .padding(12)
-                .frame(width: 250)
-                .glassEffect(
-                    .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
-                    in: addTorrentBoxShape
-                )
-                .background { addTorrentBoxShadow }
-        case .modal:
-            addTorrentBoxContent
-                .padding(8)
-                .frame(maxWidth: .infinity)
-        }
+        addTorrentBoxContent
+            .padding(12)
+            .frame(width: 250)
+            .glassEffect(
+                .regular.tint(.accent.opacity(ShatlGlassTint.subtleOpacity)),
+                in: addTorrentBoxShape
+            )
+            .background { addTorrentBoxShadow }
     }
 
     private var addTorrentBoxContent: some View {
@@ -499,7 +492,6 @@ private struct AddTorrentHeader: View {
     var body: some View {
         VStack(spacing: 24) {
             ShatlWordmark(
-                renderingMode: .glass,
                 selection: preferredBrandMark
             )
 

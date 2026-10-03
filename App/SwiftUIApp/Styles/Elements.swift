@@ -1151,7 +1151,6 @@ private extension TorrentRowState {
                 defaultValue: "Загружается"
             ),
             progress: record.progress,
-            hasActiveTransfer: record.metrics.downloadSpeedBytesPerSecond > 0,
             compactTransferMetricSet: TorrentPresentation.compactTransferMetricSet(
                 for: record,
                 mode: metricsMode,

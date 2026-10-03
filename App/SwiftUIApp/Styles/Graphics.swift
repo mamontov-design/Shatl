@@ -11,7 +11,6 @@ enum ShatlBrandRenderingMode {
 }
 
 struct ShatlWordmark: View {
-    let renderingMode: ShatlBrandRenderingMode
     let artworkAlignment: Alignment
     let isInteractive: Bool
 
@@ -32,12 +31,10 @@ struct ShatlWordmark: View {
     @State private var bounceTask: Task<Void, Never>?
 
     init(
-        renderingMode: ShatlBrandRenderingMode,
         selection: Binding<ShatlBrandMark>,
         artworkAlignment: Alignment = .center,
         isInteractive: Bool = true
     ) {
-        self.renderingMode = renderingMode
         self.artworkAlignment = artworkAlignment
         self.isInteractive = isInteractive
         self.selection = selection
@@ -50,12 +47,10 @@ struct ShatlWordmark: View {
     }
 
     init(
-        renderingMode: ShatlBrandRenderingMode,
         initialSelection: ShatlBrandMark = .wordmark,
         artworkAlignment: Alignment = .center,
         isInteractive: Bool = true
     ) {
-        self.renderingMode = renderingMode
         self.artworkAlignment = artworkAlignment
         self.isInteractive = isInteractive
         selection = nil
@@ -69,9 +64,10 @@ struct ShatlWordmark: View {
         selection?.wrappedValue ?? localSelection
     }
 
-    private var effectiveRenderingMode: ShatlBrandRenderingMode {
+    /// Glass on macOS 27; flat on macOS 26.
+    private var renderingMode: ShatlBrandRenderingMode {
         if #available(macOS 27.0, *) {
-            renderingMode
+            .glass
         } else {
             .flat
         }
@@ -81,7 +77,7 @@ struct ShatlWordmark: View {
         ZStack(alignment: artworkAlignment) {
             ShatlWordmarkArtwork(
                 animationPhase: wordmarkAnimationState.phase,
-                renderingMode: effectiveRenderingMode
+                renderingMode: renderingMode
             )
                 .compositingGroup()
                 .opacity(Double(1 - logomarkProgress))
@@ -90,7 +86,7 @@ struct ShatlWordmark: View {
 
             ShatlLogomarkArtwork(
                 animationPhase: logomarkAnimationState.phase,
-                renderingMode: effectiveRenderingMode
+                renderingMode: renderingMode
             )
                 .frame(width: 84, height: 84)
                 .compositingGroup()
@@ -675,7 +671,7 @@ private struct ShatlLogomarkArtwork: View {
         .frame(width: 84, height: 84)
     }
 
-    /// Flat is macOS 26 (see `ShatlWordmark.effectiveRenderingMode`): the
+    /// Flat is macOS 26 (see `ShatlWordmark.renderingMode`): the
     /// letter and the star take the glass's colors as solid ones, over a
     /// plain shape.
     @ViewBuilder
