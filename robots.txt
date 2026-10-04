@@ -1,0 +1,4 @@
+User-Agent: *
+Allow: /
+
+Sitemap: https://mamontov-design.github.io/Shatl/sitemap.xml
