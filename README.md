@@ -36,7 +36,7 @@ settings, and follow progress without unnecessary visual noise.
   low-level libtorrent settings by hand.
 - **Make downloads recognizable.** Give a torrent a clear alias while keeping
   its original name available when needed.
-- **Feel at home on macOS.** Shatl uses SwiftUI, native materials, the system
+- **Feel at home on macOS.** Shatl uses SwiftUI, Liquid Glass, the system
   accent color, notifications, and Reduce Motion support.
 - **Use it in your language.** The interface is available in English, German,
   Spanish, French, Russian, Japanese, and Simplified Chinese.
@@ -46,14 +46,15 @@ session between launches, including downloads that need attention.
 
 ## Download
 
-Download `Shatl-1.0.zip` from the
+Download the disk image from the
 [latest release](https://github.com/mamontov-design/shatl-updates/releases/latest),
-extract it, and move `Shatl.app` to the Applications folder.
+open it, and drag Shatl to the Applications folder.
 
-The first release is not notarized. If macOS blocks the first launch, open
-**System Settings → Privacy & Security** and choose **Open Anyway** for Shatl.
-Future updates are delivered in the app through
-[Sparkle](https://sparkle-project.org/).
+Shatl is not signed with an Apple Developer ID or notarized, so macOS blocks
+the first launch. Click **Done** in the warning, open
+**System Settings → Privacy & Security**, choose **Open Anyway** for Shatl, and
+confirm. The disk image includes a step-by-step guide. Future updates are
+delivered in the app through [Sparkle](https://sparkle-project.org/).
 
 ## Requirements
 
@@ -79,12 +80,13 @@ Scripts/build-libtorrent.sh
 ## Privacy
 
 Anonymous usage statistics are opt-in. When enabled, Shatl sends at most one
-aggregate report per week containing the launch count, app version, and
-interface language. It does not send torrent contents, file names, paths, or
-magnet links, and the payload can be inspected from the app before it is sent.
+report per week containing a random install identifier, the week, the number of
+launches that week, the app version, and the interface language. It does not
+send torrent contents, file names, paths, or magnet links, and the payload can
+be inspected from the app before it is sent.
 
-Diagnostic file logging is disabled by default and cannot be activated in
-release builds.
+Release builds contain no logging code; diagnostic logs exist only in
+development builds.
 
 ## License and responsible use
 
