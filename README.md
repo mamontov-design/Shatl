@@ -9,9 +9,9 @@
 Choose files before a download begins, tune performance without touching engine
 settings, and follow progress without unnecessary visual noise.
 
-[Download the latest release](https://github.com/mamontov-design/shatl-updates/releases/latest)
+[Download the latest release](https://github.com/mamontov-design/Shatl/releases/latest)
 ·
-[View update history](https://github.com/mamontov-design/shatl-updates/releases)
+[View update history](https://github.com/mamontov-design/Shatl/releases)
 
 ![macOS 26 or later](https://img.shields.io/badge/macOS-26%2B-111111?logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-required-111111)
@@ -47,7 +47,7 @@ session between launches, including downloads that need attention.
 ## Download
 
 Download the disk image from the
-[latest release](https://github.com/mamontov-design/shatl-updates/releases/latest),
+[latest release](https://github.com/mamontov-design/Shatl/releases/latest),
 open it, and drag Shatl to the Applications folder.
 
 Shatl is not signed with an Apple Developer ID or notarized, so macOS blocks
