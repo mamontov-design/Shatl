@@ -43,7 +43,7 @@
 	<key>SUFeedURL</key>
 	<string>https://mamontov-design.github.io/shatl-updates/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>R3ZCY3y+bd6xPJCiZLNqNPUSuJ98bTg7ukLRyrTnvYc=</string>
+	<string>Th5kTuhRtDy2XHntqyQPT+MvcYHi6nuslgaGjbLYzEo=</string>
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUScheduledCheckInterval</key>
