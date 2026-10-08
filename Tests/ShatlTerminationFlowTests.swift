@@ -6,6 +6,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class ShatlTerminationFlowTests: XCTestCase {
     func testSuccessfulSaveQuitsWithoutDialog() async {
         let handler = ScriptedTerminationHandler(results: [true])

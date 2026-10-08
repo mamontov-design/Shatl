@@ -6,6 +6,7 @@ import XCTest
 @testable import Shatl
 
 /// Reads the built host app, so the checks cover the generated Info.plist.
+@MainActor
 final class InfoPlistTests: XCTestCase {
     /// The standard About window shows it under the version.
     func testAboutWindowHasACopyright() throws {

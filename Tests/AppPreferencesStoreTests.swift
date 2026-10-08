@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class AppPreferencesStoreTests: XCTestCase {
     func testLoadReturnsDefaultWhenNothingWasSaved() {
         let suiteName = "AppPreferencesStoreTests-\(UUID().uuidString)"

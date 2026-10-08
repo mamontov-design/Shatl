@@ -9,6 +9,7 @@ import XCTest
 
 /// Messages about the saved list name their buttons exactly as the buttons
 /// are labelled, in every language, and warn before the list is wiped.
+@MainActor
 final class SessionCopyTests: XCTestCase {
     private let languages = AppLocaleOverride.allCases.filter { $0 != .system }
 
@@ -58,6 +59,7 @@ final class SessionCopyTests: XCTestCase {
 
 /// Removal dialogs say what each button does, and that files deleted with a
 /// download do not go to the Trash.
+@MainActor
 final class RemovalCopyTests: XCTestCase {
     func testDeleteWithFilesWarnsThatFilesSkipTheTrash() {
         let message = L10n.string("remove_dialog.delete_with_files.message", localeOverride: .russian)
@@ -80,6 +82,7 @@ final class RemovalCopyTests: XCTestCase {
 
 /// The statistics table names what a report never contains exactly as the
 /// project contract and the landing page do.
+@MainActor
 final class StatisticsCopyTests: XCTestCase {
     private let rows = [
         "settings.data.does_not_collect.torrents_and_links",

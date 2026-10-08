@@ -6,6 +6,7 @@ import XCTest
 
 /// Unit tests are hosted in Shatl.app. If the host is not recognized, every
 /// test run bootstraps the user's real session, preferences and telemetry.
+@MainActor
 final class ShatlLaunchModeTests: XCTestCase {
     func testThisTestProcessIsRecognizedAsUnitTestHost() {
         XCTAssertEqual(ShatlLaunchMode.current, .unitTestHost)

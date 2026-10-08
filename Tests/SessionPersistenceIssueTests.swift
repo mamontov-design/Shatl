@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class SessionPersistenceIssueTests: XCTestCase {
     func testFailedActionShowsAgainAfterHideButBackgroundFailureStaysHidden() async throws {
         let context = try await makeContext(status: .downloading)

@@ -9,6 +9,7 @@ import XCTest
 /// Runs the real libtorrent bridge under 256 open files, the soft limit launchd
 /// gives a process before AppKit raises it to 2560. Every TCP peer and every
 /// open payload file takes one descriptor.
+@MainActor
 final class LibtorrentEngineOpenFileLimitTests: XCTestCase {
     /// Descriptors Shatl itself and libtorrent's own sockets need beside peer
     /// connections and the file pool: libtorrent alone opens three sockets per

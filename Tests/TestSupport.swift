@@ -8,7 +8,7 @@ struct RemovedTorrentCall: Sendable, Equatable {
     var id: UUID
 }
 
-actor FakeTorrentEngine: TorrentEngine {
+actor FakeTorrentEngine {
     private var bootCallCountValue = 0
     private var addCallCountValue = 0
     private var addError: TorrentEngineError?
@@ -732,3 +732,7 @@ nonisolated func makeTestRecord(
         stopAfterDownload: stopAfterDownload
     )
 }
+
+// The conformance sits apart: on the declaration, Swift 6.4 sometimes infers
+// the protocol's `nonisolated` onto the actor itself and rejects it.
+extension FakeTorrentEngine: TorrentEngine {}

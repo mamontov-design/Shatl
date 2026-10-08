@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class ResumeDataWriteTests: XCTestCase {
     func testResumeDataWriteReplacesFileWithoutLeftovers() throws {
         let directoryURL = try makeTemporaryDirectory(named: "Replace")

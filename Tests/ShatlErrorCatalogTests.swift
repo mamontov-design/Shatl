@@ -4,6 +4,7 @@
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class ShatlErrorCatalogTests: XCTestCase {
     func testTorrentActionErrorOffersRetryAndRemoveFromListForGenericFailure() {
         let state = ShatlErrorCatalog.torrentActionError(

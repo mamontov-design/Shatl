@@ -6,6 +6,7 @@ import XCTest
 
 /// The wordmark and the logomark breathe through one phase but with their own
 /// stroke widths: the logomark's compact letter closes up above 8 pt.
+@MainActor
 final class ShatlBrandAnimationTests: XCTestCase {
     func testWordmarkBreathesFromFourToTwelvePoints() {
         let widths = ShatlBrandAnimation.phases.map {

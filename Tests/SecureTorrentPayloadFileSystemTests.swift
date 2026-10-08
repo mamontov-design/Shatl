@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class SecureTorrentPayloadFileSystemTests: XCTestCase {
     func testInvalidManifestCannotInfluenceDirectoryCleanup() throws {
         let rootURL = try makeTemporaryDirectory(named: "InvalidManifest")

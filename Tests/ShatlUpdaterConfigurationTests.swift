@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class ShatlUpdaterConfigurationTests: XCTestCase {
     func testHostBundleContainsHardenedSparkleConfiguration() throws {
         let info = try XCTUnwrap(Bundle.main.infoDictionary)

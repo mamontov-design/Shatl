@@ -4,6 +4,7 @@
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class AddTorrentReviewLayoutTests: XCTestCase {
     func testTextSegmentSpacingMovesUnicodeWhitespaceToFollowingNumber() {
         let separators = [" ", "\u{00A0}", "\u{202F}"]

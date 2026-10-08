@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class SessionStoreTests: XCTestCase {
     func testSaveAndLoadPreservesPartialSelection() async throws {
         let rootURL = FileManager.default.temporaryDirectory

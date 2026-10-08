@@ -6,6 +6,7 @@ import Darwin
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class AppPreferencesTests: XCTestCase {
     func testDefaultDownloadPathUsesSystemDownloadsDirectory() {
         let expectedPath = resolvedRealUserDownloadsPath()

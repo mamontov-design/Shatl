@@ -7,6 +7,7 @@ import XCTest
 
 /// Runs the real libtorrent bridge with magnet links whose metadata never
 /// arrives, so the engine stays in the waiting phase for the whole test.
+@MainActor
 final class LibtorrentEngineMagnetMetadataTests: XCTestCase {
     func testEngineServesOtherCommandsWhileMagnetMetadataIsPending() async throws {
         let fixture = try EngineFixture.make(named: "MagnetBusy")

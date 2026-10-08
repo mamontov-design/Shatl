@@ -6,6 +6,7 @@ import XCTest
 @testable import Shatl
 
 /// Runs the real libtorrent bridge against a generated torrent in a temporary folder.
+@MainActor
 final class LibtorrentEngineResumeDataTests: XCTestCase {
     func testCheckpointWritesFastResumeThatRestoreLoads() async throws {
         let fixture = try EngineFixture.make(named: "RoundTrip")

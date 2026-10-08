@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class MaterializedSelectionFootprintTests: XCTestCase {
     func testUnionKeepsAllMaterializedOrdinals() {
         let lhs = MaterializedSelectionFootprint(selectedFileCount: 5, materializedOrdinals: Set([0, 3]))

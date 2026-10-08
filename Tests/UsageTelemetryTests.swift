@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class UsageTelemetryTests: XCTestCase {
     func testISOWeekIdentifierUsesWeekYear() throws {
         var calendar = Calendar(identifier: .iso8601)

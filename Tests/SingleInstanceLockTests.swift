@@ -10,6 +10,7 @@ import XCTest
 /// `session.json` and clean up each other's archives, so only the first copy
 /// may own the folder. A second descriptor of the lock file in this process
 /// stands for a second copy: `flock` belongs to the open file, not the process.
+@MainActor
 final class SingleInstanceLockTests: XCTestCase {
     private let firstCopyPath = "/Applications/Shatl.app"
     private let secondCopyPath = "/Volumes/Shatl/Shatl.app"
@@ -313,6 +314,7 @@ private final class LockBox: @unchecked Sendable {
     }
 }
 
+@MainActor
 private final class HandoffRecorder {
     var openedURLs: [URL] = []
     var targetURL: URL?

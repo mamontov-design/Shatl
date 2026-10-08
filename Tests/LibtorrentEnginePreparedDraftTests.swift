@@ -8,6 +8,7 @@ import XCTest
 /// Runs the real libtorrent bridge to prove that each prepared draft owns its
 /// metadata until it is released, so nothing stays in memory after Review
 /// closes or an addition finishes.
+@MainActor
 final class LibtorrentEnginePreparedDraftTests: XCTestCase {
     func testEachDraftOfTheSameSourceHoldsItsOwnMetadataUntilReleased() async throws {
         let fixture = try EngineFixture.make(named: "DraftRelease")

@@ -8,6 +8,7 @@ import XCTest
 /// the rest. The title never blurs; the speed row on top stays sharp for
 /// both toggles; the expanded metrics stay sharp only for the simplified
 /// mode, which changes them too.
+@MainActor
 final class CardPreviewFocusTests: XCTestCase {
     func testWhatEachToggleKeepsSharp() {
         let sharpForSpeedColors: Set<TorrentCardPreviewElement> = [.title, .compactMetrics]
