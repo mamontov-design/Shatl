@@ -3,7 +3,7 @@
 
 import SwiftUI
 
-enum TorrentCardLayout {
+nonisolated enum TorrentCardLayout {
     static let compactExpandedMetricsWidth: CGFloat = 480
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
 }
@@ -24,7 +24,7 @@ private struct ProgressGroupResizeAnimationKey: Equatable {
     var textWidthPattern: String?
 }
 
-private struct TorrentProgressFillShape: Shape {
+private nonisolated struct TorrentProgressFillShape: Shape {
     var progress: CGFloat
 
     var animatableData: CGFloat {

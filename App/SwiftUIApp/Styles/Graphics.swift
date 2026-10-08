@@ -433,17 +433,17 @@ private enum ShatlLogomarkOpacity {
     static let starAtMaximumWidth = 0.85
 }
 
-private enum ShatlWordmarkMetrics {
+private nonisolated enum ShatlWordmarkMetrics {
     static let viewport = CGSize(width: 214, height: 85)
 }
 
-private struct ShatlMorphCubicSegment {
+private nonisolated struct ShatlMorphCubicSegment {
     let control1: CGPoint
     let control2: CGPoint
     let end: CGPoint
 }
 
-private struct ShatlWordmarkStarMorphShape: Shape {
+private nonisolated struct ShatlWordmarkStarMorphShape: Shape {
     var progress: CGFloat
 
     var animatableData: CGFloat {
@@ -737,7 +737,7 @@ enum ShatlPerformanceSpeedometerLevel {
     case threeOfThree
 }
 
-struct ShatlPerformanceSpeedometerTrackShape: Shape {
+nonisolated struct ShatlPerformanceSpeedometerTrackShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let p = PerformanceSpeedometerPointMapper(rect: rect)
@@ -774,7 +774,7 @@ struct ShatlPerformanceSpeedometerTrackShape: Shape {
     }
 }
 
-struct ShatlPerformanceSpeedometerProgressShape: Shape {
+nonisolated struct ShatlPerformanceSpeedometerProgressShape: Shape {
     let level: ShatlPerformanceSpeedometerLevel
 
     func path(in rect: CGRect) -> Path {
@@ -840,7 +840,7 @@ struct ShatlPerformanceSpeedometerProgressShape: Shape {
     }
 }
 
-struct ShatlPerformanceSpeedometerArrowShape: Shape {
+nonisolated struct ShatlPerformanceSpeedometerArrowShape: Shape {
     let level: ShatlPerformanceSpeedometerLevel
 
     func path(in rect: CGRect) -> Path {
@@ -942,7 +942,7 @@ struct ShatlPerformanceSpeedometerArrowShape: Shape {
     }
 }
 
-struct ShatlWindowButtonCloseShape: Shape {
+nonisolated struct ShatlWindowButtonCloseShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let p = WindowButtonPointMapper(rect: rect)
@@ -951,7 +951,7 @@ struct ShatlWindowButtonCloseShape: Shape {
     }
 }
 
-struct ShatlWindowButtonMinimizeShape: Shape {
+nonisolated struct ShatlWindowButtonMinimizeShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let p = WindowButtonPointMapper(rect: rect)
@@ -960,7 +960,7 @@ struct ShatlWindowButtonMinimizeShape: Shape {
     }
 }
 
-struct ShatlWindowButtonExpandShape: Shape {
+nonisolated struct ShatlWindowButtonExpandShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let p = WindowButtonPointMapper(rect: rect)
@@ -969,7 +969,7 @@ struct ShatlWindowButtonExpandShape: Shape {
     }
 }
 
-private struct ShatlSVGPathShape: Shape {
+private nonisolated struct ShatlSVGPathShape: Shape {
     let paths: [String]
     let viewport: CGSize
 
@@ -985,7 +985,7 @@ private struct ShatlSVGPathShape: Shape {
     }
 }
 
-private struct ShatlSVGPathParser {
+private nonisolated struct ShatlSVGPathParser {
     private enum Token {
         case command(Character)
         case number(CGFloat)
@@ -1143,7 +1143,7 @@ private struct ShatlSVGPathParser {
     }
 }
 
-private struct ShatlLogomarkAppShape: Shape {
+private nonisolated struct ShatlLogomarkAppShape: Shape {
     func path(in rect: CGRect) -> Path {
         ShatlSVGPathShape(
             paths: ["M0 35.2C0 22.8788 0 16.7183 2.39786 12.0122C4.50707 7.87264 7.87264 4.50707 12.0122 2.39786C16.7183 0 22.8788 0 35.2 0H48.8C61.1212 0 67.2817 0 71.9878 2.39786C76.1274 4.50707 79.4929 7.87264 81.6021 12.0122C84 16.7183 84 22.8788 84 35.2V48.8C84 61.1212 84 67.2817 81.6021 71.9878C79.4929 76.1274 76.1274 79.4929 71.9878 81.6021C67.2817 84 61.1212 84 48.8 84H35.2C22.8788 84 16.7183 84 12.0122 81.6021C7.87264 79.4929 4.50707 76.1274 2.39786 71.9878C0 67.2817 0 61.1212 0 48.8V35.2Z"],
@@ -1153,7 +1153,7 @@ private struct ShatlLogomarkAppShape: Shape {
     }
 }
 
-private struct ShatlLogomarkAStrokeShape: Shape {
+private nonisolated struct ShatlLogomarkAStrokeShape: Shape {
     func path(in rect: CGRect) -> Path {
         ShatlSVGPathShape(
             paths: ["M20.236 49.9821C14.7612 31.1451 28.972 18.8118 42.1744 19.0342C55.4296 19.2575 67.8536 31.4135 64.0772 47.6361C63.043 52.0791 59.3624 58.0043 53.8955 61.4227C49.4457 64.2052 44.8972 64.966 41.3967 63.4563C38.545 62.2264 36.1679 59.0767 36.1679 54.6076C36.1679 51.3452 37.5086 47.9487 40.1008 45.4908C42.6921 43.0337 46.4313 41.7101 50.469 42.0497C55.2507 42.4518 61.999 46.2058 65.5742 53.5797C67.4536 57.4559 68.8814 64.2161 65.5296 70.875"],
@@ -1163,7 +1163,7 @@ private struct ShatlLogomarkAStrokeShape: Shape {
     }
 }
 
-private struct ShatlLogomarkAStrokeGlassShape: Shape {
+private nonisolated struct ShatlLogomarkAStrokeGlassShape: Shape {
     var lineWidth: CGFloat
 
     var animatableData: CGFloat {
@@ -1178,7 +1178,7 @@ private struct ShatlLogomarkAStrokeGlassShape: Shape {
     }
 }
 
-private struct ShatlLogomarkStarMorphShape: Shape {
+private nonisolated struct ShatlLogomarkStarMorphShape: Shape {
     var progress: CGFloat
 
     var animatableData: CGFloat {
@@ -1252,7 +1252,7 @@ private struct ShatlLogomarkStarMorphShape: Shape {
     ]
 }
 
-private struct ShatlWordmarkStrokeShape: Shape {
+private nonisolated struct ShatlWordmarkStrokeShape: Shape {
     func path(in rect: CGRect) -> Path {
         ShatlSVGPathShape(
             paths: ["M140.398 42.7357C149.205 39.8762 158.761 38.7572 168.38 38.7572M209.435 74.3149C205.422 77.3299 201.608 78.3342 198.332 78.4149C180.011 78.8659 176.242 44.5554 180.761 23.7089C183.28 12.0891 187.546 6.37399 194.304 7.14705C197.021 7.45787 200.412 9.27972 201.643 14.4513C202.767 19.1758 202.33 23.5583 201.705 27.8165C198.31 50.9622 181.107 84.3489 165.666 77.2988C153.548 71.7662 148.801 45.1602 154.298 21.7866C149.364 43.5439 154 64.8486 147.144 74.4703C145.269 77.1011 142.176 78.648 139.273 78.542C132.435 78.2923 129.563 72.2014 127.565 66.9175C123.59 62.7672 118.758 61.9444 115.351 63.2809C112.157 64.534 109.852 67.6534 109.824 71.5797C109.826 77.4853 115.526 80.2689 121.006 77.4231C124.527 75.5952 128.254 71.2119 129.311 66.6066C131.966 55.0442 123.003 46.7142 113.571 46.7142C105.17 46.7142 96.4846 53.997 95.8349 68.2229C95.5226 75.0609 91.4627 78.2313 88.0274 78.5421C85.8144 78.7423 83.7583 78.1155 82.0312 76.5528C80.657 75.3096 79.2135 73.1534 79.5328 69.404C79.8451 65.7364 80.8132 63.2188 81.2816 60.266C82.2447 54.1953 78.7544 49.8947 74.411 48.9522C68.4399 47.6565 60.7923 52.4643 57.4692 63.6331C55.9921 68.5978 55.1209 74.3194 55.4517 82.0033C53.0132 63.5944 48.5524 22.2218 58.4211 10.2648C60.4723 7.77957 63.8881 6.34509 67.5404 7.30248C77.8801 10.0129 77.1593 31.2977 61.0733 55.4171C49.3708 72.964 34.4363 85.4112 19.0375 74.3771C28.5626 81.8678 37.0885 76.1798 38.2753 70.3986C39.462 64.6174 36.0892 60.6389 31.2172 57.7794C26.3453 54.9198 23.0349 50.6927 26.4703 42.7358C21.6275 54.1965 13.5448 66.1355 5.43481 75.0352"],
@@ -1262,7 +1262,7 @@ private struct ShatlWordmarkStrokeShape: Shape {
     }
 }
 
-private struct ShatlWordmarkStrokeGlassShape: Shape {
+private nonisolated struct ShatlWordmarkStrokeGlassShape: Shape {
     var lineWidth: CGFloat
 
     var animatableData: CGFloat {
@@ -1277,7 +1277,7 @@ private struct ShatlWordmarkStrokeGlassShape: Shape {
     }
 }
 
-private struct PerformanceSpeedometerPointMapper {
+private nonisolated struct PerformanceSpeedometerPointMapper {
     let rect: CGRect
 
     func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
@@ -1288,7 +1288,7 @@ private struct PerformanceSpeedometerPointMapper {
     }
 }
 
-private struct WindowButtonPointMapper {
+private nonisolated struct WindowButtonPointMapper {
     let rect: CGRect
 
     func rect(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) -> CGRect {
