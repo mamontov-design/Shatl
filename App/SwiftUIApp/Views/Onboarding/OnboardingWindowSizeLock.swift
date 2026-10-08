@@ -97,7 +97,7 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
             self.onContentHeightChange = onContentHeightChange
         }
 
-        deinit {
+        isolated deinit {
             if let closeObservation {
                 NotificationCenter.default.removeObserver(closeObservation)
             }

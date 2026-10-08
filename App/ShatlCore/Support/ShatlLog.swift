@@ -89,7 +89,7 @@ nonisolated final class ShatlFileLogger: @unchecked Sendable {
         guard loggingEnabled else { return }
 
         let line = "[\(timestamp())] [\(category)] [\(level.rawValue)] \(message)"
-        let append: () -> Void = { [weak self] in
+        let append: @Sendable () -> Void = { [weak self] in
             self?.appendLine(line, force: false)
         }
 
@@ -455,9 +455,11 @@ nonisolated struct ShatlLog: Sendable {
     }
 }
 
+/// The libtorrent bridge calls both bridges from the engine's thread, so they
+/// stay off the main actor; the logs they reach guard their own state.
 @objc(ShatlSnapshotDiagnosticsBridge)
 @objcMembers
-final class ShatlSnapshotDiagnosticsBridge: NSObject {
+nonisolated final class ShatlSnapshotDiagnosticsBridge: NSObject {
     class func loggingEnabled() -> Bool {
         ShatlSnapshotDiagnosticsLog.isEnabled
     }
@@ -470,7 +472,7 @@ final class ShatlSnapshotDiagnosticsBridge: NSObject {
 
 @objc(ShatlDiagnosticsBridge)
 @objcMembers
-final class ShatlDiagnosticsBridge: NSObject {
+nonisolated final class ShatlDiagnosticsBridge: NSObject {
     class func loggingEnabled() -> Bool {
         ShatlFileLogger.shared.loggingEnabled
     }

@@ -338,7 +338,7 @@ private final class AddTorrentReviewWindowDiagnosticsNSView: NSView {
         report(event: "window.attached", source: "sheet")
     }
 
-    deinit {
+    isolated deinit {
         removeWindowObservers()
     }
 
@@ -416,10 +416,10 @@ private final class AddTorrentReviewWindowDiagnosticsNSView: NSView {
                     object: window,
                     queue: .main
                 ) { [weak self] notification in
-                    self?.report(
-                        event: "window.\(notification.name.rawValue)",
-                        source: source
-                    )
+                    let event = "window.\(notification.name.rawValue)"
+                    MainActor.assumeIsolated {
+                        self?.report(event: event, source: source)
+                    }
                 }
             )
         }
@@ -1027,7 +1027,7 @@ private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentabl
             observedWindow = nil
         }
 
-        deinit {
+        isolated deinit {
             if let closeObservation {
                 NotificationCenter.default.removeObserver(closeObservation)
             }

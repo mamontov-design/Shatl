@@ -172,7 +172,7 @@ private final class ShatlWindowBackingScaleView: NSView {
         reportBackingScaleFactor()
     }
 
-    deinit {
+    isolated deinit {
         removeWindowObservers()
     }
 
@@ -192,14 +192,14 @@ private final class ShatlWindowBackingScaleView: NSView {
                 object: window,
                 queue: .main
             ) { [weak self] _ in
-                self?.reportBackingScaleFactor()
+                MainActor.assumeIsolated { self?.reportBackingScaleFactor() }
             },
             notificationCenter.addObserver(
                 forName: NSWindow.didChangeScreenNotification,
                 object: window,
                 queue: .main
             ) { [weak self] _ in
-                self?.reportBackingScaleFactor()
+                MainActor.assumeIsolated { self?.reportBackingScaleFactor() }
             }
         ]
     }

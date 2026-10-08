@@ -36,7 +36,7 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    deinit {
+    isolated deinit {
         if let windowObserver {
             NotificationCenter.default.removeObserver(windowObserver)
         }
@@ -155,7 +155,8 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 private final class ShatlUserNotificationCenterDelegate: NSObject, UNUserNotificationCenterDelegate {
-    func userNotificationCenter(
+    /// The system may call it off the main thread; it touches nothing else.
+    nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
