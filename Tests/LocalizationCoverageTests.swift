@@ -7,6 +7,7 @@ import XCTest
 
 /// A key missing from the strings files falls back to the Russian default in
 /// every language, silently: VoiceOver read «Продолжить» in English and German.
+@MainActor
 final class LocalizationCoverageTests: XCTestCase {
     private let languages = ["ru", "en", "de", "es", "fr", "ja", "zh-Hans"]
     /// Plural categories depend on the language's grammar.

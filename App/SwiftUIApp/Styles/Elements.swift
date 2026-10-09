@@ -1379,7 +1379,7 @@ struct ShatlMetricItem: View {
 
 /// The cell's own shape, or nothing to clip: switching between the two
 /// keeps the item's view.
-private struct MetricItemClip: Shape {
+private nonisolated struct MetricItemClip: Shape {
     var clips: Bool
 
     func path(in rect: CGRect) -> Path {

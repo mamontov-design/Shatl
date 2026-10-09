@@ -6,6 +6,7 @@ import XCTest
 
 /// A duplicate names the torrent that is already in the list, shortened in
 /// the middle so a long name stays readable in the message.
+@MainActor
 final class ShatlMessageTextTests: XCTestCase {
     func testShortNamesStayWhole() {
         XCTAssertEqual(ShatlErrorCatalog.shortenedTorrentName("Northstar.S01"), "Northstar.S01")

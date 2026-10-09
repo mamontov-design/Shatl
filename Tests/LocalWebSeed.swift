@@ -56,12 +56,13 @@ final class LocalWebSeed: @unchecked Sendable {
             respond(to: String(decoding: buffered[..<end.lowerBound], as: UTF8.self), on: connection)
             buffered = Data(buffered[end.upperBound...])
         }
+        let pending = buffered
         connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
             guard let self, error == nil, !isComplete || data != nil else {
                 connection.cancel()
                 return
             }
-            self.receive(on: connection, buffered: buffered + (data ?? Data()))
+            self.receive(on: connection, buffered: pending + (data ?? Data()))
         }
     }
 

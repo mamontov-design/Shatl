@@ -284,7 +284,7 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
             observedWindow = nil
         }
 
-        deinit {
+        isolated deinit {
             if let closeObservation {
                 NotificationCenter.default.removeObserver(closeObservation)
             }

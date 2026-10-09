@@ -4,6 +4,7 @@
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class TorrentPresentationTests: XCTestCase {
     func testModernBottomChipLayoutReservesChipHeightAndSixPointGaps() {
         XCTAssertEqual(ShatlMetricLayout.containerHeight, 27)

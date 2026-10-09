@@ -10,7 +10,7 @@ struct TorrentListView: View {
     let bottomContentPadding: CGFloat
 
     private static let maximumDisplayedSearchQueryLength = 32
-    private static let horizontalContentPadding: CGFloat = 8
+    private nonisolated static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
 
     private var visibleTorrentIDs: [UUID] {

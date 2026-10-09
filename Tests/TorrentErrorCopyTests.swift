@@ -8,6 +8,7 @@ import XCTest
 /// A card with an error says what happened, why it may have happened and
 /// what to do; its notification says where to fix it, since a notification
 /// has no buttons.
+@MainActor
 final class TorrentErrorCopyTests: XCTestCase {
     private let nbsp = "\u{00A0}"
 

@@ -8,6 +8,7 @@ import XCTest
 /// Shatl used to exit with libtorrent still running: trackers never heard
 /// `stopped`, and its threads met process teardown. A decided quit now stops
 /// the engine, within a bound that also holds for logout and restart.
+@MainActor
 final class EngineShutdownTests: XCTestCase {
     func testFinishingTheQuitStopsTheEngine() async {
         let engine = FakeTorrentEngine()

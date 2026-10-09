@@ -4,6 +4,7 @@
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class BookmarkStoreTests: XCTestCase {
     func testResolveURLUsesFallbackWhenNoBookmarkExists() async throws {
         let rootURL = FileManager.default.temporaryDirectory

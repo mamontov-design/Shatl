@@ -8,6 +8,7 @@ import XCTest
 /// Deleting files is irreversible (`unlinkat`, not the Trash), so a stray
 /// Return must never confirm it. The toolbar sheet already defaults to
 /// «Удалить из списка»; the menus asked with «Удалить» as the default.
+@MainActor
 final class TorrentRemovalDialogTests: XCTestCase {
     func testDeleteWithFilesDefaultsToCancel() {
         let alert = TorrentRemovalDialogPresenter.makeDeleteWithFilesAlert(
@@ -117,6 +118,7 @@ final class TorrentRemovalDialogTests: XCTestCase {
 
 /// Stands in for the alert's own target, so a pressed button is recorded
 /// instead of ending a modal session that is not running.
+@MainActor
 private final class ButtonRecorder: NSObject {
     var pressed: [String] = []
 

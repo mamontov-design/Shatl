@@ -7,6 +7,7 @@ import XCTest
 
 /// The bridge builds its log fields only while the log is on. Guards that
 /// the lazy wrapper still writes them when it is.
+@MainActor
 final class BridgeDiagnosticsTests: XCTestCase {
     func testBridgeWritesItsEventsOnlyWhileTheLogIsOn() throws {
         let wasEnabled = ShatlFileLogger.shared.loggingEnabled

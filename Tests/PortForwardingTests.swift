@@ -8,6 +8,7 @@ import XCTest
 /// Port forwarding asks the user's router to open a port. No test turns it on
 /// in a running session: that would open ports on the router of whoever runs
 /// the tests.
+@MainActor
 final class PortForwardingTests: XCTestCase {
     /// `default_settings()` behind the Orbit profile turns UPnP on, and the
     /// other profiles leave it out: every profile switch must carry the

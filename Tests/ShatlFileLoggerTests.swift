@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class ShatlFileLoggerTests: XCTestCase {
     func testDisabledHighLevelLoggerDoesNotEvaluateMessage() {
         let wasEnabled = ShatlFileLogger.shared.loggingEnabled

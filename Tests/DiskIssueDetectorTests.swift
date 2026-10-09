@@ -5,6 +5,7 @@ import Foundation
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class DiskIssueDetectorTests: XCTestCase {
     func testStartupCheckFlagsMissingContentForCompletedTorrent() async throws {
         let engine = FakeTorrentEngine()

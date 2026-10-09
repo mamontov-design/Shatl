@@ -9,6 +9,7 @@ import XCTest
 /// preposition never hangs at the end of a line. Placing non-breaking spaces
 /// by hand left gaps in every file; `Scripts/typograph.sh` places them now,
 /// and these tests keep a string edited by hand from slipping back.
+@MainActor
 final class CopyTypographyTests: XCTestCase {
     private let nbsp = "\u{00A0}"
     private let narrow = "\u{202F}"

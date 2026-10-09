@@ -9,6 +9,7 @@ import XCTest
 /// list three times: 1000 downloads cost about 107 ms of the main thread per
 /// second in an optimized build. Cards are now rebuilt only when their inputs
 /// change, and lookups by ID use an index.
+@MainActor
 final class TorrentRowCacheTests: XCTestCase {
     func testOneActiveDownloadRebuildsOnlyItsCard() {
         let (store, activeID) = makeStore(count: 1_000)

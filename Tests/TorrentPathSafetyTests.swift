@@ -4,6 +4,7 @@
 import XCTest
 @testable import Shatl
 
+@MainActor
 final class TorrentPathSafetyTests: XCTestCase {
     func testAcceptsNormalizedRelativePaths() {
         XCTAssertEqual(

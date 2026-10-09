@@ -29,7 +29,7 @@ final class ShatlAccentState: ObservableObject {
         }
     }
 
-    deinit {
+    isolated deinit {
         if let systemColorsObserver {
             notificationCenter.removeObserver(systemColorsObserver)
         }

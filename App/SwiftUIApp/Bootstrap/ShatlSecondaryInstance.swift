@@ -24,13 +24,13 @@ enum ShatlSecondaryInstance {
 /// the running copy forward.
 struct ShatlSecondaryInstanceHandoff {
     var holder: SingleInstanceHolder?
-    var openURLs: (_ urls: [URL], _ applicationURL: URL, _ completion: @escaping () -> Void) -> Void
-    var reopenApplication: (_ applicationURL: URL, _ completion: @escaping () -> Void) -> Void
+    var openURLs: (_ urls: [URL], _ applicationURL: URL, _ completion: @escaping @MainActor () -> Void) -> Void
+    var reopenApplication: (_ applicationURL: URL, _ completion: @escaping @MainActor () -> Void) -> Void
     /// Other running copies, for a holder that has not written its record yet.
     var runningCopyURLs: () -> [URL]
     var presentAlreadyRunningNotice: () -> Void
 
-    func run(urls: [URL], completion: @escaping () -> Void) {
+    func run(urls: [URL], completion: @escaping @MainActor () -> Void) {
         let applicationURL = holder.map { URL(fileURLWithPath: $0.bundlePath, isDirectory: true) }
             ?? runningCopyURLs().first
 
@@ -60,7 +60,7 @@ struct ShatlSecondaryInstanceHandoff {
                     withApplicationAt: applicationURL,
                     configuration: activatingConfiguration()
                 ) { _, _ in
-                    DispatchQueue.main.async(execute: completion)
+                    Task { @MainActor in completion() }
                 }
             },
             reopenApplication: { applicationURL, completion in
@@ -68,7 +68,7 @@ struct ShatlSecondaryInstanceHandoff {
                     at: applicationURL,
                     configuration: activatingConfiguration()
                 ) { _, _ in
-                    DispatchQueue.main.async(execute: completion)
+                    Task { @MainActor in completion() }
                 }
             },
             runningCopyURLs: {

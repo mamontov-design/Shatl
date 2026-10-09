@@ -20,6 +20,7 @@ import XCTest
 /// A folder that refuses new files takes the same path with EACCES, without
 /// mounting a disk image in a test. The full disk itself was tried on APFS
 /// images by hand (October 2026).
+@MainActor
 final class PayloadWriteModeTests: XCTestCase {
     func testEveryProfileWritesPayloadThroughWriteCalls() throws {
         let bridge = LibtorrentSessionBridge(

@@ -6,6 +6,7 @@ import XCTest
 
 /// A quick launch shows no message about preparing downloads; a slower one
 /// shows it long enough to read, and it leaves without a "ready" step.
+@MainActor
 final class SessionRestoreStatusTests: XCTestCase {
     func testMessageAppearsOnlyAfterHalfASecond() {
         XCTAssertEqual(SessionRestoreStatusTiming.revealDelay, 0.5)
