@@ -319,7 +319,7 @@ private struct TorrentSearchEmptyStateView: View {
                     )
                 )
                     .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(ShatlColor.typographyTertiary)
+                    .foregroundStyle(ShatlColor.typographySecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }

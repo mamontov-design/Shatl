@@ -536,7 +536,7 @@ struct ShatlSettingsParameterCaption: View {
     private func captionText(_ value: ShatlTextContent) -> some View {
         value.text
             .shatlTypography(ShatlTypography.captionRegular)
-            .foregroundStyle(ShatlColor.typographyTertiary)
+            .foregroundStyle(ShatlColor.typographySecondary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
