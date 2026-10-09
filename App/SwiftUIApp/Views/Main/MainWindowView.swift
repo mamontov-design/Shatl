@@ -312,7 +312,8 @@ struct MainWindowView: View {
             case .list:
                 TorrentListViewport(
                     summaryVisibility: store.torrentTransferSummary.visibility,
-                    searchText: searchText
+                    searchText: searchText,
+                    onRemoveSelected: presentToolbarRemovalDialog
                 )
                     .transition(stageTransition)
                     .zIndex(0)
@@ -674,11 +675,13 @@ struct MainWindowView: View {
 private struct TorrentListViewport: View {
     @ObservedObject var summaryVisibility: TorrentTransferSummaryVisibilityModel
     let searchText: String
+    let onRemoveSelected: () -> Void
 
     var body: some View {
         TorrentListView(
             searchText: searchText,
-            bottomContentPadding: bottomListPadding
+            bottomContentPadding: bottomListPadding,
+            onRemoveSelected: onRemoveSelected
         )
     }
 

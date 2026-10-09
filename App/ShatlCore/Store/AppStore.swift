@@ -1277,6 +1277,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         refreshSelectedTorrentNavigationAvailability()
     }
 
+    /// ↑ and ↓ in the list. Returns the newly selected card, to scroll to it.
+    @discardableResult
+    func moveTorrentSelection(_ step: TorrentListSelectionStep, visibleTorrentIDs: [UUID]) -> UUID? {
+        guard let target = step.target(from: selectedTorrentID, in: visibleTorrentIDs),
+              target != selectedTorrentID else {
+            return nil
+        }
+        selectTorrent(id: target)
+        return target
+    }
+
     func toggleTorrentSelection(id: UUID) {
         selectedTorrentID = selectedTorrentID == id ? nil : id
         refreshSelectedTorrentNavigationAvailability()
