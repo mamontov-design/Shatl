@@ -218,6 +218,7 @@
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Onboarding starten";
 "menu.debug.preview_restore_status" = "„Downloads werden vorbereitet“ zeigen";
+"menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
 "menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";

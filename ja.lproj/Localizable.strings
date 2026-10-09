@@ -215,6 +215,7 @@
 "settings.tab.debug" = "デバッグ";
 "menu.debug.show_onboarding" = "オンボーディングを開始";
 "menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
+"menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";

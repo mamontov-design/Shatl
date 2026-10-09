@@ -21,6 +21,13 @@ struct ShatlCommands: Commands {
             Button("menu.debug.preview_restore_status") {
                 store.previewRestoreStatusForDebug()
             }
+            Button("menu.debug.preview_unsupported_session") {
+                store.toggleUnsupportedSessionPreviewForDebug()
+            }
+            .disabled(
+                store.debugSessionLoadIssuePreview == nil
+                    && !store.canPreviewUnsupportedSessionForDebug
+            )
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)

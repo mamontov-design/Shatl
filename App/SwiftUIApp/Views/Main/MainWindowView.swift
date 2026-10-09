@@ -40,9 +40,17 @@ struct MainWindowView: View {
     private var currentStage: MainWindowStage {
         MainWindowStage.current(
             hasLoadedInitialSession: store.hasLoadedInitialSession,
-            sessionLoadIssue: store.sessionLoadIssue,
+            sessionLoadIssue: displayedSessionLoadIssue,
             hasRows: !store.torrentRowIDs.isEmpty
         )
+    }
+
+    private var displayedSessionLoadIssue: SessionLoadIssue? {
+        #if DEBUG
+        return store.sessionLoadIssue ?? store.debugSessionLoadIssuePreview
+        #else
+        return store.sessionLoadIssue
+        #endif
     }
 
     private var stage: MainWindowStage {

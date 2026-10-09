@@ -215,6 +215,7 @@
 "settings.tab.debug" = "调试";
 "menu.debug.show_onboarding" = "启动新手引导";
 "menu.debug.preview_restore_status" = "显示“正在准备下载”";
+"menu.debug.preview_unsupported_session" = "显示“无法打开下载列表”";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";
 "menu.debug.runtime_error.no_write_access" = "没有写入权限";

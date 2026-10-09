@@ -847,6 +847,23 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         debugRestoreStatusPreviewRequestID &+= 1
     }
 
+    /// Debug menu: the main window shows the message for a list saved by
+    /// another version, over the real list, which stays as it is. "Start
+    /// with an empty list" only ends the preview.
+    @Published private(set) var debugSessionLoadIssuePreview: SessionLoadIssue?
+
+    var canPreviewUnsupportedSessionForDebug: Bool {
+        hasLoadedInitialSession && sessionLoadIssue == nil && !onboardingPresentation.isPresented
+    }
+
+    func toggleUnsupportedSessionPreviewForDebug() {
+        if debugSessionLoadIssuePreview != nil {
+            debugSessionLoadIssuePreview = nil
+        } else if canPreviewUnsupportedSessionForDebug {
+            debugSessionLoadIssuePreview = .unsupportedVersion(found: SessionSnapshot.currentSchemaVersion + 1)
+        }
+    }
+
     /// Debug menu: the selected download stops as the engine stops it with
     /// `cause` (nil: an internal error), notification included, so the card
     /// and "Повторить" can be tried without filling a disk. The engine lets
@@ -2522,6 +2539,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func openWithEmptyDownloadList() {
+        #if DEBUG
+        if debugSessionLoadIssuePreview != nil {
+            debugSessionLoadIssuePreview = nil
+            return
+        }
+        #endif
         guard sessionLoadIssue != nil, !isResolvingSessionRecovery else { return }
         isResolvingSessionRecovery = true
 

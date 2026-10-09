@@ -218,6 +218,7 @@
 "settings.tab.debug" = "Debug";
 "menu.debug.show_onboarding" = "Start Onboarding";
 "menu.debug.preview_restore_status" = "Show “Preparing Downloads”";
+"menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";
 "menu.debug.runtime_error.no_write_access" = "No Write Access";
