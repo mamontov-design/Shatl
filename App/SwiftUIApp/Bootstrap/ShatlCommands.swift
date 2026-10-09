@@ -21,6 +21,13 @@ struct ShatlCommands: Commands {
             Button("menu.debug.preview_restore_status") {
                 store.previewRestoreStatusForDebug()
             }
+            Button("menu.debug.preview_unsupported_session") {
+                store.toggleUnsupportedSessionPreviewForDebug()
+            }
+            .disabled(
+                store.debugSessionLoadIssuePreview == nil
+                    && !store.canPreviewUnsupportedSessionForDebug
+            )
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)
@@ -38,6 +45,7 @@ struct ShatlCommands: Commands {
             } label: {
                 Label("menu.torrent.add", systemImage: "plus")
             }
+            .keyboardShortcut("n")
             .disabled(!store.canAddTorrent)
 
             Divider()
@@ -47,6 +55,7 @@ struct ShatlCommands: Commands {
             } label: {
                 Label("torrent.action.open", systemImage: "arrow.up.forward")
             }
+            .keyboardShortcut("o")
             .disabled(!isOpenEnabled)
 
             Button {
@@ -54,6 +63,8 @@ struct ShatlCommands: Commands {
             } label: {
                 Label("torrent.action.reveal_in_finder", systemImage: "finder")
             }
+            // As in Music and Photos.
+            .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(!isRevealEnabled)
 
             Divider()
@@ -68,6 +79,8 @@ struct ShatlCommands: Commands {
                     Image(systemName: selectedTorrent?.status.isSleeping == true ? "play" : "stop")
                 }
             }
+            // ⌘. stops, as in Safari and Xcode; the same keys start again.
+            .keyboardShortcut(".")
             .disabled(!isToggleRunningStateEnabled)
 
             Divider()
@@ -117,6 +130,10 @@ struct ShatlCommands: Commands {
             } label: {
                 Label("torrent.action.remove_with_files", systemImage: "externaldrive.badge.xmark")
             }
+            // Asks first. ⌘⌫ alone stays with text fields, where it deletes
+            // to the start of the line; in the list, Delete asks the same as
+            // the toolbar's trash button.
+            .keyboardShortcut(.delete, modifiers: [.command, .option])
             .disabled(!isRemoveWithFilesEnabled)
         }
     }

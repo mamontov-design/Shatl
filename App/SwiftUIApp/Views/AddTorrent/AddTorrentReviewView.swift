@@ -2224,7 +2224,7 @@ struct AddTorrentReviewView: View {
                 )
             )
                 .shatlTypography(ShatlTypography.captionRegular)
-                .foregroundStyle(ShatlColor.typographyTertiary)
+                .foregroundStyle(ShatlColor.typographySecondary)
                 .padding(.horizontal, 12)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)

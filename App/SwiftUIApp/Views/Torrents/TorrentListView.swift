@@ -8,10 +8,13 @@ struct TorrentListView: View {
     @EnvironmentObject private var store: AppStore
     let searchText: String
     let bottomContentPadding: CGFloat
+    /// Delete in the list: the same choice as the toolbar's trash button.
+    let onRemoveSelected: () -> Void
 
     private static let maximumDisplayedSearchQueryLength = 32
     private nonisolated static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
+    @FocusState private var isListFocused: Bool
 
     private var visibleTorrentIDs: [UUID] {
         store.torrentRowIDs(matching: searchText)
@@ -54,7 +57,10 @@ struct TorrentListView: View {
                                     resolvePrimaryLocation: {
                                         await store.primaryLocation(for: torrentID)
                                     },
-                                    onSelect: { store.toggleTorrentSelection(id: torrentID) },
+                                    onSelect: {
+                                        store.toggleTorrentSelection(id: torrentID)
+                                        isListFocused = true
+                                    },
                                     onToggleExpanded: {
                                         withAnimation(ShatlMotion.cardLayout) {
                                             store.toggleExpanded(for: torrentID)
@@ -145,6 +151,7 @@ struct TorrentListView: View {
                         .contentShape(Rectangle())
                         .onTapGesture {
                             store.clearTorrentSelection()
+                            isListFocused = true
                             withAnimation(ShatlMotion.cardLayout) {
                                 store.collapseExpandedTorrent()
                             }
@@ -152,6 +159,28 @@ struct TorrentListView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The keyboard works on the list as the toolbar does on the
+            // selected card: arrows select, Space starts or stops, Delete
+            // offers to remove. The search field keeps its own keys.
+            .focusable()
+            .focusEffectDisabled()
+            .focused($isListFocused)
+            .defaultFocus($isListFocused, true)
+            .onMoveCommand { direction in
+                moveSelection(direction, with: scrollProxy)
+            }
+            .onKeyPress(.space) {
+                guard let selectedTorrentID = store.selectedTorrentID,
+                      store.isToolbarStartStopEnabled else {
+                    return .ignored
+                }
+                store.toggleTorrentRunningState(id: selectedTorrentID)
+                return .handled
+            }
+            .onDeleteCommand {
+                guard store.isToolbarRemoveEnabled else { return }
+                onRemoveSelected()
+            }
             .onGeometryChange(for: Bool.self) { proxy in
                 let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
                 return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
@@ -163,6 +192,7 @@ struct TorrentListView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         store.clearTorrentSelection()
+                        isListFocused = true
                         withAnimation(ShatlMotion.cardLayout) {
                             store.collapseExpandedTorrent()
                         }
@@ -189,6 +219,26 @@ struct TorrentListView: View {
                 guard let request else { return }
                 reveal(request.torrentID, with: scrollProxy)
             }
+        }
+    }
+
+    /// Selects the card above or below and scrolls just enough to show it.
+    private func moveSelection(_ direction: MoveCommandDirection, with scrollProxy: ScrollViewProxy) {
+        let step: TorrentListSelectionStep
+        switch direction {
+        case .up:
+            step = .previous
+        case .down:
+            step = .next
+        default:
+            return
+        }
+
+        guard let target = store.moveTorrentSelection(step, visibleTorrentIDs: visibleTorrentIDs) else {
+            return
+        }
+        withAnimation(ShatlMotion.cardLayout) {
+            scrollProxy.scrollTo(target)
         }
     }
 
@@ -269,7 +319,7 @@ private struct TorrentSearchEmptyStateView: View {
                     )
                 )
                     .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(ShatlColor.typographyTertiary)
+                    .foregroundStyle(ShatlColor.typographySecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }

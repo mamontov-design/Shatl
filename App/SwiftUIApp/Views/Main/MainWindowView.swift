@@ -40,9 +40,17 @@ struct MainWindowView: View {
     private var currentStage: MainWindowStage {
         MainWindowStage.current(
             hasLoadedInitialSession: store.hasLoadedInitialSession,
-            sessionLoadIssue: store.sessionLoadIssue,
+            sessionLoadIssue: displayedSessionLoadIssue,
             hasRows: !store.torrentRowIDs.isEmpty
         )
+    }
+
+    private var displayedSessionLoadIssue: SessionLoadIssue? {
+        #if DEBUG
+        return store.sessionLoadIssue ?? store.debugSessionLoadIssuePreview
+        #else
+        return store.sessionLoadIssue
+        #endif
     }
 
     private var stage: MainWindowStage {
@@ -312,7 +320,8 @@ struct MainWindowView: View {
             case .list:
                 TorrentListViewport(
                     summaryVisibility: store.torrentTransferSummary.visibility,
-                    searchText: searchText
+                    searchText: searchText,
+                    onRemoveSelected: presentToolbarRemovalDialog
                 )
                     .transition(stageTransition)
                     .zIndex(0)
@@ -674,11 +683,13 @@ struct MainWindowView: View {
 private struct TorrentListViewport: View {
     @ObservedObject var summaryVisibility: TorrentTransferSummaryVisibilityModel
     let searchText: String
+    let onRemoveSelected: () -> Void
 
     var body: some View {
         TorrentListView(
             searchText: searchText,
-            bottomContentPadding: bottomListPadding
+            bottomContentPadding: bottomListPadding,
+            onRemoveSelected: onRemoveSelected
         )
     }
 
@@ -804,6 +815,7 @@ struct ShatlLineMessageBar: View {
 
 private struct SessionLoadBlockingView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var updaterController: ShatlUpdaterController
 
     let issue: SessionLoadIssue?
     let localeOverride: AppLocaleOverride
@@ -843,23 +855,63 @@ private struct SessionLoadBlockingView: View {
         }
     }
 
+    @ViewBuilder
     private var recoveryCard: some View {
-        ShatlMessageBlockPrimary(
-            title: title,
-            message: message,
-            primaryButton: ShatlMessageBlockPrimaryButton(
-                title: L10n.string(
-                    "session.recovery.open_empty",
-                    localeOverride: localeOverride,
-                    defaultValue: "Запуск с пустым списком"
-                ),
-                role: .borderedColored,
-                isDisabled: store.isResolvingSessionRecovery,
-                lineLimit: nil
-            ) {
-                store.openWithEmptyDownloadList()
-            }
-        )
+        if case .unsupportedVersion = issue {
+            // The list opens in the latest version: offer it first, from
+            // the updater or the site, and the empty list only after it.
+            ShatlMessageBlockPrimary(
+                title: title,
+                message: message,
+                primaryButton: ShatlMessageBlockPrimaryButton(
+                    title: L10n.string(
+                        "settings.about.check_updates",
+                        localeOverride: localeOverride,
+                        defaultValue: "Проверить обновления…"
+                    ),
+                    role: .borderedColored,
+                    isDisabled: !updaterController.canCheckForUpdates,
+                    lineLimit: nil
+                ) {
+                    updaterController.checkForUpdates()
+                },
+                secondaryButtons: [
+                    ShatlMessageBlockPrimaryButton(
+                        title: L10n.string(
+                            "session.recovery.open_site",
+                            localeOverride: localeOverride,
+                            defaultValue: "Скачать с сайта…"
+                        ),
+                        role: .borderedNeutral,
+                        lineLimit: nil
+                    ) {
+                        NSWorkspace.shared.open(ShatlLinks.website)
+                    },
+                    openEmptyListButton(role: .borderedNeutral),
+                ]
+            )
+        } else {
+            ShatlMessageBlockPrimary(
+                title: title,
+                message: message,
+                primaryButton: openEmptyListButton(role: .borderedColored)
+            )
+        }
+    }
+
+    private func openEmptyListButton(role: ShatlButtonRole) -> ShatlMessageBlockPrimaryButton {
+        ShatlMessageBlockPrimaryButton(
+            title: L10n.string(
+                "session.recovery.open_empty",
+                localeOverride: localeOverride,
+                defaultValue: "Запуск с пустым списком"
+            ),
+            role: role,
+            isDisabled: store.isResolvingSessionRecovery,
+            lineLimit: nil
+        ) {
+            store.openWithEmptyDownloadList()
+        }
     }
 
     private var title: String {
