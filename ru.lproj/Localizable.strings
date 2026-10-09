@@ -74,7 +74,7 @@
 "onboarding.data.description" = "Вы можете помочь понять, насколько Shatl нужен пользователям. Отчёт отправляется не чаще раза в неделю.";
 "onboarding.done.title" = "Всё готово.";
 "onboarding.done.description" = "В Настройках также доступны:";
-"onboarding.done.metrics.caption" = "Упрощённо — только главное. Подробно — больше данных и точнее.";
+"onboarding.done.metrics.caption" = "Выберите, как показывать числа: округлённо или точно.";
 "onboarding.done.performance.caption" = "Выберите Halo, Orbit или Nova — от бережного до максимального режима.";
 
 "menu.view.enter_full_screen" = "Перейти в полноэкранный режим";
@@ -329,3 +329,4 @@
 "notification.download_completed.title" = "Загрузка завершена";
 
 "session.recovery.open_empty" = "Начать с пустого списка";
+"session.recovery.open_site" = "Скачать с сайта…";

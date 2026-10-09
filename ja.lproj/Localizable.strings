@@ -74,7 +74,7 @@
 "onboarding.data.description" = "Shatlがユーザーに役立っているかを把握するために協力できます。レポートの送信は週1回までです。";
 "onboarding.done.title" = "準備完了。";
 "onboarding.done.description" = "設定では次の項目も変更できます：";
-"onboarding.done.metrics.caption" = "「シンプル」では要点だけを表示します。「詳細」ではより多くのデータを正確に表示します。";
+"onboarding.done.metrics.caption" = "数値の表示を、概数か正確な値から選べます。";
 "onboarding.done.performance.caption" = "Halo、Orbit、Novaから、負荷に合わせたモードを選べます。";
 
 "menu.view.enter_full_screen" = "フルスクリーンにする";
@@ -320,3 +320,4 @@
 "notification.download_completed.title" = "ダウンロード完了";
 
 "session.recovery.open_empty" = "空のリストで開始";
+"session.recovery.open_site" = "Webサイトからダウンロード…";

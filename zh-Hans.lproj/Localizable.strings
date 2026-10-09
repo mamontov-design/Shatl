@@ -74,7 +74,7 @@
 "onboarding.data.description" = "你可以帮助了解 Shatl 对用户是否有用。报告每周最多发送一次。";
 "onboarding.done.title" = "全部就绪。";
 "onboarding.done.description" = "还可在“设置”中调整：";
-"onboarding.done.metrics.caption" = "“简洁”只显示重点；“详细”显示更多数据和更精确的数值。";
+"onboarding.done.metrics.caption" = "可选择数字的显示方式：取整或精确。";
 "onboarding.done.performance.caption" = "可选择 Halo、Orbit 或 Nova，从轻量到最高性能。";
 
 "menu.view.enter_full_screen" = "进入全屏幕";
@@ -320,3 +320,4 @@
 "notification.download_completed.title" = "下载完成";
 
 "session.recovery.open_empty" = "以空列表开始";
+"session.recovery.open_site" = "从网站下载…";

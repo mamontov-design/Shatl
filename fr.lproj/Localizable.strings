@@ -74,7 +74,7 @@
 "onboarding.data.description" = "Vous pouvez aider à savoir si Shatl est utile aux utilisateurs. Un rapport est envoyé au plus une fois par semaine.";
 "onboarding.done.title" = "Tout est prêt.";
 "onboarding.done.description" = "Vous trouverez aussi dans Réglages :";
-"onboarding.done.metrics.caption" = "Le mode Simplifié affiche l’essentiel. Le mode Détaillé montre plus de données, avec plus de précision.";
+"onboarding.done.metrics.caption" = "Choisissez l’affichage des nombres : arrondis ou exacts.";
 "onboarding.done.performance.caption" = "Choisissez Halo, Orbit ou Nova, du mode économe au mode maximal.";
 
 "menu.view.enter_full_screen" = "Activer le plein écran";
@@ -323,3 +323,4 @@
 "notification.download_completed.title" = "Téléchargement terminé";
 
 "session.recovery.open_empty" = "Démarrer avec une liste vide";
+"session.recovery.open_site" = "Télécharger depuis le site…";

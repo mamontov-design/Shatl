@@ -54,7 +54,7 @@ struct OnboardingFlowView: View {
             ),
             metricsDescription: localized(
                 "onboarding.done.metrics.caption",
-                defaultValue: "Упрощённо — только главное. Подробно — больше данных и точнее."
+                defaultValue: "Выберите, как показывать числа: округлённо или точно."
             ),
             performanceTitle: localized(
                 "settings.downloads.performance.section",

@@ -858,8 +858,8 @@ private struct SessionLoadBlockingView: View {
     @ViewBuilder
     private var recoveryCard: some View {
         if case .unsupportedVersion = issue {
-            // The list opens in the latest version: offer it first, and
-            // the empty list only after it.
+            // The list opens in the latest version: offer it first, from
+            // the updater or the site, and the empty list only after it.
             ShatlMessageBlockPrimary(
                 title: title,
                 message: message,
@@ -875,7 +875,20 @@ private struct SessionLoadBlockingView: View {
                 ) {
                     updaterController.checkForUpdates()
                 },
-                secondaryButtons: [openEmptyListButton(role: .borderedNeutral)]
+                secondaryButtons: [
+                    ShatlMessageBlockPrimaryButton(
+                        title: L10n.string(
+                            "session.recovery.open_site",
+                            localeOverride: localeOverride,
+                            defaultValue: "Скачать с сайта…"
+                        ),
+                        role: .borderedNeutral,
+                        lineLimit: nil
+                    ) {
+                        NSWorkspace.shared.open(ShatlLinks.website)
+                    },
+                    openEmptyListButton(role: .borderedNeutral),
+                ]
             )
         } else {
             ShatlMessageBlockPrimary(
