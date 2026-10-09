@@ -120,6 +120,7 @@ struct ShatlApp: App {
             MainWindowView()
                 .environmentObject(store)
                 .environmentObject(accentState)
+                .environmentObject(updaterController)
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))

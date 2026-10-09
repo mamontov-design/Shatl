@@ -807,6 +807,7 @@ struct ShatlLineMessageBar: View {
 
 private struct SessionLoadBlockingView: View {
     @EnvironmentObject private var store: AppStore
+    @EnvironmentObject private var updaterController: ShatlUpdaterController
 
     let issue: SessionLoadIssue?
     let localeOverride: AppLocaleOverride
@@ -846,23 +847,50 @@ private struct SessionLoadBlockingView: View {
         }
     }
 
+    @ViewBuilder
     private var recoveryCard: some View {
-        ShatlMessageBlockPrimary(
-            title: title,
-            message: message,
-            primaryButton: ShatlMessageBlockPrimaryButton(
-                title: L10n.string(
-                    "session.recovery.open_empty",
-                    localeOverride: localeOverride,
-                    defaultValue: "Запуск с пустым списком"
-                ),
-                role: .borderedColored,
-                isDisabled: store.isResolvingSessionRecovery,
-                lineLimit: nil
-            ) {
-                store.openWithEmptyDownloadList()
-            }
-        )
+        if case .unsupportedVersion = issue {
+            // The list opens in the latest version: offer it first, and
+            // the empty list only after it.
+            ShatlMessageBlockPrimary(
+                title: title,
+                message: message,
+                primaryButton: ShatlMessageBlockPrimaryButton(
+                    title: L10n.string(
+                        "settings.about.check_updates",
+                        localeOverride: localeOverride,
+                        defaultValue: "Проверить обновления…"
+                    ),
+                    role: .borderedColored,
+                    isDisabled: !updaterController.canCheckForUpdates,
+                    lineLimit: nil
+                ) {
+                    updaterController.checkForUpdates()
+                },
+                secondaryButtons: [openEmptyListButton(role: .borderedNeutral)]
+            )
+        } else {
+            ShatlMessageBlockPrimary(
+                title: title,
+                message: message,
+                primaryButton: openEmptyListButton(role: .borderedColored)
+            )
+        }
+    }
+
+    private func openEmptyListButton(role: ShatlButtonRole) -> ShatlMessageBlockPrimaryButton {
+        ShatlMessageBlockPrimaryButton(
+            title: L10n.string(
+                "session.recovery.open_empty",
+                localeOverride: localeOverride,
+                defaultValue: "Запуск с пустым списком"
+            ),
+            role: role,
+            isDisabled: store.isResolvingSessionRecovery,
+            lineLimit: nil
+        ) {
+            store.openWithEmptyDownloadList()
+        }
     }
 
     private var title: String {

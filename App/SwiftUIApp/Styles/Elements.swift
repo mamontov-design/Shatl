@@ -360,7 +360,9 @@ struct ShatlMessageBlockPrimary: View {
     let title: String
     var message: String?
     var primaryButton: ShatlMessageBlockPrimaryButton?
-    var secondaryButton: ShatlMessageBlockPrimaryButton?
+    /// Further choices under the main one; with any of them every button
+    /// takes the full width.
+    var secondaryButtons: [ShatlMessageBlockPrimaryButton] = []
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -370,7 +372,7 @@ struct ShatlMessageBlockPrimary: View {
         VStack(alignment: .leading, spacing: 12) {
             labelGroup
 
-            if primaryButton != nil || secondaryButton != nil {
+            if primaryButton != nil || !secondaryButtons.isEmpty {
                 buttonStack
             }
         }
@@ -414,12 +416,14 @@ struct ShatlMessageBlockPrimary: View {
 
     @ViewBuilder
     private var buttonStack: some View {
-        if let secondaryButton {
+        if !secondaryButtons.isEmpty {
             VStack(spacing: 6) {
                 if let primaryButton {
                     button(primaryButton, fillsWidth: true)
                 }
-                button(secondaryButton, fillsWidth: true)
+                ForEach(secondaryButtons.indices, id: \.self) { index in
+                    button(secondaryButtons[index], fillsWidth: true)
+                }
             }
         } else if let primaryButton {
             HStack {
