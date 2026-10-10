@@ -109,6 +109,18 @@ enum ShatlCornerRadius {
     static let button: CGFloat = 8
     static let tab: CGFloat = 6
     static let container: CGFloat = 20
+
+    /// A window's corner as macOS rounds it: 16 pt, and 26 pt on macOS 26.
+    static var window: CGFloat {
+        if #available(macOS 27.0, *) { 16 } else { 26 }
+    }
+
+    /// The corner of a shape nested in a rounder one. The gap between the two
+    /// stays the same all the way round the corner when the outer radius is
+    /// the inner one plus the distance between the shapes.
+    static func nested(in outerRadius: CGFloat, inset: CGFloat) -> CGFloat {
+        max(outerRadius - inset, 0)
+    }
 }
 
 enum ShatlGlassTint {

@@ -178,13 +178,19 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
     /// Nested corners keep one gap all the way round: the outer radius is
     /// the inner one plus the distance between the two shapes. It holds on
     /// macOS 26 as well, where the summary's corner is rounder.
-    func testLowSpaceMessageCornerFollowsTheSummaryCorner() {
+    func testNestedCornersFollowTheWindowCorner() {
         XCTAssertEqual(AddTorrentReviewLayout.summaryMessageInset, 6)
+        XCTAssertEqual(
+            AddTorrentReviewLayout.summaryCornerRadius + AddTorrentReviewLayout.summaryContainerHorizontalPadding,
+            ShatlCornerRadius.window
+        )
         XCTAssertEqual(
             AddTorrentReviewLayout.summaryMessageCornerRadius + AddTorrentReviewLayout.summaryMessageInset,
             AddTorrentReviewLayout.summaryCornerRadius
         )
         XCTAssertGreaterThan(AddTorrentReviewLayout.summaryMessageCornerRadius, 0)
+        XCTAssertEqual(ShatlCornerRadius.nested(in: 26, inset: 8), 18)
+        XCTAssertEqual(ShatlCornerRadius.nested(in: 4, inset: 8), 0)
     }
 
     func testWindowAndSplitLayoutMetricsMatchReviewDesign() {
@@ -194,11 +200,15 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         // macOS 26 rounds window corners more: the column and the summary
         // keep more room and a rounder corner there.
         if #available(macOS 27.0, *) {
+            XCTAssertEqual(ShatlCornerRadius.window, 16)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 12)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 10)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 4)
         } else {
+            XCTAssertEqual(ShatlCornerRadius.window, 26)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 18)
             XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 20)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 14)
         }
         XCTAssertEqual(AddTorrentReviewLayout.leftColumnOutlineWidth, 1)
         XCTAssertEqual(AddTorrentReviewLayout.summaryContainerHorizontalPadding, 6)

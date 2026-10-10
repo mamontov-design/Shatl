@@ -482,9 +482,13 @@ enum AddTorrentReviewLayout {
     static let hoverAreaSpacing: CGFloat = 4
     static let hoverAreaPadding: CGFloat = 6
     static let hoverAreaCornerRadius: CGFloat = 8
-    /// On macOS 26 the summary's corner follows the window's rounder one.
+    /// The summary's corner follows the window's: 10 pt, and 20 pt on
+    /// macOS 26, where windows are rounder.
     static var summaryCornerRadius: CGFloat {
-        if #available(macOS 27.0, *) { 12 } else { 20 }
+        ShatlCornerRadius.nested(
+            in: ShatlCornerRadius.window,
+            inset: summaryContainerHorizontalPadding
+        )
     }
     static let summaryHorizontalPadding: CGFloat = 6
     static let summaryVerticalPadding: CGFloat = 12
@@ -494,7 +498,7 @@ enum AddTorrentReviewLayout {
     static let summaryMessageInset: CGFloat = 6
     static let summaryMessagePadding: CGFloat = 8
     static var summaryMessageCornerRadius: CGFloat {
-        summaryCornerRadius - summaryMessageInset
+        ShatlCornerRadius.nested(in: summaryCornerRadius, inset: summaryMessageInset)
     }
     static let freeSpaceRefreshInterval = Duration.seconds(2)
     static let filesVerticalPadding: CGFloat = 4
