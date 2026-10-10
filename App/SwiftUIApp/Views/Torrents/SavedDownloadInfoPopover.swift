@@ -4,31 +4,17 @@
 import SwiftUI
 
 /// What the "i" beside "Сохранена" opens: why the download is in the list
-/// unstarted, and whether its disk has room for it now. It opens with the
-/// disk's answer already in hand; while it stays open the disk is asked
-/// again, never from the list's own tick, and a new answer replaces the old
-/// one in place.
+/// unstarted, and whether its disk has room for it now. The card owns the
+/// disk's answer and hands it over, so the popover is whole when it opens; a
+/// later answer replaces the old one in place.
 struct SavedDownloadInfoPopover: View {
+    let status: SavedDownloadSpaceStatus?
     let metricsMode: MetricsPresentationMode
     let localeOverride: AppLocaleOverride
-    let resolveStatus: @Sendable () async -> SavedDownloadSpaceStatus?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var status: SavedDownloadSpaceStatus?
 
-    private static let refreshInterval = Duration.seconds(2)
-
-    init(
-        initialStatus: SavedDownloadSpaceStatus?,
-        metricsMode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride,
-        resolveStatus: @escaping @Sendable () async -> SavedDownloadSpaceStatus?
-    ) {
-        self.metricsMode = metricsMode
-        self.localeOverride = localeOverride
-        self.resolveStatus = resolveStatus
-        _status = State(initialValue: initialStatus)
-    }
+    static let refreshInterval = Duration.seconds(2)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -47,13 +33,6 @@ struct SavedDownloadInfoPopover: View {
         }
         .padding(16)
         .frame(width: 340, alignment: .leading)
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: Self.refreshInterval)
-                guard !Task.isCancelled else { return }
-                status = await resolveStatus()
-            }
-        }
     }
 
     private var statusText: String? {

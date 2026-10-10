@@ -144,8 +144,10 @@ struct TorrentCardView: View, Equatable {
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
     @State private var isSavedInfoPresented = false
-    /// What the disk said when the "i" was pressed, for the popover to open with.
+    /// What the disk last said about a saved download, shown by its "i".
     @State private var savedInfoStatus: SavedDownloadSpaceStatus?
+    /// Counts the answers a press of the "i" brought; each opens the popover.
+    @State private var savedInfoAnswerCount = 0
     /// Set once the card first changes its layout; see `layoutStage`.
     @State private var finishStage: TorrentCardFinishStage?
     @State private var finishSteps = TorrentCardFinishSteps()
@@ -499,14 +501,16 @@ struct TorrentCardView: View, Equatable {
 
     /// Days later "Сохранена" may puzzle: the "i" says why the download is
     /// here and whether its disk has room for it now.
+    ///
+    /// The card asks the disk first and opens the popover once it holds the
+    /// answer, so the popover comes with its whole text and at its final
+    /// size. The popover keeps nothing itself: one that kept the answer took
+    /// a stale one as it opened and grew a moment later.
     private var savedInfoButton: some View {
         Button {
-            // The disk answers at once, so the popover opens with its whole
-            // text and at its final size. Opened first, it grew for the
-            // answer and its two paragraphs ran into each other.
             Task {
                 savedInfoStatus = await resolveSavedSpaceStatus()
-                isSavedInfoPresented = true
+                savedInfoAnswerCount += 1
             }
         } label: {
             Image(systemName: "info.circle")
@@ -518,13 +522,26 @@ struct TorrentCardView: View, Equatable {
         .buttonStyle(.plain)
         .help(Text("torrent.saved.info.help"))
         .accessibilityLabel(Text("torrent.saved.info.help"))
+        // Runs after the card has taken the answer in.
+        .onChange(of: savedInfoAnswerCount) { _, _ in
+            isSavedInfoPresented = true
+        }
         .popover(isPresented: $isSavedInfoPresented) {
             SavedDownloadInfoPopover(
-                initialStatus: savedInfoStatus,
+                status: savedInfoStatus,
                 metricsMode: row.metricsMode,
-                localeOverride: row.localeOverride,
-                resolveStatus: resolveSavedSpaceStatus
+                localeOverride: row.localeOverride
             )
+        }
+        // While the popover is open the disk is asked again, never from the
+        // list's own tick, and a new answer replaces the old one in place.
+        .task(id: isSavedInfoPresented) {
+            guard isSavedInfoPresented else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: SavedDownloadInfoPopover.refreshInterval)
+                guard !Task.isCancelled else { return }
+                savedInfoStatus = await resolveSavedSpaceStatus()
+            }
         }
     }
 

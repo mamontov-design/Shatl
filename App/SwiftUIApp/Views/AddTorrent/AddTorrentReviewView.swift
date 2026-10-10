@@ -535,10 +535,13 @@ enum AddTorrentReviewLayout {
         }
     }
 
+    /// The numbers of the summary with the room above and below them.
+    static func summaryRowHeight(for profile: ShatlTypographyProfile) -> CGFloat {
+        summaryContentHeight(for: profile) + summaryVerticalPadding * 2
+    }
+
     static func summaryOverlayHeight(for profile: ShatlTypographyProfile) -> CGFloat {
-        summaryContentHeight(for: profile)
-            + summaryVerticalPadding * 2
-            + summaryContainerBottomPadding
+        summaryRowHeight(for: profile) + summaryContainerBottomPadding
     }
 
     static func leadingPadding(isFolder: Bool, level: Int) -> CGFloat {
@@ -1644,10 +1647,11 @@ struct AddTorrentReviewView: View {
         )
 
         // The numbers are what the summary is laid out by, and they never
-        // move. The plate behind them grows upward for the low-space message,
-        // which shows through as the plate uncovers it. Laid out as one stack
-        // with the message on top, the plate jumped to its new height while
-        // the labels inside slid after it.
+        // move. The plate behind them grows upward for the low-space message
+        // the way a card grows for its expanded metrics: the height changes
+        // smoothly while the message scales up and fades in, cut by the
+        // plate's shape. Stacked above the numbers, the message made the
+        // plate jump to its new height while the labels slid after it.
         metrics
             .background {
                 Color.clear
@@ -1658,9 +1662,47 @@ struct AddTorrentReviewView: View {
                     .padding(.top, -lowSpaceExtraHeight)
                     .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
             }
-            .overlay(alignment: .top) {
+            .overlay(alignment: .bottom) {
                 lowSpaceMessageLayer
             }
+    }
+
+    /// The message in a box as tall as the plate at its fullest, standing on
+    /// the summary's bottom edge. The box keeps its size as the message comes
+    /// and goes, so a message on its way out stays where it was; inside the
+    /// plate itself it rode the plate's falling top edge down over the
+    /// numbers. A mask the shape of the plate cuts the message as the plate
+    /// grows and shrinks.
+    private var lowSpaceMessageLayer: some View {
+        let rowHeight = AddTorrentReviewLayout.summaryRowHeight(for: typographyProfile)
+
+        return Color.clear
+            .frame(
+                height: rowHeight
+                    + lowSpaceMessageHeight
+                    + AddTorrentReviewLayout.summaryMessageInset
+            )
+            .overlay(alignment: .bottom) {
+                if let lowSpaceMessage {
+                    lowSpaceMessageBlock(lowSpaceMessage)
+                        .onGeometryChange(for: CGFloat.self) { geometry in
+                            geometry.size.height
+                        } action: { height in
+                            lowSpaceMessageHeight = height
+                        }
+                        .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
+                        // Right above the numbers.
+                        .padding(.bottom, rowHeight)
+                        .transition(ShatlMotion.appearFromTop)
+                }
+            }
+            .mask(alignment: .bottom) {
+                torrentSummaryShape
+                    .frame(height: rowHeight + lowSpaceExtraHeight)
+            }
+            .allowsHitTesting(false)
+            .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
+            .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
     }
 
     /// How far the plate reaches above the numbers: the message and the gap
@@ -1669,35 +1711,6 @@ struct AddTorrentReviewView: View {
         lowSpaceMessage == nil
             ? 0
             : lowSpaceMessageHeight + AddTorrentReviewLayout.summaryMessageInset
-    }
-
-    /// The message sits right above the numbers, where it stays; a mask the
-    /// shape of the plate uncovers it from the bottom as the plate grows.
-    private var lowSpaceMessageLayer: some View {
-        ZStack(alignment: .bottom) {
-            if let lowSpaceMessage {
-                lowSpaceMessageBlock(lowSpaceMessage)
-                    .onGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.size.height
-                    } action: { height in
-                        lowSpaceMessageHeight = height
-                    }
-                    .transition(.opacity)
-            }
-        }
-        .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
-        .mask(alignment: .bottom) {
-            // As tall as the plate has grown, and longer downwards so only
-            // its top corners cut the message.
-            torrentSummaryShape
-                .frame(height: lowSpaceExtraHeight + AddTorrentReviewLayout.summaryCornerRadius * 2)
-                .offset(y: AddTorrentReviewLayout.summaryCornerRadius * 2)
-        }
-        .alignmentGuide(.top) { dimensions in
-            dimensions[.bottom]
-        }
-        .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
-        .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
     }
 
     /// The selected files do not fit on the disk they are to be saved to.
