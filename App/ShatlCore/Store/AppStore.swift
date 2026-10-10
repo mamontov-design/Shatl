@@ -876,6 +876,28 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
+    /// Debug menu: the main window shows what it answers to a drag, without
+    /// one: a file, a link, several files, and back to the list.
+    @Published private(set) var debugDropOfferPreview: DraggedDownloadOffer?
+
+    func cycleDropScreenPreviewForDebug() {
+        let file = DraggedDownload.torrentFile(URL(fileURLWithPath: "/tmp/preview.torrent"))
+        switch debugDropOfferPreview {
+        case nil:
+            debugDropOfferPreview = .accept(file)
+        case .accept(.torrentFile):
+            if let link = URL(string: "magnet:?xt=urn:btih:preview") {
+                debugDropOfferPreview = .accept(.magnetLink(link))
+            } else {
+                debugDropOfferPreview = .tooMany
+            }
+        case .accept(.magnetLink):
+            debugDropOfferPreview = .tooMany
+        case .tooMany, .unsupported:
+            debugDropOfferPreview = nil
+        }
+    }
+
     /// Debug menu: every disk reports almost no free space, so the add
     /// window, a saved download and its start can be tried without filling
     /// a disk. Nothing is written anywhere.
@@ -2131,6 +2153,22 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             stopAfterDownload: preferences.alwaysStopAfterDownload,
             savePathBookmarkData: preferences.defaultDownloadBookmarkData
         )
+    }
+
+    /// Whether a drop or a paste can start the add flow right now: the list
+    /// is open and nothing else is being added.
+    var acceptsDraggedDownloads: Bool {
+        didBootstrap
+            && canAddTorrent
+            && !isAddTorrentReviewWindowActive
+            && presentedModal == nil
+    }
+
+    /// Starts the add flow for a download dragged into the window or pasted,
+    /// the way a file opened from Finder starts it.
+    func addDraggedDownload(_ download: DraggedDownload) {
+        guard acceptsDraggedDownloads else { return }
+        handleIncomingURL(download.url)
     }
 
     func handleIncomingURL(_ url: URL) {

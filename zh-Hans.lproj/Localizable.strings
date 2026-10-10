@@ -32,6 +32,9 @@
 
 "search.empty.title" = "未找到“%@”的结果。";
 "search.empty.description" = "请尝试其他名称或别名。";
+"main.drop.accept.title" = "松开即可添加下载。";
+"main.drop.too_many.title" = "下载需逐个添加。";
+"main.drop.too_many.message" = "请逐个拖入文件。";
 
 "session.restore.title" = "正在准备下载";
 "session.restore.message" = "重新启动后，下载正在恢复，这需要几秒钟。准备期间无法开始、停止或删除下载。";
@@ -165,6 +168,7 @@
 "add_torrent.title" = "添加下载";
 "add_torrent.entry.empty_title" = "下载列表为空";
 "add_torrent.entry.subtitle" = "在下方粘贴 magnet 链接，或从你的 Mac 选择 .torrent 文件。";
+"add_torrent.entry.empty_subtitle" = "将 .torrent 文件或 magnet 链接拖到此处，或在下方添加。";
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.entry.continue" = "继续";
 "add_torrent.review.search_files" = "搜索文件…";
@@ -228,6 +232,7 @@
 "menu.debug.show_onboarding" = "启动新手引导";
 "menu.debug.preview_restore_status" = "显示“正在准备下载”";
 "menu.debug.preview_unsupported_session" = "显示“无法打开下载列表”";
+"menu.debug.cycle_drop_screen" = "显示拖放界面";
 "menu.debug.simulate_low_space" = "模拟磁盘已满";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";

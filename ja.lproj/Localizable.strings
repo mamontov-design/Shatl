@@ -32,6 +32,9 @@
 
 "search.empty.title" = "「%@」の検索結果はありません。";
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
+"main.drop.accept.title" = "ドロップしてダウンロードを追加します。";
+"main.drop.too_many.title" = "ダウンロードは1件ずつ追加します。";
+"main.drop.too_many.message" = "ファイルを1つずつドラッグしてください。";
 
 "session.restore.title" = "ダウンロードを準備しています";
 "session.restore.message" = "再起動後、ダウンロードを再開しています。数秒かかります。準備中は、ダウンロードの開始、停止、削除はできません。";
@@ -165,6 +168,7 @@
 "add_torrent.title" = "ダウンロードを追加";
 "add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下にmagnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
+"add_torrent.entry.empty_subtitle" = "ここに.torrentファイルかmagnetリンクをドラッグするか、下で追加してください。";
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";
 "add_torrent.review.search_files" = "ファイルを検索…";
@@ -228,6 +232,7 @@
 "menu.debug.show_onboarding" = "オンボーディングを開始";
 "menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
 "menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
+"menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";

@@ -76,6 +76,11 @@ enum ShatlMotion {
     /// Animation of a main window stage change; also the bottom chips.
     static let mainContentMode = Animation.smooth(duration: 0.24)
 
+    /// A drag crossing the window leaves one part of it and enters the next
+    /// at once: the drop screen waits this long before it goes, so it does
+    /// not blink.
+    static let dropScreenExitDelay = Duration.milliseconds(80)
+
     /// The session-reading message shows only if reading takes this long.
     static let sessionLoadMessageDelay = Duration.milliseconds(300)
 

@@ -89,12 +89,23 @@ struct AddTorrentEntryView: View {
         }
     }
 
+    /// The empty window also takes a file or a link dragged into it, and
+    /// says so; the add modal lies over the list, where nothing can be dropped.
     private var subtitle: String {
-        L10n.string(
-            "add_torrent.entry.subtitle",
-            localeOverride: store.preferences.localeOverride,
-            defaultValue: "Вставьте .magnet-ссылку в поле ниже или выберите .torrent-файл с вашего Mac."
-        )
+        switch placement {
+        case .emptyState:
+            L10n.string(
+                "add_torrent.entry.empty_subtitle",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Перетащите сюда .torrent-файл или magnet-ссылку либо добавьте их ниже."
+            )
+        case .modal:
+            L10n.string(
+                "add_torrent.entry.subtitle",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Вставьте magnet-ссылку в поле ниже или выберите .torrent-файл с вашего Mac."
+            )
+        }
     }
 
     private var hasMagnetInput: Bool {

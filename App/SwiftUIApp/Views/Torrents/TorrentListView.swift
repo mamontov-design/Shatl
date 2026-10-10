@@ -184,6 +184,18 @@ struct TorrentListView: View {
                 guard store.isToolbarRemoveEnabled else { return }
                 onRemoveSelected()
             }
+            // ⌘V adds a copied magnet link or `.torrent` file the way a drop
+            // into the window does; anything else gets the system's "no".
+            .onPasteCommand(of: MainWindowDropLayout.draggedTypes) { providers in
+                Task {
+                    let content = await DraggedContent.pasted(providers)
+                    if store.acceptsDraggedDownloads, case let .accept(download) = content.offer {
+                        store.addDraggedDownload(download)
+                    } else {
+                        NSSound.beep()
+                    }
+                }
+            }
             .onGeometryChange(for: Bool.self) { proxy in
                 let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
                 return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth

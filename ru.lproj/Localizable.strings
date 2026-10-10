@@ -32,6 +32,9 @@
 
 "search.empty.title" = "Нет результатов для «%@».";
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
+"main.drop.accept.title" = "Отпустите, чтобы добавить загрузку.";
+"main.drop.too_many.title" = "Загрузки добавляются по одной.";
+"main.drop.too_many.message" = "Перетащите файлы по очереди.";
 
 "session.restore.title" = "Подготовка загрузок";
 "session.restore.message" = "Загрузки возвращаются к работе после перезапуска — это займёт несколько секунд. Пока загрузки готовятся, их нельзя запустить, остановить или удалить.";
@@ -168,6 +171,7 @@
 "add_torrent.title" = "Добавление загрузки";
 "add_torrent.entry.empty_title" = "Список загрузок пуст";
 "add_torrent.entry.subtitle" = "Вставьте magnet‑ссылку в поле ниже или выберите .torrent‑файл с вашего Mac.";
+"add_torrent.entry.empty_subtitle" = "Перетащите сюда .torrent‑файл или magnet‑ссылку либо добавьте их ниже.";
 "add_torrent.entry.choose_file" = "Выбрать .torrent‑файл…";
 "add_torrent.entry.continue" = "Продолжить";
 "add_torrent.review.search_files" = "Искать файлы…";
@@ -237,6 +241,7 @@
 "menu.debug.show_onboarding" = "Запустить онбординг";
 "menu.debug.preview_restore_status" = "Показать «Подготовка загрузок»";
 "menu.debug.preview_unsupported_session" = "Показать «Не удалось открыть список загрузок»";
+"menu.debug.cycle_drop_screen" = "Показать экран перетаскивания";
 "menu.debug.simulate_low_space" = "Считать, что на диске нет места";
 "menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
 "menu.debug.runtime_error.disk_full" = "Закончилось место";

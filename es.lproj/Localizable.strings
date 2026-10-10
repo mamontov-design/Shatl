@@ -32,6 +32,9 @@
 
 "search.empty.title" = "No hay resultados para «%@».";
 "search.empty.description" = "Prueba con otro nombre o alias.";
+"main.drop.accept.title" = "Suelta para añadir la descarga.";
+"main.drop.too_many.title" = "Las descargas se añaden de una en una.";
+"main.drop.too_many.message" = "Arrastra los archivos de uno en uno.";
 
 "session.restore.title" = "Preparando descargas";
 "session.restore.message" = "Las descargas vuelven a funcionar tras el reinicio; tardará unos segundos. Mientras se preparan, no se pueden iniciar, detener ni eliminar.";
@@ -166,6 +169,7 @@
 "add_torrent.title" = "Añadir descarga";
 "add_torrent.entry.empty_title" = "La lista de descargas está vacía";
 "add_torrent.entry.subtitle" = "Pega un enlace magnet abajo o elige un archivo .torrent de tu Mac.";
+"add_torrent.entry.empty_subtitle" = "Arrastra aquí un archivo .torrent o un enlace magnet, o añádelos abajo.";
 "add_torrent.entry.choose_file" = "Elegir archivo .torrent…";
 "add_torrent.entry.continue" = "Continuar";
 "add_torrent.review.search_files" = "Buscar archivos…";
@@ -231,6 +235,7 @@
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
 "menu.debug.preview_restore_status" = "Mostrar «Preparando descargas»";
 "menu.debug.preview_unsupported_session" = "Mostrar «No se pudo abrir la lista de descargas»";
+"menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
