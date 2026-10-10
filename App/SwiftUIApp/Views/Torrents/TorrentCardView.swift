@@ -104,7 +104,9 @@ enum TorrentCardPresentationMode {
 struct TorrentCardView: View, Equatable {
     let row: TorrentRowState
     let resolvePrimaryLocation: @Sendable () async -> ManagedTorrentLocation?
-    let onSelect: () -> Void
+    /// A click on the card. `false` when the card refused to be selected; it
+    /// then says so itself.
+    let onSelect: () -> Bool
     let onToggleExpanded: () -> Void
     let onOpen: () -> Void
     let onRevealInFinder: () -> Void
@@ -113,6 +115,10 @@ struct TorrentCardView: View, Equatable {
     let onChooseAnotherFolder: () -> Void
     let onRemove: () -> Void
     let onRemoveWithFiles: () -> Void
+    /// "Запустить" and "Остановить" in the menu of a card selected with
+    /// others: they act on all the selected downloads.
+    var onStartSelected: () -> Void = {}
+    var onStopSelected: () -> Void = {}
     /// Closes the card when its download finishes open.
     var onCollapse: () -> Void = {}
     /// Looks for an unavailable folder again.
@@ -151,6 +157,11 @@ struct TorrentCardView: View, Equatable {
     /// Set once the card first changes its layout; see `layoutStage`.
     @State private var finishStage: TorrentCardFinishStage?
     @State private var finishSteps = TorrentCardFinishSteps()
+    /// Set while the card says why it did not join the selected ones.
+    @State private var isRefusingSelection = false
+    /// Counts the refusals; each one shakes the card.
+    @State private var selectionRefusalCount = 0
+    @State private var selectionRefusalTask: Task<Void, Never>?
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -169,6 +180,7 @@ struct TorrentCardView: View, Equatable {
 
             if layoutStage < .statusHidden {
                 primaryMetricContainer
+                    .shatlFocusBlur(showsSelectionRefusal)
                     .transition(statusRowTransition)
             }
 
@@ -222,6 +234,7 @@ struct TorrentCardView: View, Equatable {
             .animation(ShatlMotion.cardState, value: cardOutlineState)
             .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
+        .shatlSelectionRefusalShake(trigger: selectionRefusalCount)
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .contextMenu {
             if presentationMode.allowsContextMenu {
@@ -239,8 +252,9 @@ struct TorrentCardView: View, Equatable {
             setHover(isInside, intent: cardHoverIntent, isHovered: $isHovered)
         }
         .onTapGesture {
-            if presentationMode == .normal {
-                onSelect()
+            guard presentationMode == .normal else { return }
+            if !onSelect() {
+                refuseSelection()
             }
         }
         // With many downloads running, the speed set stops bouncing and, at
@@ -264,6 +278,63 @@ struct TorrentCardView: View, Equatable {
                 }
             }
             .disabled(!row.canRemoveFromList)
+        } else if row.isSelectedWithOthers {
+            // Selected with others: the menu acts on all of them. One
+            // download is opened at a time; Finder shows them all.
+            Button(action: onOpen) {
+                Label {
+                    Text("torrent.action.open")
+                } icon: {
+                    Image(systemName: "arrow.up.forward")
+                }
+            }
+            .disabled(true)
+
+            Button(action: onRevealInFinder) {
+                Label {
+                    Text("torrent.action.reveal_in_finder")
+                } icon: {
+                    Image(systemName: "finder")
+                }
+            }
+
+            Divider()
+
+            Button(action: onStartSelected) {
+                Label {
+                    Text("torrent.action.start")
+                } icon: {
+                    Image(systemName: "play")
+                }
+            }
+
+            Button(action: onStopSelected) {
+                Label {
+                    Text("torrent.action.stop")
+                } icon: {
+                    Image(systemName: "stop")
+                }
+            }
+
+            Divider()
+
+            Button(role: .destructive, action: onRemove) {
+                Label {
+                    Text("torrent.action.remove_from_list")
+                } icon: {
+                    Image(systemName: "rectangle.stack.badge.minus")
+                }
+            }
+            .disabled(!row.canRemoveFromList)
+
+            Button(role: .destructive, action: onRemoveWithFiles) {
+                Label {
+                    Text("torrent.action.remove_with_files")
+                } icon: {
+                    Image(systemName: "externaldrive.badge.xmark")
+                }
+            }
+            .disabled(!row.canRemoveWithFiles)
         } else {
             Button(action: onOpen) {
                 Label {
@@ -322,6 +393,7 @@ struct TorrentCardView: View, Equatable {
 
             if row.hasAlias && row.errorState != nil {
                 originalTitleLine
+                    .shatlFocusBlur(showsSelectionRefusal)
             }
         }
     }
@@ -340,13 +412,19 @@ struct TorrentCardView: View, Equatable {
                     .transition(ShatlMotion.finishedStatusBesideTitle)
             }
 
-            Text(row.title)
-                .shatlTypography(ShatlTypography.bodySemibold)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentTransition(.interpolate)
+            // The title gives way to the card's answer when it could not
+            // join the selected ones, and comes back by itself.
+            ZStack(alignment: .leading) {
+                if showsSelectionRefusal {
+                    titleLine(selectionRefusalText)
+                        .transition(Self.statusTitleReplace)
+                } else {
+                    titleLine(row.title)
+                        .contentTransition(.interpolate)
+                        .transition(Self.statusTitleReplace)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if row.errorState == nil, showsExpansionToggle {
                 ZStack {
@@ -422,10 +500,50 @@ struct TorrentCardView: View, Equatable {
         return isExpandButtonHovered ? ShatlColor.accent : ShatlColor.typographyTertiary
     }
 
+    /// A check mark, or the card's number among the selected ones.
     private var selectedIndicator: some View {
-        Image(systemName: "checkmark.circle.fill")
+        Image(systemName: row.selectionNumber.map { "\($0).circle.fill" } ?? "checkmark.circle.fill")
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(row.errorState == nil ? ShatlColor.accent : ShatlColor.cerisePink)
+            .foregroundStyle(ShatlColor.accent)
+            .contentTransition(.symbolEffect(.replace))
+            .animation(ShatlMotion.cardControlSlide, value: row.selectionNumber)
+    }
+
+    private func titleLine(_ title: String) -> some View {
+        Text(title)
+            .shatlTypography(ShatlTypography.bodySemibold)
+            .foregroundStyle(ShatlColor.typographyPrimary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+    }
+
+    /// A card with an error is never selected and answers in words; one
+    /// still being added only shakes, as it has no buttons to point at.
+    private var showsSelectionRefusal: Bool {
+        isRefusingSelection && row.errorState != nil
+    }
+
+    private var selectionRefusalText: String {
+        L10n.string("torrent.card.selection_refusal", localeOverride: row.localeOverride)
+    }
+
+    /// The card was clicked with ⌘ or Shift and cannot join the selected
+    /// ones, or it has an error and was clicked twice in a row: it shakes
+    /// and says why in place of its title. For as long as the
+    /// Settings preview holds its focus, the status and the error text blur,
+    /// and the words stay sharp with the buttons they point at.
+    private func refuseSelection() {
+        selectionRefusalCount += 1
+        selectionRefusalTask?.cancel()
+        guard row.errorState != nil else { return }
+
+        isRefusingSelection = true
+        AccessibilityNotification.Announcement(selectionRefusalText).post()
+        selectionRefusalTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.previewFocusHold)
+            guard !Task.isCancelled else { return }
+            isRefusingSelection = false
+        }
     }
 
     private var primaryMetricContainer: some View {
@@ -1140,6 +1258,7 @@ struct TorrentCardView: View, Equatable {
                 .shatlTypography(ShatlTypography.captionRegular)
                 .foregroundStyle(ShatlColor.typographySecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .shatlFocusBlur(showsSelectionRefusal)
 
             if !errorState.recoveryOptions.isEmpty {
                 HStack(spacing: 6) {
@@ -1221,10 +1340,6 @@ struct TorrentCardView: View, Equatable {
         }
 
         if row.isSelected {
-            if row.errorState != nil {
-                return ShatlColor.cardSelectedError
-            }
-
             return ShatlColor.cardDefault
         }
 

@@ -35,6 +35,10 @@ struct ShatlCommands: Commands {
                 get: { store.debugSimulatesLowDiskSpace },
                 set: { _ in store.toggleLowDiskSpaceForDebug() }
             ))
+            Toggle("menu.debug.number_selected_cards", isOn: Binding(
+                get: { store.debugNumbersSelectedCards },
+                set: { _ in store.toggleSelectedCardNumbersForDebug() }
+            ))
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)
@@ -58,7 +62,7 @@ struct ShatlCommands: Commands {
             Divider()
 
             Button {
-                openSelectedLocation()
+                TorrentSelectionActions.open(in: store)
             } label: {
                 Label("torrent.action.open", systemImage: "arrow.up.forward")
             }
@@ -66,7 +70,7 @@ struct ShatlCommands: Commands {
             .disabled(!isOpenEnabled)
 
             Button {
-                revealSelectedLocation()
+                TorrentSelectionActions.revealInFinder(in: store)
             } label: {
                 Label("torrent.action.reveal_in_finder", systemImage: "finder")
             }
@@ -76,64 +80,51 @@ struct ShatlCommands: Commands {
 
             Divider()
 
-            Button {
-                guard let selectedTorrentID else { return }
-                store.toggleTorrentRunningState(id: selectedTorrentID)
-            } label: {
-                Label {
-                    Text(LocalizedStringKey(selectedTorrent?.status.isSleeping == true ? "torrent.action.start" : "torrent.action.stop"))
-                } icon: {
-                    Image(systemName: selectedTorrent?.status.isSleeping == true ? "play" : "stop")
+            if hasSeveralSelected {
+                // Several downloads may both run and wait, so the menu
+                // offers both. ⌘. goes to what the toolbar's button would do.
+                Button {
+                    store.startSelectedTorrent()
+                } label: {
+                    Label("torrent.action.start", systemImage: "play")
                 }
+                .keyboardShortcut(store.toolbarRunAction == .start ? KeyboardShortcut(".") : nil)
+                .disabled(!store.canStartSelectedTorrents)
+
+                Button {
+                    store.stopSelectedTorrent()
+                } label: {
+                    Label("torrent.action.stop", systemImage: "stop")
+                }
+                .keyboardShortcut(store.toolbarRunAction == .stop ? KeyboardShortcut(".") : nil)
+                .disabled(!store.canStopSelectedTorrents)
+            } else {
+                Button {
+                    guard let selectedTorrentID else { return }
+                    store.toggleTorrentRunningState(id: selectedTorrentID)
+                } label: {
+                    Label {
+                        Text(LocalizedStringKey(selectedTorrent?.status.isSleeping == true ? "torrent.action.start" : "torrent.action.stop"))
+                    } icon: {
+                        Image(systemName: selectedTorrent?.status.isSleeping == true ? "play" : "stop")
+                    }
+                }
+                // ⌘. stops, as in Safari and Xcode; the same keys start again.
+                .keyboardShortcut(".")
+                .disabled(!isToggleRunningStateEnabled)
             }
-            // ⌘. stops, as in Safari and Xcode; the same keys start again.
-            .keyboardShortcut(".")
-            .disabled(!isToggleRunningStateEnabled)
 
             Divider()
 
             Button(role: .destructive) {
-                guard let selectedTorrentID else { return }
-                Task {
-                    if let shortDisplayName = store.pendingAdditionShortDisplayName(for: selectedTorrentID) {
-                        guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
-                            named: shortDisplayName,
-                            localeOverride: store.preferences.localeOverride
-                        ) else {
-                            return
-                        }
-                        if store.isPendingAddition(id: selectedTorrentID) {
-                            store.cancelPendingAddition(id: selectedTorrentID)
-                        } else {
-                            await store.removeTorrent(
-                                id: selectedTorrentID,
-                                policy: .removeFromListOnly
-                            )
-                        }
-                        return
-                    }
-                    await store.removeTorrent(id: selectedTorrentID, policy: .removeFromListOnly)
-                }
+                TorrentSelectionActions.removeFromList(in: store)
             } label: {
                 Label("torrent.action.remove_from_list", systemImage: "rectangle.stack.badge.minus")
             }
             .disabled(!isRemoveFromListEnabled)
 
             Button(role: .destructive) {
-                guard let selectedTorrent else { return }
-                Task {
-                    guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
-                        for: selectedTorrent,
-                        localeOverride: store.preferences.localeOverride
-                    ) else {
-                        return
-                    }
-
-                    await store.removeTorrent(
-                        id: selectedTorrent.id,
-                        policy: .removeFromListAndDeleteFiles
-                    )
-                }
+                TorrentSelectionActions.removeWithFiles(in: store)
             } label: {
                 Label("torrent.action.remove_with_files", systemImage: "externaldrive.badge.xmark")
             }
@@ -143,6 +134,11 @@ struct ShatlCommands: Commands {
             .keyboardShortcut(.delete, modifiers: [.command, .option])
             .disabled(!isRemoveWithFilesEnabled)
         }
+    }
+
+    /// With several downloads selected the commands act on all of them.
+    private var hasSeveralSelected: Bool {
+        store.selectedTorrentCount > 1
     }
 
     private var selectedTorrentID: UUID? {
@@ -169,44 +165,34 @@ struct ShatlCommands: Commands {
     }
 
     private var isRemoveFromListEnabled: Bool {
+        if hasSeveralSelected {
+            return store.isToolbarRemoveEnabled
+        }
         guard let selectedTorrentID else { return false }
         return store.canRemoveFromList(for: selectedTorrentID)
     }
 
     private var isRemoveWithFilesEnabled: Bool {
+        if hasSeveralSelected {
+            return store.isToolbarRemoveEnabled
+        }
         guard let selectedTorrentID else { return false }
         return store.canRemoveWithFiles(for: selectedTorrentID)
     }
 
+    /// One download is opened at a time.
     private var isOpenEnabled: Bool {
         guard selectedTorrent?.errorState == nil else { return false }
         return store.selectedTorrentNavigationAvailability.canOpen
     }
 
+    /// Several are shown without asking each for its files first: the ones
+    /// with nothing on disk yet are left out as Finder opens.
     private var isRevealEnabled: Bool {
+        if hasSeveralSelected {
+            return true
+        }
         guard selectedTorrent?.errorState == nil else { return false }
         return store.selectedTorrentNavigationAvailability.canReveal
-    }
-
-    private func openSelectedLocation() {
-        guard let selectedTorrentID else { return }
-
-        Task {
-            guard let location = await store.primaryLocation(for: selectedTorrentID) else { return }
-            await MainActor.run {
-                TorrentFileNavigationPresenter.open(location)
-            }
-        }
-    }
-
-    private func revealSelectedLocation() {
-        guard let selectedTorrentID else { return }
-
-        Task {
-            guard let location = await store.primaryLocation(for: selectedTorrentID) else { return }
-            await MainActor.run {
-                TorrentFileNavigationPresenter.revealInFinder(location)
-            }
-        }
     }
 }

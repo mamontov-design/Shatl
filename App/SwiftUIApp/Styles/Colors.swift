@@ -14,7 +14,6 @@ enum ShatlColor {
 
     static let cardDefault = Color("cardDefault")
     static let cardHover = Color("cardHover")
-    static let cardSelectedError = Color("cardSelectedError")
     /// The fill of a message that needs attention now, under white text:
     /// no room for a download in the add window.
     static let errorSolidBackground = Color("errorSolidBackground")

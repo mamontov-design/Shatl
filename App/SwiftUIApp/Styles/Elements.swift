@@ -1056,7 +1056,7 @@ struct TorrentCardPreviewView: View {
                 localeOverride: localeOverride
             ),
             resolvePrimaryLocation: { nil },
-            onSelect: {},
+            onSelect: { true },
             onToggleExpanded: toggleExpanded,
             onOpen: {},
             onRevealInFinder: {},

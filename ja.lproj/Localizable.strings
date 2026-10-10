@@ -38,6 +38,8 @@
 
 "session.restore.title" = "ダウンロードを準備しています";
 "session.restore.message" = "再起動後、ダウンロードを再開しています。数秒かかります。準備中は、ダウンロードの開始、停止、削除はできません。";
+"selection.bar.count.other" = "%lld件のダウンロードを選択中。";
+"selection.bar.hint" = "解除するにはEscキーを押します。";
 "session.load.in_progress.title" = "ダウンロードリストを開いています。";
 "session.load.in_progress.message" = "ダウンロードを終了時の状態に戻しています。しばらくお待ちください。";
 "session.load.failure.title" = "ダウンロードリストを復元できませんでした。";
@@ -107,6 +109,7 @@
 "torrent.status.checking" = "確認中";
 
 "torrent.card.original_title" = "Torrent名：%@";
+"torrent.card.selection_refusal" = "このダウンロードは下のボタンで操作します";
 "torrent.saved.info.help" = "保存したダウンロードについて";
 "torrent.saved.info.reason" = "このダウンロードは追加時に空き容量が足りなかったため、リストに保存され、開始を待っています。空き容量が十分になったら、手動で開始してください。";
 "torrent.saved.info.short" = "現在、ディスク「%1$@」の空き容量は%2$@、必要な容量は%3$@で、%4$@不足しています。";
@@ -152,6 +155,10 @@
 "remove_dialog.choice.message.list_only" = "このダウンロードにはエラーがあるため、リストからの削除のみ行えます。ディスク上のファイルは残ります。Finderで削除できます。";
 "remove_dialog.delete_with_files.title" = "「%@」をファイルごと削除しますか？";
 "remove_dialog.delete_with_files.message" = "ダウンロードはリストから消え、そのファイルはディスクから完全に削除されます。ゴミ箱には移動しません。";
+"remove_dialog.choice.several.title.other" = "%lld件のダウンロードを削除しますか？";
+"remove_dialog.choice.several.message" = "リストからのみ削除すると、ダウンロードしたファイルはディスクに残ります。ファイルごと削除すると、ディスクから完全に削除されます。";
+"remove_dialog.delete_with_files.several.title.other" = "%lld件のダウンロードをファイルごと削除しますか？";
+"remove_dialog.delete_with_files.several.message" = "ダウンロードはリストから消え、それらのファイルはディスクから完全に削除されます。ゴミ箱には移動しません。";
 "add_torrent.cancel.title" = "「%@」を削除しますか？";
 "add_torrent.cancel.message" = "このダウンロードはまだ追加中です。今削除すると追加は中止されます。ダウンロードするには、.torrentファイルまたはmagnetリンクをもう一度追加する必要があります。";
 
@@ -163,6 +170,8 @@
 "payload_deletion.unresolved.message" = "ダウンロードはリストから削除されましたが、ファイルはディスクに残っています。どのファイルが属しているかを正確に特定できませんでした。Finderで削除できます。";
 "payload_deletion.safety_refused.message" = "ダウンロードはリストから削除されましたが、ファイルはディスクに残っています。ダウンロード後に変更されているため、自動で削除するのは安全ではありません。Finderで削除できます。";
 "payload_deletion.cleanup_failure.message" = "ダウンロードのファイルは削除されましたが、いくつかの空のフォルダが残りました。アクセスできないか、変更されています。Finderで削除できます。";
+"payload_deletion.several.title" = "一部のファイルは削除されませんでした";
+"payload_deletion.several.message" = "ダウンロードはリストから削除されましたが、一部のファイルまたはフォルダがディスクに残っています。アクセスできないか、ダウンロード後に変更されたか、ダウンロードを安全に停止できませんでした。Finderで削除できます。";
 
 "add_torrent.loading_metadata" = "ファイルリストを取得中…";
 "add_torrent.title" = "ダウンロードを追加";
@@ -234,6 +243,7 @@
 "menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
 "menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
+"menu.debug.number_selected_cards" = "選択したカードに番号を付ける";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";

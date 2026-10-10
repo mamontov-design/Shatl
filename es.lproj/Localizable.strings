@@ -38,6 +38,9 @@
 
 "session.restore.title" = "Preparando descargas";
 "session.restore.message" = "Las descargas vuelven a funcionar tras el reinicio; tardará unos segundos. Mientras se preparan, no se pueden iniciar, detener ni eliminar.";
+"selection.bar.count.one" = "%lld descarga seleccionada.";
+"selection.bar.count.other" = "%lld descargas seleccionadas.";
+"selection.bar.hint" = "Pulsa Esc para deseleccionar.";
 "session.load.in_progress.title" = "Abriendo la lista de descargas.";
 "session.load.in_progress.message" = "Las descargas vuelven al estado en que estaban al cerrar. Espera, por favor.";
 "session.load.failure.title" = "No se pudo restaurar la lista de descargas.";
@@ -107,6 +110,7 @@
 "torrent.status.checking" = "Comprobando";
 
 "torrent.card.original_title" = "Nombre del torrent — %@";
+"torrent.card.selection_refusal" = "Esta descarga se gestiona con los botones de abajo";
 "torrent.saved.info.help" = "Más información sobre la descarga guardada";
 "torrent.saved.info.reason" = "Esta descarga no tenía espacio suficiente al añadirla, así que se guardó en la lista y espera a que la inicies. Iníciala manualmente cuando haya espacio suficiente.";
 "torrent.saved.info.short" = "Ahora el disco «%1$@» tiene %2$@ libres y se necesitan %3$@: faltan %4$@.";
@@ -152,6 +156,12 @@
 "remove_dialog.choice.message.list_only" = "Esta descarga tiene un error, así que solo se puede quitar de la lista. Sus archivos, si están en el disco, se quedarán; puedes eliminarlos en Finder.";
 "remove_dialog.delete_with_files.title" = "¿Eliminar «%@» con sus archivos?";
 "remove_dialog.delete_with_files.message" = "La descarga desaparecerá de la lista y sus archivos se borrarán del disco para siempre: no irán a la Papelera.";
+"remove_dialog.choice.several.title.one" = "¿Eliminar %lld descarga?";
+"remove_dialog.choice.several.title.other" = "¿Eliminar %lld descargas?";
+"remove_dialog.choice.several.message" = "Si las quitas solo de la lista, los archivos descargados se quedarán en el disco. Si las eliminas con los archivos, se borrarán del disco para siempre.";
+"remove_dialog.delete_with_files.several.title.one" = "¿Eliminar %lld descarga con sus archivos?";
+"remove_dialog.delete_with_files.several.title.other" = "¿Eliminar %lld descargas con sus archivos?";
+"remove_dialog.delete_with_files.several.message" = "Las descargas desaparecerán de la lista y sus archivos se borrarán del disco para siempre: no irán a la Papelera.";
 "add_torrent.cancel.title" = "¿Eliminar «%@»?";
 "add_torrent.cancel.message" = "La descarga todavía se está añadiendo. Si la eliminas ahora, dejará de añadirse; para descargarla, tendrás que volver a añadir el archivo .torrent o el enlace magnet.";
 
@@ -164,6 +174,8 @@
 "payload_deletion.unresolved.message" = "La descarga se quitó de la lista, pero sus archivos siguen en el disco: no se pudo saber con certeza qué archivos le pertenecen. Puedes eliminarlos en Finder.";
 "payload_deletion.safety_refused.message" = "La descarga se quitó de la lista, pero sus archivos siguen en el disco: se modificaron después de descargarlos, así que eliminarlos automáticamente no es seguro. Puedes eliminarlos en Finder.";
 "payload_deletion.cleanup_failure.message" = "Los archivos de la descarga se eliminaron, pero quedaron algunas carpetas vacías: no hay acceso a ellas o se modificaron. Puedes eliminarlas en Finder.";
+"payload_deletion.several.title" = "Algunos archivos no se eliminaron";
+"payload_deletion.several.message" = "Las descargas se quitaron de la lista, pero algunos de sus archivos o carpetas siguen en el disco: no hay acceso a ellos, se modificaron después de descargarlos o una descarga no se pudo detener de forma segura. Puedes eliminarlos en Finder.";
 
 "add_torrent.loading_metadata" = "Obteniendo la lista de archivos…";
 "add_torrent.title" = "Añadir descarga";
@@ -237,6 +249,7 @@
 "menu.debug.preview_unsupported_session" = "Mostrar «No se pudo abrir la lista de descargas»";
 "menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
+"menu.debug.number_selected_cards" = "Numerar las tarjetas seleccionadas";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
 "menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";

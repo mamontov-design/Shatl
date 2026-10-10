@@ -143,6 +143,11 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     #endif
     var errorState: TorrentRowErrorState?
     var isSelected: Bool
+    /// Selected together with other cards: its menu then acts on all of them.
+    var isSelectedWithOthers = false
+    /// The card's number among the selected ones, worn in place of the check
+    /// mark; `nil` for the check mark. See `TorrentSelectionCount`.
+    var selectionNumber: Int?
     var isExpanded: Bool
     var canToggleRunningState: Bool
     var canRemoveFromList: Bool

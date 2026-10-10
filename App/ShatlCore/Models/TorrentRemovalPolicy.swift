@@ -17,6 +17,9 @@ nonisolated struct PayloadDeletionAlert: Identifiable, Equatable, Sendable {
     var message: String
     /// The files that stayed on disk, shown by the alert's "Show in Finder".
     var revealURL: URL?
+    /// The files of the other downloads, when the alert speaks for several
+    /// removed at once.
+    var additionalRevealURLs: [URL] = []
 }
 
 /// One request to scroll the list to a download; a new one each time, so

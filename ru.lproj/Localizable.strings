@@ -38,6 +38,11 @@
 
 "session.restore.title" = "Подготовка загрузок";
 "session.restore.message" = "Загрузки возвращаются к работе после перезапуска — это займёт несколько секунд. Пока загрузки готовятся, их нельзя запустить, остановить или удалить.";
+"selection.bar.count.one" = "Выбрана %lld загрузка.";
+"selection.bar.count.few" = "Выбрано %lld загрузки.";
+"selection.bar.count.many" = "Выбрано %lld загрузок.";
+"selection.bar.count.other" = "Выбрано %lld загрузки.";
+"selection.bar.hint" = "Чтобы снять выбор, нажмите Esc.";
 "session.load.in_progress.title" = "Список загрузок открывается.";
 "session.load.in_progress.message" = "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста.";
 "session.load.failure.title" = "Не удалось восстановить список загрузок.";
@@ -107,6 +112,7 @@
 "torrent.status.checking" = "Проверяется";
 
 "torrent.card.original_title" = "Название торрента — %@";
+"torrent.card.selection_refusal" = "Эта загрузка управляется кнопками ниже";
 "torrent.saved.info.help" = "Подробнее о сохранённой загрузке";
 "torrent.saved.info.reason" = "Этой загрузке не хватило места при добавлении, поэтому она сохранена в списке и ждёт запуска. Когда места будет достаточно, запустите её вручную.";
 "torrent.saved.info.short" = "Сейчас на диске «%1$@» свободно %2$@, а нужно %3$@ — не хватает %4$@.";
@@ -152,6 +158,16 @@
 "remove_dialog.choice.message.list_only" = "У загрузки ошибка, поэтому её можно удалить только из списка. Файлы, если они есть на диске, останутся — их можно удалить в Finder.";
 "remove_dialog.delete_with_files.title" = "Удалить «%@» вместе с файлами?";
 "remove_dialog.delete_with_files.message" = "Загрузка исчезнет из списка, а её файлы будут удалены с диска насовсем — в Корзину они не попадут.";
+"remove_dialog.choice.several.title.one" = "Удалить %lld загрузку?";
+"remove_dialog.choice.several.title.few" = "Удалить %lld загрузки?";
+"remove_dialog.choice.several.title.many" = "Удалить %lld загрузок?";
+"remove_dialog.choice.several.title.other" = "Удалить %lld загрузки?";
+"remove_dialog.choice.several.message" = "Если удалить только из списка, скачанные файлы останутся на диске. Если вместе с файлами — они будут удалены с диска насовсем.";
+"remove_dialog.delete_with_files.several.title.one" = "Удалить %lld загрузку вместе с файлами?";
+"remove_dialog.delete_with_files.several.title.few" = "Удалить %lld загрузки вместе с файлами?";
+"remove_dialog.delete_with_files.several.title.many" = "Удалить %lld загрузок вместе с файлами?";
+"remove_dialog.delete_with_files.several.title.other" = "Удалить %lld загрузки вместе с файлами?";
+"remove_dialog.delete_with_files.several.message" = "Загрузки исчезнут из списка, а их файлы будут удалены с диска насовсем — в Корзину они не попадут.";
 "add_torrent.cancel.title" = "Удалить «%@»?";
 "add_torrent.cancel.message" = "Загрузка ещё добавляется. Если удалить её сейчас, добавление прекратится — чтобы скачать её, придётся добавить .torrent‑файл или magnet‑ссылку заново.";
 
@@ -166,6 +182,8 @@
 "payload_deletion.unresolved.message" = "Загрузка удалена из списка, но её файлы остались на диске: не удалось точно определить, какие файлы к ней относятся. Их можно удалить в Finder.";
 "payload_deletion.safety_refused.message" = "Загрузка удалена из списка, но её файлы остались на диске: их изменили после скачивания, и удалять их автоматически небезопасно. Их можно удалить в Finder.";
 "payload_deletion.cleanup_failure.message" = "Файлы загрузки удалены, но несколько пустых папок остались: к ним нет доступа или их изменили. Их можно удалить в Finder.";
+"payload_deletion.several.title" = "Часть файлов не удалена";
+"payload_deletion.several.message" = "Загрузки удалены из списка, но часть их файлов или папок осталась на диске: к ним нет доступа, их изменили после скачивания или загрузку не удалось безопасно остановить. Их можно удалить в Finder.";
 
 "add_torrent.loading_metadata" = "Получение списка файлов…";
 "add_torrent.title" = "Добавление загрузки";
@@ -243,6 +261,7 @@
 "menu.debug.preview_unsupported_session" = "Показать «Не удалось открыть список загрузок»";
 "menu.debug.cycle_drop_screen" = "Показать экран перетаскивания";
 "menu.debug.simulate_low_space" = "Считать, что на диске нет места";
+"menu.debug.number_selected_cards" = "Цифры на выбранных карточках";
 "menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
 "menu.debug.runtime_error.disk_full" = "Закончилось место";
 "menu.debug.runtime_error.no_write_access" = "Нет доступа на запись";

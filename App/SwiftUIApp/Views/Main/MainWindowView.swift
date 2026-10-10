@@ -161,6 +161,15 @@ struct MainWindowView: View {
                     )
                     .transition(restoreStatusTransition)
                     .zIndex(1)
+                } else if let selectionCount = store.selectionCountShownInBar {
+                    // Above the Halo notice: that one comes back once the
+                    // selection is cleared.
+                    ShatlSelectionCountBar(
+                        count: selectionCount,
+                        localeOverride: store.preferences.localeOverride
+                    )
+                    .transition(restoreStatusTransition)
+                    .zIndex(1)
                 } else if store.isHaloSpeedNoticeVisible {
                     haloSpeedNoticeBar
                         .transition(restoreStatusTransition)
@@ -187,6 +196,7 @@ struct MainWindowView: View {
                     .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
             }
             .animation(ShatlMotion.sessionRestoreStatusBar, value: store.isHaloSpeedNoticeVisible)
+            .animation(ShatlMotion.sessionRestoreStatusBar, value: store.selectionCountShownInBar != nil)
 
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
@@ -226,22 +236,20 @@ struct MainWindowView: View {
                     store.presentAddTorrentEntry()
                 }
 
-                let selectedTorrentIsSleeping = store.selectedTorrent?.status.isSleeping == true
+                // For several selected downloads: Start while any of them
+                // is stopped, Stop once all of them run.
+                let startsSelection = store.toolbarRunAction == .start
 
                 ShatlToolbarButton(
                     title: L10n.string(
-                        selectedTorrentIsSleeping ? "toolbar.start" : "toolbar.stop",
+                        startsSelection ? "toolbar.start" : "toolbar.stop",
                         localeOverride: store.preferences.localeOverride,
-                        defaultValue: selectedTorrentIsSleeping ? "Пуск" : "Стоп"
+                        defaultValue: startsSelection ? "Пуск" : "Стоп"
                     ),
-                    systemImage: selectedTorrentIsSleeping ? "play" : "stop",
+                    systemImage: startsSelection ? "play" : "stop",
                     isDisabled: stage != .list || !store.isToolbarStartStopEnabled
                 ) {
-                    if selectedTorrentIsSleeping {
-                        store.startSelectedTorrent()
-                    } else {
-                        store.stopSelectedTorrent()
-                    }
+                    store.toggleSelectedTorrentsRunningState()
                 }
 
                 ShatlToolbarButton(
@@ -298,7 +306,7 @@ struct MainWindowView: View {
                     secondaryButton: .default(
                         Text(L10n.string("torrent.action.reveal_in_finder", localeOverride: store.preferences.localeOverride))
                     ) {
-                        NSWorkspace.shared.activateFileViewerSelecting([revealURL])
+                        NSWorkspace.shared.activateFileViewerSelecting([revealURL] + alert.additionalRevealURLs)
                     }
                 )
             }
@@ -699,41 +707,7 @@ struct MainWindowView: View {
     }
 
     private func presentToolbarRemovalDialog() {
-        guard let selectedTorrentID = store.selectedTorrentID else { return }
-
-        if let shortDisplayName = store.pendingAdditionShortDisplayName(for: selectedTorrentID) {
-            Task {
-                guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
-                    named: shortDisplayName,
-                    localeOverride: store.preferences.localeOverride
-                ) else {
-                    return
-                }
-                if store.isPendingAddition(id: selectedTorrentID) {
-                    store.cancelPendingAddition(id: selectedTorrentID)
-                } else {
-                    await store.removeTorrent(
-                        id: selectedTorrentID,
-                        policy: .removeFromListOnly
-                    )
-                }
-            }
-            return
-        }
-
-        guard let record = store.selectedTorrent else { return }
-
-        Task {
-            guard let policy = await TorrentRemovalDialogPresenter.presentRemovalChoice(
-                for: record,
-                allowsDeleteWithFiles: record.errorState == nil,
-                localeOverride: store.preferences.localeOverride
-            ) else {
-                return
-            }
-
-            await store.removeTorrent(id: record.id, policy: policy)
-        }
+        TorrentSelectionActions.presentRemovalChoice(in: store)
     }
 
     private func completeOnboarding() {
@@ -817,6 +791,57 @@ private struct TorrentTransferSummaryLayer: View {
         }
 
         return ShatlBottomChipLayout.legacyEdgePadding
+    }
+}
+
+/// How many downloads are selected and how to clear the selection: one
+/// line under the toolbar, the count in the bar's title style and the hint
+/// in its text style. The count rolls as it changes.
+struct ShatlSelectionCountBar: View {
+    let count: Int
+    let localeOverride: AppLocaleOverride
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Self.partSpacing) {
+            Text(Self.countText(count, localeOverride: localeOverride))
+                .shatlTypography(ShatlTypography.bodySemibold)
+                .foregroundStyle(ShatlColor.lineMessageHeadline)
+                .monospacedDigit()
+                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(count)))
+                .fixedSize()
+
+            Text(Self.hintText(localeOverride: localeOverride))
+                .shatlTypography(ShatlTypography.bodyRegular)
+                .foregroundStyle(ShatlColor.lineMessageCaption)
+                .lineLimit(1)
+        }
+        // The hint follows the count as its width changes.
+        .geometryGroup()
+        .animation(ShatlMotion.metricResize, value: count)
+        .padding(.horizontal, Self.horizontalPadding)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ShatlColor.lineMessageBackground)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The gap of a word space between the two parts.
+    static let partSpacing: CGFloat = 4
+    /// The same left edge as the text of the other bars.
+    static let horizontalPadding: CGFloat = 18
+
+    static func countText(_ count: Int, localeOverride: AppLocaleOverride) -> String {
+        L10n.format(
+            L10n.pluralKey("selection.bar.count", count: count, localeOverride: localeOverride),
+            localeOverride: localeOverride,
+            defaultValue: "%lld",
+            count
+        )
+    }
+
+    static func hintText(localeOverride: AppLocaleOverride) -> String {
+        L10n.string("selection.bar.hint", localeOverride: localeOverride)
     }
 }
 
@@ -1089,6 +1114,16 @@ private enum MainWindowAlert: Identifiable {
             nil
         case let .payloadDeletion(alert):
             alert.revealURL
+        }
+    }
+
+    /// The files of the other downloads, when several were removed at once.
+    var additionalRevealURLs: [URL] {
+        switch self {
+        case .addTorrentEntry:
+            []
+        case let .payloadDeletion(alert):
+            alert.additionalRevealURLs
         }
     }
 }

@@ -47,15 +47,53 @@ enum TorrentRemovalDialogPresenter {
         localeOverride: AppLocaleOverride = .system,
         window: NSWindow? = nil
     ) async -> TorrentRemovalPolicy? {
+        await presentRemovalChoice(
+            titled: L10n.format(
+                "remove_dialog.choice.title",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                record.displayName
+            ),
+            allowsDeleteWithFiles: allowsDeleteWithFiles,
+            localeOverride: localeOverride,
+            window: window
+        )
+    }
+
+    /// The same choice for several selected downloads: the title counts them
+    /// in place of a name. None of them has an error, so both ways are open.
+    static func presentRemovalChoice(
+        forSeveral count: Int,
+        localeOverride: AppLocaleOverride = .system,
+        window: NSWindow? = nil
+    ) async -> TorrentRemovalPolicy? {
+        await presentRemovalChoice(
+            titled: severalTitle("remove_dialog.choice.several.title", count: count, localeOverride: localeOverride),
+            allowsDeleteWithFiles: true,
+            localeOverride: localeOverride,
+            window: window
+        )
+    }
+
+    static func severalTitle(_ key: String, count: Int, localeOverride: AppLocaleOverride) -> String {
+        L10n.format(
+            L10n.pluralKey(key, count: count, localeOverride: localeOverride),
+            localeOverride: localeOverride,
+            defaultValue: "%lld",
+            count
+        )
+    }
+
+    private static func presentRemovalChoice(
+        titled title: String,
+        allowsDeleteWithFiles: Bool,
+        localeOverride: AppLocaleOverride,
+        window: NSWindow?
+    ) async -> TorrentRemovalPolicy? {
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
         alert.alertStyle = .warning
-        alert.messageText = L10n.format(
-            "remove_dialog.choice.title",
-            localeOverride: localeOverride,
-            defaultValue: "",
-            record.displayName
-        )
+        alert.messageText = title
         alert.informativeText = allowsDeleteWithFiles
             ? L10n.string(
                 "remove_dialog.choice.message.with_files",
@@ -95,23 +133,62 @@ enum TorrentRemovalDialogPresenter {
         return await presentSafeConfirmation(alert, on: resolvedWindow(window))
     }
 
+    static func confirmDeleteWithFiles(
+        forSeveral count: Int,
+        localeOverride: AppLocaleOverride = .system,
+        window: NSWindow? = nil
+    ) async -> Bool {
+        let alert = makeDeleteWithFilesAlert(forSeveral: count, localeOverride: localeOverride)
+        return await presentSafeConfirmation(alert, on: resolvedWindow(window))
+    }
+
     static func makeDeleteWithFilesAlert(
         for record: TorrentRecord,
         localeOverride: AppLocaleOverride = .system
     ) -> NSAlert {
+        makeDeleteWithFilesAlert(
+            title: L10n.format(
+                "remove_dialog.delete_with_files.title",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                record.displayName
+            ),
+            message: L10n.string(
+                "remove_dialog.delete_with_files.message",
+                localeOverride: localeOverride
+            ),
+            localeOverride: localeOverride
+        )
+    }
+
+    static func makeDeleteWithFilesAlert(
+        forSeveral count: Int,
+        localeOverride: AppLocaleOverride = .system
+    ) -> NSAlert {
+        makeDeleteWithFilesAlert(
+            title: severalTitle(
+                "remove_dialog.delete_with_files.several.title",
+                count: count,
+                localeOverride: localeOverride
+            ),
+            message: L10n.string(
+                "remove_dialog.delete_with_files.several.message",
+                localeOverride: localeOverride
+            ),
+            localeOverride: localeOverride
+        )
+    }
+
+    private static func makeDeleteWithFilesAlert(
+        title: String,
+        message: String,
+        localeOverride: AppLocaleOverride
+    ) -> NSAlert {
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
         alert.alertStyle = .critical
-        alert.messageText = L10n.format(
-            "remove_dialog.delete_with_files.title",
-            localeOverride: localeOverride,
-            defaultValue: "",
-            record.displayName
-        )
-        alert.informativeText = L10n.string(
-            "remove_dialog.delete_with_files.message",
-            localeOverride: localeOverride
-        )
+        alert.messageText = title
+        alert.informativeText = message
         addSafeConfirmationButtons(
             to: alert,
             cancelTitle: L10n.string("common.cancel", localeOverride: localeOverride, defaultValue: "Отменить"),
