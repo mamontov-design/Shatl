@@ -107,7 +107,7 @@
 "torrent.saved.info.help" = "Más información sobre la descarga guardada";
 "torrent.saved.info.reason" = "Esta descarga no tenía espacio suficiente al añadirla, así que se guardó en la lista y espera a que la inicies. Iníciala manualmente cuando haya espacio suficiente.";
 "torrent.saved.info.short" = "Ahora el disco «%1$@» tiene %2$@ libres y se necesitan %3$@: faltan %4$@.";
-"torrent.saved.info.fits" = "Ahora hay espacio suficiente: el disco «%1$@» tiene %2$@ libres y se necesitan %3$@. Ya puedes iniciar la descarga.";
+"torrent.saved.info.fits" = "Ahora hay espacio suficiente. Ya puedes iniciar la descarga.";
 "torrent.saved.info.unknown" = "No se pudo comprobar el espacio libre: la carpeta «%@» no está disponible ahora; puede que el disco esté desconectado.";
 
 "torrent.metric.seeds_and_peers" = "Seeds y peers";

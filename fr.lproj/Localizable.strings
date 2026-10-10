@@ -107,7 +107,7 @@
 "torrent.saved.info.help" = "En savoir plus sur le téléchargement enregistré";
 "torrent.saved.info.reason" = "Ce téléchargement manquait d’espace au moment de l’ajout : il a donc été enregistré dans la liste et attend d’être démarré. Démarrez-le manuellement quand l’espace sera suffisant.";
 "torrent.saved.info.short" = "Le disque « %1$@ » dispose actuellement de %2$@ et il en faut %3$@ : il manque %4$@.";
-"torrent.saved.info.fits" = "Il y a maintenant assez d’espace : le disque « %1$@ » dispose de %2$@ et il en faut %3$@. Vous pouvez démarrer le téléchargement.";
+"torrent.saved.info.fits" = "Il y a maintenant assez d’espace. Vous pouvez démarrer le téléchargement.";
 "torrent.saved.info.unknown" = "Impossible de vérifier l’espace disponible : le dossier « %@ » est indisponible pour le moment, le disque est peut-être déconnecté.";
 
 "torrent.metric.seeds_and_peers" = "Seeds et peers";

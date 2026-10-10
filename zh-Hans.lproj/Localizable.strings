@@ -107,7 +107,7 @@
 "torrent.saved.info.help" = "了解已保存的下载";
 "torrent.saved.info.reason" = "添加时空间不足，因此该下载已保存到列表，等待开始。空间足够后，请手动开始。";
 "torrent.saved.info.short" = "磁盘“%1$@”目前可用 %2$@，需要 %3$@，还差 %4$@。";
-"torrent.saved.info.fits" = "现在空间足够：磁盘“%1$@”可用 %2$@，需要 %3$@。可以开始下载了。";
+"torrent.saved.info.fits" = "现在空间足够，可以开始下载了。";
 "torrent.saved.info.unknown" = "无法查看可用空间：“%@”文件夹目前不可用，磁盘可能已断开连接。";
 
 "torrent.metric.seeds_and_peers" = "种子和节点";

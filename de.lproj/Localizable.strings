@@ -107,7 +107,7 @@
 "torrent.saved.info.help" = "Mehr über den gesicherten Download";
 "torrent.saved.info.reason" = "Für diesen Download war beim Hinzufügen nicht genug Platz, daher wurde er in der Liste gesichert und wartet auf den Start. Starten Sie ihn manuell, sobald genug Platz frei ist.";
 "torrent.saved.info.short" = "Auf dem Datenträger „%1$@“ sind derzeit %2$@ frei, benötigt werden %3$@ – es fehlen %4$@.";
-"torrent.saved.info.fits" = "Jetzt ist genug Platz: Auf dem Datenträger „%1$@“ sind %2$@ frei, benötigt werden %3$@. Der Download kann gestartet werden.";
+"torrent.saved.info.fits" = "Jetzt ist genug Platz. Der Download kann gestartet werden.";
 "torrent.saved.info.unknown" = "Der freie Platz ließ sich nicht ermitteln: Der Ordner „%@“ ist gerade nicht verfügbar – vielleicht ist der Datenträger getrennt.";
 
 "torrent.metric.seeds_and_peers" = "Seeds und Peers";

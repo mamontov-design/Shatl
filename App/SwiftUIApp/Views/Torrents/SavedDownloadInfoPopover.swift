@@ -56,14 +56,9 @@ struct SavedDownloadInfoPopover: View {
     ) -> String {
         switch status {
         case let .known(check) where check.fits:
-            L10n.format(
-                "torrent.saved.info.fits",
-                localeOverride: localeOverride,
-                defaultValue: "",
-                check.volumeName,
-                check.availableText(mode: metricsMode, localeOverride: localeOverride),
-                check.neededText(mode: metricsMode, localeOverride: localeOverride)
-            )
+            // Numbers help while room is missing; once it is there, the
+            // answer alone is enough.
+            L10n.string("torrent.saved.info.fits", localeOverride: localeOverride)
         case let .known(check):
             L10n.format(
                 "torrent.saved.info.short",

@@ -107,7 +107,7 @@
 "torrent.saved.info.help" = "Learn about this saved download";
 "torrent.saved.info.reason" = "This download didn’t have enough space when it was added, so it was saved to the list and is waiting to be started. Start it manually once there’s enough space.";
 "torrent.saved.info.short" = "Right now the disk “%1$@” has %2$@ available and the download needs %3$@—it’s %4$@ short.";
-"torrent.saved.info.fits" = "There’s enough space now: the disk “%1$@” has %2$@ available and the download needs %3$@. You can start it.";
+"torrent.saved.info.fits" = "There’s enough space now. You can start the download.";
 "torrent.saved.info.unknown" = "Couldn’t check the available space: the “%@” folder is unavailable right now—the disk may be disconnected.";
 
 "torrent.metric.seeds_and_peers" = "Seeds and peers";
