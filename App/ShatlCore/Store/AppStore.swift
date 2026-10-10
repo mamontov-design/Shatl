@@ -1301,6 +1301,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     /// Up to nine selected cards can wear their number in the list instead
     /// of a check mark: the Debug comparison of the two ways to count them.
+    /// The numbers follow the order of selecting, so the card clicked last
+    /// wears the count.
     private var selectionNumbers: [UUID: Int] {
         #if DEBUG
         guard debugNumbersSelectedCards,
@@ -1308,8 +1310,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return [:]
         }
         var numbers: [UUID: Int] = [:]
-        for id in torrentRowIDs where selection.contains(id) {
-            numbers[id] = numbers.count + 1
+        for (index, id) in selection.order.enumerated() {
+            numbers[id] = index + 1
         }
         return numbers
         #else

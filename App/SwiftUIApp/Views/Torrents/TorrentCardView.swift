@@ -180,6 +180,7 @@ struct TorrentCardView: View, Equatable {
 
             if layoutStage < .statusHidden {
                 primaryMetricContainer
+                    .shatlFocusBlur(showsSelectionRefusal)
                     .transition(statusRowTransition)
             }
 
@@ -527,9 +528,9 @@ struct TorrentCardView: View, Equatable {
     }
 
     /// The card was clicked with ⌘ or Shift and cannot join the selected
-    /// ones: it shakes, says why in place of its title and blurs the rest for
-    /// as long as the Settings preview holds its focus. Its buttons work
-    /// meanwhile.
+    /// ones: it shakes and says why in place of its title. For as long as the
+    /// Settings preview holds its focus, the status and the error text blur,
+    /// and the words stay sharp with the buttons they point at.
     private func refuseSelection() {
         selectionRefusalCount += 1
         selectionRefusalTask?.cancel()
@@ -1256,6 +1257,7 @@ struct TorrentCardView: View, Equatable {
                 .shatlTypography(ShatlTypography.captionRegular)
                 .foregroundStyle(ShatlColor.typographySecondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .shatlFocusBlur(showsSelectionRefusal)
 
             if !errorState.recoveryOptions.isEmpty {
                 HStack(spacing: 6) {
@@ -1325,7 +1327,6 @@ struct TorrentCardView: View, Equatable {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .shatlFocusBlur(showsSelectionRefusal)
     }
 
     private var backgroundColor: Color {

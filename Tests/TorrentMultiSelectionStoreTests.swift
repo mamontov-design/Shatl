@@ -118,11 +118,20 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertNil(try rowState(ids[1], in: store).selectionNumber)
 
         store.toggleSelectedCardNumbersForDebug()
-        // Numbered in the order of the list, not of the clicks.
+        // Numbered in the order of the clicks, not of the list: the card
+        // clicked last wears the count.
         XCTAssertNil(store.selectionCountShownInBar)
-        XCTAssertEqual(try rowState(ids[1], in: store).selectionNumber, 1)
-        XCTAssertEqual(try rowState(ids[4], in: store).selectionNumber, 2)
+        XCTAssertEqual(try rowState(ids[4], in: store).selectionNumber, 1)
+        XCTAssertEqual(try rowState(ids[1], in: store).selectionNumber, 2)
         XCTAssertNil(try rowState(ids[0], in: store).selectionNumber)
+
+        store.clickTorrent(id: ids[2], .toggle, visibleTorrentIDs: ids)
+        XCTAssertEqual(try rowState(ids[2], in: store).selectionNumber, 3)
+        // A card taken out hands its number down.
+        store.clickTorrent(id: ids[4], .toggle, visibleTorrentIDs: ids)
+        XCTAssertEqual(try rowState(ids[1], in: store).selectionNumber, 1)
+        XCTAssertEqual(try rowState(ids[2], in: store).selectionNumber, 2)
+        XCTAssertNil(try rowState(ids[4], in: store).selectionNumber)
 
         store.selectAllTorrents(visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectionCountShownInBar, 10)

@@ -31,7 +31,8 @@ nonisolated enum TorrentListSelectionClick: Sendable {
     case plain
     /// ⌘: adds the card to the selection or takes it out.
     case toggle
-    /// Shift: selects every card from the anchor to this one.
+    /// Shift: adds every card from the anchor to this one; a selected card
+    /// is taken out, as in Finder.
     case range
 }
 
@@ -43,6 +44,10 @@ nonisolated enum TorrentListSelectionClick: Sendable {
 /// with others: `joinable` names the cards that can share a selection.
 nonisolated struct TorrentListSelection: Equatable, Sendable {
     private(set) var ids: Set<UUID> = []
+    /// The selected cards in the order they were selected: the one clicked
+    /// last comes last, and of a run, the far end. The cards' numbers follow
+    /// it.
+    private(set) var order: [UUID] = []
     /// Where a Shift range starts: the card selected last without Shift.
     private(set) var anchor: UUID?
     /// The far end of a Shift range, which Shift+arrows move.
@@ -74,20 +79,22 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
 
     mutating func clear() {
         ids = []
+        order = []
         anchor = nil
         lead = nil
     }
 
     mutating func selectOnly(_ id: UUID) {
         ids = [id]
+        order = [id]
         anchor = id
         lead = id
     }
 
     /// A card that left the list leaves the selection.
     mutating func remove(_ id: UUID) {
-        guard ids.remove(id) != nil else { return }
-        repairEnds()
+        guard ids.contains(id) else { return }
+        drop([id])
     }
 
     /// Answers a click. `false` when the card refuses to join the others: a
@@ -110,44 +117,46 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
             return true
 
         case .toggle:
-            // With nothing to join, ⌘ selects like a plain click.
-            guard hasJoinableSelection(joinable) else {
-                if ids == [id] {
-                    clear()
-                } else {
-                    selectOnly(id)
-                }
+            if ids.contains(id) {
+                drop([id])
                 return true
             }
-            guard joinable.contains(id) else { return false }
-
-            if ids.contains(id) {
-                ids.remove(id)
-                repairEnds()
-            } else {
-                ids.insert(id)
-                anchor = id
-                lead = id
-            }
-            return true
-
-        case .range:
-            guard hasJoinableSelection(joinable),
-                  let anchor, visibleIDs.contains(anchor) else {
+            // With nothing to join, ⌘ selects like a plain click.
+            guard hasJoinableSelection(joinable) else {
                 selectOnly(id)
                 return true
             }
             guard joinable.contains(id) else { return false }
 
-            selectRange(from: anchor, to: id, visible: visibleIDs, joinable: joinable)
+            add(id)
+            anchor = id
+            lead = id
+            return true
+
+        case .range:
+            if ids.contains(id) {
+                drop([id])
+                return true
+            }
+            guard hasJoinableSelection(joinable),
+                  let start = resolvedAnchor(in: visibleIDs) else {
+                selectOnly(id)
+                return true
+            }
+            guard joinable.contains(id) else { return false }
+
+            run(from: start, to: id, visible: visibleIDs, joinable: joinable).forEach { add($0) }
+            anchor = start
+            lead = id
             return true
         }
     }
 
     /// ↑ and ↓. Without Shift the selection moves to the neighbouring card,
-    /// whatever it is. With Shift it grows or shrinks by a card from the
-    /// anchor and steps over the cards that cannot join. Returns the card to
-    /// scroll to, or `nil` when nothing changed.
+    /// whatever it is. With Shift the run from the anchor grows or shrinks by
+    /// a card, stepping over the cards that cannot join; cards selected apart
+    /// from the run stay. Returns the card to scroll to, or `nil` when
+    /// nothing changed.
     @discardableResult
     mutating func move(
         _ step: TorrentListSelectionStep,
@@ -156,7 +165,7 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         joinable: Set<UUID>
     ) -> UUID? {
         guard extending, hasJoinableSelection(joinable),
-              let anchor, visibleIDs.contains(anchor) else {
+              let start = resolvedAnchor(in: visibleIDs) else {
             let current = lead.flatMap { ids.contains($0) ? $0 : nil } ?? single
             guard let target = step.target(from: current, in: visibleIDs),
                   ids != [target] else {
@@ -166,19 +175,24 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
             return target
         }
 
-        let start = lead.flatMap { visibleIDs.contains($0) ? $0 : nil } ?? anchor
-        guard let startIndex = visibleIDs.firstIndex(of: start) else { return nil }
+        let end = lead.flatMap { visibleIDs.contains($0) ? $0 : nil } ?? start
+        guard let endIndex = visibleIDs.firstIndex(of: end) else { return nil }
 
         let candidates: [UUID]
         switch step {
         case .previous:
-            candidates = Array(visibleIDs[..<startIndex].reversed())
+            candidates = Array(visibleIDs[..<endIndex].reversed())
         case .next:
-            candidates = Array(visibleIDs[(startIndex + 1)...])
+            candidates = Array(visibleIDs[(endIndex + 1)...])
         }
         guard let target = candidates.first(where: joinable.contains) else { return nil }
 
-        selectRange(from: anchor, to: target, visible: visibleIDs, joinable: joinable)
+        let previousRun = run(from: start, to: end, visible: visibleIDs, joinable: joinable)
+        let newRun = run(from: start, to: target, visible: visibleIDs, joinable: joinable)
+        drop(Set(previousRun).subtracting(newRun))
+        newRun.forEach { add($0) }
+        anchor = start
+        lead = target
         return target
     }
 
@@ -187,6 +201,7 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         let all = visibleIDs.filter(joinable.contains)
         guard let first = all.first, let last = all.last else { return }
         ids = Set(all)
+        order = all
         anchor = first
         lead = last
     }
@@ -199,9 +214,7 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         if kept.count > 1 {
             kept = kept.intersection(joinable)
         }
-        guard kept != ids else { return }
-        ids = kept
-        repairEnds()
+        drop(ids.subtracting(kept))
     }
 
     /// Whether the selection is something a card could join: not empty and
@@ -214,32 +227,49 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         return true
     }
 
-    private mutating func selectRange(
-        from anchor: UUID,
+    /// The anchor, or, once it has left the selection, the card selected
+    /// last.
+    private func resolvedAnchor(in visibleIDs: [UUID]) -> UUID? {
+        if let anchor, ids.contains(anchor), visibleIDs.contains(anchor) {
+            return anchor
+        }
+        return order.last(where: visibleIDs.contains)
+    }
+
+    /// The cards from `start` to `end` that can share a selection, counted
+    /// from `start`.
+    private func run(
+        from start: UUID,
         to end: UUID,
         visible visibleIDs: [UUID],
         joinable: Set<UUID>
-    ) {
-        guard let anchorIndex = visibleIDs.firstIndex(of: anchor),
+    ) -> [UUID] {
+        guard let startIndex = visibleIDs.firstIndex(of: start),
               let endIndex = visibleIDs.firstIndex(of: end) else {
-            return
+            return []
         }
-        let range = visibleIDs[min(anchorIndex, endIndex)...max(anchorIndex, endIndex)]
-        ids = Set(range.filter(joinable.contains))
-        self.anchor = anchor
-        lead = end
+        let run = visibleIDs[min(startIndex, endIndex)...max(startIndex, endIndex)]
+            .filter(joinable.contains)
+        return startIndex <= endIndex ? run : run.reversed()
     }
 
-    private mutating func repairEnds() {
+    private mutating func add(_ id: UUID) {
+        guard ids.insert(id).inserted else { return }
+        order.append(id)
+    }
+
+    /// Takes cards out. An end of the Shift range that went with them moves
+    /// to the card selected last.
+    private mutating func drop(_ dropped: Set<UUID>) {
+        guard !dropped.isEmpty else { return }
+        ids.subtract(dropped)
+        order.removeAll(where: dropped.contains)
+
         if let anchor, !ids.contains(anchor) {
-            self.anchor = ids.count == 1 ? ids.first : nil
+            self.anchor = order.last
         }
         if let lead, !ids.contains(lead) {
-            self.lead = ids.count == 1 ? ids.first : anchor
-        }
-        if ids.isEmpty {
-            anchor = nil
-            lead = nil
+            self.lead = anchor
         }
     }
 }

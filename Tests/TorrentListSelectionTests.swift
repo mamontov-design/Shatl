@@ -83,6 +83,7 @@ final class TorrentListMultiSelectionTests: XCTestCase {
 
         XCTAssertTrue(click(&selection, b))
         XCTAssertEqual(selection.ids, [b])
+        XCTAssertEqual(selection.order, [b])
     }
 
     func testCommandClickAddsAndTakesOutSingleCards() {
@@ -100,15 +101,78 @@ final class TorrentListMultiSelectionTests: XCTestCase {
 
     /// The run goes from the card clicked last without Shift, in the order
     /// of the list, and leaves out the card with an error inside it.
-    func testShiftClickSelectsTheRunFromTheAnchorWithoutFailedCards() {
+    func testShiftClickAddsTheRunFromTheAnchorWithoutFailedCards() {
         var selection = TorrentListSelection(only: b)
 
         XCTAssertTrue(click(&selection, d, .range))
         XCTAssertEqual(selection.ids, [b, c, d])
 
-        // The anchor stays: a second Shift click turns the run the other way.
+        // The anchor stays: a second Shift click adds the run on its other
+        // side.
         XCTAssertTrue(click(&selection, a, .range))
-        XCTAssertEqual(selection.ids, [a, b])
+        XCTAssertEqual(selection.ids, [a, b, c, d])
+    }
+
+    /// Cards selected apart from the run stay selected.
+    func testShiftClickKeepsCardsSelectedWithCommand() {
+        var selection = TorrentListSelection(only: a)
+        _ = click(&selection, c, .toggle)
+
+        XCTAssertTrue(click(&selection, e, .range))
+        XCTAssertEqual(selection.ids, [a, c, d, e])
+    }
+
+    /// As in Finder: Shift takes a selected card out, the others stay.
+    func testShiftClickOnASelectedCardTakesItOut() {
+        var selection = TorrentListSelection(only: a)
+        _ = click(&selection, d, .range)
+        XCTAssertEqual(selection.ids, [a, b, c, d])
+
+        XCTAssertTrue(click(&selection, c, .range))
+        XCTAssertEqual(selection.ids, [a, b, d])
+
+        // Clicked again, it comes back and nothing else changes.
+        XCTAssertTrue(click(&selection, c, .range))
+        XCTAssertEqual(selection.ids, [a, b, c, d])
+
+        // The card the run started from can be taken out too; the next run
+        // then starts from the card selected last.
+        XCTAssertTrue(click(&selection, a, .range))
+        XCTAssertEqual(selection.ids, [b, c, d])
+        XCTAssertTrue(click(&selection, e, .range))
+        XCTAssertEqual(selection.ids, [b, c, d, e])
+    }
+
+    func testShiftClickOnTheOnlySelectedCardClearsTheSelection() {
+        var selection = TorrentListSelection(only: b)
+        XCTAssertTrue(click(&selection, b, .range))
+        XCTAssertTrue(selection.isEmpty)
+
+        _ = click(&selection, failed)
+        XCTAssertTrue(click(&selection, failed, .range))
+        XCTAssertTrue(selection.isEmpty)
+    }
+
+    /// The numbers on the cards follow this order: the card clicked last
+    /// comes last, wherever it is in the list.
+    func testOrderFollowsTheClicksAndNotTheList() {
+        var selection = TorrentListSelection(only: e)
+        _ = click(&selection, a, .toggle)
+        _ = click(&selection, b, .toggle)
+        XCTAssertEqual(selection.order, [e, a, b])
+
+        // A card taken out closes the gap.
+        _ = click(&selection, a, .toggle)
+        XCTAssertEqual(selection.order, [e, b])
+
+        // A run is counted from its start, so the clicked card comes last.
+        var run = TorrentListSelection(only: d)
+        _ = click(&run, a, .range)
+        XCTAssertEqual(run.order, [d, c, b, a])
+
+        var all = TorrentListSelection(only: d)
+        all.selectAll(visible: visible, joinable: joinable)
+        XCTAssertEqual(all.order, [a, b, c, d, e])
     }
 
     func testShiftAndCommandWithNothingSelectedActLikeAPlainClick() {
@@ -171,6 +235,20 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         XCTAssertEqual(selection.ids, [a, b])
         XCTAssertNil(selection.move(.previous, extending: true, visible: visible, joinable: joinable))
         XCTAssertEqual(selection.ids, [a, b])
+    }
+
+    /// Shift+arrows move the end of the run and leave alone the cards
+    /// selected apart from it.
+    func testShiftArrowsKeepCardsSelectedApartFromTheRun() {
+        var selection = TorrentListSelection(only: a)
+        _ = click(&selection, d, .toggle)
+
+        XCTAssertEqual(selection.move(.next, extending: true, visible: visible, joinable: joinable), e)
+        XCTAssertEqual(selection.ids, [a, d, e])
+        XCTAssertEqual(selection.order, [a, d, e])
+
+        XCTAssertEqual(selection.move(.previous, extending: true, visible: visible, joinable: joinable), d)
+        XCTAssertEqual(selection.ids, [a, d])
     }
 
     func testPlainArrowAfterSeveralSelectsOneFromTheMovingEnd() {
