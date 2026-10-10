@@ -967,6 +967,7 @@ private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentabl
 struct AddTorrentReviewView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedFolderIDs: Set<String> = []
     @State private var searchCollapsedFolderIDs: Set<String> = []
     @State private var searchExpandedFolderIDs: Set<String> = []
@@ -1286,25 +1287,36 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    @ViewBuilder
+    /// The message block and the file list change places the way the main
+    /// window's stages do: one dissolves as the other comes. The animation
+    /// sits on what holds them both. On the block alone it left with the
+    /// block, and the file list replaced the block in one frame.
     private var filesTabContent: some View {
-        if let reviewMessage {
-            ShatlMessageBlockPrimary(
-                systemImage: reviewMessage.systemImage,
-                title: reviewMessage.title,
-                message: reviewMessage.message,
-                primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
-            )
-            // A failure disables the window; the block's own action stays
-            // pressable, as the main window keeps its content under a
-            // disabled search.
-            .environment(\.isEnabled, true)
-            .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .transition(ShatlMotion.stickyPinInsertion)
-        } else {
-            filesContainer()
+        ZStack {
+            if let reviewMessage {
+                ShatlMessageBlockPrimary(
+                    systemImage: reviewMessage.systemImage,
+                    title: reviewMessage.title,
+                    message: reviewMessage.message,
+                    primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
+                )
+                // A failure disables the window; the block's own action stays
+                // pressable, as the main window keeps its content under a
+                // disabled search.
+                .environment(\.isEnabled, true)
+                .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .transition(filesContentTransition)
+            } else {
+                filesContainer()
+                    .transition(filesContentTransition)
+            }
         }
+        .animation(ShatlMotion.mainContentMode, value: reviewMessage == nil)
+    }
+
+    private var filesContentTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.mainContent
     }
 
     private func filesContainer() -> some View {
