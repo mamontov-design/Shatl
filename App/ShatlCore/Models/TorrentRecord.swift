@@ -25,6 +25,10 @@ nonisolated struct TorrentRecord: Identifiable, Equatable, Codable, Sendable {
     var resumeCheckpointedAt: Date?
     var resumeCheckpointProgress: Double?
     var stopAfterDownload: Bool
+    /// Put into the list from the add window when the disk had no room for
+    /// it, and not started since. The card shows it as "Сохранена" instead of
+    /// "Остановлена"; the first start ends it.
+    var isSavedForLater = false
 
     /// The UI prioritizes a persistent card issue over a transient runtime error.
     var errorState: TorrentErrorState? {

@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "Downloading";
 "torrent.status.adding" = "Adding…";
 "torrent.status.stopped" = "Stopped";
+"torrent.status.saved" = "Saved";
 "torrent.status.seeding" = "Seeding";
 "torrent.status.completed" = "Downloaded";
 "torrent.status.error" = "Error";
 "torrent.status.checking" = "Checking";
 
 "torrent.card.original_title" = "Torrent name — %@";
+"torrent.saved.info.help" = "Learn about this saved download";
+"torrent.saved.info.reason" = "This download didn’t have enough space when it was added, so it was saved to the list and is waiting to be started. Start it manually once there’s enough space.";
+"torrent.saved.info.short" = "Right now the disk “%1$@” has %2$@ available and the download needs %3$@—it’s %4$@ short.";
+"torrent.saved.info.fits" = "There’s enough space now: the disk “%1$@” has %2$@ available and the download needs %3$@. You can start it.";
+"torrent.saved.info.unknown" = "Couldn’t check the available space: the “%@” folder is unavailable right now—the disk may be disconnected.";
 
 "torrent.metric.seeds_and_peers" = "Seeds and peers";
 "torrent.metric.upload_speed" = "Upload speed";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "The download’s files disappeared from its folder. You can retry from the download list.";
 "torrent.error.runtime.other.message" = "The download stopped because of an internal error. Retry. If the error comes back, remove the download from the list and add the .torrent file or magnet link again.";
 "torrent.error.runtime.other.notification" = "An internal error occurred. You can retry from the download list.";
+"torrent.error.not_enough_space.title" = "Not enough space";
+"torrent.error.not_enough_space.message" = "The disk doesn’t have enough space, so the download wasn’t started. Free up space and retry, or download to a folder on another disk.";
+"torrent.error.not_enough_space.named_message" = "The disk “%1$@” is %2$@ short of space, so the download wasn’t started. Free up space and retry, or download to a folder on another disk.";
 
 "remove_dialog.choice.title" = "Delete “%@”?";
 "remove_dialog.choice.message.with_files" = "If you remove it from the list only, the downloaded files stay on disk. If you delete it with files, they’ll be deleted from disk permanently.";
@@ -168,13 +177,16 @@
 "add_torrent.review.preparing.title" = "Preparing the download.";
 "add_torrent.review.preparing.message" = "The file list and settings will appear in a moment.";
 "add_torrent.review.alias_caption" = "The download’s card will show the alias instead of the torrent name. The torrent name is shown in the card’s expanded view.";
-"add_torrent.review.download_to_folder" = "Save to “%@”";
+"add_torrent.review.download_to_folder" = "Download to “%@”";
 "add_torrent.review.set_as_default_folder" = "Make Default";
 "add_torrent.review.folder_not_selected" = "No folder selected";
 "add_torrent.review.stop_after_download" = "Stop seeding after download completes";
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Name your download…";
 "add_torrent.review.confirm" = "Download";
+"add_torrent.review.save_to_list" = "Save to List";
+"add_torrent.review.low_space.message.many_files" = "The disk “%1$@” is %2$@ short of space. Free up space, deselect some files, or choose a folder on another disk. For convenience, you can save the download to the list now and start it manually once space is free.";
+"add_torrent.review.low_space.message.one_file" = "The disk “%1$@” is %2$@ short of space. Free up space or choose a folder on another disk. For convenience, you can save the download to the list now and start it manually once space is free.";
 "add_torrent.review.close" = "Close";
 "add_torrent.review.show_in_list" = "Show in List";
 "add_torrent.review.summary.selected_files" = "Files selected";
@@ -219,6 +231,7 @@
 "menu.debug.show_onboarding" = "Start Onboarding";
 "menu.debug.preview_restore_status" = "Show “Preparing Downloads”";
 "menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
+"menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";
 "menu.debug.runtime_error.no_write_access" = "No Write Access";

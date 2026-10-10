@@ -411,7 +411,8 @@ actor SessionStore {
             resumeCheckpointedAt: record.resumeCheckpointedAt,
             resumeCheckpointProgress: record.resumeCheckpointProgress,
             totalBytes: record.metrics.totalBytes > 0 ? record.metrics.totalBytes : nil,
-            selectedBytes: record.metrics.selectedBytes > 0 ? record.metrics.selectedBytes : nil
+            selectedBytes: record.metrics.selectedBytes > 0 ? record.metrics.selectedBytes : nil,
+            savedForLater: record.isSavedForLater ? true : nil
         )
     }
 

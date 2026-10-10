@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "Скачивается";
 "torrent.status.adding" = "Добавляется…";
 "torrent.status.stopped" = "Остановлена";
+"torrent.status.saved" = "Сохранена";
 "torrent.status.seeding" = "Раздаётся";
 "torrent.status.completed" = "Скачана";
 "torrent.status.error" = "Ошибка";
 "torrent.status.checking" = "Проверяется";
 
 "torrent.card.original_title" = "Название торрента — %@";
+"torrent.saved.info.help" = "Подробнее о сохранённой загрузке";
+"torrent.saved.info.reason" = "Этой загрузке не хватило места при добавлении, поэтому она сохранена в списке и ждёт запуска. Когда места будет достаточно, запустите её вручную.";
+"torrent.saved.info.short" = "Сейчас на диске «%1$@» свободно %2$@, а нужно %3$@ — не хватает %4$@.";
+"torrent.saved.info.fits" = "Сейчас места хватает: на диске «%1$@» свободно %2$@, а нужно %3$@. Загрузку можно запустить.";
+"torrent.saved.info.unknown" = "Узнать, сколько места свободно, не удалось: папка «%@» сейчас недоступна — возможно, диск отключён.";
 
 "torrent.metric.seeds_and_peers" = "Сиды и пиры";
 "torrent.metric.upload_speed" = "Скорость раздачи";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "Файлы загрузки пропали из папки. Повторить запуск можно в списке загрузок.";
 "torrent.error.runtime.other.message" = "Загрузка остановилась из-за внутренней ошибки. Повторите запуск. Если ошибка вернётся, удалите загрузку из списка и добавьте .torrent‑файл или magnet‑ссылку заново.";
 "torrent.error.runtime.other.notification" = "Произошла внутренняя ошибка. Повторить запуск можно в списке загрузок.";
+"torrent.error.not_enough_space.title" = "Не хватает места";
+"torrent.error.not_enough_space.message" = "На диске не хватает места, поэтому загрузка не запущена. Освободите место и повторите запуск или скачайте её в папку на другом диске.";
+"torrent.error.not_enough_space.named_message" = "На диске «%1$@» не хватает %2$@, поэтому загрузка не запущена. Освободите место и повторите запуск или скачайте её в папку на другом диске.";
 
 "remove_dialog.choice.title" = "Удалить «%@»?";
 "remove_dialog.choice.message.with_files" = "Если удалить только из списка, скачанные файлы останутся на диске. Если вместе с файлами — они будут удалены с диска насовсем.";
@@ -170,13 +179,16 @@
 "add_torrent.review.preparing.title" = "Подготовка загрузки.";
 "add_torrent.review.preparing.message" = "Список файлов и настройки появятся через мгновение.";
 "add_torrent.review.alias_caption" = "Вместо названия торрента в карточке загрузки будет показан псевдоним. Название торрента видно в расширенном виде карточки.";
-"add_torrent.review.download_to_folder" = "Сохранить в «%@»";
+"add_torrent.review.download_to_folder" = "Скачать в «%@»";
 "add_torrent.review.set_as_default_folder" = "Сделать по умолчанию";
 "add_torrent.review.folder_not_selected" = "Папка не выбрана";
 "add_torrent.review.stop_after_download" = "Остановить раздачу после завершения загрузки";
 "add_torrent.review.use_alias" = "Псевдоним";
 "add_torrent.review.alias_placeholder" = "Назовите загрузку…";
 "add_torrent.review.confirm" = "Скачать";
+"add_torrent.review.save_to_list" = "Сохранить в список";
+"add_torrent.review.low_space.message.many_files" = "На диске «%1$@» не хватает %2$@. Освободите место, снимите часть файлов или выберите папку на другом диске. Для удобства загрузку можно сохранить в список сейчас, а запустить вручную, когда место освободится.";
+"add_torrent.review.low_space.message.one_file" = "На диске «%1$@» не хватает %2$@. Освободите место или выберите папку на другом диске. Для удобства загрузку можно сохранить в список сейчас, а запустить вручную, когда место освободится.";
 "add_torrent.review.close" = "Закрыть";
 "add_torrent.review.show_in_list" = "Показать в списке";
 "add_torrent.review.summary.selected_files" = "Выбрано файлов";
@@ -225,6 +237,7 @@
 "menu.debug.show_onboarding" = "Запустить онбординг";
 "menu.debug.preview_restore_status" = "Показать «Подготовка загрузок»";
 "menu.debug.preview_unsupported_session" = "Показать «Не удалось открыть список загрузок»";
+"menu.debug.simulate_low_space" = "Считать, что на диске нет места";
 "menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
 "menu.debug.runtime_error.disk_full" = "Закончилось место";
 "menu.debug.runtime_error.no_write_access" = "Нет доступа на запись";

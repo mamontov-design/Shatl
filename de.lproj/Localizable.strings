@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "Lädt";
 "torrent.status.adding" = "Wird hinzugefügt…";
 "torrent.status.stopped" = "Gestoppt";
+"torrent.status.saved" = "Gesichert";
 "torrent.status.seeding" = "Seeding";
 "torrent.status.completed" = "Geladen";
 "torrent.status.error" = "Fehler";
 "torrent.status.checking" = "Prüfen";
 
 "torrent.card.original_title" = "Torrent-Name — %@";
+"torrent.saved.info.help" = "Mehr über den gesicherten Download";
+"torrent.saved.info.reason" = "Für diesen Download war beim Hinzufügen nicht genug Platz, daher wurde er in der Liste gesichert und wartet auf den Start. Starten Sie ihn manuell, sobald genug Platz frei ist.";
+"torrent.saved.info.short" = "Auf dem Datenträger „%1$@“ sind derzeit %2$@ frei, benötigt werden %3$@ – es fehlen %4$@.";
+"torrent.saved.info.fits" = "Jetzt ist genug Platz: Auf dem Datenträger „%1$@“ sind %2$@ frei, benötigt werden %3$@. Der Download kann gestartet werden.";
+"torrent.saved.info.unknown" = "Der freie Platz ließ sich nicht ermitteln: Der Ordner „%@“ ist gerade nicht verfügbar – vielleicht ist der Datenträger getrennt.";
 
 "torrent.metric.seeds_and_peers" = "Seeds und Peers";
 "torrent.metric.upload_speed" = "Upload-Geschwindigkeit";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "Die Dateien des Downloads sind aus seinem Ordner verschwunden. In der Downloadliste können Sie ihn erneut starten.";
 "torrent.error.runtime.other.message" = "Der Download wurde wegen eines internen Fehlers gestoppt. Starten Sie ihn erneut. Tritt der Fehler wieder auf, entfernen Sie den Download aus der Liste und fügen Sie die .torrent-Datei oder den Magnet-Link erneut hinzu.";
 "torrent.error.runtime.other.notification" = "Ein interner Fehler ist aufgetreten. In der Downloadliste können Sie den Download erneut starten.";
+"torrent.error.not_enough_space.title" = "Nicht genug Platz";
+"torrent.error.not_enough_space.message" = "Auf dem Datenträger ist nicht genug Platz, daher wurde der Download nicht gestartet. Geben Sie Speicherplatz frei und starten Sie ihn erneut, oder laden Sie ihn in einen Ordner auf einem anderen Datenträger.";
+"torrent.error.not_enough_space.named_message" = "Auf dem Datenträger „%1$@“ fehlen %2$@, daher wurde der Download nicht gestartet. Geben Sie Speicherplatz frei und starten Sie ihn erneut, oder laden Sie ihn in einen Ordner auf einem anderen Datenträger.";
 
 "remove_dialog.choice.title" = "„%@“ löschen?";
 "remove_dialog.choice.message.with_files" = "Wenn Sie den Download nur aus der Liste entfernen, bleiben die geladenen Dateien auf dem Datenträger. Wenn Sie ihn mit Dateien löschen, werden sie endgültig vom Datenträger gelöscht.";
@@ -168,13 +177,16 @@
 "add_torrent.review.preparing.title" = "Download wird vorbereitet.";
 "add_torrent.review.preparing.message" = "Dateiliste und Einstellungen erscheinen gleich.";
 "add_torrent.review.alias_caption" = "Die Karte des Downloads zeigt den Alias statt des Torrent-Namens. Den Torrent-Namen sehen Sie in der erweiterten Ansicht der Karte.";
-"add_torrent.review.download_to_folder" = "Speichern in „%@“";
+"add_torrent.review.download_to_folder" = "Laden in „%@“";
 "add_torrent.review.set_as_default_folder" = "Als Standard festlegen";
 "add_torrent.review.folder_not_selected" = "Kein Ordner ausgewählt";
 "add_torrent.review.stop_after_download" = "Seeding nach Abschluss des Downloads stoppen";
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
+"add_torrent.review.save_to_list" = "In Liste sichern";
+"add_torrent.review.low_space.message.many_files" = "Auf dem Datenträger „%1$@“ fehlen %2$@. Geben Sie Speicherplatz frei, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger. Sie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.message.one_file" = "Auf dem Datenträger „%1$@“ fehlen %2$@. Geben Sie Speicherplatz frei oder wählen Sie einen Ordner auf einem anderen Datenträger. Sie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
 "add_torrent.review.close" = "Schließen";
 "add_torrent.review.show_in_list" = "In Liste zeigen";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";
@@ -219,6 +231,7 @@
 "menu.debug.show_onboarding" = "Onboarding starten";
 "menu.debug.preview_restore_status" = "„Downloads werden vorbereitet“ zeigen";
 "menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
+"menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
 "menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";

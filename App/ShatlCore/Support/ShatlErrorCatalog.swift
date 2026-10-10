@@ -216,6 +216,18 @@ enum ShatlErrorCatalog {
         )
     }
 
+    /// A saved download was asked to start and its disk still has no room:
+    /// the card names the disk and what it lacks, and nothing is written.
+    nonisolated static func notEnoughSpaceError(_ check: DiskSpaceCheck) -> TorrentErrorState {
+        TorrentErrorState(
+            kind: .notEnoughSpace,
+            title: L10n.string("torrent.error.not_enough_space.title"),
+            message: L10n.string("torrent.error.not_enough_space.message"),
+            recoveryOptions: [.retry, .chooseAnotherFolder, .removeFromList],
+            spaceCheck: check
+        )
+    }
+
     /// The download's saved torrent is gone, so nothing can resume it: only
     /// removing it and adding the torrent again helps.
     nonisolated static func missingTorrentError() -> TorrentErrorState {

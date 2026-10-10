@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "ダウンロード中";
 "torrent.status.adding" = "追加中…";
 "torrent.status.stopped" = "停止中";
+"torrent.status.saved" = "保存済み";
 "torrent.status.seeding" = "シード中";
 "torrent.status.completed" = "ダウンロード済み";
 "torrent.status.error" = "エラー";
 "torrent.status.checking" = "確認中";
 
 "torrent.card.original_title" = "Torrent名：%@";
+"torrent.saved.info.help" = "保存したダウンロードについて";
+"torrent.saved.info.reason" = "このダウンロードは追加時に空き容量が足りなかったため、リストに保存され、開始を待っています。空き容量が十分になったら、手動で開始してください。";
+"torrent.saved.info.short" = "現在、ディスク「%1$@」の空き容量は%2$@、必要な容量は%3$@で、%4$@不足しています。";
+"torrent.saved.info.fits" = "空き容量は十分です。ディスク「%1$@」の空き容量は%2$@、必要な容量は%3$@です。ダウンロードを開始できます。";
+"torrent.saved.info.unknown" = "空き容量を確認できませんでした。「%@」フォルダを現在利用できません。ディスクが取り外されている可能性があります。";
 
 "torrent.metric.seeds_and_peers" = "シードとピア";
 "torrent.metric.upload_speed" = "アップロード速度";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "フォルダからダウンロードのファイルがなくなりました。ダウンロードリストで再試行できます。";
 "torrent.error.runtime.other.message" = "内部エラーのため、ダウンロードが停止しました。再試行してください。エラーが続く場合は、ダウンロードをリストから削除し、.torrentファイルまたはmagnetリンクをもう一度追加してください。";
 "torrent.error.runtime.other.notification" = "内部エラーが発生しました。ダウンロードリストで再試行できます。";
+"torrent.error.not_enough_space.title" = "空き容量が不足しています";
+"torrent.error.not_enough_space.message" = "ディスクの空き容量が足りないため、ダウンロードを開始できませんでした。空き容量を増やして再試行するか、別のディスクのフォルダにダウンロードしてください。";
+"torrent.error.not_enough_space.named_message" = "ディスク「%1$@」の空き容量が%2$@不足しているため、ダウンロードを開始できませんでした。空き容量を増やして再試行するか、別のディスクのフォルダにダウンロードしてください。";
 
 "remove_dialog.choice.title" = "「%@」を削除しますか？";
 "remove_dialog.choice.message.with_files" = "リストからのみ削除すると、ダウンロードしたファイルはディスクに残ります。ファイルごと削除すると、ディスクから完全に削除されます。";
@@ -167,13 +176,16 @@
 "add_torrent.review.preparing.title" = "ダウンロードを準備しています。";
 "add_torrent.review.preparing.message" = "まもなくファイルリストと設定が表示されます。";
 "add_torrent.review.alias_caption" = "ダウンロードのカードにはTorrent名の代わりにエイリアスが表示されます。Torrent名はカードの拡大表示で確認できます。";
-"add_torrent.review.download_to_folder" = "「%@」に保存";
+"add_torrent.review.download_to_folder" = "「%@」にダウンロード";
 "add_torrent.review.set_as_default_folder" = "デフォルトに設定";
 "add_torrent.review.folder_not_selected" = "フォルダが選択されていません";
 "add_torrent.review.stop_after_download" = "ダウンロード完了後にシードを停止";
 "add_torrent.review.use_alias" = "エイリアス";
 "add_torrent.review.alias_placeholder" = "ダウンロード名を入力…";
 "add_torrent.review.confirm" = "ダウンロード";
+"add_torrent.review.save_to_list" = "リストに保存";
+"add_torrent.review.low_space.message.many_files" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、一部のファイルの選択を解除するか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
+"add_torrent.review.low_space.message.one_file" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
 "add_torrent.review.close" = "閉じる";
 "add_torrent.review.show_in_list" = "リストで表示";
 "add_torrent.review.summary.selected_files" = "選択したファイル";
@@ -216,6 +228,7 @@
 "menu.debug.show_onboarding" = "オンボーディングを開始";
 "menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
 "menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
+"menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";

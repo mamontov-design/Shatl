@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "下载中";
 "torrent.status.adding" = "正在添加…";
 "torrent.status.stopped" = "已停止";
+"torrent.status.saved" = "已保存";
 "torrent.status.seeding" = "做种中";
 "torrent.status.completed" = "已下载";
 "torrent.status.error" = "错误";
 "torrent.status.checking" = "检查中";
 
 "torrent.card.original_title" = "Torrent 名称：%@";
+"torrent.saved.info.help" = "了解已保存的下载";
+"torrent.saved.info.reason" = "添加时空间不足，因此该下载已保存到列表，等待开始。空间足够后，请手动开始。";
+"torrent.saved.info.short" = "磁盘“%1$@”目前可用 %2$@，需要 %3$@，还差 %4$@。";
+"torrent.saved.info.fits" = "现在空间足够：磁盘“%1$@”可用 %2$@，需要 %3$@。可以开始下载了。";
+"torrent.saved.info.unknown" = "无法查看可用空间：“%@”文件夹目前不可用，磁盘可能已断开连接。";
 
 "torrent.metric.seeds_and_peers" = "种子和节点";
 "torrent.metric.upload_speed" = "上传速度";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "此下载的文件已从其文件夹中消失。可以在下载列表中重试。";
 "torrent.error.runtime.other.message" = "下载因内部错误而停止。请重试。如果错误再次出现，请将此下载从列表中移除，然后重新添加 .torrent 文件或 magnet 链接。";
 "torrent.error.runtime.other.notification" = "发生了内部错误。可以在下载列表中重试。";
+"torrent.error.not_enough_space.title" = "空间不足";
+"torrent.error.not_enough_space.message" = "磁盘空间不足，下载未开始。请释放空间后重试，或下载到其他磁盘上的文件夹。";
+"torrent.error.not_enough_space.named_message" = "磁盘“%1$@”还差 %2$@ 空间，下载未开始。请释放空间后重试，或下载到其他磁盘上的文件夹。";
 
 "remove_dialog.choice.title" = "删除“%@”？";
 "remove_dialog.choice.message.with_files" = "如果仅从列表中移除，已下载的文件会保留在磁盘上。如果连同文件一起删除，这些文件将从磁盘中永久删除。";
@@ -167,13 +176,16 @@
 "add_torrent.review.preparing.title" = "正在准备下载。";
 "add_torrent.review.preparing.message" = "文件列表和设置稍后就会显示。";
 "add_torrent.review.alias_caption" = "下载卡片将显示别名，而不是 Torrent 名称。可以在卡片的展开视图中查看 Torrent 名称。";
-"add_torrent.review.download_to_folder" = "保存到“%@”";
+"add_torrent.review.download_to_folder" = "下载到“%@”";
 "add_torrent.review.set_as_default_folder" = "设为默认";
 "add_torrent.review.folder_not_selected" = "未选择文件夹";
 "add_torrent.review.stop_after_download" = "下载完成后停止做种";
 "add_torrent.review.use_alias" = "别名";
 "add_torrent.review.alias_placeholder" = "为下载命名…";
 "add_torrent.review.confirm" = "下载";
+"add_torrent.review.save_to_list" = "保存到列表";
+"add_torrent.review.low_space.message.many_files" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间、取消勾选部分文件，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
+"add_torrent.review.low_space.message.one_file" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
 "add_torrent.review.close" = "关闭";
 "add_torrent.review.show_in_list" = "在列表中显示";
 "add_torrent.review.summary.selected_files" = "已选文件";
@@ -216,6 +228,7 @@
 "menu.debug.show_onboarding" = "启动新手引导";
 "menu.debug.preview_restore_status" = "显示“正在准备下载”";
 "menu.debug.preview_unsupported_session" = "显示“无法打开下载列表”";
+"menu.debug.simulate_low_space" = "模拟磁盘已满";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";
 "menu.debug.runtime_error.no_write_access" = "没有写入权限";

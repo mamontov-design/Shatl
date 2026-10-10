@@ -499,6 +499,34 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
     }
 }
 
+/// A disk whose free space the test sets; `nil` is a folder out of reach.
+final class FakeDiskSpaceReader: DiskSpaceReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var infoValue: DiskSpaceInfo?
+    private var infoByPath: [String: DiskSpaceInfo] = [:]
+
+    init(availableBytes: Int64? = nil, volumeName: String = "Test Disk") {
+        infoValue = availableBytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+    }
+
+    func setAvailableBytes(_ bytes: Int64?, volumeName: String = "Test Disk") {
+        lock.withLock {
+            infoValue = bytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+        }
+    }
+
+    /// A folder on a disk of its own.
+    func setAvailableBytes(_ bytes: Int64, volumeName: String, atPath path: String) {
+        lock.withLock {
+            infoByPath[path] = DiskSpaceInfo(availableBytes: bytes, volumeName: volumeName)
+        }
+    }
+
+    func diskSpace(atPath path: String) async -> DiskSpaceInfo? {
+        lock.withLock { infoByPath[path] ?? infoValue }
+    }
+}
+
 struct TestStoreBundle {
     var rootURL: URL
     var directories: ShatlDirectories
@@ -524,6 +552,7 @@ func makeTestStoreBundle(
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
     usageTelemetrySender: (any UsageTelemetrySending)? = nil,
     physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
+    diskSpaceReader: (any DiskSpaceReading)? = nil,
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
@@ -586,6 +615,7 @@ func makeTestStoreBundle(
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
         physicalNetworkMonitor: physicalNetworkMonitor,
+        diskSpaceReader: diskSpaceReader ?? SystemDiskSpaceReader(),
         torrents: torrents,
         preferences: preferences,
         hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
@@ -618,6 +648,7 @@ func makeTestStoreBundle(
     usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
     usageTelemetrySender: (any UsageTelemetrySending)? = nil,
     physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
+    diskSpaceReader: (any DiskSpaceReading)? = nil,
     sessionStoreStartupMode: SessionStoreStartupMode = .alreadyInitialized,
     sessionReadData: @escaping @Sendable (URL) async throws -> Data = { url in
         try Data(contentsOf: url)
@@ -638,6 +669,7 @@ func makeTestStoreBundle(
         usageTelemetryCoordinator: usageTelemetryCoordinator,
         usageTelemetrySender: usageTelemetrySender,
         physicalNetworkMonitor: physicalNetworkMonitor,
+        diskSpaceReader: diskSpaceReader,
         sessionStoreStartupMode: sessionStoreStartupMode,
         sessionReadData: sessionReadData,
         sessionWriteData: sessionWriteData,

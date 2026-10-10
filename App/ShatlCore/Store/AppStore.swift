@@ -37,6 +37,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let draft: AddTorrentDraft
         let shortDisplayName: String
         let presentationStartedAt: ContinuousClock.Instant
+        /// Goes to the list stopped and past the engine: see `saveDraftToList`.
+        var savesToList = false
     }
 
     private struct DeferredAddTorrentFailure {
@@ -170,6 +172,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private let userEventNotifier: (any TorrentUserEventNotifying)?
     /// Watches for another network, so the router is asked again.
     private let physicalNetworkMonitor: (any PhysicalNetworkMonitoring)?
+    private let diskSpaceReader: any DiskSpaceReading
     private let userEventBadgeDisplay: (any TorrentUserEventBadgeDisplaying)?
     private let usageTelemetryCoordinator: UsageTelemetryLocalCoordinator?
     private let usageTelemetrySender: (any UsageTelemetrySending)?
@@ -260,6 +263,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         usageTelemetryCoordinator: UsageTelemetryLocalCoordinator? = nil,
         usageTelemetrySender: (any UsageTelemetrySending)? = nil,
         physicalNetworkMonitor: (any PhysicalNetworkMonitoring)? = nil,
+        diskSpaceReader: any DiskSpaceReading = SystemDiskSpaceReader(),
         torrents: [TorrentRecord] = [],
         preferences: AppPreferences? = nil,
         hasLoadedInitialSession: Bool = false,
@@ -278,6 +282,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         self.externalOpenRouter = externalOpenRouter
         self.userEventNotifier = userEventNotifier
         self.physicalNetworkMonitor = physicalNetworkMonitor
+        self.diskSpaceReader = diskSpaceReader
         self.userEventBadgeDisplay = userEventBadgeDisplay
         self.usageTelemetryCoordinator = usageTelemetryCoordinator
         self.usageTelemetrySender = usageTelemetrySender
@@ -574,6 +579,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let errorState = TorrentRowErrorState(
             record.errorState,
             saveFolderPath: record.canonicalSavePath,
+            metricsMode: shared.metricsMode,
             localeOverride: shared.localeOverride
         )
         let compactTransferMetricSet = errorState == nil
@@ -601,13 +607,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             record.isFinishedForOpening ? "open-ready" : "open-not-ready",
         ].joined(separator: "|")
 
+        // "Сохранена" is how a stopped download looks until its first start,
+        // not a status of its own.
+        let isSavedForLater = record.isSavedForLater && record.status == .stopped && errorState == nil
         var state = TorrentRowState(
             id: record.id,
             title: record.displayName,
             originalTitle: record.originalName,
             hasAlias: record.alias?.isEmpty == false,
             status: record.status,
-            statusTitle: record.status.localizedTitle(localeOverride: shared.localeOverride),
+            statusTitle: isSavedForLater
+                ? L10n.string("torrent.status.saved", localeOverride: shared.localeOverride)
+                : record.status.localizedTitle(localeOverride: shared.localeOverride),
             progress: presentedProgress(for: record),
             compactTransferMetricSet: compactTransferMetricSet,
             expandedMetricGroups: expandedMetricGroups,
@@ -637,7 +648,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             isRecovering: inputs.isTransitioning && (
                 record.persistentIssue?.kind == .savePathUnavailable
                     || (record.persistentIssue == nil && record.runtimeErrorState != nil)
-            )
+            ),
+            isSavedForLater: isSavedForLater
         )
         #if DEBUG
         state.enablesCardLayoutDiagnostics = shared.enablesCardLayoutDiagnostics
@@ -863,6 +875,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             debugSessionLoadIssuePreview = .unsupportedVersion(found: SessionSnapshot.currentSchemaVersion + 1)
         }
     }
+
+    /// Debug menu: every disk reports almost no free space, so the add
+    /// window, a saved download and its start can be tried without filling
+    /// a disk. Nothing is written anywhere.
+    @Published private(set) var debugSimulatesLowDiskSpace = false
+
+    func toggleLowDiskSpaceForDebug() {
+        debugSimulatesLowDiskSpace.toggle()
+    }
+
+    private static let debugLowDiskSpaceBytes: Int64 = 1_000_000
 
     /// Debug menu: the selected download stops as the engine stops it with
     /// `cause` (nil: an internal error), notification included, so the card
@@ -1289,6 +1312,78 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return pendingTorrentAdditions.first(where: { $0.draft.infoHash?.lowercased() == infoHash })?.id
     }
 
+    /// The free space of the disk `path` is on, as Finder counts it; `nil`
+    /// when the folder cannot be reached. Asks the system once.
+    func diskSpace(atPath path: String) async -> DiskSpaceInfo? {
+        guard var info = await diskSpaceReader.diskSpace(atPath: path) else { return nil }
+        #if DEBUG
+        if debugSimulatesLowDiskSpace {
+            info.availableBytes = min(info.availableBytes, Self.debugLowDiskSpaceBytes)
+        }
+        #endif
+        return info
+    }
+
+    /// Whether `neededBytes` fit on the disk of `savePath`.
+    func diskSpaceCheck(neededBytes: Int64, savePath: String) async -> DiskSpaceCheck? {
+        guard let info = await diskSpace(atPath: savePath) else { return nil }
+        return DiskSpaceCheck(
+            neededBytes: neededBytes,
+            availableBytes: info.availableBytes,
+            volumeName: info.volumeName
+        )
+    }
+
+    /// What the "i" of a saved download shows: whether it can start now.
+    func savedDownloadSpaceStatus(for id: UUID) async -> SavedDownloadSpaceStatus? {
+        guard let record = torrentRecord(for: id), record.isSavedForLater else { return nil }
+        guard let saveURL = await bookmarkStore.resolveURL(
+            for: record.id,
+            fallbackPath: record.canonicalSavePath
+        ), let check = await diskSpaceCheck(
+            neededBytes: record.metrics.selectedBytes,
+            savePath: saveURL.path
+        ) else {
+            return .unknown(folderName: ShatlErrorCatalog.folderDisplayName(forPath: record.canonicalSavePath))
+        }
+        return .known(check)
+    }
+
+    /// A saved download starts only when it fits: it was put aside for lack
+    /// of room, and a start without room would only fill the disk and stop.
+    /// Returns whether the start may go on; otherwise the card says what the
+    /// disk lacks. A folder that cannot be reached is left to the start
+    /// itself, which reports it.
+    private func confirmsRoomForSavedDownload(_ record: TorrentRecord, savePath: String? = nil) async -> Bool {
+        guard record.isSavedForLater, record.metrics.selectedBytes > 0 else { return true }
+
+        let checkedPath: String
+        if let savePath {
+            checkedPath = savePath
+        } else if let saveURL = await bookmarkStore.resolveURL(
+            for: record.id,
+            fallbackPath: record.canonicalSavePath
+        ) {
+            checkedPath = saveURL.path
+        } else {
+            return true
+        }
+
+        guard let check = await diskSpaceCheck(
+            neededBytes: record.metrics.selectedBytes,
+            savePath: checkedPath
+        ), !check.fits else {
+            return true
+        }
+
+        if let index = torrents.firstIndex(where: { $0.id == record.id }) {
+            detachedTorrentIDs.insert(record.id)
+            torrents[index].status = .error
+            torrents[index].runtimeErrorState = ShatlErrorCatalog.notEnoughSpaceError(check)
+        }
+        return false
+    }
+
     func selectTorrent(id: UUID) {
         selectedTorrentID = id
         refreshSelectedTorrentNavigationAvailability()
@@ -1392,6 +1487,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
                 if record.persistentIssue != nil {
                     self.applyPersistentIssue(nil, to: record.id)
+                }
+                guard await self.confirmsRoomForSavedDownload(record) else {
+                    Self.logger.notice("Start blocked for saved torrent id=\(record.id.uuidString): not enough space")
+                    #if DEBUG
+                    transitionOutcome = "blocked.not-enough-space"
+                    #endif
+                    return
                 }
                 self.traceTransition(torrentID: record.id, phase: "restore-start.begin", level: .notice, extra: [:])
                 await self.restoreAndStart(record: record)
@@ -1940,6 +2042,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await persistCriticalState()
             return
         }
+        // For a saved download "Повторить" asks the disk again first.
+        guard await confirmsRoomForSavedDownload(stopped) else { return }
         await restoreAndStart(record: stopped)
     }
 
@@ -1983,7 +2087,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     func redownloadTorrent(id: UUID, toSaveLocation saveURL: URL, bookmarkData: Data?) {
         guard let record = torrents.first(where: { $0.id == id }),
-              record.persistentIssue?.kind == .savePathUnavailable,
+              record.persistentIssue?.kind == .savePathUnavailable
+                || (record.persistentIssue == nil && record.runtimeErrorState?.kind == .notEnoughSpace),
               !transitioningTorrentIDs.contains(id) else { return }
 
         transitioningTorrentIDs.insert(id)
@@ -2065,6 +2170,22 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         bookmarkData: Data?
     ) async {
         let normalizedSavePath = NSString(string: saveURL.path).standardizingPath
+        if record.isSavedForLater {
+            // The new folder becomes the download's folder either way; it
+            // starts there only if that disk has the room.
+            if let index = torrents.firstIndex(where: { $0.id == record.id }) {
+                torrents[index].canonicalSavePath = normalizedSavePath
+            }
+            if let bookmarkData {
+                await bookmarkStore.saveBookmarkData(for: record.id, data: bookmarkData)
+            } else if normalizedSavePath != record.canonicalSavePath {
+                await bookmarkStore.saveBookmark(for: record.id, url: saveURL)
+            }
+            guard await confirmsRoomForSavedDownload(record, savePath: normalizedSavePath) else {
+                await persistCriticalState()
+                return
+            }
+        }
         let baselineFootprint = await diskIssueDetector.captureCurrentFootprint(
             for: record,
             saveURL: URL(fileURLWithPath: normalizedSavePath, isDirectory: true)
@@ -2098,6 +2219,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             candidateRecord.materializedSelectionFootprint = baselineFootprint
             candidateRecord.persistentIssue = nil
             candidateRecord.runtimeErrorState = nil
+            candidateRecord.isSavedForLater = false
 
             let saveOutcome = await sessionStore.commitAttemptTransition(
                 candidateRecord,
@@ -2154,6 +2276,18 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func confirmDraft() {
+        addCurrentDraft(savesToList: false)
+    }
+
+    /// The add window's answer to a disk with no room for the download: it
+    /// goes to the list stopped, to be started by hand once there is room.
+    /// The engine never sees it, so no peer is asked and nothing is written
+    /// to the full disk; Start later is the start of any stopped download.
+    func saveDraftToList() {
+        addCurrentDraft(savesToList: true)
+    }
+
+    private func addCurrentDraft(savesToList: Bool) {
         guard canAddTorrent else { return }
         guard let draft = currentAddTorrentDraft else { return }
         guard draft.canConfirmDownload else { return }
@@ -2168,7 +2302,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             attemptID: UUID(),
             draft: draft,
             shortDisplayName: Self.shortenedPendingDisplayName(for: draft),
-            presentationStartedAt: ContinuousClock().now
+            presentationStartedAt: ContinuousClock().now,
+            savesToList: savesToList
         )
         insertPendingTorrentAddition(addition)
         dismissModal()
@@ -2216,12 +2351,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         var addedRecord: TorrentRecord?
         do {
-            let record = try await engine.addTorrent(
-                using: addition.draft,
-                recordID: addition.id,
-                attemptID: addition.attemptID
-            )
-            addedRecord = record
+            let record: TorrentRecord
+            if addition.savesToList {
+                record = Self.savedRecord(for: addition)
+            } else {
+                record = try await engine.addTorrent(
+                    using: addition.draft,
+                    recordID: addition.id,
+                    attemptID: addition.attemptID
+                )
+                addedRecord = record
+            }
 
             guard !isPendingAdditionCancelled(id: addition.id) else {
                 await rollbackCancelledPendingAddition(record: record, lease: addLease, isCommitted: false)
@@ -2314,7 +2454,49 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func completePendingTorrentAddition(with record: TorrentRecord) {
         insertConfirmedTorrent(record)
+        if record.isSavedForLater {
+            // Not in the engine, like any stopped download.
+            detachedTorrentIDs.insert(record.id)
+        }
         removePendingTorrentAdditionFromPresentation(id: record.id)
+    }
+
+    /// The record of a download saved to the list, built from what the add
+    /// window knows; the engine adds the same fields when it takes a draft.
+    private static func savedRecord(for addition: PendingTorrentAddition) -> TorrentRecord {
+        let draft = addition.draft
+        let selectedFiles = draft.files
+            .filter(\.isSelected)
+            .sorted { $0.fileIndex < $1.fileIndex }
+
+        return TorrentRecord(
+            id: addition.id,
+            attemptID: addition.attemptID,
+            infoHash: draft.infoHash,
+            originalName: draft.originalName,
+            alias: draft.alias.isEmpty ? nil : draft.alias,
+            progress: 0,
+            status: .stopped,
+            metrics: TorrentMetrics(
+                totalBytes: draft.files.reduce(0) { $0 + $1.sizeBytes },
+                selectedBytes: selectedFiles.reduce(0) { $0 + $1.sizeBytes }
+            ),
+            canonicalSavePath: draft.suggestedSavePath,
+            selectedFileIndices: draft.selectedFileIndices,
+            selectedFileRelativePaths: selectedFiles.compactMap {
+                TorrentPathSafety.normalizedRelativePath($0.name)
+            },
+            selectedFileCount: selectedFiles.count,
+            totalFileCount: draft.files.count,
+            materializedSelectionFootprint: nil,
+            persistentIssue: nil,
+            runtimeErrorState: nil,
+            lastKnownProgress: 0,
+            resumeCheckpointedAt: nil,
+            resumeCheckpointProgress: nil,
+            stopAfterDownload: draft.stopAfterDownload,
+            isSavedForLater: true
+        )
     }
 
     private func removePendingTorrentAdditionFromPresentation(id: UUID) {
@@ -2939,7 +3121,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 lastKnownProgress: $0.progress,
                 resumeCheckpointedAt: $0.resumeCheckpointedAt,
                 resumeCheckpointProgress: $0.resumeCheckpointProgress,
-                stopAfterDownload: $0.stopAfterDownload
+                stopAfterDownload: $0.stopAfterDownload,
+                isSavedForLater: $0.savedForLater ?? false
             )
         }
         lastPersistedProgressBucketByID = Dictionary(
@@ -4017,6 +4200,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
                 if let index = torrents.firstIndex(where: { $0.id == record.id }) {
                     torrents[index].runtimeErrorState = nil
+                    // Started once, a saved download is an ordinary one.
+                    torrents[index].isSavedForLater = false
                 }
 
                 Self.logger.notice("Restore-start succeeded for torrent id=\(record.id.uuidString)")
@@ -4050,6 +4235,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                         if let index = torrents.firstIndex(where: { $0.id == record.id }) {
                             torrents[index].status = record.progress >= 1.0 ? .seeding : .downloading
                             torrents[index].runtimeErrorState = nil
+                            torrents[index].isSavedForLater = false
                         }
 
                         Self.logger.notice("Restore-start reused existing handle for torrent id=\(record.id.uuidString)")

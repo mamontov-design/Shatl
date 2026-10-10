@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "Téléchargement";
 "torrent.status.adding" = "Ajout…";
 "torrent.status.stopped" = "Arrêté";
+"torrent.status.saved" = "Enregistré";
 "torrent.status.seeding" = "Envoi";
 "torrent.status.completed" = "Téléchargé";
 "torrent.status.error" = "Erreur";
 "torrent.status.checking" = "Vérification";
 
 "torrent.card.original_title" = "Nom du torrent — %@";
+"torrent.saved.info.help" = "En savoir plus sur le téléchargement enregistré";
+"torrent.saved.info.reason" = "Ce téléchargement manquait d’espace au moment de l’ajout : il a donc été enregistré dans la liste et attend d’être démarré. Démarrez-le manuellement quand l’espace sera suffisant.";
+"torrent.saved.info.short" = "Le disque « %1$@ » dispose actuellement de %2$@ et il en faut %3$@ : il manque %4$@.";
+"torrent.saved.info.fits" = "Il y a maintenant assez d’espace : le disque « %1$@ » dispose de %2$@ et il en faut %3$@. Vous pouvez démarrer le téléchargement.";
+"torrent.saved.info.unknown" = "Impossible de vérifier l’espace disponible : le dossier « %@ » est indisponible pour le moment, le disque est peut-être déconnecté.";
 
 "torrent.metric.seeds_and_peers" = "Seeds et peers";
 "torrent.metric.upload_speed" = "Vitesse d’envoi";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "Les fichiers du téléchargement ont disparu de son dossier. Vous pouvez le relancer depuis la liste des téléchargements.";
 "torrent.error.runtime.other.message" = "Le téléchargement s’est arrêté à cause d’une erreur interne. Relancez-le. Si l’erreur revient, retirez le téléchargement de la liste et ajoutez à nouveau le fichier .torrent ou le lien magnet.";
 "torrent.error.runtime.other.notification" = "Une erreur interne s’est produite. Vous pouvez relancer le téléchargement depuis la liste des téléchargements.";
+"torrent.error.not_enough_space.title" = "Espace insuffisant";
+"torrent.error.not_enough_space.message" = "Le disque n’a pas assez d’espace, le téléchargement n’a donc pas démarré. Libérez de l’espace et relancez-le, ou choisissez un dossier sur un autre disque.";
+"torrent.error.not_enough_space.named_message" = "Il manque %2$@ sur le disque « %1$@ », le téléchargement n’a donc pas démarré. Libérez de l’espace et relancez-le, ou choisissez un dossier sur un autre disque.";
 
 "remove_dialog.choice.title" = "Supprimer « %@ » ?";
 "remove_dialog.choice.message.with_files" = "Si vous le retirez seulement de la liste, les fichiers téléchargés resteront sur le disque. Si vous le supprimez avec les fichiers, ceux-ci seront définitivement supprimés du disque.";
@@ -168,13 +177,16 @@
 "add_torrent.review.preparing.title" = "Préparation du téléchargement.";
 "add_torrent.review.preparing.message" = "La liste des fichiers et les réglages apparaîtront dans un instant.";
 "add_torrent.review.alias_caption" = "La carte du téléchargement affichera l’alias à la place du nom du torrent. Le nom du torrent est visible dans la vue développée de la carte.";
-"add_torrent.review.download_to_folder" = "Enregistrer dans « %@ »";
+"add_torrent.review.download_to_folder" = "Télécharger dans « %@ »";
 "add_torrent.review.set_as_default_folder" = "Définir par défaut";
 "add_torrent.review.folder_not_selected" = "Aucun dossier choisi";
 "add_torrent.review.stop_after_download" = "Arrêter l’envoi une fois le téléchargement terminé";
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
+"add_torrent.review.save_to_list" = "Enregistrer dans la liste";
+"add_torrent.review.low_space.message.many_files" = "Il manque %2$@ sur le disque « %1$@ ». Libérez de l’espace, décochez certains fichiers ou choisissez un dossier sur un autre disque. Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
+"add_torrent.review.low_space.message.one_file" = "Il manque %2$@ sur le disque « %1$@ ». Libérez de l’espace ou choisissez un dossier sur un autre disque. Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
 "add_torrent.review.close" = "Fermer";
 "add_torrent.review.show_in_list" = "Afficher dans la liste";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
@@ -219,6 +231,7 @@
 "menu.debug.show_onboarding" = "Lancer la configuration initiale";
 "menu.debug.preview_restore_status" = "Afficher « Préparation des téléchargements »";
 "menu.debug.preview_unsupported_session" = "Afficher « Impossible d’ouvrir la liste des téléchargements »";
+"menu.debug.simulate_low_space" = "Simuler un disque plein";
 "menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
 "menu.debug.runtime_error.disk_full" = "Disque plein";
 "menu.debug.runtime_error.no_write_access" = "Écriture non autorisée";

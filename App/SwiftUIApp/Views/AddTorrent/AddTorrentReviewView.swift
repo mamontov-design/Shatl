@@ -489,6 +489,14 @@ enum AddTorrentReviewLayout {
     static let summaryHorizontalPadding: CGFloat = 6
     static let summaryVerticalPadding: CGFloat = 12
     static let summarySpacing: CGFloat = 24
+    /// The low-space message sits inside the summary, this far from its edges
+    /// and from the numbers below it.
+    static let summaryMessageInset: CGFloat = 6
+    static let summaryMessagePadding: CGFloat = 8
+    static var summaryMessageCornerRadius: CGFloat {
+        summaryCornerRadius - summaryMessageInset
+    }
+    static let freeSpaceRefreshInterval = Duration.seconds(2)
     static let filesVerticalPadding: CGFloat = 4
     static let standardSummaryContentHeight: CGFloat = 29
     static let cjkSummaryContentHeight: CGFloat = 33
@@ -569,95 +577,9 @@ enum AddTorrentReviewSelectionIndicator {
     }
 }
 
-enum AddTorrentSummaryByteRounding {
-    case up
-    case down
-}
-
-enum AddTorrentSummaryByteFormatter {
-    static func format(
-        _ bytes: Int64,
-        mode: MetricsPresentationMode,
-        rounding: AddTorrentSummaryByteRounding,
-        localeOverride: AppLocaleOverride
-    ) -> String {
-        switch mode {
-        case .detailed:
-            Metrics.formatBytes(bytes, mode: mode, localeOverride: localeOverride)
-        case .simplified:
-            formatSimplified(bytes, rounding: rounding, localeOverride: localeOverride)
-        }
-    }
-
-    private static func formatSimplified(
-        _ bytes: Int64,
-        rounding: AddTorrentSummaryByteRounding,
-        localeOverride: AppLocaleOverride
-    ) -> String {
-        let positiveBytes = max(bytes, 0)
-        guard let unit = units(localeOverride: localeOverride).first(where: { Double(positiveBytes) >= $0.threshold }) else {
-            return metricValue(positiveBytes, unitKey: "unit.byte", fallback: "Б", localeOverride: localeOverride)
-        }
-
-        let visibleValue = Double(positiveBytes) / unit.threshold
-        let roundedValue: Int64
-        switch rounding {
-        case .up:
-            roundedValue = Int64(visibleValue.rounded(.up))
-        case .down:
-            roundedValue = Int64(visibleValue.rounded(.down))
-        }
-
-        return "\(localizedInteger(roundedValue, localeOverride: localeOverride)) \(unit.label)"
-    }
-
-    private static func metricValue<T>(
-        _ value: T,
-        unitKey: String,
-        fallback: String,
-        localeOverride: AppLocaleOverride
-    ) -> String {
-        "\(value) \(L10n.string(unitKey, localeOverride: localeOverride, defaultValue: fallback))"
-    }
-
-    private static func localizedInteger(
-        _ value: Int64,
-        localeOverride: AppLocaleOverride
-    ) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = L10n.locale(for: localeOverride)
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-
-    private static func units(
-        localeOverride: AppLocaleOverride
-    ) -> [(threshold: Double, label: String)] {
-        [
-            (
-                1_000_000_000_000,
-                L10n.string("unit.terabyte", localeOverride: localeOverride, defaultValue: "ТБ")
-            ),
-            (
-                1_000_000_000,
-                L10n.string("unit.gigabyte", localeOverride: localeOverride, defaultValue: "ГБ")
-            ),
-            (
-                1_000_000,
-                L10n.string("unit.megabyte", localeOverride: localeOverride, defaultValue: "МБ")
-            ),
-            (
-                1_000,
-                L10n.string("unit.kilobyte", localeOverride: localeOverride, defaultValue: "КБ")
-            ),
-        ]
-    }
-}
-
 private enum AddTorrentAvailableCapacity: Equatable {
     case loading
-    case available(Int64)
+    case available(DiskSpaceInfo)
     case unavailable
 }
 
@@ -1043,6 +965,9 @@ struct AddTorrentReviewView: View {
     @State private var searchExpandedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
+    /// The summary's height as laid out, the low-space message included, so
+    /// the last files never stay under it.
+    @State private var measuredSummaryOverlayHeight: CGFloat?
     #if DEBUG
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
     #endif
@@ -1141,7 +1066,14 @@ struct AddTorrentReviewView: View {
             rebuildFilePresentation()
         }
         .task(id: draft?.suggestedSavePath) {
-            await refreshAvailableCapacity()
+            // Free space is read again every few seconds while the window is
+            // open: the low-space message leaves by itself once room appears.
+            // One question to the system per read, off the main thread.
+            availableCapacity = .loading
+            while !Task.isCancelled {
+                await refreshAvailableCapacity()
+                try? await Task.sleep(for: AddTorrentReviewLayout.freeSpaceRefreshInterval)
+            }
         }
     }
 
@@ -1150,6 +1082,11 @@ struct AddTorrentReviewView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .bottom) {
                 torrentSummaryContainer
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        measuredSummaryOverlayHeight = height
+                    }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .trailing) {
@@ -1383,7 +1320,8 @@ struct AddTorrentReviewView: View {
                 .padding(.vertical, AddTorrentReviewLayout.filesVerticalPadding)
                 .padding(
                     .bottom,
-                    AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
+                    measuredSummaryOverlayHeight
+                        ?? AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
                 )
             }
             .scrollIndicators(.hidden)
@@ -1650,7 +1588,7 @@ struct AddTorrentReviewView: View {
             selectedFileCount: selectedFileCount
         )
 
-        let content = HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
+        let metrics = HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
             if showsSelectedMetrics {
                 torrentSummaryMetric(
                     label: L10n.string(
@@ -1710,11 +1648,70 @@ struct AddTorrentReviewView: View {
             value: "\(selectedFileCount)-\(selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
         )
 
+        let content = VStack(spacing: 0) {
+            if let lowSpaceMessage {
+                lowSpaceMessageBlock(lowSpaceMessage)
+                    .padding([.horizontal, .top], AddTorrentReviewLayout.summaryMessageInset)
+                    .transition(ShatlMotion.appearFromTop)
+            }
+
+            metrics
+        }
+        .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
+
         content
             .glassEffect(
                 .regular.interactive(false),
                 in: torrentSummaryShape
             )
+    }
+
+    /// The selected files do not fit on the disk they are to be saved to.
+    private var spaceShortfall: DiskSpaceCheck? {
+        guard areSettingsControlsEnabled, case let .available(info) = availableCapacity else {
+            return nil
+        }
+        return DiskSpaceCheck.shortfall(
+            neededBytes: filePresentation.selectedBytes,
+            on: info
+        )
+    }
+
+    /// Names the disk and what it lacks, then every way out; unticking files
+    /// is one of them only when more than one is ticked.
+    private var lowSpaceMessage: String? {
+        guard let spaceShortfall else { return nil }
+        return L10n.format(
+            filePresentation.selectedFileCount > 1
+                ? "add_torrent.review.low_space.message.many_files"
+                : "add_torrent.review.low_space.message.one_file",
+            localeOverride: store.preferences.localeOverride,
+            defaultValue: "",
+            ShatlErrorCatalog.shortenedTorrentName(spaceShortfall.volumeName),
+            spaceShortfall.shortfallText(
+                mode: store.preferences.metricsMode,
+                localeOverride: store.preferences.localeOverride
+            )
+        )
+    }
+
+    private func lowSpaceMessageBlock(_ message: String) -> some View {
+        Text(message)
+            .shatlTypography(ShatlTypography.captionRegular)
+            .foregroundStyle(Color.white)
+            .contentTransition(.numericText())
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(AddTorrentReviewLayout.summaryMessagePadding)
+            .background(ShatlColor.errorSolidBackground)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: AddTorrentReviewLayout.summaryMessageCornerRadius,
+                    style: .continuous
+                )
+            )
+            .animation(ShatlMotion.metricResize, value: message)
+            .accessibilityAddTraits(.isStaticText)
     }
 
     private var torrentSummarySupplementaryTransition: AnyTransition {
@@ -1766,9 +1763,9 @@ struct AddTorrentReviewView: View {
         switch availableCapacity {
         case .loading:
             "…"
-        case let .available(bytes):
+        case let .available(info):
             AddTorrentSummaryByteFormatter.format(
-                bytes,
+                info.availableBytes,
                 mode: store.preferences.metricsMode,
                 rounding: .down,
                 localeOverride: store.preferences.localeOverride
@@ -2246,7 +2243,7 @@ struct AddTorrentReviewView: View {
                         L10n.format(
                             "add_torrent.review.download_to_folder",
                             localeOverride: store.preferences.localeOverride,
-                            defaultValue: "Загрузить в «%@»",
+                            defaultValue: "Скачать в «%@»",
                             displayedFolderName
                         )
                     )
@@ -2418,18 +2415,25 @@ struct AddTorrentReviewView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
+    /// With no room for the download the button saves it to the list
+    /// instead of starting it, so the window is never a dead end.
     private var confirmButtonBody: some View {
-        ShatlButton(
+        let savesToList = spaceShortfall != nil
+        return ShatlButton(
             title: L10n.string(
-                "add_torrent.review.confirm",
+                savesToList ? "add_torrent.review.save_to_list" : "add_torrent.review.confirm",
                 localeOverride: store.preferences.localeOverride,
-                defaultValue: "Скачать"
+                defaultValue: savesToList ? "Сохранить в список" : "Скачать"
             ),
             role: .borderedColored,
             isDisabled: !areSettingsControlsEnabled || filePresentation.selectedFileCount == 0
         ) {
             isAliasFocused = false
-            store.confirmDraft()
+            if savesToList {
+                store.saveDraftToList()
+            } else {
+                store.confirmDraft()
+            }
         }
     }
 
@@ -2465,8 +2469,6 @@ struct AddTorrentReviewView: View {
     }
 
     private func refreshAvailableCapacity() async {
-        availableCapacity = .loading
-
         guard let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines),
               !path.isEmpty
         else {
@@ -2474,14 +2476,10 @@ struct AddTorrentReviewView: View {
             return
         }
 
-        let capacity = await Task.detached(priority: .utility) {
-            let url = URL(fileURLWithPath: path, isDirectory: true)
-            let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey])
-            return values?.volumeAvailableCapacity.map(Int64.init)
-        }.value
+        let info = await store.diskSpace(atPath: path)
 
         guard !Task.isCancelled else { return }
-        availableCapacity = capacity.map(AddTorrentAvailableCapacity.available) ?? .unavailable
+        availableCapacity = info.map(AddTorrentAvailableCapacity.available) ?? .unavailable
     }
 
     private func presentSavePathPicker() {
