@@ -184,6 +184,18 @@ struct TorrentListView: View {
                 guard store.isToolbarRemoveEnabled else { return }
                 onRemoveSelected()
             }
+            // ⌘V adds a copied magnet link or `.torrent` file the way a drop
+            // into the window does; anything else gets the system's "no".
+            .onPasteCommand(of: MainWindowDropLayout.draggedTypes) { providers in
+                Task {
+                    let content = await DraggedContent.pasted(providers)
+                    if store.acceptsDraggedDownloads, case let .accept(download) = content.offer {
+                        store.addDraggedDownload(download)
+                    } else {
+                        NSSound.beep()
+                    }
+                }
+            }
             .onGeometryChange(for: Bool.self) { proxy in
                 let cardWidth = max(0, proxy.size.width - Self.horizontalContentPadding * 2)
                 return cardWidth < TorrentCardLayout.compactExpandedMetricsWidth
@@ -203,11 +215,22 @@ struct TorrentListView: View {
             }
             .overlay {
                 if showsSearchEmptyState {
-                    TorrentSearchEmptyStateView(
-                        query: displayedSearchText,
-                        localeOverride: store.preferences.localeOverride
+                    // The same block as every message in the middle of a
+                    // window.
+                    ShatlMessageBlockPrimary(
+                        systemImage: "exclamationmark.magnifyingglass",
+                        title: L10n.format(
+                            "search.empty.title",
+                            localeOverride: store.preferences.localeOverride,
+                            defaultValue: "Нет результатов для «%@».",
+                            displayedSearchText
+                        ),
+                        message: L10n.string(
+                            "search.empty.description",
+                            localeOverride: store.preferences.localeOverride,
+                            defaultValue: "Попробуйте другое название или псевдоним."
+                        )
                     )
-                        .padding(.horizontal, 32)
                         .padding(.bottom, bottomContentPadding)
                         .allowsHitTesting(false)
                 }
@@ -285,49 +308,5 @@ private struct TorrentRowPresentationObserver<Content: View>: View {
 
     var body: some View {
         content(model.state)
-    }
-}
-
-private struct TorrentSearchEmptyStateView: View {
-    let query: String
-    let localeOverride: AppLocaleOverride
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.magnifyingglass")
-                .font(.system(size: 36, weight: .regular))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(ShatlColor.typographyTertiary)
-                .accessibilityHidden(true)
-
-            VStack(spacing: 6) {
-                Text(
-                    L10n.format(
-                        "search.empty.title",
-                        localeOverride: localeOverride,
-                        defaultValue: "Нет результатов для «%@»",
-                        query
-                    )
-                )
-                    .shatlTypography(ShatlTypography.headlineSemibold)
-                    .foregroundStyle(ShatlColor.typographyPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(
-                    L10n.string(
-                        "search.empty.description",
-                        localeOverride: localeOverride,
-                        defaultValue: "Попробуйте другое название или псевдоним."
-                    )
-                )
-                    .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(ShatlColor.typographySecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: 300)
-        }
-        .accessibilityElement(children: .combine)
     }
 }

@@ -30,8 +30,11 @@
 "toolbar.delete" = "Supprimer";
 "toolbar.search" = "Rechercher";
 
-"search.empty.title" = "Aucun résultat pour « %@ »";
+"search.empty.title" = "Aucun résultat pour « %@ ».";
 "search.empty.description" = "Essayez un autre nom ou alias.";
+"main.drop.accept.title" = "Relâchez pour ajouter le téléchargement.";
+"main.drop.too_many.title" = "Les téléchargements s’ajoutent un par un.";
+"main.drop.too_many.message" = "Faites glisser les fichiers l’un après l’autre.";
 
 "session.restore.title" = "Préparation des téléchargements";
 "session.restore.message" = "Les téléchargements reprennent après le redémarrage — cela prend quelques secondes. Pendant leur préparation, ils ne peuvent être ni lancés, ni arrêtés, ni supprimés.";
@@ -166,6 +169,7 @@
 "add_torrent.title" = "Ajouter un téléchargement";
 "add_torrent.entry.empty_title" = "Aucun téléchargement";
 "add_torrent.entry.subtitle" = "Collez un lien magnet ci-dessous ou choisissez un fichier .torrent sur votre Mac.";
+"add_torrent.entry.empty_subtitle" = "Glissez ici un fichier .torrent ou un lien magnet, ou ajoutez-les ci-dessous.";
 "add_torrent.entry.choose_file" = "Choisir un fichier .torrent…";
 "add_torrent.entry.continue" = "Continuer";
 "add_torrent.review.search_files" = "Rechercher des fichiers…";
@@ -231,6 +235,7 @@
 "menu.debug.show_onboarding" = "Lancer la configuration initiale";
 "menu.debug.preview_restore_status" = "Afficher « Préparation des téléchargements »";
 "menu.debug.preview_unsupported_session" = "Afficher « Impossible d’ouvrir la liste des téléchargements »";
+"menu.debug.cycle_drop_screen" = "Afficher l’écran de dépôt";
 "menu.debug.simulate_low_space" = "Simuler un disque plein";
 "menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
 "menu.debug.runtime_error.disk_full" = "Disque plein";

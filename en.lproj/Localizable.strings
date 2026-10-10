@@ -30,8 +30,11 @@
 "toolbar.delete" = "Delete";
 "toolbar.search" = "Search";
 
-"search.empty.title" = "No results for “%@”";
+"search.empty.title" = "No results for “%@”.";
 "search.empty.description" = "Try a different name or alias.";
+"main.drop.accept.title" = "Release to add the download.";
+"main.drop.too_many.title" = "Downloads are added one at a time.";
+"main.drop.too_many.message" = "Drag the files in one by one.";
 
 "session.restore.title" = "Preparing downloads";
 "session.restore.message" = "Downloads are getting back to work after the restart—this takes a few seconds. While they’re being prepared, they can’t be started, stopped, or deleted.";
@@ -166,6 +169,7 @@
 "add_torrent.title" = "Add Download";
 "add_torrent.entry.empty_title" = "Download list is empty";
 "add_torrent.entry.subtitle" = "Paste a magnet link below or choose a .torrent file from your Mac.";
+"add_torrent.entry.empty_subtitle" = "Drag a .torrent file or magnet link here, or add one below.";
 "add_torrent.entry.choose_file" = "Choose .torrent File…";
 "add_torrent.entry.continue" = "Continue";
 "add_torrent.review.search_files" = "Search files…";
@@ -231,6 +235,7 @@
 "menu.debug.show_onboarding" = "Start Onboarding";
 "menu.debug.preview_restore_status" = "Show “Preparing Downloads”";
 "menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
+"menu.debug.cycle_drop_screen" = "Show the Drop Screen";
 "menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";

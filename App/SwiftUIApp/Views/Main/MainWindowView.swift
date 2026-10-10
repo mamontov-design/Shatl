@@ -33,6 +33,10 @@ struct MainWindowView: View {
     /// time, see `MainWindowStageStep`.
     @State private var displayedStage: MainWindowStage?
     @State private var stageChangeTask: Task<Void, Never>?
+    /// What the window answers to a download dragged over it; `nil` with no
+    /// such drag. While it is set, the drop screen takes the content's place.
+    @State private var dropOffer: DraggedDownloadOffer?
+    @State private var dropExitTask: Task<Void, Never>?
     /// The content height of the locked onboarding window; until the lock
     /// knows the window, the onboarding takes the height it is given.
     @State private var onboardingContentHeight: CGFloat?
@@ -139,6 +143,7 @@ struct MainWindowView: View {
         .onDisappear {
             restoreStatusTask?.cancel()
             stageChangeTask?.cancel()
+            dropExitTask?.cancel()
         }
     }
 
@@ -162,13 +167,43 @@ struct MainWindowView: View {
                         .zIndex(1)
                 }
 
+                // The content gives way to the drop screen by fading and
+                // stays where it is: taken out of the window, the list would
+                // build every card again on its way back. Hidden, it takes no
+                // clicks and no drops, or the empty list's link field would
+                // catch a dragged link itself.
                 contentView
+                    .opacity(displayedDropOffer == nil ? 1 : 0)
+                    .allowsHitTesting(displayedDropOffer == nil)
+                    .overlay {
+                        if let displayedDropOffer {
+                            MainWindowDropScreen(
+                                offer: displayedDropOffer,
+                                localeOverride: store.preferences.localeOverride
+                            )
+                            .transition(stageTransition)
+                        }
+                    }
+                    .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
             }
             .animation(ShatlMotion.sessionRestoreStatusBar, value: store.isHaloSpeedNoticeVisible)
 
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
+                .opacity(displayedDropOffer == nil ? 1 : 0)
+                .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }
+        .onDrop(
+            of: MainWindowDropLayout.draggedTypes,
+            delegate: MainWindowDropDelegate(
+                isAvailable: { acceptsDrops },
+                onOffer: showDropOffer,
+                onDrop: { download in
+                    showDropOffer(nil, afterDelay: false)
+                    store.addDraggedDownload(download)
+                }
+            )
+        )
         // The window's smallest size. Here and not on the whole window: the
         // onboarding has a fixed size, and a lower minimum around it left
         // the window resizable between the two.
@@ -328,6 +363,42 @@ struct MainWindowView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    /// A drop is taken where the add button would work: over the list or
+    /// the empty list, with nothing else being added.
+    private var acceptsDrops: Bool {
+        (stage == .list || stage == .empty) && store.acceptsDraggedDownloads
+    }
+
+    private var displayedDropOffer: DraggedDownloadOffer? {
+        #if DEBUG
+        return dropOffer ?? store.debugDropOfferPreview
+        #else
+        return dropOffer
+        #endif
+    }
+
+    private func showDropOffer(_ offer: DraggedDownloadOffer?) {
+        showDropOffer(offer, afterDelay: true)
+    }
+
+    /// The drop screen comes at once and goes after a moment, unless the
+    /// drag is back by then; a release takes it away at once.
+    private func showDropOffer(_ offer: DraggedDownloadOffer?, afterDelay: Bool) {
+        dropExitTask?.cancel()
+        dropExitTask = nil
+
+        guard offer == nil, afterDelay else {
+            dropOffer = offer
+            return
+        }
+
+        dropExitTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.dropScreenExitDelay)
+            guard !Task.isCancelled else { return }
+            dropOffer = nil
+        }
     }
 
     private var stageTransition: AnyTransition {

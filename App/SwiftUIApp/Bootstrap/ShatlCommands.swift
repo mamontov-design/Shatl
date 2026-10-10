@@ -28,6 +28,9 @@ struct ShatlCommands: Commands {
                 store.debugSessionLoadIssuePreview == nil
                     && !store.canPreviewUnsupportedSessionForDebug
             )
+            Button("menu.debug.cycle_drop_screen") {
+                store.cycleDropScreenPreviewForDebug()
+            }
             Toggle("menu.debug.simulate_low_space", isOn: Binding(
                 get: { store.debugSimulatesLowDiskSpace },
                 set: { _ in store.toggleLowDiskSpaceForDebug() }

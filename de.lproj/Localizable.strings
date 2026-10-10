@@ -30,8 +30,11 @@
 "toolbar.delete" = "Löschen";
 "toolbar.search" = "Suchen";
 
-"search.empty.title" = "Keine Ergebnisse für „%@“";
+"search.empty.title" = "Keine Ergebnisse für „%@“.";
 "search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
+"main.drop.accept.title" = "Loslassen, um den Download hinzuzufügen.";
+"main.drop.too_many.title" = "Downloads werden einzeln hinzugefügt.";
+"main.drop.too_many.message" = "Ziehen Sie die Dateien nacheinander hinein.";
 
 "session.restore.title" = "Downloads werden vorbereitet";
 "session.restore.message" = "Die Downloads werden nach dem Neustart wieder aufgenommen – das dauert ein paar Sekunden. Solange sie vorbereitet werden, lassen sie sich nicht starten, stoppen oder löschen.";
@@ -166,6 +169,7 @@
 "add_torrent.title" = "Download hinzufügen";
 "add_torrent.entry.empty_title" = "Download-Liste ist leer";
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen Magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
+"add_torrent.entry.empty_subtitle" = ".torrent-Datei oder Magnet-Link hierher ziehen oder unten hinzufügen.";
 "add_torrent.entry.choose_file" = ".torrent-Datei wählen…";
 "add_torrent.entry.continue" = "Fortfahren";
 "add_torrent.review.search_files" = "Dateien suchen…";
@@ -231,6 +235,7 @@
 "menu.debug.show_onboarding" = "Onboarding starten";
 "menu.debug.preview_restore_status" = "„Downloads werden vorbereitet“ zeigen";
 "menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
+"menu.debug.cycle_drop_screen" = "Drop-Bildschirm zeigen";
 "menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";

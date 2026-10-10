@@ -482,9 +482,13 @@ enum AddTorrentReviewLayout {
     static let hoverAreaSpacing: CGFloat = 4
     static let hoverAreaPadding: CGFloat = 6
     static let hoverAreaCornerRadius: CGFloat = 8
-    /// On macOS 26 the summary's corner follows the window's rounder one.
+    /// The summary's corner follows the window's: 10 pt, and 20 pt on
+    /// macOS 26, where windows are rounder.
     static var summaryCornerRadius: CGFloat {
-        if #available(macOS 27.0, *) { 12 } else { 20 }
+        ShatlCornerRadius.nested(
+            in: ShatlCornerRadius.window,
+            inset: summaryContainerHorizontalPadding
+        )
     }
     static let summaryHorizontalPadding: CGFloat = 6
     static let summaryVerticalPadding: CGFloat = 12
@@ -494,7 +498,7 @@ enum AddTorrentReviewLayout {
     static let summaryMessageInset: CGFloat = 6
     static let summaryMessagePadding: CGFloat = 8
     static var summaryMessageCornerRadius: CGFloat {
-        summaryCornerRadius - summaryMessageInset
+        ShatlCornerRadius.nested(in: summaryCornerRadius, inset: summaryMessageInset)
     }
     static let freeSpaceRefreshInterval = Duration.seconds(2)
     static let filesVerticalPadding: CGFloat = 4
@@ -963,6 +967,7 @@ private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentabl
 struct AddTorrentReviewView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedFolderIDs: Set<String> = []
     @State private var searchCollapsedFolderIDs: Set<String> = []
     @State private var searchExpandedFolderIDs: Set<String> = []
@@ -1282,25 +1287,36 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    @ViewBuilder
+    /// The message block and the file list change places the way the main
+    /// window's stages do: one dissolves as the other comes. The animation
+    /// sits on what holds them both. On the block alone it left with the
+    /// block, and the file list replaced the block in one frame.
     private var filesTabContent: some View {
-        if let reviewMessage {
-            ShatlMessageBlockPrimary(
-                systemImage: reviewMessage.systemImage,
-                title: reviewMessage.title,
-                message: reviewMessage.message,
-                primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
-            )
-            // A failure disables the window; the block's own action stays
-            // pressable, as the main window keeps its content under a
-            // disabled search.
-            .environment(\.isEnabled, true)
-            .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .transition(ShatlMotion.stickyPinInsertion)
-        } else {
-            filesContainer()
+        ZStack {
+            if let reviewMessage {
+                ShatlMessageBlockPrimary(
+                    systemImage: reviewMessage.systemImage,
+                    title: reviewMessage.title,
+                    message: reviewMessage.message,
+                    primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
+                )
+                // A failure disables the window; the block's own action stays
+                // pressable, as the main window keeps its content under a
+                // disabled search.
+                .environment(\.isEnabled, true)
+                .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .transition(filesContentTransition)
+            } else {
+                filesContainer()
+                    .transition(filesContentTransition)
+            }
         }
+        .animation(ShatlMotion.mainContentMode, value: reviewMessage == nil)
+    }
+
+    private var filesContentTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.mainContent
     }
 
     private func filesContainer() -> some View {
