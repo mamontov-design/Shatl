@@ -42,6 +42,8 @@ final class TorrentListSelectionTests: XCTestCase {
 /// Several cards are selected as in Finder: a click takes one, Shift a run,
 /// ⌘ single ones. A card with an error never shares a selection.
 final class TorrentListMultiSelectionTests: XCTestCase {
+    /// A card still being added, at the top of the list.
+    private let adding = UUID()
     private let a = UUID()
     private let b = UUID()
     private let c = UUID()
@@ -50,15 +52,24 @@ final class TorrentListMultiSelectionTests: XCTestCase {
     /// A card with an error, in the middle of the list.
     private let failed = UUID()
 
-    private var visible: [UUID] { [a, b, failed, c, d, e] }
+    private var visible: [UUID] { [adding, a, b, failed, c, d, e] }
     private var joinable: Set<UUID> { [a, b, c, d, e] }
+    private var alone: Set<UUID> { [adding] }
 
     private func click(
         _ selection: inout TorrentListSelection,
         _ id: UUID,
         _ kind: TorrentListSelectionClick = .plain
     ) -> Bool {
-        selection.click(id, kind, visible: visible, joinable: joinable)
+        selection.click(id, kind, visible: visible, joinable: joinable, alone: alone)
+    }
+
+    private func move(
+        _ selection: inout TorrentListSelection,
+        _ step: TorrentListSelectionStep,
+        extending: Bool = false
+    ) -> UUID? {
+        selection.move(step, extending: extending, visible: visible, joinable: joinable, alone: alone)
     }
 
     func testPlainClickSelectsOneAndASecondClickClearsIt() {
@@ -148,8 +159,8 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         XCTAssertTrue(click(&selection, b, .range))
         XCTAssertTrue(selection.isEmpty)
 
-        _ = click(&selection, failed)
-        XCTAssertTrue(click(&selection, failed, .range))
+        _ = click(&selection, adding)
+        XCTAssertTrue(click(&selection, adding, .range))
         XCTAssertTrue(selection.isEmpty)
     }
 
@@ -185,55 +196,103 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         XCTAssertEqual(selection.ids, [d])
     }
 
-    func testFailedCardRefusesToJoinAndLeavesTheSelectionAsItWas() {
+    /// A card with an error acts through its own buttons, so a click on it
+    /// selects nothing and leaves the selection as it was.
+    func testCardWithAnErrorIsNeverSelected() {
+        var selection = TorrentListSelection()
+        XCTAssertTrue(click(&selection, failed))
+        XCTAssertTrue(selection.isEmpty)
+        XCTAssertTrue(click(&selection, failed, .toggle))
+        XCTAssertTrue(click(&selection, failed, .range))
+        XCTAssertTrue(selection.isEmpty)
+
+        _ = click(&selection, a)
+        _ = click(&selection, c, .toggle)
+        XCTAssertTrue(click(&selection, failed))
+        XCTAssertEqual(selection.ids, [a, c])
+    }
+
+    /// Clicked with ⌘ or Shift while others are selected, it refuses aloud.
+    func testCardWithAnErrorRefusesToJoinAndLeavesTheSelectionAsItWas() {
         var selection = TorrentListSelection(only: a)
 
         XCTAssertFalse(click(&selection, failed, .toggle))
         XCTAssertEqual(selection.ids, [a])
         XCTAssertFalse(click(&selection, failed, .range))
         XCTAssertEqual(selection.ids, [a])
+
+        // A card being added is nothing to join, so there is no refusal.
+        _ = click(&selection, adding)
+        XCTAssertTrue(click(&selection, failed, .toggle))
+        XCTAssertEqual(selection.ids, [adding])
     }
 
-    /// Alone it is selected as before, and takes no company.
-    func testFailedCardIsSelectedOnlyAlone() {
+    /// Its cancelling lives in the toolbar, so it is selected, but takes no
+    /// company.
+    func testCardBeingAddedIsSelectedOnlyAlone() {
         var selection = TorrentListSelection()
-        XCTAssertTrue(click(&selection, failed))
-        XCTAssertEqual(selection.ids, [failed])
+        XCTAssertTrue(click(&selection, adding))
+        XCTAssertEqual(selection.ids, [adding])
 
         XCTAssertTrue(click(&selection, b, .toggle))
         XCTAssertEqual(selection.ids, [b])
 
-        _ = click(&selection, failed)
+        XCTAssertFalse(click(&selection, adding, .toggle))
+        XCTAssertFalse(click(&selection, adding, .range))
+        XCTAssertEqual(selection.ids, [b])
+
+        _ = click(&selection, adding)
         XCTAssertTrue(click(&selection, d, .range))
         XCTAssertEqual(selection.ids, [d])
     }
 
-    func testArrowsWithoutShiftMoveToTheNeighbouringCardWhateverItIs() {
+    func testArrowsWithoutShiftStepOverCardsWithAnError() {
         var selection = TorrentListSelection(only: b)
 
-        XCTAssertEqual(selection.move(.next, extending: false, visible: visible, joinable: joinable), failed)
-        XCTAssertEqual(selection.ids, [failed])
-        XCTAssertEqual(selection.move(.next, extending: false, visible: visible, joinable: joinable), c)
+        XCTAssertEqual(move(&selection, .next), c)
         XCTAssertEqual(selection.ids, [c])
+        XCTAssertEqual(move(&selection, .previous), b)
+        XCTAssertEqual(selection.ids, [b])
+
+        // A card being added is reached like any other.
+        _ = move(&selection, .previous)
+        XCTAssertEqual(move(&selection, .previous), adding)
+        XCTAssertEqual(selection.ids, [adding])
+        XCTAssertNil(move(&selection, .previous))
+    }
+
+    func testArrowsWithNothingSelectedTakeTheFirstOrLastSelectableCard() {
+        let visible = [failed, a, b, failed]
+        var down = TorrentListSelection()
+        XCTAssertEqual(
+            down.move(.next, extending: false, visible: visible, joinable: joinable, alone: alone),
+            a
+        )
+        var up = TorrentListSelection()
+        XCTAssertEqual(
+            up.move(.previous, extending: false, visible: visible, joinable: joinable, alone: alone),
+            b
+        )
     }
 
     func testShiftArrowsGrowTheRunOverFailedCardsAndShrinkItBack() {
         var selection = TorrentListSelection(only: b)
 
-        XCTAssertEqual(selection.move(.next, extending: true, visible: visible, joinable: joinable), c)
+        XCTAssertEqual(move(&selection, .next, extending: true), c)
         XCTAssertEqual(selection.ids, [b, c])
-        XCTAssertEqual(selection.move(.next, extending: true, visible: visible, joinable: joinable), d)
+        XCTAssertEqual(move(&selection, .next, extending: true), d)
         XCTAssertEqual(selection.ids, [b, c, d])
 
-        XCTAssertEqual(selection.move(.previous, extending: true, visible: visible, joinable: joinable), c)
+        XCTAssertEqual(move(&selection, .previous, extending: true), c)
         XCTAssertEqual(selection.ids, [b, c])
-        XCTAssertEqual(selection.move(.previous, extending: true, visible: visible, joinable: joinable), b)
+        XCTAssertEqual(move(&selection, .previous, extending: true), b)
         XCTAssertEqual(selection.ids, [b])
 
-        // Past the anchor the run grows the other way.
-        XCTAssertEqual(selection.move(.previous, extending: true, visible: visible, joinable: joinable), a)
+        // Past the anchor the run grows the other way, up to the last card
+        // that can join: the one being added cannot.
+        XCTAssertEqual(move(&selection, .previous, extending: true), a)
         XCTAssertEqual(selection.ids, [a, b])
-        XCTAssertNil(selection.move(.previous, extending: true, visible: visible, joinable: joinable))
+        XCTAssertNil(move(&selection, .previous, extending: true))
         XCTAssertEqual(selection.ids, [a, b])
     }
 
@@ -243,29 +302,30 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         var selection = TorrentListSelection(only: a)
         _ = click(&selection, d, .toggle)
 
-        XCTAssertEqual(selection.move(.next, extending: true, visible: visible, joinable: joinable), e)
+        XCTAssertEqual(move(&selection, .next, extending: true), e)
         XCTAssertEqual(selection.ids, [a, d, e])
         XCTAssertEqual(selection.order, [a, d, e])
 
-        XCTAssertEqual(selection.move(.previous, extending: true, visible: visible, joinable: joinable), d)
+        XCTAssertEqual(move(&selection, .previous, extending: true), d)
         XCTAssertEqual(selection.ids, [a, d])
     }
 
     func testPlainArrowAfterSeveralSelectsOneFromTheMovingEnd() {
         var selection = TorrentListSelection(only: b)
-        _ = selection.move(.next, extending: true, visible: visible, joinable: joinable)
+        _ = move(&selection, .next, extending: true)
         XCTAssertEqual(selection.ids, [b, c])
 
-        XCTAssertEqual(selection.move(.next, extending: false, visible: visible, joinable: joinable), d)
+        XCTAssertEqual(move(&selection, .next), d)
         XCTAssertEqual(selection.ids, [d])
     }
 
     func testSelectAllTakesEveryCardThatCanShareASelection() {
-        var selection = TorrentListSelection(only: failed)
+        var selection = TorrentListSelection(only: adding)
 
         selection.selectAll(visible: visible, joinable: joinable)
 
         XCTAssertEqual(selection.ids, joinable)
+        XCTAssertFalse(selection.contains(adding))
         XCTAssertFalse(selection.contains(failed))
     }
 
@@ -273,24 +333,28 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         var selection = TorrentListSelection()
         selection.selectAll(visible: visible, joinable: joinable)
 
-        selection.prune(visible: [a, c, failed], joinable: joinable)
+        selection.prune(visible: [a, c, failed], joinable: joinable, alone: alone)
 
         XCTAssertEqual(selection.ids, [a, c])
     }
 
-    /// A download that fails while selected with others drops out quietly;
-    /// selected alone, it stays selected.
-    func testCardThatFailsWhileSelectedLeavesASelectionOfSeveral() {
+    /// A download that fails while selected drops out quietly, alone or
+    /// among others.
+    func testCardThatFailsWhileSelectedLeavesTheSelection() {
         var several = TorrentListSelection(only: a)
         _ = click(&several, c, .range)
         XCTAssertEqual(several.ids, [a, b, c])
 
-        several.prune(visible: Set(visible), joinable: [a, c, d, e])
+        several.prune(visible: Set(visible), joinable: [a, c, d, e], alone: alone)
         XCTAssertEqual(several.ids, [a, c])
 
-        var alone = TorrentListSelection(only: b)
-        alone.prune(visible: Set(visible), joinable: [a, c, d, e])
-        XCTAssertEqual(alone.ids, [b])
+        var single = TorrentListSelection(only: b)
+        single.prune(visible: Set(visible), joinable: [a, c, d, e], alone: alone)
+        XCTAssertTrue(single.isEmpty)
+
+        var beingAdded = TorrentListSelection(only: adding)
+        beingAdded.prune(visible: Set(visible), joinable: joinable, alone: alone)
+        XCTAssertEqual(beingAdded.ids, [adding])
     }
 
     func testRemovedCardLeavesTheSelection() {

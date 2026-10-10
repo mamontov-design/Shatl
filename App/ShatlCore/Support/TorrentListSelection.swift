@@ -39,9 +39,11 @@ nonisolated enum TorrentListSelectionClick: Sendable {
 /// The cards selected in the list, as Finder selects: one by a click, a run
 /// by Shift, single ones by ⌘.
 ///
-/// A card with an error, or one still being added, acts through its own
-/// buttons and not through the toolbar. It can be selected alone and never
-/// with others: `joinable` names the cards that can share a selection.
+/// What is selected is what the toolbar acts on. A card with an error acts
+/// through its own buttons, so it is never selected. A card still being
+/// added has only its cancelling in the toolbar, so it is selected alone and
+/// never with others. `joinable` names the cards that can share a selection
+/// and `alone` those selected only alone; a card in neither has an error.
 nonisolated struct TorrentListSelection: Equatable, Sendable {
     private(set) var ids: Set<UUID> = []
     /// The selected cards in the order they were selected: the one clicked
@@ -97,16 +99,22 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         drop([id])
     }
 
-    /// Answers a click. `false` when the card refuses to join the others: a
-    /// card with an error clicked with ⌘ or Shift while something else is
-    /// selected. The selection then stays as it was.
+    /// Answers a click. `false` when the card refuses to join the others and
+    /// should say so: clicked with ⌘ or Shift while something it cannot join
+    /// is selected. The selection then stays as it was. A plain click on a
+    /// card with an error changes nothing and is not a refusal.
     @discardableResult
     mutating func click(
         _ id: UUID,
         _ click: TorrentListSelectionClick,
         visible visibleIDs: [UUID],
-        joinable: Set<UUID>
+        joinable: Set<UUID>,
+        alone: Set<UUID>
     ) -> Bool {
+        guard joinable.contains(id) || alone.contains(id) else {
+            return click == .plain || !hasJoinableSelection(joinable)
+        }
+
         switch click {
         case .plain:
             if ids == [id] {
@@ -152,22 +160,24 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         }
     }
 
-    /// ↑ and ↓. Without Shift the selection moves to the neighbouring card,
-    /// whatever it is. With Shift the run from the anchor grows or shrinks by
-    /// a card, stepping over the cards that cannot join; cards selected apart
-    /// from the run stay. Returns the card to scroll to, or `nil` when
-    /// nothing changed.
+    /// ↑ and ↓. Without Shift the selection moves to the next card that can
+    /// be selected, stepping over the cards with an error. With Shift the run
+    /// from the anchor grows or shrinks by a card, stepping over the cards
+    /// that cannot join; cards selected apart from the run stay. Returns the
+    /// card to scroll to, or `nil` when nothing changed.
     @discardableResult
     mutating func move(
         _ step: TorrentListSelectionStep,
         extending: Bool,
         visible visibleIDs: [UUID],
-        joinable: Set<UUID>
+        joinable: Set<UUID>,
+        alone: Set<UUID>
     ) -> UUID? {
         guard extending, hasJoinableSelection(joinable),
               let start = resolvedAnchor(in: visibleIDs) else {
+            let selectableIDs = visibleIDs.filter { joinable.contains($0) || alone.contains($0) }
             let current = lead.flatMap { ids.contains($0) ? $0 : nil } ?? single
-            guard let target = step.target(from: current, in: visibleIDs),
+            guard let target = step.target(from: current, in: selectableIDs),
                   ids != [target] else {
                 return nil
             }
@@ -206,11 +216,10 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         lead = last
     }
 
-    /// Drops the cards the search has hidden and, from a selection of
-    /// several, those that can no longer share it: a download that failed
-    /// while selected.
-    mutating func prune(visible visibleIDs: Set<UUID>, joinable: Set<UUID>) {
-        var kept = ids.intersection(visibleIDs)
+    /// Drops the cards the search has hidden and those that can no longer
+    /// be selected: a download that failed while selected.
+    mutating func prune(visible visibleIDs: Set<UUID>, joinable: Set<UUID>, alone: Set<UUID>) {
+        var kept = ids.intersection(visibleIDs).filter { joinable.contains($0) || alone.contains($0) }
         if kept.count > 1 {
             kept = kept.intersection(joinable)
         }

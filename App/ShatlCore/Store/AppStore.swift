@@ -59,7 +59,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         didSet {
             guard oldValue != torrents else { return }
             updateTorrentIndex(previous: oldValue)
-            pruneSelectionOfSeveral()
+            pruneFailedSelection()
             refreshTorrentPresentations()
         }
     }
@@ -408,7 +408,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         if !selection.isEmpty {
             let previousSingle = selection.single
-            selection.prune(visible: visibleIDs, joinable: joinableTorrentIDs)
+            selection.prune(
+                visible: visibleIDs,
+                joinable: joinableTorrentIDs,
+                alone: aloneSelectableTorrentIDs
+            )
             if selection.single != previousSingle {
                 refreshSelectedTorrentNavigationAvailability()
             }
@@ -1220,7 +1224,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
         // A card with an error removes itself with its own button, the one
         // its text speaks of; the toolbar does not offer a second one. Such
-        // a card is never among several selected.
+        // a card is never selected.
         let selected = selectedRecords
         return !selected.isEmpty
             && !isRestoringSession
@@ -1280,17 +1284,26 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     /// The downloads that can share a selection: not those with an error,
-    /// which act through their own buttons, nor those still being added.
+    /// which act through their own buttons and are never selected, nor
+    /// those still being added.
     private var joinableTorrentIDs: Set<UUID> {
         Set(torrents.lazy.filter { $0.errorState == nil }.map(\.id))
             .subtracting(pendingTorrentAdditions.map(\.id))
     }
 
-    /// A download that fails while selected with others leaves them. Runs on
+    /// The downloads selected only alone: still being added, with their
+    /// cancelling in the toolbar.
+    private var aloneSelectableTorrentIDs: Set<UUID> {
+        Set(pendingTorrentAdditions.map(\.id))
+    }
+
+    /// A download that fails while selected leaves the selection. Runs on
     /// every change of the list, so it looks only at the selected ones.
-    private func pruneSelectionOfSeveral() {
-        guard selection.count > 1 else { return }
-        let failed = selection.ids.filter { torrentRecord(for: $0)?.errorState != nil }
+    private func pruneFailedSelection() {
+        guard !selection.isEmpty else { return }
+        let failed = selection.ids.filter {
+            !isPendingAddition(id: $0) && torrentRecord(for: $0)?.errorState != nil
+        }
         guard !failed.isEmpty else { return }
 
         var pruned = selection
@@ -1540,13 +1553,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return false
     }
 
+    /// Selects the download alone. One with an error is never selected: the
+    /// selection is then cleared, so nothing else looks like the answer.
     func selectTorrent(id: UUID) {
-        selectedTorrentID = id
+        let hasError = !isPendingAddition(id: id) && torrentRecord(for: id)?.errorState != nil
+        selectedTorrentID = hasError ? nil : id
         refreshSelectedTorrentNavigationAvailability()
     }
 
     /// A click on a card: plain, with ⌘ or with Shift. `false` when the card
-    /// refuses to join the selected ones, so it can say so itself.
+    /// refuses to join the selected ones, so it can say so itself. A plain
+    /// click on a card with an error changes nothing.
     @discardableResult
     func clickTorrent(
         id: UUID,
@@ -1557,7 +1574,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             id,
             click,
             visible: visibleTorrentIDs,
-            joinable: joinableTorrentIDs
+            joinable: joinableTorrentIDs,
+            alone: aloneSelectableTorrentIDs
         )
         refreshSelectedTorrentNavigationAvailability()
         return didAccept
@@ -1575,7 +1593,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             step,
             extending: extending,
             visible: visibleTorrentIDs,
-            joinable: joinableTorrentIDs
+            joinable: joinableTorrentIDs,
+            alone: aloneSelectableTorrentIDs
         )
         if target != nil {
             refreshSelectedTorrentNavigationAvailability()

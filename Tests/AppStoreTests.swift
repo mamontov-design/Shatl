@@ -1900,11 +1900,14 @@ final class AppStoreTests: XCTestCase {
         bundle.store.startSelectedTorrent()
 
         let didSetIssue = await waitForCondition {
-            bundle.store.selectedTorrent?.persistentIssue?.kind == .missingContent
+            bundle.store.torrentRecord(for: record.id)?.persistentIssue?.kind == .missingContent
         }
 
         XCTAssertTrue(didSetIssue)
-        XCTAssertEqual(bundle.store.selectedTorrent?.status, .error)
+        XCTAssertEqual(bundle.store.torrentRecord(for: record.id)?.status, .error)
+        // A download with an error acts through its own buttons and leaves
+        // the selection.
+        XCTAssertNil(bundle.store.selectedTorrentID)
         let restoreCalls = await engine.restoreSessionCallCount()
         XCTAssertEqual(restoreCalls, 0)
     }
@@ -1942,11 +1945,14 @@ final class AppStoreTests: XCTestCase {
         bundle.store.stopSelectedTorrent()
 
         let didSetIssue = await waitForCondition {
-            bundle.store.selectedTorrent?.persistentIssue?.kind == .missingContent
+            bundle.store.torrentRecord(for: record.id)?.persistentIssue?.kind == .missingContent
         }
 
         XCTAssertTrue(didSetIssue)
-        XCTAssertEqual(bundle.store.selectedTorrent?.status, .error)
+        XCTAssertEqual(bundle.store.torrentRecord(for: record.id)?.status, .error)
+        // A download with an error acts through its own buttons and leaves
+        // the selection.
+        XCTAssertNil(bundle.store.selectedTorrentID)
     }
 
     func testStopCommitFailureLeavesTorrentRunningAndRetrySucceeds() async throws {

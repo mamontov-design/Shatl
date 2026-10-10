@@ -504,7 +504,7 @@ struct TorrentCardView: View, Equatable {
     private var selectedIndicator: some View {
         Image(systemName: row.selectionNumber.map { "\($0).circle.fill" } ?? "checkmark.circle.fill")
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(row.errorState == nil ? ShatlColor.accent : ShatlColor.cerisePink)
+            .foregroundStyle(ShatlColor.accent)
             .contentTransition(.symbolEffect(.replace))
             .animation(ShatlMotion.cardControlSlide, value: row.selectionNumber)
     }
@@ -517,8 +517,8 @@ struct TorrentCardView: View, Equatable {
             .truncationMode(.tail)
     }
 
-    /// A card with an error answers in words; one still being added only
-    /// shakes, as it has no buttons to point at.
+    /// A card with an error is never selected and answers in words; one
+    /// still being added only shakes, as it has no buttons to point at.
     private var showsSelectionRefusal: Bool {
         isRefusingSelection && row.errorState != nil
     }
@@ -1339,10 +1339,6 @@ struct TorrentCardView: View, Equatable {
         }
 
         if row.isSelected {
-            if row.errorState != nil {
-                return ShatlColor.cardSelectedError
-            }
-
             return ShatlColor.cardDefault
         }
 

@@ -73,29 +73,42 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedTorrentID, ids[2])
     }
 
-    func testCardWithAnErrorRefusesToJoinAndIsLeftOutOfSelectAll() {
+    /// A card with an error acts through its own buttons: it is never
+    /// selected, by a click, by the arrows or by "Show in List".
+    func testCardWithAnErrorIsNeverSelected() throws {
         let failed = failedRecord()
         let records = [makeTestRecord(), failed, makeTestRecord()]
         let store = makeBundle(records).store
         let ids = records.map(\.id)
 
+        // A plain click changes nothing and is no refusal.
+        XCTAssertTrue(store.clickTorrent(id: failed.id, .plain, visibleTorrentIDs: ids))
+        XCTAssertEqual(store.selectedTorrentCount, 0)
+
         store.clickTorrent(id: ids[0], .plain, visibleTorrentIDs: ids)
+        XCTAssertTrue(store.clickTorrent(id: failed.id, .plain, visibleTorrentIDs: ids))
+        XCTAssertEqual(store.selectedTorrentID, ids[0])
+
+        // With ⌘ or Shift it refuses aloud.
         XCTAssertFalse(store.clickTorrent(id: failed.id, .toggle, visibleTorrentIDs: ids))
         XCTAssertFalse(store.clickTorrent(id: failed.id, .range, visibleTorrentIDs: ids))
         XCTAssertEqual(store.selectedTorrentID, ids[0])
+        XCTAssertFalse(try rowState(failed.id, in: store).isSelected)
+
+        // The arrows step over it.
+        XCTAssertEqual(store.moveTorrentSelection(.next, visibleTorrentIDs: ids), ids[2])
+        XCTAssertEqual(store.moveTorrentSelection(.previous, visibleTorrentIDs: ids), ids[0])
 
         store.selectAllTorrents(visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectedTorrents.map(\.id), [ids[0], ids[2]])
 
-        // Alone it is selected as before, and acts through its own buttons.
-        XCTAssertTrue(store.clickTorrent(id: failed.id, .plain, visibleTorrentIDs: ids))
-        XCTAssertEqual(store.selectedTorrentID, failed.id)
-        XCTAssertFalse(store.isToolbarRemoveEnabled)
-        XCTAssertFalse(store.isToolbarStartStopEnabled)
+        // Asked for by name, it clears the selection instead of joining it.
+        store.selectTorrent(id: failed.id)
+        XCTAssertEqual(store.selectedTorrentCount, 0)
     }
 
     #if DEBUG
-    func testDownloadThatFailsWhileSelectedWithOthersLeavesThem() {
+    func testDownloadThatFailsWhileSelectedLeavesTheSelection() {
         let records = [makeTestRecord(), makeTestRecord(), makeTestRecord()]
         let store = makeBundle(records).store
         let ids = records.map(\.id)
@@ -105,6 +118,11 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
 
         XCTAssertEqual(store.selectedTorrents.map(\.id), [ids[0], ids[2]])
         XCTAssertTrue(store.isToolbarRemoveEnabled)
+
+        // Selected alone, it leaves too.
+        store.clickTorrent(id: ids[0], .plain, visibleTorrentIDs: ids)
+        store.simulateRuntimeErrorForDebug(id: ids[0], cause: .diskFull)
+        XCTAssertEqual(store.selectedTorrentCount, 0)
     }
 
     func testNumberedCardsHoldTheBarBackUntilTen() throws {
