@@ -965,9 +965,9 @@ struct AddTorrentReviewView: View {
     @State private var searchExpandedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
-    /// The summary's height as laid out, the low-space message included, so
-    /// the last files never stay under it.
-    @State private var measuredSummaryOverlayHeight: CGFloat?
+    /// The low-space message's height as laid out: the summary's plate grows
+    /// by it, and the file list leaves as much room under its last row.
+    @State private var lowSpaceMessageHeight: CGFloat = 0
     #if DEBUG
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
     #endif
@@ -1082,11 +1082,6 @@ struct AddTorrentReviewView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .bottom) {
                 torrentSummaryContainer
-                    .onGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.size.height
-                    } action: { height in
-                        measuredSummaryOverlayHeight = height
-                    }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .trailing) {
@@ -1320,8 +1315,8 @@ struct AddTorrentReviewView: View {
                 .padding(.vertical, AddTorrentReviewLayout.filesVerticalPadding)
                 .padding(
                     .bottom,
-                    measuredSummaryOverlayHeight
-                        ?? AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
+                    AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
+                        + lowSpaceExtraHeight
                 )
             }
             .scrollIndicators(.hidden)
@@ -1648,22 +1643,61 @@ struct AddTorrentReviewView: View {
             value: "\(selectedFileCount)-\(selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
         )
 
-        let content = VStack(spacing: 0) {
+        // The numbers are what the summary is laid out by, and they never
+        // move. The plate behind them grows upward for the low-space message,
+        // which shows through as the plate uncovers it. Laid out as one stack
+        // with the message on top, the plate jumped to its new height while
+        // the labels inside slid after it.
+        metrics
+            .background {
+                Color.clear
+                    .glassEffect(
+                        .regular.interactive(false),
+                        in: torrentSummaryShape
+                    )
+                    .padding(.top, -lowSpaceExtraHeight)
+                    .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
+            }
+            .overlay(alignment: .top) {
+                lowSpaceMessageLayer
+            }
+    }
+
+    /// How far the plate reaches above the numbers: the message and the gap
+    /// between it and the plate's top edge.
+    private var lowSpaceExtraHeight: CGFloat {
+        lowSpaceMessage == nil
+            ? 0
+            : lowSpaceMessageHeight + AddTorrentReviewLayout.summaryMessageInset
+    }
+
+    /// The message sits right above the numbers, where it stays; a mask the
+    /// shape of the plate uncovers it from the bottom as the plate grows.
+    private var lowSpaceMessageLayer: some View {
+        ZStack(alignment: .bottom) {
             if let lowSpaceMessage {
                 lowSpaceMessageBlock(lowSpaceMessage)
-                    .padding([.horizontal, .top], AddTorrentReviewLayout.summaryMessageInset)
-                    .transition(ShatlMotion.appearFromTop)
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        lowSpaceMessageHeight = height
+                    }
+                    .transition(.opacity)
             }
-
-            metrics
+        }
+        .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
+        .mask(alignment: .bottom) {
+            // As tall as the plate has grown, and longer downwards so only
+            // its top corners cut the message.
+            torrentSummaryShape
+                .frame(height: lowSpaceExtraHeight + AddTorrentReviewLayout.summaryCornerRadius * 2)
+                .offset(y: AddTorrentReviewLayout.summaryCornerRadius * 2)
+        }
+        .alignmentGuide(.top) { dimensions in
+            dimensions[.bottom]
         }
         .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
-
-        content
-            .glassEffect(
-                .regular.interactive(false),
-                in: torrentSummaryShape
-            )
+        .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
     }
 
     /// The selected files do not fit on the disk they are to be saved to.

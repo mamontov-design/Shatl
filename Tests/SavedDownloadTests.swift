@@ -256,6 +256,44 @@ final class SavedDownloadTests: XCTestCase {
         XCTAssertTrue(message.contains("900"), message)
     }
 
+    /// A card with an error is removed with its own button; the toolbar's
+    /// trash stays for cards without one.
+    func testToolbarOffersNoSecondRemovalForACardWithAnError() async throws {
+        let fixture = try makeFixture(availableBytes: 100 * Self.megabyte)
+        let id = try await saveDraft(in: fixture)
+        fixture.store.selectTorrent(id: id)
+        XCTAssertTrue(fixture.store.isToolbarRemoveEnabled)
+
+        fixture.store.startTorrent(id: id)
+        let didReport = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            fixture.store.torrents.first?.runtimeErrorState?.kind == .notEnoughSpace
+                && !fixture.store.transitioningTorrentIDs.contains(id)
+        }
+        XCTAssertTrue(didReport)
+
+        XCTAssertFalse(fixture.store.isToolbarRemoveEnabled)
+        XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
+    }
+
+    /// The same for a download the engine stopped while it ran.
+    func testToolbarOffersNoRemovalForADownloadStoppedWithAnError() {
+        let failed = makeTestRecord(
+            status: .error,
+            runtimeErrorState: ShatlErrorCatalog.runtimeSnapshotError(debugReason: "test")
+        )
+        let healthy = makeTestRecord(infoHash: "healthy", originalName: "Healthy")
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [failed, healthy])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.selectTorrent(id: failed.id)
+        XCTAssertFalse(bundle.store.isToolbarRemoveEnabled)
+
+        bundle.store.selectTorrent(id: healthy.id)
+        XCTAssertTrue(bundle.store.isToolbarRemoveEnabled)
+    }
+
     func testRetryStartsOnlyOnceTheDiskHasRoom() async throws {
         let fixture = try makeFixture(availableBytes: 100 * Self.megabyte)
         let id = try await saveDraft(in: fixture)

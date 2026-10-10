@@ -144,6 +144,8 @@ struct TorrentCardView: View, Equatable {
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
     @State private var isSavedInfoPresented = false
+    /// What the disk said when the "i" was pressed, for the popover to open with.
+    @State private var savedInfoStatus: SavedDownloadSpaceStatus?
     /// Set once the card first changes its layout; see `layoutStage`.
     @State private var finishStage: TorrentCardFinishStage?
     @State private var finishSteps = TorrentCardFinishSteps()
@@ -499,7 +501,13 @@ struct TorrentCardView: View, Equatable {
     /// here and whether its disk has room for it now.
     private var savedInfoButton: some View {
         Button {
-            isSavedInfoPresented = true
+            // The disk answers at once, so the popover opens with its whole
+            // text and at its final size. Opened first, it grew for the
+            // answer and its two paragraphs ran into each other.
+            Task {
+                savedInfoStatus = await resolveSavedSpaceStatus()
+                isSavedInfoPresented = true
+            }
         } label: {
             Image(systemName: "info.circle")
                 .shatlTypography(ShatlTypography.bodyRegular)
@@ -512,6 +520,7 @@ struct TorrentCardView: View, Equatable {
         .accessibilityLabel(Text("torrent.saved.info.help"))
         .popover(isPresented: $isSavedInfoPresented) {
             SavedDownloadInfoPopover(
+                initialStatus: savedInfoStatus,
                 metricsMode: row.metricsMode,
                 localeOverride: row.localeOverride,
                 resolveStatus: resolveSavedSpaceStatus

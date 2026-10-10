@@ -1163,7 +1163,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return !isRestoringSession
         }
         guard let selectedTorrent else { return false }
-        return selectedTorrent.persistentIssue == nil
+        // A card with an error removes itself with its own button, the one
+        // its text speaks of; the toolbar does not offer a second one.
+        return selectedTorrent.errorState == nil
             && !isRestoringSession
             && !transitioningTorrentIDs.contains(selectedTorrent.id)
     }
