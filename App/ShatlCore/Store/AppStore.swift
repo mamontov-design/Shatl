@@ -59,14 +59,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         didSet {
             guard oldValue != torrents else { return }
             updateTorrentIndex(previous: oldValue)
+            pruneSelectionOfSeveral()
             refreshTorrentPresentations()
         }
     }
-    @Published var selectedTorrentID: UUID? {
+    /// The cards selected in the list: one by a click, several by Shift, ⌘
+    /// and ⌘A. See `TorrentListSelection`.
+    @Published private(set) var selection = TorrentListSelection() {
         didSet {
-            guard oldValue != selectedTorrentID else { return }
+            guard oldValue != selection else { return }
             refreshTorrentPresentations()
         }
+    }
+
+    /// The selected download when exactly one is selected: what "Open" and
+    /// the other single-download actions work on. Setting it selects that
+    /// download alone.
+    var selectedTorrentID: UUID? {
+        get { selection.single }
+        set { selection = newValue.map(TorrentListSelection.init(only:)) ?? TorrentListSelection() }
     }
     @Published var expandedTorrentID: UUID? {
         didSet {
@@ -395,9 +406,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func clearHiddenSelection(visibleTorrentIDs: [UUID]) {
         let visibleIDs = Set(visibleTorrentIDs)
 
-        if let selectedTorrentID, !visibleIDs.contains(selectedTorrentID) {
-            self.selectedTorrentID = nil
-            selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
+        if !selection.isEmpty {
+            let previousSingle = selection.single
+            selection.prune(visible: visibleIDs, joinable: joinableTorrentIDs)
+            if selection.single != previousSingle {
+                refreshSelectedTorrentNavigationAvailability()
+            }
         }
 
         if let expandedTorrentID, !visibleIDs.contains(expandedTorrentID) {
@@ -471,7 +485,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             errorState: nil,
-            isSelected: selectedTorrentID == addition.id,
+            isSelected: selection.contains(addition.id),
             isExpanded: false,
             canToggleRunningState: false,
             canRemoveFromList: !isRestoringSession,
@@ -518,6 +532,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var record: TorrentRecord
         var speedLevels: TransferSpeedLevels?
         var isSelected: Bool
+        var isSelectedWithOthers = false
+        var selectionNumber: Int?
         var isExpanded: Bool
         var isTransitioning: Bool
         var isPendingAddition: Bool
@@ -542,7 +558,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// The store-wide values every card reads, taken once per refresh:
     /// reading a `@Published` property per card would cost more than the card.
     private struct RowInputSources {
-        var selectedTorrentID: UUID?
+        var selectedIDs: Set<UUID>
+        /// The numbers the selected cards wear instead of a check mark, in
+        /// the Debug comparison of the two ways to show how many are selected.
+        var selectionNumbers: [UUID: Int]
         var expandedTorrentID: UUID?
         var transitioningTorrentIDs: Set<UUID>
         var pendingIDs: Set<UUID>
@@ -553,7 +572,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             TorrentRowInputs(
                 record: record,
                 speedLevels: speedLevels[record.id],
-                isSelected: selectedTorrentID == record.id,
+                isSelected: selectedIDs.contains(record.id),
+                isSelectedWithOthers: selectedIDs.count > 1 && selectedIDs.contains(record.id),
+                selectionNumber: selectionNumbers[record.id],
                 isExpanded: expandedTorrentID == record.id,
                 isTransitioning: transitioningTorrentIDs.contains(record.id),
                 isPendingAddition: pendingIDs.contains(record.id),
@@ -564,7 +585,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private func rowInputSources(pendingIDs: Set<UUID>) -> RowInputSources {
         RowInputSources(
-            selectedTorrentID: selectedTorrentID,
+            selectedIDs: selection.ids,
+            selectionNumbers: selectionNumbers,
             expandedTorrentID: expandedTorrentID,
             transitioningTorrentIDs: transitioningTorrentIDs,
             pendingIDs: pendingIDs,
@@ -626,6 +648,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             colorizesDownloadSpeed: shared.colorizesDownloadSpeed,
             errorState: errorState,
             isSelected: inputs.isSelected,
+            isSelectedWithOthers: inputs.isSelectedWithOthers,
+            selectionNumber: inputs.selectionNumber,
             isExpanded: inputs.isExpanded,
             canToggleRunningState: canToggleRunningState(
                 record,
@@ -896,6 +920,16 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         case .tooMany, .unsupported:
             debugDropOfferPreview = nil
         }
+    }
+
+    /// Debug menu: up to nine selected cards wear their number in place of
+    /// the check mark, and the bar with the count comes only from ten. For
+    /// comparing the two ways to show how many are selected.
+    @Published private(set) var debugNumbersSelectedCards = false
+
+    func toggleSelectedCardNumbersForDebug() {
+        debugNumbersSelectedCards.toggle()
+        refreshTorrentPresentations()
     }
 
     /// Debug menu: every disk reports almost no free space, so the add
@@ -1184,19 +1218,115 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         if let selectedTorrentID, isPendingAddition(id: selectedTorrentID) {
             return !isRestoringSession
         }
-        guard let selectedTorrent else { return false }
         // A card with an error removes itself with its own button, the one
-        // its text speaks of; the toolbar does not offer a second one.
-        return selectedTorrent.errorState == nil
+        // its text speaks of; the toolbar does not offer a second one. Such
+        // a card is never among several selected.
+        let selected = selectedRecords
+        return !selected.isEmpty
             && !isRestoringSession
-            && !transitioningTorrentIDs.contains(selectedTorrent.id)
+            && selected.allSatisfy { $0.errorState == nil }
+            && selected.contains { !transitioningTorrentIDs.contains($0.id) }
     }
 
     var isToolbarStartStopEnabled: Bool {
-        guard !onboardingPresentation.isPresented, let selectedTorrent else { return false }
-        return selectedTorrent.errorState == nil
-            && !isRestoringSession
-            && !transitioningTorrentIDs.contains(selectedTorrent.id)
+        guard !onboardingPresentation.isPresented, !isRestoringSession else { return false }
+        return !runnableSelectedRecords.isEmpty
+    }
+
+    /// What the toolbar's Start/Stop button does for the selection.
+    var toolbarRunAction: TorrentListRunAction {
+        let runnable = runnableSelectedRecords
+        return .action(for: (runnable.isEmpty ? selectedRecords : runnable).map(\.status))
+    }
+
+    /// Whether "Запустить" has a stopped download to start among several
+    /// selected, and "Остановить" a running one to stop.
+    var canStartSelectedTorrents: Bool {
+        isToolbarStartStopEnabled && runnableSelectedRecords.contains { $0.status.isSleeping }
+    }
+
+    var canStopSelectedTorrents: Bool {
+        isToolbarStartStopEnabled && runnableSelectedRecords.contains { !$0.status.isSleeping }
+    }
+
+    /// The selected downloads, in the order of the list.
+    var selectedTorrents: [TorrentRecord] {
+        guard selection.count > 1 else { return selectedRecords }
+        return torrents.filter { selection.contains($0.id) }
+    }
+
+    /// How many downloads are selected.
+    var selectedTorrentCount: Int {
+        selection.count
+    }
+
+    /// Whether the card is selected together with others: its menu then
+    /// acts on all of them.
+    func isSelectedWithOthers(_ id: UUID) -> Bool {
+        selection.count > 1 && selection.contains(id)
+    }
+
+    /// The selected downloads in no order, looked up one by one: the toolbar
+    /// asks about them on every tick and must not walk the list.
+    private var selectedRecords: [TorrentRecord] {
+        selection.ids.compactMap { torrentRecord(for: $0) }
+    }
+
+    /// The selected downloads Start or Stop can act on right now.
+    private var runnableSelectedRecords: [TorrentRecord] {
+        selectedRecords.filter {
+            $0.errorState == nil && !transitioningTorrentIDs.contains($0.id)
+        }
+    }
+
+    /// The downloads that can share a selection: not those with an error,
+    /// which act through their own buttons, nor those still being added.
+    private var joinableTorrentIDs: Set<UUID> {
+        Set(torrents.lazy.filter { $0.errorState == nil }.map(\.id))
+            .subtracting(pendingTorrentAdditions.map(\.id))
+    }
+
+    /// A download that fails while selected with others leaves them. Runs on
+    /// every change of the list, so it looks only at the selected ones.
+    private func pruneSelectionOfSeveral() {
+        guard selection.count > 1 else { return }
+        let failed = selection.ids.filter { torrentRecord(for: $0)?.errorState != nil }
+        guard !failed.isEmpty else { return }
+
+        var pruned = selection
+        failed.forEach { pruned.remove($0) }
+        selection = pruned
+        refreshSelectedTorrentNavigationAvailability()
+    }
+
+    /// Up to nine selected cards can wear their number in the list instead
+    /// of a check mark: the Debug comparison of the two ways to count them.
+    private var selectionNumbers: [UUID: Int] {
+        #if DEBUG
+        guard debugNumbersSelectedCards,
+              (2...TorrentSelectionCount.largestCardNumber).contains(selection.count) else {
+            return [:]
+        }
+        var numbers: [UUID: Int] = [:]
+        for id in torrentRowIDs where selection.contains(id) {
+            numbers[id] = numbers.count + 1
+        }
+        return numbers
+        #else
+        return [:]
+        #endif
+    }
+
+    /// How many downloads the bar under the toolbar names; `nil` while the
+    /// bar is not needed.
+    var selectionCountShownInBar: Int? {
+        var firstCount = TorrentSelectionCount.smallestSeveral
+        #if DEBUG
+        if debugNumbersSelectedCards {
+            firstCount = TorrentSelectionCount.largestCardNumber + 1
+        }
+        #endif
+        return selection.count >= firstCount ? selection.count : nil
     }
 
     func canToggleRunningState(for id: UUID) -> Bool {
@@ -1413,25 +1543,57 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         refreshSelectedTorrentNavigationAvailability()
     }
 
-    /// ↑ and ↓ in the list. Returns the newly selected card, to scroll to it.
+    /// A click on a card: plain, with ⌘ or with Shift. `false` when the card
+    /// refuses to join the selected ones, so it can say so itself.
     @discardableResult
-    func moveTorrentSelection(_ step: TorrentListSelectionStep, visibleTorrentIDs: [UUID]) -> UUID? {
-        guard let target = step.target(from: selectedTorrentID, in: visibleTorrentIDs),
-              target != selectedTorrentID else {
-            return nil
+    func clickTorrent(
+        id: UUID,
+        _ click: TorrentListSelectionClick,
+        visibleTorrentIDs: [UUID]
+    ) -> Bool {
+        let didAccept = selection.click(
+            id,
+            click,
+            visible: visibleTorrentIDs,
+            joinable: joinableTorrentIDs
+        )
+        refreshSelectedTorrentNavigationAvailability()
+        return didAccept
+    }
+
+    /// ↑ and ↓ in the list, with Shift to select several. Returns the card
+    /// the selection reached, to scroll to it.
+    @discardableResult
+    func moveTorrentSelection(
+        _ step: TorrentListSelectionStep,
+        extending: Bool = false,
+        visibleTorrentIDs: [UUID]
+    ) -> UUID? {
+        let target = selection.move(
+            step,
+            extending: extending,
+            visible: visibleTorrentIDs,
+            joinable: joinableTorrentIDs
+        )
+        if target != nil {
+            refreshSelectedTorrentNavigationAvailability()
         }
-        selectTorrent(id: target)
         return target
     }
 
-    func toggleTorrentSelection(id: UUID) {
-        selectedTorrentID = selectedTorrentID == id ? nil : id
+    /// ⌘A: every download that can share a selection.
+    func selectAllTorrents(visibleTorrentIDs: [UUID]) {
+        selection.selectAll(visible: visibleTorrentIDs, joinable: joinableTorrentIDs)
         refreshSelectedTorrentNavigationAvailability()
     }
 
+    func toggleTorrentSelection(id: UUID) {
+        clickTorrent(id: id, .plain, visibleTorrentIDs: torrentRowIDs)
+    }
+
     func clearTorrentSelection() {
-        guard selectedTorrentID != nil else { return }
-        selectedTorrentID = nil
+        guard !selection.isEmpty else { return }
+        selection.clear()
         selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
     }
 
@@ -1458,9 +1620,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         expandedTorrentID = nil
     }
 
+    /// The toolbar's Start: every selected download that is stopped.
     func startSelectedTorrent() {
-        guard let selectedTorrentID else { return }
-        startTorrent(id: selectedTorrentID)
+        for record in runnableSelectedRecords where record.status.isSleeping {
+            startTorrent(id: record.id)
+        }
     }
 
     func startTorrent(id: UUID) {
@@ -1587,9 +1751,68 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
+    /// The toolbar's Stop: every selected download that runs.
     func stopSelectedTorrent() {
-        guard let selectedTorrentID else { return }
-        stopTorrent(id: selectedTorrentID)
+        for record in runnableSelectedRecords where !record.status.isSleeping {
+            stopTorrent(id: record.id)
+        }
+    }
+
+    /// Space in the list and ⌘.: what the toolbar's button would do.
+    func toggleSelectedTorrentsRunningState() {
+        switch toolbarRunAction {
+        case .start:
+            startSelectedTorrent()
+        case .stop:
+            stopSelectedTorrent()
+        }
+    }
+
+    /// Removes several downloads one after another, each the way a single
+    /// one is removed: its list entry first, then its files if asked. Files
+    /// that stayed behind are reported once, for all of them.
+    func removeTorrents(ids: [UUID], policy: TorrentRemovalPolicy) async {
+        guard ids.count > 1 else {
+            if let id = ids.first {
+                await removeTorrent(id: id, policy: policy)
+            }
+            return
+        }
+
+        var alerts: [PayloadDeletionAlert] = []
+        for id in ids where !transitioningTorrentIDs.contains(id) {
+            payloadDeletionAlert = nil
+            await removeTorrent(id: id, policy: policy)
+            if let alert = payloadDeletionAlert {
+                alerts.append(alert)
+            }
+            // The list could not be saved: the rest would fail the same way.
+            guard torrentRecord(for: id) == nil else { break }
+        }
+
+        guard alerts.count > 1 else {
+            payloadDeletionAlert = alerts.first
+            return
+        }
+        let revealURLs = alerts.flatMap { [$0.revealURL].compactMap { $0 } + $0.additionalRevealURLs }
+        payloadDeletionAlert = PayloadDeletionAlert(
+            title: L10n.string("payload_deletion.several.title", localeOverride: preferences.localeOverride),
+            message: L10n.string("payload_deletion.several.message", localeOverride: preferences.localeOverride),
+            revealURL: revealURLs.first,
+            additionalRevealURLs: Array(revealURLs.dropFirst())
+        )
+    }
+
+    /// Where the files of the selected downloads are, for "Show in Finder".
+    /// Downloads with nothing on disk yet are left out.
+    func selectedTorrentRevealURLs() async -> [URL] {
+        var urls: [URL] = []
+        for record in selectedTorrents where record.errorState == nil {
+            if let location = await torrentPayloadLocator.primaryLocation(for: record) {
+                urls.append(location.revealItemURL)
+            }
+        }
+        return urls
     }
 
     func stopTorrent(id: UUID) {
@@ -1846,9 +2069,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         // Remove the torrent from durable state first so it cannot return after relaunch.
         torrents.removeAll { $0.id == id }
         lastPersistedProgressBucketByID[id] = nil
-        if selectedTorrentID == id {
-            selectedTorrentID = nil
-        }
+        selection.remove(id)
         if expandedTorrentID == id {
             expandedTorrentID = nil
         }
@@ -2543,9 +2764,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard pendingTorrentAdditions.contains(where: { $0.id == id }) else { return }
         objectWillChange.send()
         pendingTorrentAdditions.removeAll { $0.id == id }
-        if selectedTorrentID == id, !torrents.contains(where: { $0.id == id }) {
-            selectedTorrentID = nil
-            selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
+        if selection.contains(id), !torrents.contains(where: { $0.id == id }) {
+            selection.remove(id)
+            refreshSelectedTorrentNavigationAvailability()
         }
         refreshTorrentPresentations()
     }

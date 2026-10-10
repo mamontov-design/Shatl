@@ -38,6 +38,9 @@
 
 "session.restore.title" = "Préparation des téléchargements";
 "session.restore.message" = "Les téléchargements reprennent après le redémarrage — cela prend quelques secondes. Pendant leur préparation, ils ne peuvent être ni lancés, ni arrêtés, ni supprimés.";
+"selection.bar.count.one" = "%lld téléchargement sélectionné.";
+"selection.bar.count.other" = "%lld téléchargements sélectionnés.";
+"selection.bar.hint" = "Échap pour désélectionner.";
 "session.load.in_progress.title" = "Ouverture de la liste des téléchargements.";
 "session.load.in_progress.message" = "Les téléchargements reprennent leur état au moment de la fermeture. Veuillez patienter.";
 "session.load.failure.title" = "Impossible de restaurer la liste des téléchargements.";
@@ -107,6 +110,7 @@
 "torrent.status.checking" = "Vérification";
 
 "torrent.card.original_title" = "Nom du torrent — %@";
+"torrent.card.selection_refusal" = "Ce téléchargement se gère avec les boutons ci-dessous";
 "torrent.saved.info.help" = "En savoir plus sur le téléchargement enregistré";
 "torrent.saved.info.reason" = "Ce téléchargement manquait d’espace au moment de l’ajout : il a donc été enregistré dans la liste et attend d’être démarré. Démarrez-le manuellement quand l’espace sera suffisant.";
 "torrent.saved.info.short" = "Le disque « %1$@ » dispose actuellement de %2$@ et il en faut %3$@ : il manque %4$@.";
@@ -152,6 +156,12 @@
 "remove_dialog.choice.message.list_only" = "Ce téléchargement présente une erreur : il ne peut donc qu’être retiré de la liste. Ses fichiers, s’il y en a sur le disque, y resteront ; vous pouvez les supprimer dans le Finder.";
 "remove_dialog.delete_with_files.title" = "Supprimer « %@ » avec les fichiers ?";
 "remove_dialog.delete_with_files.message" = "Le téléchargement disparaîtra de la liste et ses fichiers seront définitivement supprimés du disque : ils n’iront pas dans la corbeille.";
+"remove_dialog.choice.several.title.one" = "Supprimer %lld téléchargement ?";
+"remove_dialog.choice.several.title.other" = "Supprimer %lld téléchargements ?";
+"remove_dialog.choice.several.message" = "Si vous les retirez seulement de la liste, les fichiers téléchargés resteront sur le disque. Si vous les supprimez avec les fichiers, ceux-ci seront définitivement supprimés du disque.";
+"remove_dialog.delete_with_files.several.title.one" = "Supprimer %lld téléchargement avec les fichiers ?";
+"remove_dialog.delete_with_files.several.title.other" = "Supprimer %lld téléchargements avec les fichiers ?";
+"remove_dialog.delete_with_files.several.message" = "Les téléchargements disparaîtront de la liste et leurs fichiers seront définitivement supprimés du disque : ils n’iront pas dans la corbeille.";
 "add_torrent.cancel.title" = "Supprimer « %@ » ?";
 "add_torrent.cancel.message" = "Le téléchargement est encore en cours d’ajout. Si vous le supprimez maintenant, l’ajout s’arrêtera ; pour le télécharger, il faudra ajouter à nouveau le fichier .torrent ou le lien magnet.";
 
@@ -164,6 +174,8 @@
 "payload_deletion.unresolved.message" = "Le téléchargement a été retiré de la liste, mais ses fichiers sont toujours sur le disque : impossible de savoir exactement quels fichiers lui appartiennent. Vous pouvez les supprimer dans le Finder.";
 "payload_deletion.safety_refused.message" = "Le téléchargement a été retiré de la liste, mais ses fichiers sont toujours sur le disque : ils ont été modifiés après le téléchargement, les supprimer automatiquement n’est donc pas sûr. Vous pouvez les supprimer dans le Finder.";
 "payload_deletion.cleanup_failure.message" = "Les fichiers du téléchargement ont été supprimés, mais quelques dossiers vides sont restés : ils sont inaccessibles ou ont été modifiés. Vous pouvez les supprimer dans le Finder.";
+"payload_deletion.several.title" = "Certains fichiers n’ont pas été supprimés";
+"payload_deletion.several.message" = "Les téléchargements ont été retirés de la liste, mais certains de leurs fichiers ou dossiers sont toujours sur le disque : ils sont inaccessibles, ont été modifiés après le téléchargement ou un téléchargement n’a pas pu être arrêté en toute sécurité. Vous pouvez les supprimer dans le Finder.";
 
 "add_torrent.loading_metadata" = "Récupération de la liste des fichiers…";
 "add_torrent.title" = "Ajouter un téléchargement";
@@ -237,6 +249,7 @@
 "menu.debug.preview_unsupported_session" = "Afficher « Impossible d’ouvrir la liste des téléchargements »";
 "menu.debug.cycle_drop_screen" = "Afficher l’écran de dépôt";
 "menu.debug.simulate_low_space" = "Simuler un disque plein";
+"menu.debug.number_selected_cards" = "Numéroter les cartes sélectionnées";
 "menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
 "menu.debug.runtime_error.disk_full" = "Disque plein";
 "menu.debug.runtime_error.no_write_access" = "Écriture non autorisée";

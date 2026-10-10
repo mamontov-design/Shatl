@@ -58,8 +58,12 @@ struct TorrentListView: View {
                                         await store.primaryLocation(for: torrentID)
                                     },
                                     onSelect: {
-                                        store.toggleTorrentSelection(id: torrentID)
                                         isListFocused = true
+                                        return store.clickTorrent(
+                                            id: torrentID,
+                                            .ofCurrentEvent,
+                                            visibleTorrentIDs: visibleTorrentIDs
+                                        )
                                     },
                                     onToggleExpanded: {
                                         withAnimation(ShatlMotion.cardLayout) {
@@ -67,19 +71,16 @@ struct TorrentListView: View {
                                         }
                                     },
                                     onOpen: {
-                                        Task {
-                                            guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                            await MainActor.run {
-                                                TorrentFileNavigationPresenter.open(location)
-                                            }
-                                        }
+                                        TorrentSelectionActions.open(id: torrentID, in: store)
                                     },
+                                    // The menu of a card selected with others
+                                    // acts on all of them; any other card's
+                                    // menu, on that card alone.
                                     onRevealInFinder: {
-                                        Task {
-                                            guard let location = await store.primaryLocation(for: torrentID) else { return }
-                                            await MainActor.run {
-                                                TorrentFileNavigationPresenter.revealInFinder(location)
-                                            }
+                                        if store.isSelectedWithOthers(torrentID) {
+                                            TorrentSelectionActions.revealInFinder(in: store)
+                                        } else {
+                                            TorrentSelectionActions.revealInFinder(id: torrentID, in: store)
                                         }
                                     },
                                     onToggleRunningState: {
@@ -90,42 +91,21 @@ struct TorrentListView: View {
                                         presentRedownloadFolderPicker(for: torrentID)
                                     },
                                     onRemove: {
-                                        Task {
-                                            if let shortDisplayName = store.pendingAdditionShortDisplayName(for: torrentID) {
-                                                guard await TorrentRemovalDialogPresenter.confirmCancelPendingAddition(
-                                                    named: shortDisplayName,
-                                                    localeOverride: store.preferences.localeOverride
-                                                ) else {
-                                                    return
-                                                }
-                                                if store.isPendingAddition(id: torrentID) {
-                                                    store.cancelPendingAddition(id: torrentID)
-                                                } else {
-                                                    await store.removeTorrent(
-                                                        id: torrentID,
-                                                        policy: .removeFromListOnly
-                                                    )
-                                                }
-                                                return
-                                            }
-                                            await store.removeTorrent(id: torrentID, policy: .removeFromListOnly)
+                                        if store.isSelectedWithOthers(torrentID) {
+                                            TorrentSelectionActions.removeFromList(in: store)
+                                        } else {
+                                            TorrentSelectionActions.removeFromList(id: torrentID, in: store)
                                         }
                                     },
                                     onRemoveWithFiles: {
-                                        Task {
-                                            guard let record = store.torrentRecord(for: torrentID) else {
-                                                return
-                                            }
-                                            guard await TorrentRemovalDialogPresenter.confirmDeleteWithFiles(
-                                                for: record,
-                                                localeOverride: store.preferences.localeOverride
-                                            ) else {
-                                                return
-                                            }
-
-                                            await store.removeTorrent(id: torrentID, policy: .removeFromListAndDeleteFiles)
+                                        if store.isSelectedWithOthers(torrentID) {
+                                            TorrentSelectionActions.removeWithFiles(in: store)
+                                        } else {
+                                            TorrentSelectionActions.removeWithFiles(id: torrentID, in: store)
                                         }
                                     },
+                                    onStartSelected: { store.startSelectedTorrent() },
+                                    onStopSelected: { store.stopSelectedTorrent() },
                                     onCollapse: { store.collapseExpanded(for: torrentID) },
                                     onRecheckFolder: { store.recheckUnavailableFolder(id: torrentID) },
                                     onRetry: { store.retryAfterRuntimeError(id: torrentID) },
@@ -163,8 +143,9 @@ struct TorrentListView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The keyboard works on the list as the toolbar does on the
-            // selected card: arrows select, Space starts or stops, Delete
-            // offers to remove. The search field keeps its own keys.
+            // selected cards: arrows select, with Shift several; ⌘A selects
+            // all, Esc none; Space starts or stops, Delete offers to remove.
+            // The search field keeps its own keys.
             .focusable()
             .focusEffectDisabled()
             .focused($isListFocused)
@@ -172,12 +153,29 @@ struct TorrentListView: View {
             .onMoveCommand { direction in
                 moveSelection(direction, with: scrollProxy)
             }
+            // Shift+↑ and Shift+↓ are not move commands for the system.
+            .onKeyPress(keys: [.upArrow, .downArrow], phases: [.down, .repeat]) { press in
+                guard press.modifiers.contains(.shift) else { return .ignored }
+                moveSelection(
+                    press.key == .upArrow ? .previous : .next,
+                    extending: true,
+                    with: scrollProxy
+                )
+                return .handled
+            }
+            // With nothing selected Esc stays with the system: it leaves
+            // full screen.
+            .onKeyPress(.escape) {
+                guard store.selectedTorrentCount > 0 else { return .ignored }
+                store.clearTorrentSelection()
+                return .handled
+            }
+            .onCommand(#selector(NSResponder.selectAll(_:))) {
+                store.selectAllTorrents(visibleTorrentIDs: visibleTorrentIDs)
+            }
             .onKeyPress(.space) {
-                guard let selectedTorrentID = store.selectedTorrentID,
-                      store.isToolbarStartStopEnabled else {
-                    return .ignored
-                }
-                store.toggleTorrentRunningState(id: selectedTorrentID)
+                guard store.isToolbarStartStopEnabled else { return .ignored }
+                store.toggleSelectedTorrentsRunningState()
                 return .handled
             }
             .onDeleteCommand {
@@ -260,7 +258,19 @@ struct TorrentListView: View {
             return
         }
 
-        guard let target = store.moveTorrentSelection(step, visibleTorrentIDs: visibleTorrentIDs) else {
+        moveSelection(step, extending: false, with: scrollProxy)
+    }
+
+    private func moveSelection(
+        _ step: TorrentListSelectionStep,
+        extending: Bool,
+        with scrollProxy: ScrollViewProxy
+    ) {
+        guard let target = store.moveTorrentSelection(
+            step,
+            extending: extending,
+            visibleTorrentIDs: visibleTorrentIDs
+        ) else {
             return
         }
         withAnimation(ShatlMotion.cardLayout) {
@@ -299,6 +309,18 @@ struct TorrentListView: View {
         )
 
         store.redownloadTorrent(id: torrentID, toSaveLocation: url, bookmarkData: bookmarkData)
+    }
+}
+
+private extension TorrentListSelectionClick {
+    /// How the click being handled was made: with ⌘, with Shift or plain.
+    @MainActor
+    static var ofCurrentEvent: TorrentListSelectionClick {
+        let modifiers = NSApp.currentEvent?.modifierFlags ?? NSEvent.modifierFlags
+        if modifiers.contains(.command) {
+            return .toggle
+        }
+        return modifiers.contains(.shift) ? .range : .plain
     }
 }
 

@@ -38,6 +38,9 @@
 
 "session.restore.title" = "Preparing downloads";
 "session.restore.message" = "Downloads are getting back to work after the restart—this takes a few seconds. While they’re being prepared, they can’t be started, stopped, or deleted.";
+"selection.bar.count.one" = "%lld download selected.";
+"selection.bar.count.other" = "%lld downloads selected.";
+"selection.bar.hint" = "Press Esc to deselect.";
 "session.load.in_progress.title" = "Opening the download list.";
 "session.load.in_progress.message" = "Downloads are returning to where they were when you quit. Please wait.";
 "session.load.failure.title" = "Couldn’t restore the download list.";
@@ -107,6 +110,7 @@
 "torrent.status.checking" = "Checking";
 
 "torrent.card.original_title" = "Torrent name — %@";
+"torrent.card.selection_refusal" = "Use the buttons below for this download";
 "torrent.saved.info.help" = "Learn about this saved download";
 "torrent.saved.info.reason" = "This download didn’t have enough space when it was added, so it was saved to the list and is waiting to be started. Start it manually once there’s enough space.";
 "torrent.saved.info.short" = "Right now the disk “%1$@” has %2$@ available and the download needs %3$@—it’s %4$@ short.";
@@ -152,6 +156,12 @@
 "remove_dialog.choice.message.list_only" = "This download has an error, so it can only be removed from the list. Its files, if any are on disk, will stay—you can delete them in Finder.";
 "remove_dialog.delete_with_files.title" = "Delete “%@” with files?";
 "remove_dialog.delete_with_files.message" = "The download will leave the list, and its files will be deleted from disk permanently—they won’t go to the Trash.";
+"remove_dialog.choice.several.title.one" = "Delete %lld download?";
+"remove_dialog.choice.several.title.other" = "Delete %lld downloads?";
+"remove_dialog.choice.several.message" = "If you remove them from the list only, the downloaded files stay on disk. If you delete them with files, the files will be deleted from disk permanently.";
+"remove_dialog.delete_with_files.several.title.one" = "Delete %lld download with files?";
+"remove_dialog.delete_with_files.several.title.other" = "Delete %lld downloads with files?";
+"remove_dialog.delete_with_files.several.message" = "The downloads will leave the list, and their files will be deleted from disk permanently—they won’t go to the Trash.";
 "add_torrent.cancel.title" = "Delete “%@”?";
 "add_torrent.cancel.message" = "The download is still being added. If you delete it now, adding stops—to download it, you’ll need to add the .torrent file or magnet link again.";
 
@@ -164,6 +174,8 @@
 "payload_deletion.unresolved.message" = "The download was removed from the list, but its files are still on disk: it wasn’t possible to tell exactly which files belong to it. You can delete them in Finder.";
 "payload_deletion.safety_refused.message" = "The download was removed from the list, but its files are still on disk: they were changed after downloading, so deleting them automatically isn’t safe. You can delete them in Finder.";
 "payload_deletion.cleanup_failure.message" = "The download’s files were deleted, but a few empty folders remain: they can’t be accessed or were changed. You can delete them in Finder.";
+"payload_deletion.several.title" = "Some files weren’t deleted";
+"payload_deletion.several.message" = "The downloads were removed from the list, but some of their files or folders are still on disk: they can’t be accessed, were changed after downloading, or a download couldn’t be stopped safely. You can delete them in Finder.";
 
 "add_torrent.loading_metadata" = "Fetching the file list…";
 "add_torrent.title" = "Add Download";
@@ -237,6 +249,7 @@
 "menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
 "menu.debug.cycle_drop_screen" = "Show the Drop Screen";
 "menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
+"menu.debug.number_selected_cards" = "Number the Selected Cards";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";
 "menu.debug.runtime_error.no_write_access" = "No Write Access";

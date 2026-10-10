@@ -38,6 +38,9 @@
 
 "session.restore.title" = "Downloads werden vorbereitet";
 "session.restore.message" = "Die Downloads werden nach dem Neustart wieder aufgenommen – das dauert ein paar Sekunden. Solange sie vorbereitet werden, lassen sie sich nicht starten, stoppen oder löschen.";
+"selection.bar.count.one" = "%lld Download ausgewählt.";
+"selection.bar.count.other" = "%lld Downloads ausgewählt.";
+"selection.bar.hint" = "Zum Aufheben Esc drücken.";
 "session.load.in_progress.title" = "Downloadliste wird geöffnet.";
 "session.load.in_progress.message" = "Die Downloads werden auf den Stand beim Beenden gebracht. Bitte warten Sie.";
 "session.load.failure.title" = "Downloadliste konnte nicht wiederhergestellt werden.";
@@ -107,6 +110,7 @@
 "torrent.status.checking" = "Prüfen";
 
 "torrent.card.original_title" = "Torrent-Name — %@";
+"torrent.card.selection_refusal" = "Diesen Download steuern die Tasten unten";
 "torrent.saved.info.help" = "Mehr über den gesicherten Download";
 "torrent.saved.info.reason" = "Für diesen Download war beim Hinzufügen nicht genug Platz, daher wurde er in der Liste gesichert und wartet auf den Start. Starten Sie ihn manuell, sobald genug Platz frei ist.";
 "torrent.saved.info.short" = "Auf dem Datenträger „%1$@“ sind derzeit %2$@ frei, benötigt werden %3$@ – es fehlen %4$@.";
@@ -152,6 +156,12 @@
 "remove_dialog.choice.message.list_only" = "Dieser Download hat einen Fehler und kann daher nur aus der Liste entfernt werden. Seine Dateien bleiben, falls vorhanden, auf dem Datenträger – Sie können sie im Finder löschen.";
 "remove_dialog.delete_with_files.title" = "„%@“ mit Dateien löschen?";
 "remove_dialog.delete_with_files.message" = "Der Download verschwindet aus der Liste, und seine Dateien werden endgültig vom Datenträger gelöscht – sie landen nicht im Papierkorb.";
+"remove_dialog.choice.several.title.one" = "%lld Download löschen?";
+"remove_dialog.choice.several.title.other" = "%lld Downloads löschen?";
+"remove_dialog.choice.several.message" = "Wenn Sie die Downloads nur aus der Liste entfernen, bleiben die geladenen Dateien auf dem Datenträger. Wenn Sie sie mit Dateien löschen, werden die Dateien endgültig vom Datenträger gelöscht.";
+"remove_dialog.delete_with_files.several.title.one" = "%lld Download mit Dateien löschen?";
+"remove_dialog.delete_with_files.several.title.other" = "%lld Downloads mit Dateien löschen?";
+"remove_dialog.delete_with_files.several.message" = "Die Downloads verschwinden aus der Liste, und ihre Dateien werden endgültig vom Datenträger gelöscht – sie landen nicht im Papierkorb.";
 "add_torrent.cancel.title" = "„%@“ löschen?";
 "add_torrent.cancel.message" = "Der Download wird noch hinzugefügt. Wenn Sie ihn jetzt löschen, wird das Hinzufügen abgebrochen – um ihn zu laden, müssen Sie die .torrent-Datei oder den Magnet-Link erneut hinzufügen.";
 
@@ -164,6 +174,8 @@
 "payload_deletion.unresolved.message" = "Der Download wurde aus der Liste entfernt, aber seine Dateien sind noch auf dem Datenträger: Es ließ sich nicht genau bestimmen, welche Dateien dazugehören. Sie können sie im Finder löschen.";
 "payload_deletion.safety_refused.message" = "Der Download wurde aus der Liste entfernt, aber seine Dateien sind noch auf dem Datenträger: Sie wurden nach dem Laden geändert, daher ist automatisches Löschen nicht sicher. Sie können sie im Finder löschen.";
 "payload_deletion.cleanup_failure.message" = "Die Dateien des Downloads wurden gelöscht, aber einige leere Ordner sind geblieben: Auf sie kann nicht zugegriffen werden oder sie wurden geändert. Sie können sie im Finder löschen.";
+"payload_deletion.several.title" = "Einige Dateien wurden nicht gelöscht";
+"payload_deletion.several.message" = "Die Downloads wurden aus der Liste entfernt, aber einige ihrer Dateien oder Ordner sind noch auf dem Datenträger: Auf sie kann nicht zugegriffen werden, sie wurden nach dem Laden geändert oder ein Download konnte nicht sicher gestoppt werden. Sie können sie im Finder löschen.";
 
 "add_torrent.loading_metadata" = "Dateiliste wird abgerufen…";
 "add_torrent.title" = "Download hinzufügen";
@@ -237,6 +249,7 @@
 "menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
 "menu.debug.cycle_drop_screen" = "Drop-Bildschirm zeigen";
 "menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
+"menu.debug.number_selected_cards" = "Ausgewählte Karten nummerieren";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
 "menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";

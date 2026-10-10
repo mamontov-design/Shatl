@@ -20,7 +20,9 @@ enum ShatlMotion {
         metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
 
     /// The Settings preview blurs what a toggle did not change: in softly,
-    /// out slowly, and held for four seconds after the last flash.
+    /// out slowly, and held for four seconds after the last flash. A card
+    /// that cannot join the selected ones blurs the same way around its
+    /// answer.
     static let previewFocusBlurRadius: CGFloat = 3
     static let previewFocusIn = Animation.smooth(duration: 0.3)
     static let previewFocusOut = Animation.smooth(duration: 0.5)
@@ -145,6 +147,15 @@ enum ShatlMotion {
     static let appearFromTop = AnyTransition
         .scale(scale: 0.85, anchor: .center)
         .combined(with: .opacity)
+
+    /// A card that cannot join the selected ones shakes like a wrong password
+    /// in macOS: three swings to each side, each shorter than the last. Not
+    /// with Reduce Motion.
+    static let selectionRefusalShakeAmplitude: CGFloat = 6
+    static let selectionRefusalShakeDuration: TimeInterval = 0.4
+    /// How far each swing goes, as a share of the amplitude; the last comes
+    /// to rest.
+    static let selectionRefusalShakeSwings: [CGFloat] = [-1, 1, -0.6, 0.6, -0.3, 0]
 
     /// The selection indicator appears from its center with a slight overshoot and shrinks away.
     static let selectedIndicator = AnyTransition.asymmetric(
@@ -293,13 +304,34 @@ private struct TorrentCardPreviewBlur: ViewModifier {
         // Outside the demo card nothing is added: cards in the list stay
         // as they were.
         if isCardPreview {
-            let isBlurred = TorrentCardPreviewFocus.blurs(element, under: focus)
             content
-                .blur(radius: isBlurred ? ShatlMotion.previewFocusBlurRadius : 0)
-                .animation(isBlurred ? ShatlMotion.previewFocusIn : ShatlMotion.previewFocusOut, value: isBlurred)
+                .shatlFocusBlur(TorrentCardPreviewFocus.blurs(element, under: focus))
         } else {
             content
         }
+    }
+}
+
+private struct SelectionRefusalShake: ViewModifier {
+    /// Each new value shakes once.
+    let trigger: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let amplitude = reduceMotion ? 0 : ShatlMotion.selectionRefusalShakeAmplitude
+        let swings = ShatlMotion.selectionRefusalShakeSwings.map { $0 * amplitude }
+        let swingDuration = ShatlMotion.selectionRefusalShakeDuration / Double(swings.count)
+
+        content
+            .keyframeAnimator(initialValue: CGFloat.zero, trigger: trigger) { view, offset in
+                view.offset(x: offset)
+            } keyframes: { _ in
+                KeyframeTrack {
+                    for swing in swings {
+                        CubicKeyframe(swing, duration: swingDuration)
+                    }
+                }
+            }
     }
 }
 
@@ -308,5 +340,17 @@ extension View {
     /// another part in focus.
     func shatlCardPreviewBlur(_ element: TorrentCardPreviewElement) -> some View {
         modifier(TorrentCardPreviewBlur(element: element))
+    }
+
+    /// Blurs what is out of focus for a moment: in softly, out slowly.
+    func shatlFocusBlur(_ isBlurred: Bool) -> some View {
+        blur(radius: isBlurred ? ShatlMotion.previewFocusBlurRadius : 0)
+            .animation(isBlurred ? ShatlMotion.previewFocusIn : ShatlMotion.previewFocusOut, value: isBlurred)
+    }
+
+    /// Shakes the view once for each new `trigger`; see
+    /// `ShatlMotion.selectionRefusalShakeSwings`.
+    func shatlSelectionRefusalShake(trigger: Int) -> some View {
+        modifier(SelectionRefusalShake(trigger: trigger))
     }
 }

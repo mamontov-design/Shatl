@@ -109,7 +109,7 @@ final class TorrentCardFinishedLayoutTests: XCTestCase {
             let card = TorrentCardView(
                 row: row,
                 resolvePrimaryLocation: { nil },
-                onSelect: {},
+                onSelect: { true },
                 onToggleExpanded: {},
                 onOpen: {},
                 onRevealInFinder: {},
