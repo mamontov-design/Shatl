@@ -119,6 +119,8 @@ struct TorrentCardView: View, Equatable {
     var onRecheckFolder: () -> Void = {}
     /// Stops and starts a download the engine stopped with an error.
     var onRetry: () -> Void = {}
+    /// Asks the disk whether a saved download can start now, for its "i".
+    var resolveSavedSpaceStatus: @Sendable () async -> SavedDownloadSpaceStatus? = { nil }
     var presentationMode: TorrentCardPresentationMode = .normal
     var isExpansionToggleEnabled = true
     var showsExpansionToggle = true
@@ -141,6 +143,11 @@ struct TorrentCardView: View, Equatable {
     @State private var statusBadgeHoverIntent = TorrentCardHoverIntent()
     @State private var canOpenPrimaryItem = false
     @State private var canRevealInFinder = false
+    @State private var isSavedInfoPresented = false
+    /// What the disk last said about a saved download, shown by its "i".
+    @State private var savedInfoStatus: SavedDownloadSpaceStatus?
+    /// Counts the answers a press of the "i" brought; each opens the popover.
+    @State private var savedInfoAnswerCount = 0
     /// Set once the card first changes its layout; see `layoutStage`.
     @State private var finishStage: TorrentCardFinishStage?
     @State private var finishSteps = TorrentCardFinishSteps()
@@ -198,10 +205,22 @@ struct TorrentCardView: View, Equatable {
         .animation(ShatlMotion.cardState, value: row.isSelected)
         .animation(ShatlMotion.cardState, value: row.errorState != nil)
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(cardOutlineColor, lineWidth: cardOutlineLineWidth)
-                .allowsHitTesting(false)
-                .animation(ShatlMotion.cardState, value: cardOutlineState)
+            // A saved download is outlined with dashes. The two outlines
+            // cross-fade, as a stroke cannot turn into dashes by itself.
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(cardOutlineColor, lineWidth: cardOutlineLineWidth)
+                    .opacity(row.isSavedForLater ? 0 : 1)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        cardOutlineColor,
+                        style: StrokeStyle(lineWidth: cardOutlineLineWidth, dash: [4, 2])
+                    )
+                    .opacity(row.isSavedForLater ? 1 : 0)
+            }
+            .allowsHitTesting(false)
+            .animation(ShatlMotion.cardState, value: cardOutlineState)
+            .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .contextMenu {
@@ -452,6 +471,12 @@ struct TorrentCardView: View, Equatable {
                         .transition(Self.statusTitleReplace)
                 }
             }
+
+            if row.isSavedForLater, presentationMode == .normal {
+                savedInfoButton
+                    .padding(.leading, -2)
+                    .transition(ShatlMotion.appearFromTop)
+            }
         }
         // The status follows the plate's edge at the plate's pace, as the
         // plate widens or narrows with its value and with a new status. It
@@ -472,6 +497,52 @@ struct TorrentCardView: View, Equatable {
             .shatlTypography(ShatlTypography.metricSemibold)
             .foregroundStyle(ShatlColor.typographyPrimary)
             .id(statusPresentationKey)
+    }
+
+    /// Days later "Сохранена" may puzzle: the "i" says why the download is
+    /// here and whether its disk has room for it now.
+    ///
+    /// The card asks the disk first and opens the popover once it holds the
+    /// answer, so the popover comes with its whole text and at its final
+    /// size. The popover keeps nothing itself: one that kept the answer took
+    /// a stale one as it opened and grew a moment later.
+    private var savedInfoButton: some View {
+        Button {
+            Task {
+                savedInfoStatus = await resolveSavedSpaceStatus()
+                savedInfoAnswerCount += 1
+            }
+        } label: {
+            Image(systemName: "info.circle")
+                .shatlTypography(ShatlTypography.bodyRegular)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .frame(width: 16, height: 16)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(Text("torrent.saved.info.help"))
+        .accessibilityLabel(Text("torrent.saved.info.help"))
+        // Runs after the card has taken the answer in.
+        .onChange(of: savedInfoAnswerCount) { _, _ in
+            isSavedInfoPresented = true
+        }
+        .popover(isPresented: $isSavedInfoPresented) {
+            SavedDownloadInfoPopover(
+                status: savedInfoStatus,
+                metricsMode: row.metricsMode,
+                localeOverride: row.localeOverride
+            )
+        }
+        // While the popover is open the disk is asked again, never from the
+        // list's own tick, and a new answer replaces the old one in place.
+        .task(id: isSavedInfoPresented) {
+            guard isSavedInfoPresented else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: SavedDownloadInfoPopover.refreshInterval)
+                guard !Task.isCancelled else { return }
+                savedInfoStatus = await resolveSavedSpaceStatus()
+            }
+        }
     }
 
     private func transferMetricSetView(_ metricSet: CompactTransferMetricSet) -> some View {
@@ -648,11 +719,11 @@ struct TorrentCardView: View, Equatable {
         .overlay {
             progressGroupShape
                 .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
-                .opacity(row.isPendingAddition ? 1 : 0)
+                .opacity(usesOutlinedProgressGroup ? 1 : 0)
                 .allowsHitTesting(false)
         }
         .frame(height: ShatlMetricLayout.containerHeight)
-        .animation(ShatlMotion.cardState, value: row.isPendingAddition)
+        .animation(ShatlMotion.cardState, value: usesOutlinedProgressGroup)
     }
 
     private static let progressGroupPadding: CGFloat = 6
@@ -688,12 +759,25 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var statusPresentationKey: String {
-        row.isPendingAddition ? "pending-addition" : statusKind.rawValue
+        if row.isPendingAddition {
+            return "pending-addition"
+        }
+        return row.isSavedForLater ? "saved" : statusKind.rawValue
+    }
+
+    /// The badge of a download being added and of a saved one is an outline
+    /// around its icon, in the colours of a download.
+    private var usesOutlinedProgressGroup: Bool {
+        row.isPendingAddition || row.isSavedForLater
     }
 
     private var progressIconName: String {
         if row.isPendingAddition {
             return "clock.fill"
+        }
+
+        if row.isSavedForLater {
+            return "bookmark.fill"
         }
 
         switch statusKind {
@@ -713,7 +797,7 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressText: String? {
-        if row.isPendingAddition {
+        if usesOutlinedProgressGroup {
             return nil
         }
 
@@ -746,7 +830,7 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.backgroundPrimary
         }
 
-        if row.isPendingAddition {
+        if usesOutlinedProgressGroup {
             return .clear
         }
 
@@ -787,6 +871,12 @@ struct TorrentCardView: View, Equatable {
 
         if presentationMode == .onboardingDemo, !usesProductionProgressColors {
             return ShatlColor.typographyPrimary
+        }
+
+        if row.isSavedForLater {
+            return usesHoverStatusPalette
+                ? ShatlColor.statusTextDownloadingHover
+                : ShatlColor.statusTextDownloadingDefault
         }
 
         switch statusKind {

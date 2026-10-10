@@ -28,6 +28,10 @@ nonisolated struct SessionTorrentRecord: Codable, Equatable, Sendable {
     /// as before. Written only when known.
     var totalBytes: Int64? = nil
     var selectedBytes: Int64? = nil
+    /// A download saved to the list for lack of room and not started yet.
+    /// Optional and written only when true, as the sizes above: an older
+    /// Shatl shows such a download as stopped.
+    var savedForLater: Bool? = nil
 }
 
 /// Versions the session format from the start to support future migrations.

@@ -28,6 +28,10 @@ struct ShatlCommands: Commands {
                 store.debugSessionLoadIssuePreview == nil
                     && !store.canPreviewUnsupportedSessionForDebug
             )
+            Toggle("menu.debug.simulate_low_space", isOn: Binding(
+                get: { store.debugSimulatesLowDiskSpace },
+                set: { _ in store.toggleLowDiskSpaceForDebug() }
+            ))
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)

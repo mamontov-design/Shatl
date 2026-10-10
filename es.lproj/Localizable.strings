@@ -97,12 +97,18 @@
 "torrent.status.downloading" = "Descargando";
 "torrent.status.adding" = "Añadiendo…";
 "torrent.status.stopped" = "Detenida";
+"torrent.status.saved" = "Guardada";
 "torrent.status.seeding" = "Compartiendo";
 "torrent.status.completed" = "Descargada";
 "torrent.status.error" = "Error";
 "torrent.status.checking" = "Comprobando";
 
 "torrent.card.original_title" = "Nombre del torrent — %@";
+"torrent.saved.info.help" = "Más información sobre la descarga guardada";
+"torrent.saved.info.reason" = "Esta descarga no tenía espacio suficiente al añadirla, así que se guardó en la lista y espera a que la inicies. Iníciala manualmente cuando haya espacio suficiente.";
+"torrent.saved.info.short" = "Ahora el disco «%1$@» tiene %2$@ libres y se necesitan %3$@: faltan %4$@.";
+"torrent.saved.info.fits" = "Ahora hay espacio suficiente. Ya puedes iniciar la descarga.";
+"torrent.saved.info.unknown" = "No se pudo comprobar el espacio libre: la carpeta «%@» no está disponible ahora; puede que el disco esté desconectado.";
 
 "torrent.metric.seeds_and_peers" = "Seeds y peers";
 "torrent.metric.upload_speed" = "Velocidad de subida";
@@ -134,6 +140,9 @@
 "torrent.error.runtime.files_missing.notification" = "Los archivos de la descarga desaparecieron de su carpeta. Puedes volver a iniciarla desde la lista de descargas.";
 "torrent.error.runtime.other.message" = "La descarga se detuvo por un error interno. Vuelve a iniciarla. Si el error se repite, quita la descarga de la lista y vuelve a añadir el archivo .torrent o el enlace magnet.";
 "torrent.error.runtime.other.notification" = "Se produjo un error interno. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.not_enough_space.title" = "No hay espacio suficiente";
+"torrent.error.not_enough_space.message" = "No hay espacio suficiente en el disco, así que la descarga no se inició. Libera espacio y vuelve a iniciarla, o descárgala en una carpeta de otro disco.";
+"torrent.error.not_enough_space.named_message" = "Faltan %2$@ en el disco «%1$@», así que la descarga no se inició. Libera espacio y vuelve a iniciarla, o descárgala en una carpeta de otro disco.";
 
 "remove_dialog.choice.title" = "¿Eliminar «%@»?";
 "remove_dialog.choice.message.with_files" = "Si la quitas solo de la lista, los archivos descargados se quedarán en el disco. Si la eliminas con los archivos, se borrarán del disco para siempre.";
@@ -168,13 +177,16 @@
 "add_torrent.review.preparing.title" = "Preparando la descarga.";
 "add_torrent.review.preparing.message" = "La lista de archivos y los ajustes aparecerán en un momento.";
 "add_torrent.review.alias_caption" = "La tarjeta de la descarga mostrará el alias en lugar del nombre del torrent. El nombre del torrent se ve en la vista ampliada de la tarjeta.";
-"add_torrent.review.download_to_folder" = "Guardar en «%@»";
+"add_torrent.review.download_to_folder" = "Descargar en «%@»";
 "add_torrent.review.set_as_default_folder" = "Establecer como predeterminada";
 "add_torrent.review.folder_not_selected" = "No se eligió carpeta";
 "add_torrent.review.stop_after_download" = "Detener la siembra al terminar la descarga";
 "add_torrent.review.use_alias" = "Alias";
 "add_torrent.review.alias_placeholder" = "Nombra la descarga…";
 "add_torrent.review.confirm" = "Descargar";
+"add_torrent.review.save_to_list" = "Guardar en la lista";
+"add_torrent.review.low_space.message.many_files" = "Faltan %2$@ en el disco «%1$@». Libera espacio, desmarca algunos archivos o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
+"add_torrent.review.low_space.message.one_file" = "Faltan %2$@ en el disco «%1$@». Libera espacio o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
 "add_torrent.review.close" = "Cerrar";
 "add_torrent.review.show_in_list" = "Mostrar en la lista";
 "add_torrent.review.summary.selected_files" = "Archivos seleccionados";
@@ -219,6 +231,7 @@
 "menu.debug.show_onboarding" = "Iniciar la configuración inicial";
 "menu.debug.preview_restore_status" = "Mostrar «Preparando descargas»";
 "menu.debug.preview_unsupported_session" = "Mostrar «No se pudo abrir la lista de descargas»";
+"menu.debug.simulate_low_space" = "Simular que el disco está lleno";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
 "menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";

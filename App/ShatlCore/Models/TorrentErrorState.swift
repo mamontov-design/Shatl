@@ -18,6 +18,8 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
         case duplicateTorrent
         case torrentNotFound
         case engineFailure
+        /// A saved download was asked to start and still does not fit.
+        case notEnoughSpace
     }
 
     enum RecoveryOption: String, Codable, Sendable {
@@ -60,4 +62,6 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
     var recoveryOptions: [RecoveryOption]
     /// For an error the engine reported while the download ran.
     var cause: Cause?
+    /// For `notEnoughSpace`: the disk and what it lacks.
+    var spaceCheck: DiskSpaceCheck?
 }

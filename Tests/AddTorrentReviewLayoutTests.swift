@@ -175,6 +175,18 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         )
     }
 
+    /// Nested corners keep one gap all the way round: the outer radius is
+    /// the inner one plus the distance between the two shapes. It holds on
+    /// macOS 26 as well, where the summary's corner is rounder.
+    func testLowSpaceMessageCornerFollowsTheSummaryCorner() {
+        XCTAssertEqual(AddTorrentReviewLayout.summaryMessageInset, 6)
+        XCTAssertEqual(
+            AddTorrentReviewLayout.summaryMessageCornerRadius + AddTorrentReviewLayout.summaryMessageInset,
+            AddTorrentReviewLayout.summaryCornerRadius
+        )
+        XCTAssertGreaterThan(AddTorrentReviewLayout.summaryMessageCornerRadius, 0)
+    }
+
     func testWindowAndSplitLayoutMetricsMatchReviewDesign() {
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 780)
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowHeight, 570)

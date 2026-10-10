@@ -10,10 +10,12 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     var message: String
     var recoveryOptions: [TorrentErrorState.RecoveryOption]
 
-    /// `saveFolderPath` lets a card name the folder its error is about.
+    /// `saveFolderPath` lets a card name the folder its error is about;
+    /// `metricsMode` writes sizes as the rest of the card does.
     init?(
         _ errorState: TorrentErrorState?,
         saveFolderPath: String? = nil,
+        metricsMode: MetricsPresentationMode = .simplified,
         localeOverride: AppLocaleOverride = .russian
     ) {
         guard let errorState else { return nil }
@@ -23,6 +25,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
         self.message = Self.localizedMessage(
             for: errorState,
             saveFolderPath: saveFolderPath,
+            metricsMode: metricsMode,
             localeOverride: localeOverride
         )
         self.recoveryOptions = errorState.recoveryOptions
@@ -41,6 +44,8 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
             L10n.string("torrent.error.not_found.title", localeOverride: localeOverride, defaultValue: errorState.title)
         case .engineFailure:
             L10n.string("torrent.error.runtime.title", localeOverride: localeOverride, defaultValue: errorState.title)
+        case .notEnoughSpace:
+            L10n.string("torrent.error.not_enough_space.title", localeOverride: localeOverride, defaultValue: errorState.title)
         default:
             errorState.title
         }
@@ -49,9 +54,23 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     private static func localizedMessage(
         for errorState: TorrentErrorState,
         saveFolderPath: String?,
+        metricsMode: MetricsPresentationMode,
         localeOverride: AppLocaleOverride
     ) -> String {
         switch errorState.kind {
+        case .notEnoughSpace:
+            // The disk and what it lacks; without them, the plain sentence.
+            if let check = errorState.spaceCheck, !check.volumeName.isEmpty {
+                L10n.format(
+                    "torrent.error.not_enough_space.named_message",
+                    localeOverride: localeOverride,
+                    defaultValue: errorState.message,
+                    ShatlErrorCatalog.shortenedTorrentName(check.volumeName),
+                    check.shortfallText(mode: metricsMode, localeOverride: localeOverride)
+                )
+            } else {
+                L10n.string("torrent.error.not_enough_space.message", localeOverride: localeOverride, defaultValue: errorState.message)
+            }
         case .missingContent:
             folderMessage(
                 key: "torrent.error.missing_content",
@@ -136,6 +155,9 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var simplification = CardSimplificationLevel.full
     /// "Проверить снова" or "Повторить" is at work on the card's error.
     var isRecovering = false
+    /// Saved to the list for lack of room and not started yet: the card is
+    /// outlined with dashes and its badge is a bookmark.
+    var isSavedForLater = false
 }
 
 extension TorrentRowState {
