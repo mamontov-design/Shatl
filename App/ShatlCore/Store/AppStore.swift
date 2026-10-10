@@ -1562,17 +1562,20 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     /// A click on a card: plain, with ⌘ or with Shift. `false` when the card
-    /// refuses to join the selected ones, so it can say so itself. A plain
-    /// click on a card with an error changes nothing.
+    /// refuses to be selected, so it can say so itself. A plain click on a
+    /// card with an error changes nothing; the second click of a quick pair
+    /// (`isRepeated`) makes it answer.
     @discardableResult
     func clickTorrent(
         id: UUID,
         _ click: TorrentListSelectionClick,
+        isRepeated: Bool = false,
         visibleTorrentIDs: [UUID]
     ) -> Bool {
         let didAccept = selection.click(
             id,
             click,
+            isRepeated: isRepeated,
             visible: visibleTorrentIDs,
             joinable: joinableTorrentIDs,
             alone: aloneSelectableTorrentIDs

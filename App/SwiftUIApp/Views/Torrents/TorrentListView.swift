@@ -62,6 +62,7 @@ struct TorrentListView: View {
                                         return store.clickTorrent(
                                             id: torrentID,
                                             .ofCurrentEvent,
+                                            isRepeated: TorrentListSelectionClick.isSecondOfQuickPair,
                                             visibleTorrentIDs: visibleTorrentIDs
                                         )
                                     },
@@ -321,6 +322,20 @@ private extension TorrentListSelectionClick {
             return .toggle
         }
         return modifiers.contains(.shift) ? .range : .plain
+    }
+
+    /// Whether the click being handled is the second of a double click, by
+    /// the system's own count and interval. Nothing is timed or waited for:
+    /// a first click acts at once, as before. A third click is not counted,
+    /// so a card answers a burst of clicks once.
+    @MainActor
+    static var isSecondOfQuickPair: Bool {
+        // Only mouse events carry a click count.
+        guard let event = NSApp.currentEvent,
+              event.type == .leftMouseUp || event.type == .leftMouseDown else {
+            return false
+        }
+        return event.clickCount == 2
     }
 }
 

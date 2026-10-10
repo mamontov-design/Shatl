@@ -99,19 +99,26 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         drop([id])
     }
 
-    /// Answers a click. `false` when the card refuses to join the others and
-    /// should say so: clicked with ⌘ or Shift while something it cannot join
-    /// is selected. The selection then stays as it was. A plain click on a
-    /// card with an error changes nothing and is not a refusal.
+    /// Answers a click. `false` when the card refuses and should say so: it
+    /// was clicked with ⌘ or Shift while something it cannot join is
+    /// selected. The selection then stays as it was.
+    ///
+    /// A plain click on a card with an error changes nothing and is not a
+    /// refusal. Clicked again at once (`isRepeated`), the card does answer,
+    /// so the first click is not taken for a broken selection.
     @discardableResult
     mutating func click(
         _ id: UUID,
         _ click: TorrentListSelectionClick,
+        isRepeated: Bool = false,
         visible visibleIDs: [UUID],
         joinable: Set<UUID>,
         alone: Set<UUID>
     ) -> Bool {
         guard joinable.contains(id) || alone.contains(id) else {
+            if isRepeated {
+                return false
+            }
             return click == .plain || !hasJoinableSelection(joinable)
         }
 

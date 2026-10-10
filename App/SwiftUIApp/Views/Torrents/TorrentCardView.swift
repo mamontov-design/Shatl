@@ -104,8 +104,8 @@ enum TorrentCardPresentationMode {
 struct TorrentCardView: View, Equatable {
     let row: TorrentRowState
     let resolvePrimaryLocation: @Sendable () async -> ManagedTorrentLocation?
-    /// A click on the card. `false` when the card could not join the
-    /// selected ones; it then says so itself.
+    /// A click on the card. `false` when the card refused to be selected; it
+    /// then says so itself.
     let onSelect: () -> Bool
     let onToggleExpanded: () -> Void
     let onOpen: () -> Void
@@ -528,7 +528,8 @@ struct TorrentCardView: View, Equatable {
     }
 
     /// The card was clicked with ⌘ or Shift and cannot join the selected
-    /// ones: it shakes and says why in place of its title. For as long as the
+    /// ones, or it has an error and was clicked twice in a row: it shakes
+    /// and says why in place of its title. For as long as the
     /// Settings preview holds its focus, the status and the error text blur,
     /// and the words stay sharp with the buttons they point at.
     private func refuseSelection() {

@@ -81,8 +81,10 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         let store = makeBundle(records).store
         let ids = records.map(\.id)
 
-        // A plain click changes nothing and is no refusal.
+        // A plain click changes nothing and is no refusal; the second of a
+        // quick pair is answered.
         XCTAssertTrue(store.clickTorrent(id: failed.id, .plain, visibleTorrentIDs: ids))
+        XCTAssertFalse(store.clickTorrent(id: failed.id, .plain, isRepeated: true, visibleTorrentIDs: ids))
         XCTAssertEqual(store.selectedTorrentCount, 0)
 
         store.clickTorrent(id: ids[0], .plain, visibleTorrentIDs: ids)

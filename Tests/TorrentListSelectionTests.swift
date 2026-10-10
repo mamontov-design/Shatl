@@ -212,6 +212,31 @@ final class TorrentListMultiSelectionTests: XCTestCase {
         XCTAssertEqual(selection.ids, [a, c])
     }
 
+    /// One click on it is silent; the second of a quick pair is answered, so
+    /// the first is not taken for a broken selection.
+    func testCardWithAnErrorAnswersASecondClick() {
+        var selection = TorrentListSelection()
+        XCTAssertTrue(
+            selection.click(failed, .plain, isRepeated: false, visible: visible, joinable: joinable, alone: alone)
+        )
+        XCTAssertFalse(
+            selection.click(failed, .plain, isRepeated: true, visible: visible, joinable: joinable, alone: alone)
+        )
+        XCTAssertTrue(selection.isEmpty)
+
+        // The selection stays as it was, and other cards take a second
+        // click as any other.
+        _ = click(&selection, a)
+        XCTAssertFalse(
+            selection.click(failed, .plain, isRepeated: true, visible: visible, joinable: joinable, alone: alone)
+        )
+        XCTAssertEqual(selection.ids, [a])
+        XCTAssertTrue(
+            selection.click(a, .plain, isRepeated: true, visible: visible, joinable: joinable, alone: alone)
+        )
+        XCTAssertTrue(selection.isEmpty)
+    }
+
     /// Clicked with ⌘ or Shift while others are selected, it refuses aloud.
     func testCardWithAnErrorRefusesToJoinAndLeavesTheSelectionAsItWas() {
         var selection = TorrentListSelection(only: a)
