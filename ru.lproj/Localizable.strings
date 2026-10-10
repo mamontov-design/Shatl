@@ -30,7 +30,7 @@
 "toolbar.delete" = "Удалить";
 "toolbar.search" = "Поиск";
 
-"search.empty.title" = "Нет результатов для «%@»";
+"search.empty.title" = "Нет результатов для «%@».";
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
 
 "session.restore.title" = "Подготовка загрузок";

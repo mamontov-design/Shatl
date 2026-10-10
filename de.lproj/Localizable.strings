@@ -30,7 +30,7 @@
 "toolbar.delete" = "Löschen";
 "toolbar.search" = "Suchen";
 
-"search.empty.title" = "Keine Ergebnisse für „%@“";
+"search.empty.title" = "Keine Ergebnisse für „%@“.";
 "search.empty.description" = "Versuchen Sie es mit einem anderen Namen oder Alias.";
 
 "session.restore.title" = "Downloads werden vorbereitet";

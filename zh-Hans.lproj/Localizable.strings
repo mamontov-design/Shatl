@@ -30,7 +30,7 @@
 "toolbar.delete" = "删除";
 "toolbar.search" = "搜索";
 
-"search.empty.title" = "未找到“%@”的结果";
+"search.empty.title" = "未找到“%@”的结果。";
 "search.empty.description" = "请尝试其他名称或别名。";
 
 "session.restore.title" = "正在准备下载";

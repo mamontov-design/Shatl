@@ -30,7 +30,7 @@
 "toolbar.delete" = "削除";
 "toolbar.search" = "検索";
 
-"search.empty.title" = "「%@」の検索結果はありません";
+"search.empty.title" = "「%@」の検索結果はありません。";
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 
 "session.restore.title" = "ダウンロードを準備しています";
