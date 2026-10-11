@@ -51,7 +51,8 @@ final class TorrentListSightTests: XCTestCase {
             contentHeight: 800,
             coveredTop: 52,
             topMargin: 8,
-            bottomMargin: 8
+            bottomMargin: 8,
+            lowestOrigin: -52
         )
         XCTAssertEqual(underToolbar.lowestOrigin, -52)
         XCTAssertEqual(underToolbar.highestOrigin, 300)
@@ -95,6 +96,28 @@ final class TorrentListSightTests: XCTestCase {
         XCTAssertEqual(sight(origin: 0, contentHeight: 1500).origin(following: tall), 99)
     }
 
+    /// A card partly out of sight when it began to grow: that part is not
+    /// taken in one step, the list is held back by what is left of it.
+    func testListCoversWhatWasOutOfSightAStepAtATime() {
+        // The last card is cut by 40 pt, and its margin is 8 more.
+        let last = card(8)
+        let cut = sight(origin: 312)
+        XCTAssertEqual(cut.origin(following: last), 360)
+        // Nothing of the way covered yet: the list stays where it is.
+        XCTAssertNil(cut.origin(following: last, heldBackBy: 48))
+        // Half of it.
+        XCTAssertEqual(cut.origin(following: last, heldBackBy: 24), 336)
+
+        // A card in the middle is laid out at its full height at once:
+        // held back, the list does not take that in one step either.
+        let expanded = card(5, height: 152)
+        let middle = sight(origin: 63, contentHeight: 861)
+        XCTAssertEqual(middle.origin(following: expanded), 124)
+        XCTAssertEqual(middle.origin(following: expanded, heldBackBy: 50), 74)
+        // Held back never means going up.
+        XCTAssertNil(middle.origin(following: expanded, heldBackBy: 80))
+    }
+
     /// Cards have left and room under the content held the list in place:
     /// where the list belongs once the room is gone.
     func testListGlidesToTheEndItHasWithoutTheRoom() {
@@ -126,8 +149,8 @@ final class TorrentListScrollFollowTests: XCTestCase {
         [root] + root.subviews.flatMap { allViews(in: $0) }
     }
 
-    private func makeList() async throws -> HostedList {
-        let records = (0..<8).map { index in
+    private func makeList(cards: Int = 8) async throws -> HostedList {
+        let records = (0..<cards).map { index in
             makeTestRecord(originalName: "Download \(index + 1)", status: .stopped, progress: 0.3)
         }
         let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: records)
@@ -157,14 +180,74 @@ final class TorrentListScrollFollowTests: XCTestCase {
 
         let scroll = try XCTUnwrap(allViews(in: hosting).compactMap { $0 as? NSScrollView }.first)
         let list = HostedList(store: bundle.store, records: records, window: window, scroll: scroll)
-        XCTAssertGreaterThan(list.end, 200, "The list must be taller than its window for this to test anything")
+        XCTAssertGreaterThan(list.end, 40, "The list must be taller than its window for this to test anything")
         return list
     }
 
-    private func scrollToEnd(_ list: HostedList) async throws {
-        list.scroll.contentView.scroll(to: NSPoint(x: 0, y: list.end))
+    private func scrollToEnd(_ list: HostedList, short: CGFloat = 0) async throws {
+        list.scroll.contentView.scroll(to: NSPoint(x: 0, y: list.end - short))
         list.scroll.reflectScrolledClipView(list.scroll.contentView)
         try await Task.sleep(for: .milliseconds(300))
+    }
+
+    /// Where the list stands, read as often as the main thread lets go, for
+    /// `duration`.
+    private func offsets(of list: HostedList, for duration: TimeInterval) async throws -> [(time: TimeInterval, offset: CGFloat)] {
+        var samples: [(time: TimeInterval, offset: CGFloat)] = []
+        let start = CACurrentMediaTime()
+        while CACurrentMediaTime() - start < duration {
+            samples.append((CACurrentMediaTime() - start, list.offset))
+            try await Task.sleep(for: .milliseconds(4))
+        }
+        return samples
+    }
+
+    /// Every move of the list, with the content's height at the time.
+    @MainActor
+    private final class Moves {
+        private(set) var all: [(offset: CGFloat, contentHeight: CGFloat)] = []
+        private var observation: NSObjectProtocol?
+
+        init(of scroll: NSScrollView) {
+            let clip = scroll.contentView
+            clip.postsBoundsChangedNotifications = true
+            observation = NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification,
+                object: clip,
+                queue: nil
+            ) { [weak self, weak scroll] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let scroll else { return }
+                    self.all.append((scroll.contentView.bounds.origin.y, scroll.documentView?.frame.height ?? 0))
+                }
+            }
+        }
+
+        func stop() {
+            if let observation {
+                NotificationCenter.default.removeObserver(observation)
+            }
+            observation = nil
+        }
+
+        /// How far the list went from `offset` while the content was still
+        /// `contentHeight` tall: before the card began to grow on screen.
+        func farthest(from offset: CGFloat, whileContentIs contentHeight: CGFloat) -> CGFloat {
+            all.filter { abs($0.contentHeight - contentHeight) < 0.01 }
+                .map { abs($0.offset - offset) }
+                .max() ?? 0
+        }
+    }
+
+    /// The longest way the list went between two readings beyond what a
+    /// glide covers in that time. A glide here is at its fastest under
+    /// 1500 pt a second; a jump takes tens of points in no time at all.
+    private func longestJump(in samples: [(time: TimeInterval, offset: CGFloat)]) -> CGFloat {
+        zip(samples, samples.dropFirst())
+            .map { before, after in
+                abs(after.offset - before.offset) - 1500 * CGFloat(after.time - before.time)
+            }
+            .max() ?? 0
     }
 
     private func pressArrow(down: Bool, in window: NSWindow) throws {
@@ -241,6 +324,108 @@ final class TorrentListScrollFollowTests: XCTestCase {
         XCTAssertEqual(list.store.torrents.count, 7)
         XCTAssertEqual(list.offset, list.end, accuracy: 1)
         XCTAssertLessThan(list.offset, before - 60, "The list has come down by the card that left")
+    }
+
+    /// A list barely taller than its window, at its end, and a card leaves
+    /// its middle: what is left fits the window. The list went to its top
+    /// in one frame in the owner's window; it glides there.
+    func testRemovingAMiddleCardFromABarelyScrolledListGlidesItToItsTop() async throws {
+        let list = try await makeList(cards: 5)
+        defer { list.window.orderOut(nil) }
+        try await scrollToEnd(list)
+        let before = list.offset
+        XCTAssertGreaterThan(before, 40)
+
+        await list.store.removeTorrent(id: list.records[3].id, policy: .removeFromListOnly)
+        let samples = try await offsets(of: list, for: 0.9)
+
+        XCTAssertEqual(list.store.torrents.count, 4)
+        XCTAssertEqual(list.offset, 0, accuracy: 1, "Four cards fit the window: the list stands at its top")
+        XCTAssertLessThan(longestJump(in: samples), 15, "The list came to its top in a glide")
+        let early = try XCTUnwrap(samples.last { $0.time < 0.08 })
+        XCTAssertGreaterThan(early.offset, before - 25, "The list has barely set off")
+    }
+
+    /// A card cut by the window's lower edge, then expanded: the list went
+    /// down to show all of it in one step, and only then did the card grow.
+    func testExpandingACardCutByTheWindowBringsItIntoSightWithoutAJump() async throws {
+        let list = try await makeList()
+        defer { list.window.orderOut(nil) }
+        // The last card shows its top 21 pt of 91.
+        try await scrollToEnd(list, short: 78)
+        let before = list.offset
+        let contentBefore = try XCTUnwrap(list.scroll.documentView).frame.height
+        let moves = Moves(of: list.scroll)
+        defer { moves.stop() }
+
+        withAnimation(ShatlMotion.cardLayout) {
+            list.store.toggleExpanded(for: list.records[7].id)
+        }
+        let samples = try await offsets(of: list, for: 0.9)
+
+        XCTAssertGreaterThan(list.end, before + 78 + 20, "The card has grown, and the content with it")
+        XCTAssertEqual(list.offset, list.end, accuracy: 1, "All of the card is in sight")
+        XCTAssertLessThan(
+            moves.farthest(from: before, whileContentIs: contentBefore), 1,
+            "The list does not set off before the card begins to grow"
+        )
+        XCTAssertGreaterThan(moves.all.count, 8, "The list went down a step at a time")
+        XCTAssertLessThan(longestJump(in: samples), 15, "The list went down in one move with the card")
+    }
+
+    /// A card in the middle of the list, cut by the window's lower edge.
+    func testExpandingAMiddleCardCutByTheWindowBringsItIntoSightWithoutAJump() async throws {
+        let list = try await makeList()
+        defer { list.window.orderOut(nil) }
+        // The fifth card of eight ends at 495; the window shows down to 440.
+        list.scroll.contentView.scroll(to: .zero)
+        list.scroll.reflectScrolledClipView(list.scroll.contentView)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(list.offset, 0)
+        let contentBefore = try XCTUnwrap(list.scroll.documentView).frame.height
+        let moves = Moves(of: list.scroll)
+        defer { moves.stop() }
+
+        withAnimation(ShatlMotion.cardLayout) {
+            list.store.toggleExpanded(for: list.records[4].id)
+        }
+        let samples = try await offsets(of: list, for: 0.9)
+
+        XCTAssertGreaterThan(list.offset, 63 + 20, "The card is in sight, grown")
+        XCTAssertLessThan(list.offset, list.end - 100, "And the list has not gone to its end")
+        XCTAssertLessThan(
+            moves.farthest(from: 0, whileContentIs: contentBefore), 1,
+            "The list does not set off before the card begins to grow"
+        )
+        XCTAssertGreaterThan(moves.all.count, 8, "The list went down a step at a time")
+        XCTAssertLessThan(longestJump(in: samples), 15, "The list went down in one move with the card")
+    }
+
+    /// The last card is expanded, and the card above it expands in its
+    /// place. The card that collapses still told where it was on its way
+    /// out, and the list went after it, to its end.
+    func testExpandingACardAboveAnExpandedOneFollowsTheCardThatExpands() async throws {
+        let list = try await makeList()
+        defer { list.window.orderOut(nil) }
+        withAnimation(ShatlMotion.cardLayout) {
+            list.store.toggleExpanded(for: list.records[7].id)
+        }
+        try await Task.sleep(for: .milliseconds(900))
+        // The seventh card will end at 754, 21 pt under the window's edge
+        // with its margin; the list's end is 99 pt farther.
+        try await scrollToEnd(list, short: 120)
+        let before = list.offset
+        let moves = Moves(of: list.scroll)
+        defer { moves.stop() }
+
+        withAnimation(ShatlMotion.cardLayout) {
+            list.store.toggleExpanded(for: list.records[6].id)
+        }
+        try await Task.sleep(for: .milliseconds(900))
+
+        XCTAssertEqual(list.store.expandedTorrentID, list.records[6].id)
+        XCTAssertEqual(list.offset, before + 21, accuracy: 1.5, "The card that expanded is in sight")
+        XCTAssertLessThan(moves.all.map(\.offset).max() ?? 0, before + 30, "The list never went after the card that collapsed")
     }
 
     /// A card expanded at the bottom of the list grew out of the window.

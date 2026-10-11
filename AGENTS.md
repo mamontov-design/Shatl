@@ -105,8 +105,11 @@ persistence, deletion, restore, or shared UI state.
   AppKit. An animated SwiftUI `scrollTo` (or `ScrollPosition`) is lost when
   the next request or the 1 Hz redraw interrupts it: arrows left the selected
   card out of sight (measured in October 2026). Only the card being shown
-  and the card that expands report their frames; the driver does nothing
-  between requests. Content that shrinks under a list scrolled down pushes
+  and the card that expands report their frames; the driver sets each step
+  of a move itself, once per frame of the display, and does nothing between
+  requests. A card that expands partly out of sight is brought into sight
+  along the curve it grows by, from the frame it begins to grow in, never in
+  one step before it. Content that shrinks under a list scrolled down pushes
   it there in one frame, so room is kept under the content while cards leave.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.

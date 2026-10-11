@@ -155,8 +155,14 @@ struct TorrentListView: View {
                                         space: Self.contentSpace,
                                         serial: expansionCount
                                     ) { frame in
+                                        // A card that collapses as another
+                                        // expands is on its way out and
+                                        // still tells where it is: the list
+                                        // went after it, to its end.
+                                        guard store.expandedTorrentID == torrentID else { return }
                                         scrollDriver.follow(frame)
                                     }
+                                    .transition(.identity)
                                 }
                             }
                             .transition(ShatlMotion.cardListItem)
@@ -187,7 +193,9 @@ struct TorrentListView: View {
                             }
                         }
                 }
-                .background {
+                // At the content's top left corner: the scroll driver reads
+                // where the content lies in the scroll view from it.
+                .background(alignment: .topLeading) {
                     TorrentListScrollAnchor(driver: scrollDriver)
                         .frame(width: 0, height: 0)
                         .accessibilityHidden(true)
@@ -300,7 +308,10 @@ struct TorrentListView: View {
             .onChange(of: store.expandedTorrentID) { _, expandedTorrentID in
                 guard expandedTorrentID != nil else { return }
                 // A little longer than the card takes to grow.
-                scrollDriver.beginFollowing(for: ShatlMotion.cardLayoutDuration * 2)
+                scrollDriver.beginFollowing(
+                    for: ShatlMotion.cardLayoutDuration * 2,
+                    catchingUpOver: scrollDuration(ShatlMotion.cardLayoutDuration)
+                )
                 expansionCount += 1
             }
             .onDisappear {
@@ -352,14 +363,27 @@ struct TorrentListView: View {
     /// frame; room under the content holds it where it is, the scroll driver
     /// glides it down, and the room goes once the cards are gone.
     private func keepListInPlaceWhileCardsLeave() {
-        guard let position = scrollDriver.position, position.offset > 0.5 else { return }
+        guard let position = scrollDriver.position else {
+            #if DEBUG
+            scrollDriver.trace("removal: the list's scroll view is not found")
+            #endif
+            return
+        }
+        // At its top the list has nowhere to be pushed.
+        guard position.isScrolled else {
+            #if DEBUG
+            scrollDriver.trace("removal: the list stands at its top, \(Int(position.origin)) of \(Int(position.lowestOrigin))")
+            #endif
+            return
+        }
 
-        // Enough for the list to stay where it is, whatever has left.
-        let room = max(roomForLeavingCards, position.offset + position.viewportHeight)
+        // As tall as the content was: enough for the list to stay where it
+        // is, whatever has left.
+        let room = max(roomForLeavingCards, position.contentHeight - roomForLeavingCards)
         roomForLeavingCards = room
         scrollDriver.glideAfterRemoval(
             room: room,
-            heightBefore: position.contentHeight,
+            before: position,
             duration: scrollDuration(ShatlMotion.cardListMutationDuration)
         )
 
