@@ -203,15 +203,24 @@ struct MainWindowView: View {
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }
+        // Two listeners with one answer. The catcher lies over the content
+        // and takes a drag before a system text field under it can; SwiftUI's
+        // own drop stays for a drag that reaches the hosting view instead.
+        .overlay {
+            MainWindowDropCatcher(
+                isAvailable: { acceptsDrops },
+                onOffer: showDropOffer,
+                onDrop: takeDrop
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .onDrop(
             of: MainWindowDropLayout.draggedTypes,
             delegate: MainWindowDropDelegate(
                 isAvailable: { acceptsDrops },
                 onOffer: showDropOffer,
-                onDrop: { download in
-                    showDropOffer(nil, afterDelay: false)
-                    store.addDraggedDownload(download)
-                }
+                onDrop: takeDrop
             )
         )
         // The window's smallest size. Here and not on the whole window: the
@@ -357,7 +366,10 @@ struct MainWindowView: View {
                 )
                     .transition(stageTransition)
             case .empty:
-                EmptyStateView(onEntryValidationError: presentAddTorrentEntryAlert)
+                EmptyStateView(
+                    isDragInProgress: displayedDropOffer != nil,
+                    onEntryValidationError: presentAddTorrentEntryAlert
+                )
                     .transition(stageTransition)
                     .zIndex(1)
             case .list:
@@ -385,6 +397,11 @@ struct MainWindowView: View {
         #else
         return dropOffer
         #endif
+    }
+
+    private func takeDrop(_ download: DraggedDownload) {
+        showDropOffer(nil, afterDelay: false)
+        store.addDraggedDownload(download)
     }
 
     private func showDropOffer(_ offer: DraggedDownloadOffer?) {

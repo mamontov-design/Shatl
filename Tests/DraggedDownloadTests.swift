@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import AppKit
 import Foundation
 import XCTest
 @testable import Shatl
@@ -72,6 +73,38 @@ final class DraggedDownloadTests: XCTestCase {
         )
         XCTAssertEqual(DraggedContent(texts: ["Northstar season one"]).offer, .unsupported)
         XCTAssertEqual(DraggedContent().offer, .unsupported)
+    }
+
+    /// The window reads a drag from its pasteboard: a file as a file, a link
+    /// as text, however the source listed it.
+    @MainActor
+    func testContentIsReadFromAPasteboard() throws {
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("ShatlTests-\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+
+        pasteboard.clearContents()
+        pasteboard.writeObjects([torrent as NSURL])
+        XCTAssertEqual(DraggedContent(pasteboard: pasteboard).offer, .accept(.torrentFile(torrent)))
+
+        pasteboard.clearContents()
+        pasteboard.setString(magnet, forType: .string)
+        XCTAssertEqual(
+            DraggedContent(pasteboard: pasteboard).offer,
+            .accept(.magnetLink(try XCTUnwrap(URL(string: magnet))))
+        )
+
+        // A browser lists a dragged link as a link and as its text.
+        pasteboard.clearContents()
+        pasteboard.writeObjects([try XCTUnwrap(URL(string: magnet)) as NSURL])
+        pasteboard.pasteboardItems?.first?.setString(magnet, forType: .string)
+        XCTAssertEqual(
+            DraggedContent(pasteboard: pasteboard).offer,
+            .accept(.magnetLink(try XCTUnwrap(URL(string: magnet))))
+        )
+
+        pasteboard.clearContents()
+        pasteboard.setString("Northstar season one", forType: .string)
+        XCTAssertEqual(DraggedContent(pasteboard: pasteboard).offer, .unsupported)
     }
 
     func testAcceptedDownloadOpensByItsOwnAddress() throws {
