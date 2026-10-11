@@ -42,8 +42,11 @@ enum ShatlMotion {
     static let stickyContentReplace = Animation.smooth(duration: 0.38)
 
     /// A message block replacing its content in place: waiting becomes an
-    /// error, or the files arrive.
-    static let messageBlockContent = Animation.smooth(duration: 0.38)
+    /// error. The text and the buttons change first and the block takes its
+    /// new height; the icon changes once it stands still, as SF Symbols'
+    /// replace only looks right in place.
+    static let messageBlockContent = Animation.smooth(duration: messageBlockContentDuration)
+    static let messageBlockContentDuration: TimeInterval = 0.38
 
     /// Reveals the pinned row with a subtle lift from the list and no zoom.
     static let stickyPinInsertion = AnyTransition
@@ -85,6 +88,10 @@ enum ShatlMotion {
 
     /// The session-reading message shows only if reading takes this long.
     static let sessionLoadMessageDelay = Duration.milliseconds(300)
+
+    /// The add window's waiting message shows only if waiting takes this
+    /// long: a `.torrent` file is read at once.
+    static let addTorrentWaitingMessageDelay = Duration.milliseconds(300)
 
     /// Shows and hides the message bars under the toolbar.
     static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)

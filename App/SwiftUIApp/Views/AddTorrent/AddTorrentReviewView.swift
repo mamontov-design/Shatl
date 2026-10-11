@@ -984,14 +984,30 @@ struct AddTorrentReviewView: View {
     @State private var renderedDraft: AddTorrentDraft?
     @State private var appliedSearchText = ""
     @State private var filePresentation = AddTorrentReviewFilePresentation.empty
+    /// Set once waiting has lasted long enough to be worth a message; see
+    /// `AddTorrentReviewStage`.
+    @State private var showsWaitingMessage = false
+    @State private var waitingMessageTask: Task<Void, Never>?
     @FocusState private var isAliasFocused: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
-            filesColumn
-
-            settingsColumn
+        // One stage at a time, each over the whole window and sharing
+        // nothing with the next, so nothing is carried from one into the
+        // other: one dissolves as the other comes. The animation sits on
+        // what holds them all.
+        ZStack {
+            switch stage {
+            case .blank:
+                Color.clear
+            case .message:
+                messageStage
+                    .transition(stageTransition)
+            case .review:
+                reviewStage
+                    .transition(stageTransition)
+            }
         }
+        .animation(ShatlMotion.mainContentMode, value: stage)
         .frame(
             minWidth: AddTorrentReviewLayout.minimumWindowWidth,
             minHeight: AddTorrentReviewLayout.minimumWindowHeight
@@ -1006,22 +1022,18 @@ struct AddTorrentReviewView: View {
                 onDebouncedChange: applySearchText
             )
         )
-        .disabled(!areSettingsControlsEnabled)
-        // Over the window, which waiting or a failure disables, so they can
-        // always be pressed: Cancel beside Download, or Close in its place.
-        .overlay(alignment: .bottomTrailing) {
-            Group {
-                if isInvalidDraft {
-                    closeButton
-                } else {
-                    HStack(spacing: 8) {
-                        cancelButton
-                        confirmButtonBody
-                            .hidden()
-                    }
-                }
+        // Only the files are searched; a message enables its own buttons.
+        .disabled(stage != .review)
+        .onChange(of: waitingKey, initial: true) { _, key in
+            followWaiting(key)
+        }
+        .onChange(of: stage) { _, newStage in
+            if newStage != .review {
+                isAliasFocused = false
             }
-            .padding(AddTorrentReviewLayout.settingsColumnPadding)
+        }
+        .onDisappear {
+            waitingMessageTask?.cancel()
         }
         #if DEBUG
         .onGeometryChange(for: CGSize.self) { geometry in
@@ -1085,8 +1097,90 @@ struct AddTorrentReviewView: View {
         }
     }
 
+    private var stage: AddTorrentReviewStage {
+        AddTorrentReviewStage.current(
+            reviewState: draft?.reviewState,
+            hasFiles: draft?.files.isEmpty == false,
+            showsWaiting: showsWaitingMessage
+        )
+    }
+
+    private var stageTransition: AnyTransition {
+        reduceMotion ? .opacity : ShatlMotion.mainContent
+    }
+
+    /// What the waiting message's delay is counted for: a new download, or
+    /// the same one going from waiting to its result.
+    private struct WaitingKey: Equatable {
+        var draftID: UUID?
+        var isWaiting: Bool
+    }
+
+    private var waitingKey: WaitingKey {
+        let isWaiting: Bool
+        switch draft?.reviewState {
+        case .loadingMetadata?, nil:
+            isWaiting = true
+        case .ready?, .invalid?:
+            isWaiting = false
+        }
+        return WaitingKey(draftID: draft?.id, isWaiting: isWaiting)
+    }
+
+    /// The waiting message comes only once waiting has lasted: a `.torrent`
+    /// file is read at once, and the message would flash over the whole
+    /// window before the files. Until then the window is empty.
+    private func followWaiting(_ key: WaitingKey) {
+        waitingMessageTask?.cancel()
+        waitingMessageTask = nil
+
+        if showsWaitingMessage {
+            // A new wait starts from an empty window, not from the message
+            // of the last one.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                showsWaitingMessage = false
+            }
+        }
+        guard key.isWaiting else { return }
+
+        waitingMessageTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.addTorrentWaitingMessageDelay)
+            guard !Task.isCancelled else { return }
+            showsWaitingMessage = true
+        }
+    }
+
+    /// The message with its actions, in the middle of the whole window.
+    @ViewBuilder
+    private var messageStage: some View {
+        if let reviewMessage {
+            ShatlMessageBlockPrimary(
+                systemImage: reviewMessage.systemImage,
+                title: reviewMessage.title,
+                message: reviewMessage.message,
+                primaryButton: primaryMessageButton(for: reviewMessage.actions),
+                secondaryButtons: secondaryMessageButtons(for: reviewMessage.actions)
+            )
+            // The window is disabled outside the review, for its search; the
+            // message's own actions stay pressable.
+            .environment(\.isEnabled, true)
+            .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+    }
+
+    private var reviewStage: some View {
+        HStack(spacing: 0) {
+            filesColumn
+
+            settingsColumn
+        }
+    }
+
     private var filesColumn: some View {
-        filesTabContent
+        filesContainer()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .bottom) {
                 torrentSummaryContainer
@@ -1106,12 +1200,15 @@ struct AddTorrentReviewView: View {
 
             Spacer(minLength: 0)
 
-            downloadButton
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                cancelButton
+                confirmButton
+            }
         }
         .padding(AddTorrentReviewLayout.settingsColumnPadding)
         .frame(width: AddTorrentReviewLayout.settingsColumnWidth)
         .frame(maxHeight: .infinity, alignment: .topLeading)
-        .opacity(areSettingsControlsEnabled ? 1 : 0.5)
     }
 
     private var draft: AddTorrentDraft? {
@@ -1227,25 +1324,33 @@ struct AddTorrentReviewView: View {
     }
     #endif
 
-    /// What the files column says while it has no files to show. One block
-    /// for all of it, so waiting turns into the result in place.
+    /// What the window says while it has no files to show. One block for all
+    /// of it, so waiting turns into a failure in place.
     private struct ReviewMessage: Equatable {
         var systemImage: String
         var title: String
         var message: String?
-        /// A duplicate whose download is known offers to show it in the list.
-        var showsDuplicateInList = false
+        var actions: AddTorrentReviewMessageActions
     }
 
     private var reviewMessage: ReviewMessage? {
         let locale = store.preferences.localeOverride
-        switch draft?.reviewState {
+        let reviewState = draft?.reviewState
+        // A duplicate whose download is known offers to show it in the list.
+        let isKnownDuplicate = draft?.errorState?.kind == .duplicateTorrent && store.addTorrentDuplicateID != nil
+        let actions = AddTorrentReviewMessageActions.current(
+            reviewState: reviewState,
+            isKnownDuplicate: isKnownDuplicate
+        )
+
+        switch reviewState {
         case .ready?:
             guard let draft, draft.files.isEmpty else { return nil }
             return ReviewMessage(
                 systemImage: "tray",
                 title: L10n.string("add_torrent.review.no_files.title", localeOverride: locale),
-                message: L10n.string("add_torrent.review.no_files.message", localeOverride: locale)
+                message: L10n.string("add_torrent.review.no_files.message", localeOverride: locale),
+                actions: actions
             )
 
         case .loadingMetadata?:
@@ -1256,7 +1361,8 @@ struct AddTorrentReviewView: View {
                 title: L10n.string("add_torrent.review.loading.title", localeOverride: locale),
                 message: waitsForPeers
                     ? L10n.string("add_torrent.review.loading.message", localeOverride: locale)
-                    : nil
+                    : nil,
+                actions: actions
             )
 
         case .invalid?:
@@ -1266,57 +1372,67 @@ struct AddTorrentReviewView: View {
                 systemImage: errorState?.kind == .noConnection ? "wifi.slash" : "exclamationmark.circle",
                 title: errorState?.title ?? L10n.string("add_torrent.review.invalid_placeholder", localeOverride: locale),
                 message: message.isEmpty ? nil : message,
-                showsDuplicateInList: errorState?.kind == .duplicateTorrent && store.addTorrentDuplicateID != nil
+                actions: actions
             )
 
         case .none:
             return ReviewMessage(
                 systemImage: "hourglass",
                 title: L10n.string("add_torrent.review.preparing.title", localeOverride: locale),
-                message: L10n.string("add_torrent.review.preparing.message", localeOverride: locale)
+                message: L10n.string("add_torrent.review.preparing.message", localeOverride: locale),
+                actions: actions
             )
         }
     }
 
-    private var showInListButton: ShatlMessageBlockPrimaryButton {
-        ShatlMessageBlockPrimaryButton(
-            title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride),
-            role: .borderedColored
-        ) {
-            store.showAddTorrentDuplicateInList()
-        }
-    }
-
-    /// The message block and the file list change places the way the main
-    /// window's stages do: one dissolves as the other comes. The animation
-    /// sits on what holds them both. On the block alone it left with the
-    /// block, and the file list replaced the block in one frame.
-    private var filesTabContent: some View {
-        ZStack {
-            if let reviewMessage {
-                ShatlMessageBlockPrimary(
-                    systemImage: reviewMessage.systemImage,
-                    title: reviewMessage.title,
-                    message: reviewMessage.message,
-                    primaryButton: reviewMessage.showsDuplicateInList ? showInListButton : nil
-                )
-                // A failure disables the window; the block's own action stays
-                // pressable, as the main window keeps its content under a
-                // disabled search.
-                .environment(\.isEnabled, true)
-                .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .transition(filesContentTransition)
-            } else {
-                filesContainer()
-                    .transition(filesContentTransition)
+    private func primaryMessageButton(
+        for actions: AddTorrentReviewMessageActions
+    ) -> ShatlMessageBlockPrimaryButton {
+        switch actions {
+        case .cancel:
+            // Closes the window and stops preparing the download, as the
+            // window's close button does.
+            ShatlMessageBlockPrimaryButton(
+                title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
+                role: .borderedNeutral,
+                keyboardShortcut: .cancelAction
+            ) {
+                store.dismissModal()
+            }
+        case .close:
+            closeWindowButton(role: .borderedColored)
+        case .showInListAndClose:
+            ShatlMessageBlockPrimaryButton(
+                title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride),
+                role: .borderedColored
+            ) {
+                store.showAddTorrentDuplicateInList()
             }
         }
-        .animation(ShatlMotion.mainContentMode, value: reviewMessage == nil)
     }
 
-    private var filesContentTransition: AnyTransition {
-        reduceMotion ? .opacity : ShatlMotion.mainContent
+    private func secondaryMessageButtons(
+        for actions: AddTorrentReviewMessageActions
+    ) -> [ShatlMessageBlockPrimaryButton] {
+        switch actions {
+        case .cancel, .close:
+            []
+        case .showInListAndClose:
+            // Neutral beside the message's own action.
+            [closeWindowButton(role: .borderedNeutral)]
+        }
+    }
+
+    /// "Закрыть окно", not "Закрыть": inside a message a bare "Close" reads
+    /// as closing the message.
+    private func closeWindowButton(role: ShatlButtonRole) -> ShatlMessageBlockPrimaryButton {
+        ShatlMessageBlockPrimaryButton(
+            title: L10n.string("add_torrent.review.close", localeOverride: store.preferences.localeOverride),
+            role: role,
+            keyboardShortcut: .cancelAction
+        ) {
+            store.dismissModal()
+        }
     }
 
     private func filesContainer() -> some View {
@@ -2425,31 +2541,6 @@ struct AddTorrentReviewView: View {
             .frame(height: 1)
     }
 
-    private var isInvalidDraft: Bool {
-        if case .invalid? = draft?.reviewState {
-            return true
-        }
-        return false
-    }
-
-    /// Nothing can be downloaded from a draft that failed; Close takes the
-    /// place of Download instead of a disabled button. It sits over the
-    /// window, which the failure disables as a whole.
-    private var closeButton: some View {
-        ShatlButton(
-            title: L10n.string(
-                "add_torrent.review.close",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Закрыть"
-            ),
-            // Neutral beside the message's own action, the only action otherwise.
-            role: reviewMessage?.showsDuplicateInList == true ? .borderedNeutral : .borderedColored
-        ) {
-            store.dismissModal()
-        }
-        .keyboardShortcut(.cancelAction)
-    }
-
     /// Closes the window and stops preparing the download, as the window's
     /// close button does.
     private var cancelButton: some View {
@@ -2463,24 +2554,9 @@ struct AddTorrentReviewView: View {
         .keyboardShortcut(.cancelAction)
     }
 
-    @ViewBuilder
-    private var downloadButton: some View {
-        if isInvalidDraft {
-            confirmButton
-                .hidden()
-        } else {
-            confirmButton
-        }
-    }
-
-    private var confirmButton: some View {
-        confirmButtonBody
-            .frame(maxWidth: .infinity, alignment: .trailing)
-    }
-
     /// With no room for the download the button saves it to the list
     /// instead of starting it, so the window is never a dead end.
-    private var confirmButtonBody: some View {
+    private var confirmButton: some View {
         let savesToList = spaceShortfall != nil
         return ShatlButton(
             title: L10n.string(

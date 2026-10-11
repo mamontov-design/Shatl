@@ -211,7 +211,7 @@
 "add_torrent.review.save_to_list" = "Сохранить в список";
 "add_torrent.review.low_space.message.many_files" = "На диске «%1$@» не хватает %2$@. Освободите место, снимите часть файлов или выберите папку на другом диске. Для удобства загрузку можно сохранить в список сейчас, а запустить вручную, когда место освободится.";
 "add_torrent.review.low_space.message.one_file" = "На диске «%1$@» не хватает %2$@. Освободите место или выберите папку на другом диске. Для удобства загрузку можно сохранить в список сейчас, а запустить вручную, когда место освободится.";
-"add_torrent.review.close" = "Закрыть";
+"add_torrent.review.close" = "Закрыть окно";
 "add_torrent.review.show_in_list" = "Показать в списке";
 "add_torrent.review.summary.selected_files" = "Выбрано файлов";
 "add_torrent.review.summary.size" = "Размер";
