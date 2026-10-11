@@ -377,6 +377,8 @@ struct ShatlMessageBlockPrimary: View {
     @State private var systemImageTask: Task<Void, Never>?
 
     private let cornerRadius: CGFloat = 18
+    /// The room the icon is laid out in, whatever its own height.
+    static let iconCellHeight: CGFloat = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -469,6 +471,12 @@ struct ShatlMessageBlockPrimary: View {
                 .foregroundStyle(ShatlColor.typographyTertiary)
                 .contentTransition(.symbolEffect(.replace))
                 .animation(ShatlMotion.messageBlockContent, value: displayedSystemImage ?? systemImage)
+                // One height for every icon. Symbols of one font size differ
+                // in height, from 25 to 34 pt here: laid out by its own
+                // height, a new icon changed the block's height in one frame,
+                // before the replace was drawn. The tallest reach a point or
+                // two past the cell, into the room around it.
+                .frame(height: Self.iconCellHeight)
 
             // Old and new text overlap while one replaces the other.
             ZStack(alignment: .topLeading) {
