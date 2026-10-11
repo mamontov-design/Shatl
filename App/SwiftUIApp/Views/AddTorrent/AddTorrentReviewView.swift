@@ -988,6 +988,15 @@ struct AddTorrentReviewView: View {
     /// `AddTorrentReviewStage`.
     @State private var showsWaitingMessage = false
     @State private var waitingMessageTask: Task<Void, Never>?
+    /// The stage that was on screen last, kept while the files are being
+    /// prepared; see `shownStage` and `followStage`.
+    @State private var settledStage = AddTorrentReviewStage.blank
+    /// The files are built and wait unseen to be shown.
+    @State private var isReviewPrepared = false
+    @State private var stageTask: Task<Void, Never>?
+    /// The message that was on screen last, for the moment the files are
+    /// ready and the message is still what the window shows.
+    @State private var lastMessage: ReviewMessage?
     @FocusState private var isAliasFocused: Bool
 
     var body: some View {
@@ -996,18 +1005,29 @@ struct AddTorrentReviewView: View {
         // other: one dissolves as the other comes. The animation sits on
         // what holds them all.
         ZStack {
-            switch stage {
-            case .blank:
-                Color.clear
-            case .message:
-                messageStage
-                    .transition(stageTransition)
-            case .review:
-                reviewStage
+            if shownStage == .message, let message = reviewMessage ?? lastMessage {
+                messageStage(message)
                     .transition(stageTransition)
             }
+
+            // The files take a moment to build and to draw, their rows last.
+            // Shown as they were put into the window, they came in pieces:
+            // buttons first, the tree and the settings a frame later, at
+            // whatever opacity the fade had reached. So they are put in
+            // unseen and shown once they are whole; see `followStage`.
+            if shownStage == .review || isReviewPrepared {
+                reviewStage
+                    // Enabled from the start, though the window around it
+                    // is not yet: it must not be drawn anew as it is shown.
+                    .environment(\.isEnabled, true)
+                    .opacity(shownStage == .review ? 1 : 0)
+                    .scaleEffect(shownStage == .review || reduceMotion ? 1 : ShatlMotion.mainContentScale)
+                    .allowsHitTesting(shownStage == .review)
+                    .accessibilityHidden(shownStage != .review)
+                    .transition(.asymmetric(insertion: .identity, removal: stageTransition))
+            }
         }
-        .animation(ShatlMotion.mainContentMode, value: stage)
+        .animation(ShatlMotion.mainContentMode, value: shownStage)
         .frame(
             minWidth: AddTorrentReviewLayout.minimumWindowWidth,
             minHeight: AddTorrentReviewLayout.minimumWindowHeight
@@ -1023,17 +1043,26 @@ struct AddTorrentReviewView: View {
             )
         )
         // Only the files are searched; a message enables its own buttons.
-        .disabled(stage != .review)
+        .disabled(shownStage != .review)
         .onChange(of: waitingKey, initial: true) { _, key in
             followWaiting(key)
         }
-        .onChange(of: stage) { _, newStage in
+        .onChange(of: reviewMessage, initial: true) { _, message in
+            if let message {
+                lastMessage = message
+            }
+        }
+        .onChange(of: stage, initial: true) { _, newStage in
+            followStage(newStage)
+        }
+        .onChange(of: shownStage) { _, newStage in
             if newStage != .review {
                 isAliasFocused = false
             }
         }
         .onDisappear {
             waitingMessageTask?.cancel()
+            stageTask?.cancel()
         }
         #if DEBUG
         .onGeometryChange(for: CGSize.self) { geometry in
@@ -1152,23 +1181,52 @@ struct AddTorrentReviewView: View {
         }
     }
 
-    /// The message with its actions, in the middle of the whole window.
-    @ViewBuilder
-    private var messageStage: some View {
-        if let reviewMessage {
-            ShatlMessageBlockPrimary(
-                systemImage: reviewMessage.systemImage,
-                title: reviewMessage.title,
-                message: reviewMessage.message,
-                primaryButton: primaryMessageButton(for: reviewMessage.actions),
-                secondaryButtons: secondaryMessageButtons(for: reviewMessage.actions)
-            )
-            // The window is disabled outside the review, for its search; the
-            // message's own actions stay pressable.
-            .environment(\.isEnabled, true)
-            .animation(ShatlMotion.messageBlockContent, value: reviewMessage)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    /// The stage on screen. A message, or the empty window, is shown the
+    /// moment it is due, and a stage that leaves goes at once and as it was.
+    /// Only the files wait: until they are prepared, the window keeps what
+    /// it showed before them.
+    private var shownStage: AddTorrentReviewStage {
+        stage == .review ? settledStage : stage
+    }
+
+    /// Prepares the files before they are shown. They are put into the
+    /// window unseen while the message, or the empty window, stays, and are
+    /// shown once they have had the time to build and to draw: they then
+    /// come as one.
+    private func followStage(_ target: AddTorrentReviewStage) {
+        stageTask?.cancel()
+        stageTask = nil
+
+        guard target == .review else {
+            isReviewPrepared = false
+            settledStage = target
+            return
         }
+
+        guard settledStage != .review else { return }
+        isReviewPrepared = true
+        stageTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.reviewStageSettleDelay)
+            guard !Task.isCancelled else { return }
+            settledStage = .review
+            isReviewPrepared = false
+        }
+    }
+
+    /// The message with its actions, in the middle of the whole window.
+    private func messageStage(_ message: ReviewMessage) -> some View {
+        ShatlMessageBlockPrimary(
+            systemImage: message.systemImage,
+            title: message.title,
+            message: message.message,
+            primaryButton: primaryMessageButton(for: message.actions),
+            secondaryButtons: secondaryMessageButtons(for: message.actions)
+        )
+        // The window is disabled outside the review, for its search; the
+        // message's own actions stay pressable.
+        .environment(\.isEnabled, true)
+        .animation(ShatlMotion.messageBlockContent, value: message)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     private var reviewStage: some View {
