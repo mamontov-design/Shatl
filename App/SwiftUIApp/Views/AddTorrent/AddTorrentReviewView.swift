@@ -1394,17 +1394,15 @@ struct AddTorrentReviewView: View {
             // window's close button does.
             ShatlMessageBlockPrimaryButton(
                 title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
-                role: .borderedNeutral,
                 keyboardShortcut: .cancelAction
             ) {
                 store.dismissModal()
             }
         case .close:
-            closeWindowButton(role: .borderedColored)
+            closeWindowButton
         case .showInListAndClose:
             ShatlMessageBlockPrimaryButton(
-                title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride),
-                role: .borderedColored
+                title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride)
             ) {
                 store.showAddTorrentDuplicateInList()
             }
@@ -1418,17 +1416,15 @@ struct AddTorrentReviewView: View {
         case .cancel, .close:
             []
         case .showInListAndClose:
-            // Neutral beside the message's own action.
-            [closeWindowButton(role: .borderedNeutral)]
+            [closeWindowButton]
         }
     }
 
     /// "Закрыть окно", not "Закрыть": inside a message a bare "Close" reads
     /// as closing the message.
-    private func closeWindowButton(role: ShatlButtonRole) -> ShatlMessageBlockPrimaryButton {
+    private var closeWindowButton: ShatlMessageBlockPrimaryButton {
         ShatlMessageBlockPrimaryButton(
             title: L10n.string("add_torrent.review.close", localeOverride: store.preferences.localeOverride),
-            role: role,
             keyboardShortcut: .cancelAction
         ) {
             store.dismissModal()

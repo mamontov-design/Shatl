@@ -982,7 +982,6 @@ private struct SessionLoadBlockingView: View {
                         localeOverride: localeOverride,
                         defaultValue: "Проверить обновления…"
                     ),
-                    role: .borderedColored,
                     isDisabled: !updaterController.canCheckForUpdates,
                     lineLimit: nil
                 ) {
@@ -995,31 +994,29 @@ private struct SessionLoadBlockingView: View {
                             localeOverride: localeOverride,
                             defaultValue: "Скачать с сайта…"
                         ),
-                        role: .borderedNeutral,
                         lineLimit: nil
                     ) {
                         NSWorkspace.shared.open(ShatlLinks.website)
                     },
-                    openEmptyListButton(role: .borderedNeutral),
+                    openEmptyListButton,
                 ]
             )
         } else {
             ShatlMessageBlockPrimary(
                 title: title,
                 message: message,
-                primaryButton: openEmptyListButton(role: .borderedColored)
+                primaryButton: openEmptyListButton
             )
         }
     }
 
-    private func openEmptyListButton(role: ShatlButtonRole) -> ShatlMessageBlockPrimaryButton {
+    private var openEmptyListButton: ShatlMessageBlockPrimaryButton {
         ShatlMessageBlockPrimaryButton(
             title: L10n.string(
                 "session.recovery.open_empty",
                 localeOverride: localeOverride,
                 defaultValue: "Запуск с пустым списком"
             ),
-            role: role,
             isDisabled: store.isResolvingSessionRecovery,
             lineLimit: nil
         ) {
