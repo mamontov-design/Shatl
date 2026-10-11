@@ -100,6 +100,14 @@ persistence, deletion, restore, or shared UI state.
   steps one after another, and goes back in one move. If a hang returns,
   sample it first. The large add-review file tree may use its separate
   cached/flattened `LazyVStack` path.
+- The list is moved to a card, and with a card, through
+  `TorrentListScrollDriver`, which sets the scroll view's clip origin in
+  AppKit. An animated SwiftUI `scrollTo` (or `ScrollPosition`) is lost when
+  the next request or the 1 Hz redraw interrupts it: arrows left the selected
+  card out of sight (measured in October 2026). Only the card being shown
+  and the card that expands report their frames; the driver does nothing
+  between requests. Content that shrinks under a list scrolled down pushes
+  it there in one frame, so room is kept under the content while cards leave.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release
