@@ -199,7 +199,7 @@
 "add_torrent.review.save_to_list" = "保存到列表";
 "add_torrent.review.low_space.message.many_files" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间、取消勾选部分文件，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
 "add_torrent.review.low_space.message.one_file" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
-"add_torrent.review.close" = "关闭";
+"add_torrent.review.close" = "关闭窗口";
 "add_torrent.review.show_in_list" = "在列表中显示";
 "add_torrent.review.summary.selected_files" = "已选文件";
 "add_torrent.review.summary.size" = "大小";

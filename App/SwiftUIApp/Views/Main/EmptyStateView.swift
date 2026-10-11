@@ -4,6 +4,8 @@
 import SwiftUI
 
 struct EmptyStateView: View {
+    /// A download is being dragged over the window: the link field leaves.
+    var isDragInProgress = false
     var onEntryValidationError: (TorrentErrorState) -> Void = { _ in }
 
     var body: some View {
@@ -17,6 +19,7 @@ struct EmptyStateView: View {
         VStack {
             AddTorrentEntryView(
                 placement: .emptyState,
+                hidesMagnetFieldForDrag: isDragInProgress,
                 onValidationError: onEntryValidationError
             )
         }

@@ -203,7 +203,7 @@
 "add_torrent.review.save_to_list" = "Save to List";
 "add_torrent.review.low_space.message.many_files" = "The disk “%1$@” is %2$@ short of space. Free up space, deselect some files, or choose a folder on another disk. For convenience, you can save the download to the list now and start it manually once space is free.";
 "add_torrent.review.low_space.message.one_file" = "The disk “%1$@” is %2$@ short of space. Free up space or choose a folder on another disk. For convenience, you can save the download to the list now and start it manually once space is free.";
-"add_torrent.review.close" = "Close";
+"add_torrent.review.close" = "Close Window";
 "add_torrent.review.show_in_list" = "Show in List";
 "add_torrent.review.summary.selected_files" = "Files selected";
 "add_torrent.review.summary.size" = "Size";

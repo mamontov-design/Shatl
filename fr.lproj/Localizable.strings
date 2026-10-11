@@ -203,7 +203,7 @@
 "add_torrent.review.save_to_list" = "Enregistrer dans la liste";
 "add_torrent.review.low_space.message.many_files" = "Il manque %2$@ sur le disque « %1$@ ». Libérez de l’espace, décochez certains fichiers ou choisissez un dossier sur un autre disque. Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
 "add_torrent.review.low_space.message.one_file" = "Il manque %2$@ sur le disque « %1$@ ». Libérez de l’espace ou choisissez un dossier sur un autre disque. Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
-"add_torrent.review.close" = "Fermer";
+"add_torrent.review.close" = "Fermer la fenêtre";
 "add_torrent.review.show_in_list" = "Afficher dans la liste";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";
 "add_torrent.review.summary.size" = "Taille";

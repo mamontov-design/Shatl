@@ -42,8 +42,11 @@ enum ShatlMotion {
     static let stickyContentReplace = Animation.smooth(duration: 0.38)
 
     /// A message block replacing its content in place: waiting becomes an
-    /// error, or the files arrive.
-    static let messageBlockContent = Animation.smooth(duration: 0.38)
+    /// error. The text and the buttons change first and the block takes its
+    /// new height; the icon changes once it stands still, as SF Symbols'
+    /// replace only looks right in place.
+    static let messageBlockContent = Animation.smooth(duration: messageBlockContentDuration)
+    static let messageBlockContentDuration: TimeInterval = 0.38
 
     /// Reveals the pinned row with a subtle lift from the list and no zoom.
     static let stickyPinInsertion = AnyTransition
@@ -72,8 +75,10 @@ enum ShatlMotion {
     /// Transition between main window stages: the session placeholder, its
     /// failure, the empty state and the list. Every stage uses this one.
     static let mainContent = AnyTransition
-        .scale(scale: 0.985, anchor: .center)
+        .scale(scale: mainContentScale, anchor: .center)
         .combined(with: .opacity)
+    /// How small a stage is as it comes or goes.
+    static let mainContentScale: CGFloat = 0.985
 
     /// Animation of a main window stage change; also the bottom chips.
     static let mainContentMode = Animation.smooth(duration: 0.24)
@@ -85,6 +90,15 @@ enum ShatlMotion {
 
     /// The session-reading message shows only if reading takes this long.
     static let sessionLoadMessageDelay = Duration.milliseconds(300)
+
+    /// The add window's waiting message shows only if waiting takes this
+    /// long: a `.torrent` file is read at once.
+    static let addTorrentWaitingMessageDelay = Duration.milliseconds(300)
+
+    /// The add window's files are put into the window unseen and shown this
+    /// long after: time for their rows to be built and for all of it to be
+    /// drawn, so that they come as one and not in pieces.
+    static let reviewStageSettleDelay = Duration.milliseconds(100)
 
     /// Shows and hides the message bars under the toolbar.
     static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)

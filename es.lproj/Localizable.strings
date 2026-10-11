@@ -203,7 +203,7 @@
 "add_torrent.review.save_to_list" = "Guardar en la lista";
 "add_torrent.review.low_space.message.many_files" = "Faltan %2$@ en el disco «%1$@». Libera espacio, desmarca algunos archivos o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
 "add_torrent.review.low_space.message.one_file" = "Faltan %2$@ en el disco «%1$@». Libera espacio o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
-"add_torrent.review.close" = "Cerrar";
+"add_torrent.review.close" = "Cerrar ventana";
 "add_torrent.review.show_in_list" = "Mostrar en la lista";
 "add_torrent.review.summary.selected_files" = "Archivos seleccionados";
 "add_torrent.review.summary.size" = "Tamaño";

@@ -17,15 +17,25 @@ struct AddTorrentEntryView: View {
     @State private var validationError: TorrentErrorState?
     @State private var validationToastDismissTask: Task<Void, Never>?
     @FocusState private var isMagnetFieldFocused: Bool
+    /// The link field's height, kept for the room it leaves while it is out.
+    @State private var magnetFieldHeight: CGFloat = 0
 
     let placement: AddTorrentEntryPlacement
+    /// Set while a download is dragged over the empty window. The link field
+    /// is the system's: it accepts dragged text itself, and its focus ring is
+    /// drawn apart from the view, so it does not fade with it. The field
+    /// therefore leaves the window at once, before the drop screen comes,
+    /// and returns with its text when the drag is over.
+    let hidesMagnetFieldForDrag: Bool
     let onValidationError: (TorrentErrorState) -> Void
 
     init(
         placement: AddTorrentEntryPlacement,
+        hidesMagnetFieldForDrag: Bool = false,
         onValidationError: @escaping (TorrentErrorState) -> Void = { _ in }
     ) {
         self.placement = placement
+        self.hidesMagnetFieldForDrag = hidesMagnetFieldForDrag
         self.onValidationError = onValidationError
     }
 
@@ -51,7 +61,16 @@ struct AddTorrentEntryView: View {
         }
         .onChange(of: store.presentedModal?.id) { oldModalID, newModalID in
             guard oldModalID != nil, newModalID == nil else { return }
-            scheduleRefocusAfterModalDismiss()
+            scheduleRefocus()
+        }
+        .onChange(of: hidesMagnetFieldForDrag) { _, isHidden in
+            if isHidden {
+                blurMagnetField()
+            } else {
+                // Once the window's content has faded back in: the focus
+                // ring would otherwise show at full strength ahead of it.
+                scheduleRefocus()
+            }
         }
         .onDisappear {
             resetFocusState()
@@ -202,12 +221,30 @@ struct AddTorrentEntryView: View {
 
     private var magnetContainer: some View {
         HStack(spacing: 8) {
-            TextField("magnet:?xt=…", text: $magnetInput)
-                .controlSize(.large)
-                .focused($isMagnetFieldFocused)
-                .onSubmit {
-                    continueWithMagnet()
+            // Taken out for a drag and put back in one frame, whatever
+            // animation the window around it is running.
+            Group {
+                if hidesMagnetFieldForDrag {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: magnetFieldHeight)
+                        .transition(.identity)
+                } else {
+                    TextField("magnet:?xt=…", text: $magnetInput)
+                        .controlSize(.large)
+                        .focused($isMagnetFieldFocused)
+                        .onSubmit {
+                            continueWithMagnet()
+                        }
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.size.height
+                        } action: { height in
+                            magnetFieldHeight = height
+                        }
+                        .transition(.identity)
                 }
+            }
+            .animation(nil, value: hidesMagnetFieldForDrag)
 
             Button {
                 continueWithMagnet()
@@ -413,7 +450,9 @@ struct AddTorrentEntryView: View {
         isMagnetFieldFocused = false
     }
 
-    private func scheduleRefocusAfterModalDismiss() {
+    /// Gives the link field its focus back a moment after a modal has
+    /// closed or a drag has ended, if the empty list is still what is shown.
+    private func scheduleRefocus() {
         guard placement == .emptyState else { return }
 
         refocusTask?.cancel()
@@ -425,7 +464,7 @@ struct AddTorrentEntryView: View {
             }
 
             guard !Task.isCancelled else { return }
-            guard store.presentedModal == nil, store.torrents.isEmpty else { return }
+            guard store.presentedModal == nil, store.torrents.isEmpty, !hidesMagnetFieldForDrag else { return }
             focusMagnetField()
         }
     }

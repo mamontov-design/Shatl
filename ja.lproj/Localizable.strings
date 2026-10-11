@@ -199,7 +199,7 @@
 "add_torrent.review.save_to_list" = "リストに保存";
 "add_torrent.review.low_space.message.many_files" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、一部のファイルの選択を解除するか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
 "add_torrent.review.low_space.message.one_file" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
-"add_torrent.review.close" = "閉じる";
+"add_torrent.review.close" = "ウインドウを閉じる";
 "add_torrent.review.show_in_list" = "リストで表示";
 "add_torrent.review.summary.selected_files" = "選択したファイル";
 "add_torrent.review.summary.size" = "サイズ";

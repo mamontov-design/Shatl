@@ -328,24 +328,27 @@ struct ShatlMessageBlock: View {
     }
 }
 
+/// A button of a message block. It has no look of its own: the block
+/// colours its main button and keeps the others neutral.
 struct ShatlMessageBlockPrimaryButton {
     let title: String
-    let role: ShatlButtonRole
     var isDisabled = false
     var lineLimit: Int?
+    /// Esc for the button that closes or cancels.
+    var keyboardShortcut: KeyboardShortcut?
     let action: () -> Void
 
     init(
         title: String,
-        role: ShatlButtonRole,
         isDisabled: Bool = false,
         lineLimit: Int? = nil,
+        keyboardShortcut: KeyboardShortcut? = nil,
         action: @escaping () -> Void
     ) {
         self.title = title
-        self.role = role
         self.isDisabled = isDisabled
         self.lineLimit = lineLimit
+        self.keyboardShortcut = keyboardShortcut
         self.action = action
     }
 }
@@ -354,26 +357,45 @@ struct ShatlMessageBlockPrimaryButton {
 /// look everywhere: its own fill on the window's own background.
 ///
 /// When the message changes, the block stays in place and its content is
-/// replaced, so waiting turns into the result without a jump.
+/// replaced, so waiting turns into the result without a jump: the text and
+/// the buttons blur into the new ones and the block takes its new height,
+/// then the icon is replaced.
 struct ShatlMessageBlockPrimary: View {
     var systemImage = "exclamationmark.circle"
     let title: String
     var message: String?
+    /// The only button, or the main one of several. It is always the
+    /// coloured one, whatever it does: a message's only action is its main
+    /// one.
     var primaryButton: ShatlMessageBlockPrimaryButton?
-    /// Further choices under the main one; with any of them every button
-    /// takes the full width.
+    /// Further choices under the main one, always neutral; with any of them
+    /// every button takes the full width.
     var secondaryButtons: [ShatlMessageBlockPrimaryButton] = []
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The icon on screen: it follows `systemImage` once the block has
+    /// settled; see `followSystemImage`.
+    @State private var displayedSystemImage: String?
+    @State private var systemImageTask: Task<Void, Never>?
 
     private let cornerRadius: CGFloat = 18
+    /// The room the icon is laid out in, whatever its own height.
+    static let iconCellHeight: CGFloat = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             labelGroup
 
             if primaryButton != nil || !secondaryButtons.isEmpty {
-                buttonStack
+                // Old and new buttons overlap while one set replaces the
+                // other, as the text does: nothing slides or stretches from
+                // one into the other.
+                ZStack(alignment: .topLeading) {
+                    buttonStack
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .id(buttonsIdentity)
+                        .transition(contentReplace)
+                }
             }
         }
         .padding(10)
@@ -384,14 +406,77 @@ struct ShatlMessageBlockPrimary: View {
             messageBlockShape
                 .strokeBorder(ShatlColor.outlineTertiary, lineWidth: 0.5)
         }
+        // Held from the start, so a new `systemImage` never shows before
+        // its turn.
+        .onAppear {
+            if displayedSystemImage == nil {
+                displayedSystemImage = systemImage
+            }
+        }
+        .onChange(of: contentSignature) { old, new in
+            followSystemImage(from: old, to: new)
+        }
+        .onDisappear {
+            systemImageTask?.cancel()
+        }
+    }
+
+    private var contentReplace: AnyTransition {
+        reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace)
+    }
+
+    private var textIdentity: String {
+        title + "\n" + (message ?? "")
+    }
+
+    private var buttonsIdentity: String {
+        (primaryButton?.title ?? "") + "\n" + secondaryButtons.map(\.title).joined(separator: "\n")
+    }
+
+    private struct ContentSignature: Equatable {
+        var systemImage: String
+        var text: String
+        var buttons: String
+    }
+
+    private var contentSignature: ContentSignature {
+        ContentSignature(systemImage: systemImage, text: textIdentity, buttons: buttonsIdentity)
+    }
+
+    /// SF Symbols' replace looks right only while the icon stands still. A
+    /// new text or new buttons change the block's height, and the block is
+    /// centred, so the icon moves with its top edge: the icon then waits for
+    /// the block to settle. Alone, it changes at once.
+    private func followSystemImage(from old: ContentSignature, to new: ContentSignature) {
+        guard old.systemImage != new.systemImage else { return }
+
+        systemImageTask?.cancel()
+        let resizes = old.text != new.text || old.buttons != new.buttons
+        guard resizes, !reduceMotion else {
+            displayedSystemImage = new.systemImage
+            return
+        }
+
+        systemImageTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(ShatlMotion.messageBlockContentDuration))
+            guard !Task.isCancelled else { return }
+            displayedSystemImage = new.systemImage
+        }
     }
 
     private var labelGroup: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: systemImage)
+            Image(systemName: displayedSystemImage ?? systemImage)
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(ShatlColor.typographyTertiary)
                 .contentTransition(.symbolEffect(.replace))
+                .animation(ShatlMotion.messageBlockContent, value: displayedSystemImage ?? systemImage)
+                // One height for every icon. Symbols of one font size differ
+                // in height, from 25 to 34 pt here: laid out by its own
+                // height, a new icon changed the block's height in one frame,
+                // before the replace was drawn. The tallest reach a point or
+                // two past the cell, into the room around it.
+                .frame(height: Self.iconCellHeight)
 
             // Old and new text overlap while one replaces the other.
             ZStack(alignment: .topLeading) {
@@ -407,8 +492,8 @@ struct ShatlMessageBlockPrimary: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .id(title + "\n" + (message ?? ""))
-                .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+                .id(textIdentity)
+                .transition(contentReplace)
             }
         }
         .padding(8)
@@ -419,29 +504,34 @@ struct ShatlMessageBlockPrimary: View {
         if !secondaryButtons.isEmpty {
             VStack(spacing: 6) {
                 if let primaryButton {
-                    button(primaryButton, fillsWidth: true)
+                    button(primaryButton, role: .borderedColored, fillsWidth: true)
                 }
                 ForEach(secondaryButtons.indices, id: \.self) { index in
-                    button(secondaryButtons[index], fillsWidth: true)
+                    button(secondaryButtons[index], role: .borderedNeutral, fillsWidth: true)
                 }
             }
         } else if let primaryButton {
             HStack {
-                button(primaryButton, fillsWidth: false)
+                button(primaryButton, role: .borderedColored, fillsWidth: false)
                 Spacer(minLength: 0)
             }
         }
     }
 
-    private func button(_ button: ShatlMessageBlockPrimaryButton, fillsWidth: Bool) -> some View {
+    private func button(
+        _ button: ShatlMessageBlockPrimaryButton,
+        role: ShatlButtonRole,
+        fillsWidth: Bool
+    ) -> some View {
         ShatlButton(
             title: button.title,
-            role: button.role,
+            role: role,
             isDisabled: button.isDisabled,
             fillsWidth: fillsWidth,
             lineLimit: button.lineLimit,
             action: button.action
         )
+        .keyboardShortcut(button.keyboardShortcut)
     }
 
     private var messageBlockShape: RoundedRectangle {
