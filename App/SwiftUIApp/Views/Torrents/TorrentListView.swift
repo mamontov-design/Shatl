@@ -15,6 +15,28 @@ struct TorrentListView: View {
     private nonisolated static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
     @FocusState private var isListFocused: Bool
+    /// Moves the list to a card and with a card; see the type.
+    @State private var scrollDriver = TorrentListScrollDriver()
+    /// The card the arrows have just selected, to be brought into sight.
+    @State private var cardToReveal: CardToReveal?
+    /// Counts the expansions, each of which the list follows.
+    @State private var expansionCount = 0
+    /// Room added under the content while cards leave; see
+    /// `TorrentListScrollDriver.glideAfterRemoval`.
+    @State private var roomForLeavingCards: CGFloat = 0
+    @State private var roomTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// A request to show a card; a new one each time, so the same card can
+    /// be asked for again.
+    private struct CardToReveal: Equatable {
+        var id: UUID
+        var serial: Int
+    }
+
+    /// The coordinates of the scrolled content, in which cards report their
+    /// frames to the scroll driver.
+    private static let contentSpace = "torrent-list-content"
 
     private var visibleTorrentIDs: [UUID] {
         store.torrentRowIDs(matching: searchText)
@@ -117,6 +139,32 @@ struct TorrentListView: View {
                                 )
                                 .equatable()
                             }
+                            // Only the card being shown and the card that
+                            // expands tell the scroll driver where they are.
+                            .background {
+                                if cardToReveal?.id == torrentID, let cardToReveal {
+                                    CardFrameReader(
+                                        space: Self.contentSpace,
+                                        serial: cardToReveal.serial
+                                    ) { frame in
+                                        scrollDriver.reveal(frame, duration: scrollDuration(ShatlMotion.cardLayoutDuration))
+                                    }
+                                }
+                                if store.expandedTorrentID == torrentID {
+                                    ExpandingCardFrameReader(
+                                        space: Self.contentSpace,
+                                        serial: expansionCount
+                                    ) { frame in
+                                        // A card that collapses as another
+                                        // expands is on its way out and
+                                        // still tells where it is: the list
+                                        // went after it, to its end.
+                                        guard store.expandedTorrentID == torrentID else { return }
+                                        scrollDriver.follow(frame)
+                                    }
+                                    .transition(.identity)
+                                }
+                            }
                             .transition(ShatlMotion.cardListItem)
                         }
                     }
@@ -130,6 +178,10 @@ struct TorrentListView: View {
                 .padding(.bottom, bottomContentPadding)
                 .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
                 .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
+                // Added and taken away in one step, never animated: it only
+                // holds the content's height while cards leave.
+                .padding(.bottom, roomForLeavingCards)
+                .animation(nil, value: roomForLeavingCards)
                 .background {
                     Color.clear
                         .contentShape(Rectangle())
@@ -141,6 +193,14 @@ struct TorrentListView: View {
                             }
                         }
                 }
+                // At the content's top left corner: the scroll driver reads
+                // where the content lies in the scroll view from it.
+                .background(alignment: .topLeading) {
+                    TorrentListScrollAnchor(driver: scrollDriver)
+                        .frame(width: 0, height: 0)
+                        .accessibilityHidden(true)
+                }
+                .coordinateSpace(.named(Self.contentSpace))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The keyboard works on the list as the toolbar does on the
@@ -152,15 +212,14 @@ struct TorrentListView: View {
             .focused($isListFocused)
             .defaultFocus($isListFocused, true)
             .onMoveCommand { direction in
-                moveSelection(direction, with: scrollProxy)
+                moveSelection(direction)
             }
             // Shift+↑ and Shift+↓ are not move commands for the system.
             .onKeyPress(keys: [.upArrow, .downArrow], phases: [.down, .repeat]) { press in
                 guard press.modifiers.contains(.shift) else { return .ignored }
                 moveSelection(
                     press.key == .upArrow ? .previous : .next,
-                    extending: true,
-                    with: scrollProxy
+                    extending: true
                 )
                 return .handled
             }
@@ -237,8 +296,26 @@ struct TorrentListView: View {
             .onAppear {
                 store.clearHiddenSelection(visibleTorrentIDs: visibleTorrentIDs)
             }
-            .onChange(of: visibleTorrentIDs) { _, newVisibleTorrentIDs in
+            .onChange(of: visibleTorrentIDs) { oldVisibleTorrentIDs, newVisibleTorrentIDs in
                 store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)
+                if !Set(oldVisibleTorrentIDs).isSubset(of: newVisibleTorrentIDs) {
+                    keepListInPlaceWhileCardsLeave()
+                }
+            }
+            .onChange(of: bottomContentPadding, initial: true) { _, padding in
+                scrollDriver.bottomMargin = padding
+            }
+            .onChange(of: store.expandedTorrentID) { _, expandedTorrentID in
+                guard expandedTorrentID != nil else { return }
+                // A little longer than the card takes to grow.
+                scrollDriver.beginFollowing(
+                    for: ShatlMotion.cardLayoutDuration * 2,
+                    catchingUpOver: scrollDuration(ShatlMotion.cardLayoutDuration)
+                )
+                expansionCount += 1
+            }
+            .onDisappear {
+                roomTask?.cancel()
             }
             .onChange(of: store.listRevealRequest) { _, request in
                 guard let request else { return }
@@ -248,7 +325,7 @@ struct TorrentListView: View {
     }
 
     /// Selects the card above or below and scrolls just enough to show it.
-    private func moveSelection(_ direction: MoveCommandDirection, with scrollProxy: ScrollViewProxy) {
+    private func moveSelection(_ direction: MoveCommandDirection) {
         let step: TorrentListSelectionStep
         switch direction {
         case .up:
@@ -259,14 +336,10 @@ struct TorrentListView: View {
             return
         }
 
-        moveSelection(step, extending: false, with: scrollProxy)
+        moveSelection(step, extending: false)
     }
 
-    private func moveSelection(
-        _ step: TorrentListSelectionStep,
-        extending: Bool,
-        with scrollProxy: ScrollViewProxy
-    ) {
+    private func moveSelection(_ step: TorrentListSelectionStep, extending: Bool) {
         guard let target = store.moveTorrentSelection(
             step,
             extending: extending,
@@ -274,8 +347,51 @@ struct TorrentListView: View {
         ) else {
             return
         }
-        withAnimation(ShatlMotion.cardLayout) {
-            scrollProxy.scrollTo(target)
+        // Through the scroll driver and not a `ScrollViewProxy`: an animated
+        // `scrollTo` is lost when the next arrow or the next redraw of the
+        // list interrupts it.
+        cardToReveal = CardToReveal(id: target, serial: (cardToReveal?.serial ?? 0) + 1)
+    }
+
+    /// No gliding with Reduce Motion: the list is simply there.
+    private func scrollDuration(_ duration: TimeInterval) -> TimeInterval {
+        reduceMotion ? 0 : duration
+    }
+
+    /// Called as cards leave the list, before the content has lost their
+    /// height. A list scrolled down would be pushed to its new end in one
+    /// frame; room under the content holds it where it is, the scroll driver
+    /// glides it down, and the room goes once the cards are gone.
+    private func keepListInPlaceWhileCardsLeave() {
+        guard let position = scrollDriver.position else {
+            #if DEBUG
+            scrollDriver.trace("removal: the list's scroll view is not found")
+            #endif
+            return
+        }
+        // At its top the list has nowhere to be pushed.
+        guard position.isScrolled else {
+            #if DEBUG
+            scrollDriver.trace("removal: the list stands at its top, \(Int(position.origin)) of \(Int(position.lowestOrigin))")
+            #endif
+            return
+        }
+
+        // As tall as the content was: enough for the list to stay where it
+        // is, whatever has left.
+        let room = max(roomForLeavingCards, position.contentHeight - roomForLeavingCards)
+        roomForLeavingCards = room
+        scrollDriver.glideAfterRemoval(
+            room: room,
+            before: position,
+            duration: scrollDuration(ShatlMotion.cardListMutationDuration)
+        )
+
+        roomTask?.cancel()
+        roomTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(ShatlMotion.cardListMutationDuration + 0.08))
+            guard !Task.isCancelled else { return }
+            roomForLeavingCards = 0
         }
     }
 
@@ -336,6 +452,47 @@ private extension TorrentListSelectionClick {
             return false
         }
         return event.clickCount == 2
+    }
+}
+
+/// Tells where a card is, once for each `serial`.
+private struct CardFrameReader: View {
+    let space: String
+    let serial: Int
+    let onFrame: (CGRect) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onChange(of: serial, initial: true) {
+                    onFrame(proxy.frame(in: .named(space)))
+                }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Tells where an expanding card is, at first and whenever its frame
+/// changes.
+private struct ExpandingCardFrameReader: View {
+    let space: String
+    let serial: Int
+    let onFrame: (CGRect) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let frame = proxy.frame(in: .named(space))
+            Color.clear
+                .onChange(of: serial, initial: true) {
+                    onFrame(frame)
+                }
+                .onChange(of: frame) { _, newFrame in
+                    onFrame(newFrame)
+                }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
