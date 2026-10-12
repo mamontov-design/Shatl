@@ -100,6 +100,15 @@ persistence, deletion, restore, or shared UI state.
   steps one after another, and goes back in one move. If a hang returns,
   sample it first. The large add-review file tree may use its separate
   cached/flattened `LazyVStack` path.
+- In the add window nothing is shown or hidden through an effect of its own
+  over the settings plate: no opacity, scale or blur on the files stage. For
+  as long as such an effect lasts, SwiftUI keeps the plate's labels in one
+  AppKit view with its text field and switch, and there they are at times
+  drawn upside down (the owner's recordings, September and October 2026).
+  The files come out from under a cover of the window's own colour and go
+  back under it, which is why the add window has a fixed background
+  (`ShatlColor.backgroundAddWindow`) and not the system's, tinted by the
+  wallpaper. `AddTorrentReviewAppearanceTests` watches where the labels sit.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

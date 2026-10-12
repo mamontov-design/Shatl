@@ -147,6 +147,9 @@ private struct AddTorrentReviewWindowRoot: View {
             // for it empty. Given here too, the torrent's name stays.
             .navigationTitle(reviewWindowTitle)
             .navigationSubtitle(reviewWindowSubtitle)
+            // The files are shown from under a cover of this colour; see
+            // `AddTorrentReviewView`.
+            .containerBackground(ShatlColor.backgroundAddWindow, for: .window)
             .background {
                 AddTorrentReviewWindowChromeConfigurator(
                     title: reviewWindowTitle,

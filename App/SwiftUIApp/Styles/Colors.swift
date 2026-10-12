@@ -9,6 +9,12 @@ enum ShatlColor {
     static let backgroundSecondary = Color("backgroundSecondary")
     static let backgroundTertiary = Color("backgroundTertiary")
     static let backgroundPrimary = Color("backgroundPrimary")
+    /// The add window's own background, and the cover its files are shown
+    /// from under: what the system draws as a window's background, white in
+    /// light and #1E1E1E in dark, without the wallpaper's tint. The tint is
+    /// no one colour, so nothing painted over the system's background could
+    /// match it.
+    static let backgroundAddWindow = Color("backgroundAddWindow")
 
     static let buttonNeutral = Color("buttonNeutral")
 

@@ -47,6 +47,21 @@ private struct AddTorrentReviewFilePresentation {
     )
 }
 
+/// A transition that changes nothing in what it is given: the view stays
+/// for the time of the animation and is drawn as it was, under no effect.
+private struct AddTorrentReviewHeldStage: ViewModifier, Animatable {
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
 private struct AddTorrentReviewSearchModifier: ViewModifier {
     let prompt: String
     let onDebouncedChange: (String) -> Void
@@ -1005,26 +1020,44 @@ struct AddTorrentReviewView: View {
         // other: one dissolves as the other comes. The animation sits on
         // what holds them all.
         ZStack {
-            if shownStage == .message, let message = reviewMessage ?? lastMessage {
-                messageStage(message)
-                    .transition(stageTransition)
-            }
-
             // The files take a moment to build and to draw, their rows last.
             // Shown as they were put into the window, they came in pieces:
-            // buttons first, the tree and the settings a frame later, at
-            // whatever opacity the fade had reached. So they are put in
-            // unseen and shown once they are whole; see `followStage`.
+            // buttons first, the tree and the settings a frame later. So
+            // they are put in unseen and shown once they are whole; see
+            // `followStage`.
+            //
+            // Unseen means under a cover, and never through an effect of
+            // their own. Fading or scaling the files made SwiftUI move the
+            // settings plate's labels into one AppKit view with its text
+            // field and its switch for as long as the effect lasted, and
+            // there the labels were at times drawn upside down, for the
+            // whole fade (the owner's recording, October 2026; a blur over
+            // the plate did the same in September).
             if shownStage == .review || isReviewPrepared {
                 reviewStage
                     // Enabled from the start, though the window around it
                     // is not yet: it must not be drawn anew as it is shown.
                     .environment(\.isEnabled, true)
-                    .opacity(shownStage == .review ? 1 : 0)
-                    .scaleEffect(shownStage == .review || reduceMotion ? 1 : ShatlMotion.mainContentScale)
                     .allowsHitTesting(shownStage == .review)
                     .accessibilityHidden(shownStage != .review)
-                    .transition(.asymmetric(insertion: .identity, removal: stageTransition))
+                    .transition(.asymmetric(insertion: .identity, removal: heldUnderCover))
+                    .zIndex(0)
+            }
+
+            // The cover is the window's own colour: the files come out of
+            // the window as it dissolves, and go back into it.
+            if shownStage != .review {
+                ShatlColor.backgroundAddWindow
+                    .ignoresSafeArea()
+                    .accessibilityHidden(true)
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+
+            if shownStage == .message, let message = reviewMessage ?? lastMessage {
+                messageStage(message)
+                    .transition(stageTransition)
+                    .zIndex(2)
             }
         }
         .animation(ShatlMotion.mainContentMode, value: shownStage)
@@ -1136,6 +1169,15 @@ struct AddTorrentReviewView: View {
 
     private var stageTransition: AnyTransition {
         reduceMotion ? .opacity : ShatlMotion.mainContent
+    }
+
+    /// Keeps the files in the window, as they were, for as long as the
+    /// cover takes to come over them.
+    private var heldUnderCover: AnyTransition {
+        .modifier(
+            active: AddTorrentReviewHeldStage(progress: 1),
+            identity: AddTorrentReviewHeldStage(progress: 0)
+        )
     }
 
     /// What the waiting message's delay is counted for: a new download, or
