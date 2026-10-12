@@ -1119,7 +1119,6 @@ struct TorrentCardPreviewView: View {
                 .environment(\.shatlMetricSetOutlinePulseEnabled, pulsesMetricSetOutlines)
                 .environment(\.shatlMetricSetOutlineFlashTrigger, metricSetOutlineFlashTrigger)
                 .environment(\.shatlDownloadSpeedOutlineFlashTrigger, downloadSpeedOutlineFlashTrigger)
-                .environment(\.shatlMetricSetBounceEnabled, false)
                 .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
                 .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
                 .environment(\.shatlIsCardPreview, true)
@@ -1484,23 +1483,6 @@ private nonisolated struct MetricItemClip: Shape {
     }
 }
 
-private struct MetricSetBounceValues {
-    var scale: CGFloat = 1
-    var outlineOpacity: CGFloat = 0
-    var shadowProgress: Double = 0
-}
-
-private nonisolated struct MetricSetBounceOutlineOpacityKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 0
-}
-
-private extension EnvironmentValues {
-    nonisolated var metricSetBounceOutlineOpacity: CGFloat {
-        get { self[MetricSetBounceOutlineOpacityKey.self] }
-        set { self[MetricSetBounceOutlineOpacityKey.self] = newValue }
-    }
-}
-
 private struct MetricSetOutlineView: View {
     let baseColor: Color
     let pulseColor: Color
@@ -1509,7 +1491,6 @@ private struct MetricSetOutlineView: View {
     let flashOpacity: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.metricSetBounceOutlineOpacity) private var bounceHighlightOpacity
 
     var body: some View {
         ZStack {
@@ -1531,10 +1512,6 @@ private struct MetricSetOutlineView: View {
             }
 
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(ShatlColor.accent, lineWidth: 1)
-                .opacity(bounceHighlightOpacity)
-
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(flashColor, lineWidth: 1)
                 .opacity(flashOpacity)
         }
@@ -1547,14 +1524,11 @@ struct ShatlMetricSet: View {
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
     var colorizesDownloadSpeed = false
-    /// The resting shadow, and the one that grows while the set bounces.
+    /// The shadow under the set's plate.
     var showsShadows = true
     /// The download speed shows its level icon alone; its number comes back
     /// while the pointer rests on the set.
     var foldsDownloadSpeed = false
-    /// With the bounce off, the set opened under the pointer still marks a new
-    /// speed level with its outline, without growing.
-    var outlinesUnfoldedSpeedLevelChange = false
     #if DEBUG
     @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
     #endif
@@ -1563,19 +1537,14 @@ struct ShatlMetricSet: View {
     @Environment(\.shatlMetricSetOutlinePulseEnabled) private var metricSetOutlinePulseEnabled
     @Environment(\.shatlMetricSetOutlineFlashTrigger) private var metricSetOutlineFlashTrigger
     @Environment(\.shatlDownloadSpeedOutlineFlashTrigger) private var downloadSpeedOutlineFlashTrigger
-    @Environment(\.shatlMetricSetBounceEnabled) private var metricSetBounceEnabled
     @Environment(\.shatlMetricSetOutlinePulseColor) private var metricSetOutlinePulseColor
     @Environment(\.shatlMetricSetOutlineFlashColor) private var metricSetOutlineFlashColor
-    @State private var bounceTrigger = 0
     @State private var outlineFlashToken = 0
     @State private var outlineFlashOpacity: CGFloat = 0
     @State private var isDownloadSpeedUnfolded = false
     @State private var downloadSpeedHoverIntent = TorrentCardHoverIntent()
 
     var body: some View {
-        let metricBounceShadow = ShatlShadow.metricBounce.appearance(for: colorScheme)?.primary
-            ?? ShatlShadowLayer(opacity: 0, radius: 0)
-        let metricBounceColor = ShatlColor.shadowKeyColor
         let restShadow = ShatlShadow.metricRest.appearance(for: colorScheme)?.primary
             ?? ShatlShadowLayer(opacity: 0, radius: 0)
         let restOpacity = usesColoredDownloadSpeed ? 0 : restShadow.opacity
@@ -1610,77 +1579,23 @@ struct ShatlMetricSet: View {
             )
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .keyframeAnimator(
-            initialValue: MetricSetBounceValues(),
-            trigger: bounceTrigger
-        ) { content, value in
-            let shadowOpacity = restOpacity + (metricBounceShadow.opacity - restOpacity) * value.shadowProgress
-            return content
-                .environment(\.metricSetBounceOutlineOpacity, value.outlineOpacity)
-                // The plate sits outside the clip so its shadow shows, and
-                // the shadow follows the plate alone: new digits leave the
-                // blur as it is.
-                .background {
-                    let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(plateColor)
-                    if showsShadows, shadowOpacity > 0 {
-                        plate.shadow(
-                            color: metricBounceColor.opacity(shadowOpacity),
-                            radius: restShadow.radius + (metricBounceShadow.radius - restShadow.radius) * value.shadowProgress,
-                            x: restShadow.x + (metricBounceShadow.x - restShadow.x) * value.shadowProgress,
-                            y: restShadow.y + (metricBounceShadow.y - restShadow.y) * value.shadowProgress
-                        )
-                    } else {
-                        plate
-                    }
-                }
-                .scaleEffect(value.scale, anchor: .center)
-        } keyframes: { _ in
-            // With the bounce off, only the outline marks the new level.
-            let peakScale = metricSetBounceEnabled ? ShatlMotion.metricSetBounceScale : 1
-            KeyframeTrack(\.scale) {
-                SpringKeyframe(
-                    peakScale,
-                    duration: ShatlMotion.metricSetBounceUpDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
+        // The plate sits outside the clip so its shadow shows, and the
+        // shadow follows the plate alone: new digits leave the blur as it
+        // is. A new speed level changes the icon and the colours, nothing
+        // more: until October 2026 the set also grew for a moment and lit
+        // its outline.
+        .background {
+            let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(plateColor)
+            if showsShadows, restOpacity > 0 {
+                plate.shadow(
+                    color: ShatlColor.shadowKeyColor.opacity(restOpacity),
+                    radius: restShadow.radius,
+                    x: restShadow.x,
+                    y: restShadow.y
                 )
-                LinearKeyframe(
-                    peakScale,
-                    duration: ShatlMotion.metricSetBounceHoldDuration
-                )
-                SpringKeyframe(
-                    1,
-                    duration: ShatlMotion.metricSetBounceDownDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceDownDuration)
-                )
-            }
-
-            KeyframeTrack(\.outlineOpacity) {
-                SpringKeyframe(
-                    1,
-                    duration: ShatlMotion.metricSetBounceUpDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
-                )
-                LinearKeyframe(1, duration: ShatlMotion.metricSetBounceHoldDuration)
-                SpringKeyframe(
-                    0,
-                    duration: ShatlMotion.metricSetBounceDownDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceDownDuration)
-                )
-            }
-
-            KeyframeTrack(\.shadowProgress) {
-                SpringKeyframe(
-                    1,
-                    duration: ShatlMotion.metricSetBounceUpDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceUpDuration)
-                )
-                LinearKeyframe(1, duration: ShatlMotion.metricSetBounceHoldDuration)
-                SpringKeyframe(
-                    0,
-                    duration: ShatlMotion.metricSetBounceDownDuration,
-                    spring: .smooth(duration: ShatlMotion.metricSetBounceDownDuration)
-                )
+            } else {
+                plate
             }
         }
         .frame(height: ShatlMetricLayout.containerHeight)
@@ -1689,18 +1604,6 @@ struct ShatlMetricSet: View {
         #endif
         .onHover { isInside in
             unfoldDownloadSpeed(isInside)
-        }
-        .onChange(of: iconSignature) { oldIconSignature, newIconSignature in
-            // Only the download speed bounces; the upload speed changes its
-            // icon quietly.
-            guard items.contains(where: { $0.id == "download-speed" }),
-                  hasMetricSetIconReplacement(from: oldIconSignature, to: newIconSignature) else {
-                return
-            }
-            if metricSetBounceEnabled
-                || (outlinesUnfoldedSpeedLevelChange && foldsDownloadSpeed && isDownloadSpeedUnfolded) {
-                bounceMetricSet()
-            }
         }
         .onChange(of: metricSetOutlineFlashTrigger) { _, newTrigger in
             guard newTrigger > 0 else { return }
@@ -1732,10 +1635,6 @@ struct ShatlMetricSet: View {
         outlineColorOverride ?? ShatlColor.metricOutline
     }
 
-    private var iconSignature: [String?] {
-        items.map(\.iconName)
-    }
-
     /// The number comes back once the pointer rests on the set, and folds
     /// again as soon as it leaves; see `TorrentCardHoverTiming`.
     private func unfoldDownloadSpeed(_ isInside: Bool) {
@@ -1762,55 +1661,6 @@ struct ShatlMetricSet: View {
             .frame(width: 2, height: ShatlMetricLayout.contentHeight)
     }
 
-    private func bounceMetricSet() {
-        #if DEBUG
-        let diagnosticsEnabled = diagnosticsContext != nil && ShatlMetricAnimationDiagnosticsLog.isEnabled
-        let startedAt = diagnosticsEnabled ? DispatchTime.now().uptimeNanoseconds : nil
-        let token = bounceTrigger + 1
-
-        if let startedAt {
-            logBounceEvent(
-                "metricset.bounce.start",
-                token: token,
-                startedAt: startedAt,
-                extra: [
-                    "upMs": "140",
-                    "holdMs": "140",
-                    "downMs": "240",
-                ]
-            )
-        }
-        #endif
-
-        guard !reduceMotion else {
-            #if DEBUG
-            if let startedAt {
-                logBounceEvent(
-                    "metricset.bounce.skipped",
-                    token: token,
-                    startedAt: startedAt,
-                    extra: [
-                        "reduceMotion": reduceMotion.description,
-                    ]
-                )
-            }
-            #endif
-            return
-        }
-
-        bounceTrigger += 1
-        #if DEBUG
-        if let startedAt {
-            logBounceEvent(
-                "metricset.bounce.keyframes-commanded",
-                token: token,
-                startedAt: startedAt,
-                extra: ["trigger": String(bounceTrigger)]
-            )
-        }
-        #endif
-    }
-
     private func flashMetricSetOutline() {
         outlineFlashToken += 1
         let token = outlineFlashToken
@@ -1819,42 +1669,22 @@ struct ShatlMetricSet: View {
             return
         }
 
-        withAnimation(.smooth(duration: ShatlMotion.metricSetBounceUpDuration)) {
+        withAnimation(.smooth(duration: ShatlMotion.metricSetOutlineFlashInDuration)) {
             outlineFlashOpacity = 1
         }
 
         Task { @MainActor in
             try? await Task.sleep(
-                for: .seconds(ShatlMotion.metricSetBounceUpDuration + ShatlMotion.metricSetBounceHoldDuration)
+                for: .seconds(ShatlMotion.metricSetOutlineFlashInDuration + ShatlMotion.metricSetOutlineFlashHoldDuration)
             )
             guard token == outlineFlashToken else { return }
 
-            withAnimation(.smooth(duration: ShatlMotion.metricSetBounceDownDuration)) {
+            withAnimation(.smooth(duration: ShatlMotion.metricSetOutlineFlashOutDuration)) {
                 outlineFlashOpacity = 0
             }
         }
     }
 
-    #if DEBUG
-    private func logBounceEvent(
-        _ event: String,
-        token: Int,
-        startedAt: UInt64,
-        extra: [String: String] = [:]
-    ) {
-        guard let diagnosticsContext, ShatlMetricAnimationDiagnosticsLog.isEnabled else { return }
-
-        var fields = metricSetDiagnosticsFields(context: diagnosticsContext, merging: [
-            "token": String(token),
-            "elapsedMs": metricSetElapsedMilliseconds(since: startedAt),
-        ])
-        for (key, value) in extra {
-            fields[key] = value
-        }
-
-        ShatlMetricAnimationDiagnosticsLog.event(event, fields: fields)
-    }
-    #endif
 }
 
 #if DEBUG
@@ -1931,7 +1761,6 @@ private struct MetricSetDiagnosticsModifier: ViewModifier {
                 "icons.current": joinedOptionalSignature(newIcons),
                 "replacements": iconReplacementSignature(from: oldIcons, to: newIcons),
                 "reduceMotion": reduceMotion.description,
-                "bounceEligible": (!reduceMotion).description,
             ])
         )
     }

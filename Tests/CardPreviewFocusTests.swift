@@ -32,7 +32,7 @@ final class CardPreviewFocusTests: XCTestCase {
     func testFocusHoldsFourSecondsAfterTheFlash() {
         XCTAssertEqual(
             ShatlMotion.previewFocusHold,
-            .seconds(ShatlMotion.metricSetBounceTotalDuration + 4)
+            .seconds(ShatlMotion.metricSetOutlineFlashTotalDuration + 4)
         )
         XCTAssertEqual(ShatlMotion.previewFocusBlurRadius, 3)
     }

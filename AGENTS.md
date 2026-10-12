@@ -85,10 +85,10 @@ persistence, deletion, restore, or shared UI state.
   plain stack stays even though it tires on dozens of cards. Card guards:
   hover waits for a resting pointer (`TorrentCardHoverTiming`), the progress
   bar moves in steps (`TorrentProgressBarSteps`), speed icons change level
-  with hysteresis (`TransferSpeedLevel`), only the download speed bounces, and
+  with hysteresis (`TransferSpeedLevel`) and change it quietly, and
   metric shadows sit under the plate so changing digits leave the blur alone.
   With many active downloads the cards leave out their costliest motion
-  (`CardSimplificationLevel`: from 15, no bounce and no metric shadows, a
+  (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
   its number under the pointer, `foldsDownloadSpeed`; from 25, digits also
   stop rolling and the bar steps 10 %); the level enters each card through

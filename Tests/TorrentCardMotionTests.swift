@@ -142,17 +142,11 @@ final class CardSimplificationTests: XCTestCase {
         XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 3, previous: .lightest), .full)
     }
 
-    /// From the first level the download speed shows its level icon alone;
-    /// there, opened under the pointer, a new speed level still lights the
-    /// outline of its set.
+    /// From the first level the download speed shows its level icon alone.
     func testTheDownloadSpeedFoldsFromTheFirstLevel() {
         XCTAssertFalse(CardSimplificationLevel.full.foldsDownloadSpeed)
         XCTAssertTrue(CardSimplificationLevel.lighter.foldsDownloadSpeed)
         XCTAssertTrue(CardSimplificationLevel.lightest.foldsDownloadSpeed)
-
-        XCTAssertFalse(CardSimplificationLevel.full.outlinesUnfoldedSpeedLevelChange)
-        XCTAssertTrue(CardSimplificationLevel.lighter.outlinesUnfoldedSpeedLevelChange)
-        XCTAssertFalse(CardSimplificationLevel.lightest.outlinesUnfoldedSpeedLevelChange)
     }
 
     func testOnlyDownloadingAndCheckingCount() {
