@@ -900,11 +900,31 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
     #endif
 }
 
-private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentable {
+/// The add window's own keyboard focus, reached past SwiftUI.
+///
+/// SwiftUI takes the focus from a field a step after it is asked to, and the
+/// window may be gone by then: the field's focus ring, which the system
+/// draws apart from the window's content, stayed on screen for a moment
+/// after the window had closed. Asked through the window, the focus leaves
+/// at once.
+@MainActor
+final class AddTorrentReviewWindowFocus {
+    fileprivate weak var window: NSWindow?
+
+    /// Takes the keyboard from whatever field holds it, now.
+    func release() {
+        window?.makeFirstResponder(nil)
+    }
+}
+
+/// Hands the window to `AddTorrentReviewWindowFocus` and releases the focus
+/// as the window is about to close, however it is closed.
+private struct AddTorrentReviewWindowFocusBridge: NSViewRepresentable {
+    let focus: AddTorrentReviewWindowFocus
     let onWindowWillClose: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onWindowWillClose: onWindowWillClose)
+        Coordinator(focus: focus, onWindowWillClose: onWindowWillClose)
     }
 
     func makeNSView(context: Context) -> NSView {
@@ -925,11 +945,13 @@ private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentabl
 
     @MainActor
     final class Coordinator {
+        let focus: AddTorrentReviewWindowFocus
         var onWindowWillClose: () -> Void
         private weak var observedWindow: NSWindow?
         private var closeObservation: NSObjectProtocol?
 
-        init(onWindowWillClose: @escaping () -> Void) {
+        init(focus: AddTorrentReviewWindowFocus, onWindowWillClose: @escaping () -> Void) {
+            self.focus = focus
             self.onWindowWillClose = onWindowWillClose
         }
 
@@ -937,12 +959,14 @@ private struct AddTorrentReviewAliasFocusWindowCloseObserver: NSViewRepresentabl
             guard observedWindow !== window else { return }
             stopObserving()
             observedWindow = window
+            focus.window = window
             closeObservation = NotificationCenter.default.addObserver(
                 forName: NSWindow.willCloseNotification,
                 object: window,
-                queue: .main
+                queue: nil
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
+                    self?.focus.release()
                     self?.onWindowWillClose()
                 }
             }
@@ -998,6 +1022,10 @@ struct AddTorrentReviewView: View {
     /// ready and the message is still what the window shows.
     @State private var lastMessage: ReviewMessage?
     @FocusState private var isAliasFocused: Bool
+    /// The window's own focus, where it rests unless a field is clicked; see
+    /// the note at `defaultFocus` below.
+    @FocusState private var isWindowFocused: Bool
+    @State private var windowFocus = AddTorrentReviewWindowFocus()
 
     var body: some View {
         // One stage at a time, each over the whole window and sharing
@@ -1044,6 +1072,17 @@ struct AddTorrentReviewView: View {
         )
         // Only the files are searched; a message enables its own buttons.
         .disabled(shownStage != .review)
+        // The window itself holds the focus, as the main window's list does,
+        // and the alias field takes it only by a click or Tab. Left to
+        // itself, macOS focuses the first text field in a window as the
+        // window is shown: a `.torrent` file is read at once, its files were
+        // in the window before the window was on screen, and the alias field
+        // came up focused, time after time. Outside `disabled`, or the
+        // window could not hold the focus before the files are shown.
+        .focusable()
+        .focusEffectDisabled()
+        .focused($isWindowFocused)
+        .defaultFocus($isWindowFocused, true)
         .onChange(of: waitingKey, initial: true) { _, key in
             followWaiting(key)
         }
@@ -1079,7 +1118,7 @@ struct AddTorrentReviewView: View {
         }
         #endif
         .background {
-            AddTorrentReviewAliasFocusWindowCloseObserver {
+            AddTorrentReviewWindowFocusBridge(focus: windowFocus) {
                 isAliasFocused = false
             }
             .frame(width: 0, height: 0)
@@ -1454,7 +1493,7 @@ struct AddTorrentReviewView: View {
                 title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
                 keyboardShortcut: .cancelAction
             ) {
-                store.dismissModal()
+                closeWindow()
             }
         case .close:
             closeWindowButton
@@ -1462,6 +1501,7 @@ struct AddTorrentReviewView: View {
             ShatlMessageBlockPrimaryButton(
                 title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride)
             ) {
+                windowFocus.release()
                 store.showAddTorrentDuplicateInList()
             }
         }
@@ -1485,8 +1525,16 @@ struct AddTorrentReviewView: View {
             title: L10n.string("add_torrent.review.close", localeOverride: store.preferences.localeOverride),
             keyboardShortcut: .cancelAction
         ) {
-            store.dismissModal()
+            closeWindow()
         }
+    }
+
+    /// The focus leaves before the window does; see
+    /// `AddTorrentReviewWindowFocus`.
+    private func closeWindow() {
+        isAliasFocused = false
+        windowFocus.release()
+        store.dismissModal()
     }
 
     private func filesContainer() -> some View {
@@ -2602,8 +2650,7 @@ struct AddTorrentReviewView: View {
             title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
             role: .borderedNeutral
         ) {
-            isAliasFocused = false
-            store.dismissModal()
+            closeWindow()
         }
         .keyboardShortcut(.cancelAction)
     }
@@ -2622,6 +2669,7 @@ struct AddTorrentReviewView: View {
             isDisabled: !areSettingsControlsEnabled || filePresentation.selectedFileCount == 0
         ) {
             isAliasFocused = false
+            windowFocus.release()
             if savesToList {
                 store.saveDraftToList()
             } else {
