@@ -38,7 +38,7 @@ nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendabl
     var threshold: Int {
         switch self {
         case .full: 0
-        case .lighter: 15
+        case .lighter: 10
         case .lightest: 25
         }
     }
