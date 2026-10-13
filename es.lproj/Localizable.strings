@@ -249,7 +249,6 @@
 "menu.debug.preview_unsupported_session" = "Mostrar «No se pudo abrir la lista de descargas»";
 "menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
-"menu.debug.number_selected_cards" = "Numerar las tarjetas seleccionadas";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
 "menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";

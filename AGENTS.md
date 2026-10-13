@@ -123,6 +123,9 @@ persistence, deletion, restore, or shared UI state.
   (measured in October 2026; the figures are in the owner's chronicle). ⌘A,
   Esc, Space and Delete work on the list as before. Do not bring the arrows
   back before the list stops being rebuilt on every change of the store.
+- From two to nine selected cards wear their numbers in place of the check
+  mark, in the order they were selected; from ten the bar under the toolbar
+  names the count and the cards wear check marks (`TorrentSelectionCount`).
 - In the add window nothing is shown or hidden through an effect of its own
   over the settings plate: no opacity, scale or blur on the files stage. For
   as long as such an effect lasts, SwiftUI keeps the plate's labels in one

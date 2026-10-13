@@ -423,10 +423,10 @@ final class TorrentListScrollUnderTheBarTests: XCTestCase {
         [root] + root.subviews.flatMap { allViews(in: $0) }
     }
 
-    /// Eight stopped downloads in a main window that shows four of them.
+    /// Sixteen stopped downloads in a main window that shows four of them.
     private func makeMainWindow() async throws -> MainWindow {
         var folders: [URL] = []
-        let records: [TorrentRecord] = try (0..<8).map { index in
+        let records: [TorrentRecord] = try (0..<16).map { index in
             let folder = FileManager.default.temporaryDirectory
                 .appendingPathComponent("ShatlListUnderTheBar-\(UUID().uuidString)", isDirectory: true)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -486,29 +486,30 @@ final class TorrentListScrollUnderTheBarTests: XCTestCase {
         return MainWindow(store: bundle.store, records: records, window: window, scroll: scroll)
     }
 
-    /// Three selected downloads leave a list scrolled to its end. With the
-    /// last of them the bar goes too. The list went a card's way, stood
-    /// with half a window of nothing under its last card, and jumped to its
-    /// end when the room under it was taken away.
+    /// Ten selected downloads, enough for the bar to name their count,
+    /// leave a list scrolled to its end. With the last of them the bar goes
+    /// too. With three downloads and the bar of that time, the list went a
+    /// card's way, stood with half a window of nothing under its last card,
+    /// and jumped to its end when the room under it was taken away.
     func testSeveralSelectedDownloadsLeaveInOneMoveAsTheBarGoes() async throws {
         let main = try await makeMainWindow()
         defer { main.window.orderOut(nil) }
-        let leaving = [4, 5, 6].map { main.records[$0].id }
+        let leaving = (5..<15).map { main.records[$0].id }
         let visible = main.records.map(\.id)
         for (index, id) in leaving.enumerated() {
             _ = main.store.clickTorrent(id: id, index == 0 ? .plain : .toggle, visibleTorrentIDs: visible)
         }
         try await Task.sleep(for: .milliseconds(700))
-        XCTAssertEqual(main.store.selectionCountShownInBar, 3, "The bar must be there for this to test anything")
+        XCTAssertEqual(main.store.selectionCountShownInBar, 10, "The bar must be there for this to test anything")
         main.clip.scroll(to: NSPoint(x: 0, y: main.end))
         main.scroll.reflectScrolledClipView(main.clip)
         try await Task.sleep(for: .milliseconds(500))
-        XCTAssertEqual(main.contentAtLowerEdge, 800, accuracy: 1)
+        XCTAssertEqual(main.contentAtLowerEdge, 1592, accuracy: 1)
 
         var samples: [(time: TimeInterval, lowerEdge: CGFloat)] = []
         let start = CACurrentMediaTime()
         let watching = Task { @MainActor in
-            while CACurrentMediaTime() - start < 1.8 {
+            while CACurrentMediaTime() - start < 2.6 {
                 samples.append((CACurrentMediaTime() - start, main.contentAtLowerEdge))
                 try? await Task.sleep(for: .milliseconds(4))
             }
@@ -516,18 +517,34 @@ final class TorrentListScrollUnderTheBarTests: XCTestCase {
         await main.store.removeTorrents(ids: leaving, policy: .removeFromListOnly)
         await watching.value
 
-        XCTAssertEqual(main.store.torrents.count, 5)
+        XCTAssertEqual(main.store.torrents.count, 6)
         XCTAssertNil(main.store.selectionCountShownInBar)
-        XCTAssertEqual(main.contentHeight, 503, accuracy: 1, "The room under the content is gone")
-        XCTAssertEqual(main.contentAtLowerEdge, 503, accuracy: 1, "The last card stands at the list's lower edge")
+        XCTAssertEqual(main.contentHeight, 602, accuracy: 1, "The room under the content is gone")
+        XCTAssertEqual(main.contentAtLowerEdge, 602, accuracy: 1, "The last card stands at the list's lower edge")
 
-        // The way there is 297 pt. By the spring it is at its fastest under
-        // 1500 pt a second; the jump was 140 pt in one frame.
+        // On its way the list never stands: the fault was a stop with
+        // nothing under the last card, until the room was taken away.
+        var longestStop: TimeInterval = 0
+        var stop = try XCTUnwrap(samples.first)
+        for sample in samples.dropFirst() {
+            if abs(sample.lowerEdge - stop.lowerEdge) > 0.5 {
+                stop = sample
+            } else if abs(sample.lowerEdge - 1592) > 6, abs(sample.lowerEdge - 602) > 1.5 {
+                longestStop = max(longestStop, sample.time - stop.time)
+            }
+        }
+        XCTAssertLessThan(longestStop, 0.2, "The list came to its end in one move")
+
+        // The way there is 990 pt. By the spring a way of 297 pt is at its
+        // fastest under 1500 pt a second, and this one in proportion. A
+        // frame the display skipped is made up for in the next one; the
+        // jump took what was left of the way in one frame.
+        let fastest: CGFloat = 1500 * 990 / 297
         let longestJump = zip(samples, samples.dropFirst())
             .map { before, after in
-                abs(after.lowerEdge - before.lowerEdge) - 1500 * CGFloat(after.time - before.time)
+                abs(after.lowerEdge - before.lowerEdge) - fastest * max(CGFloat(after.time - before.time), 2.0 / 60)
             }
             .max() ?? 0
-        XCTAssertLessThan(longestJump, 20, "The list came to its end in one move")
+        XCTAssertLessThan(longestJump, 20, "The list did not jump on its way")
     }
 }

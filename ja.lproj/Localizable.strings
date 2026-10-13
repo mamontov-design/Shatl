@@ -243,7 +243,6 @@
 "menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
 "menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
-"menu.debug.number_selected_cards" = "選択したカードに番号を付ける";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";

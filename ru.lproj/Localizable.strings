@@ -261,7 +261,6 @@
 "menu.debug.preview_unsupported_session" = "Показать «Не удалось открыть список загрузок»";
 "menu.debug.cycle_drop_screen" = "Показать экран перетаскивания";
 "menu.debug.simulate_low_space" = "Считать, что на диске нет места";
-"menu.debug.number_selected_cards" = "Цифры на выбранных карточках";
 "menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
 "menu.debug.runtime_error.disk_full" = "Закончилось место";
 "menu.debug.runtime_error.no_write_access" = "Нет доступа на запись";

@@ -926,16 +926,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    /// Debug menu: up to nine selected cards wear their number in place of
-    /// the check mark, and the bar with the count comes only from ten. For
-    /// comparing the two ways to show how many are selected.
-    @Published private(set) var debugNumbersSelectedCards = false
-
-    func toggleSelectedCardNumbersForDebug() {
-        debugNumbersSelectedCards.toggle()
-        refreshTorrentPresentations()
-    }
-
     /// Debug menu: every disk reports almost no free space, so the add
     /// window, a saved download and its start can be tried without filling
     /// a disk. Nothing is written anywhere.
@@ -1312,14 +1302,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         refreshSelectedTorrentNavigationAvailability()
     }
 
-    /// Up to nine selected cards can wear their number in the list instead
-    /// of a check mark: the Debug comparison of the two ways to count them.
-    /// The numbers follow the order of selecting, so the card clicked last
-    /// wears the count.
+    /// From two to nine selected cards wear their numbers in the list in
+    /// place of the check mark. The numbers follow the order of selecting,
+    /// so the card clicked last wears the count.
     private var selectionNumbers: [UUID: Int] {
-        #if DEBUG
-        guard debugNumbersSelectedCards,
-              (2...TorrentSelectionCount.largestCardNumber).contains(selection.count) else {
+        let counts = TorrentSelectionCount.smallestSeveral...TorrentSelectionCount.largestCardNumber
+        guard counts.contains(selection.count) else {
             return [:]
         }
         var numbers: [UUID: Int] = [:]
@@ -1327,21 +1315,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             numbers[id] = index + 1
         }
         return numbers
-        #else
-        return [:]
-        #endif
     }
 
-    /// How many downloads the bar under the toolbar names; `nil` while the
-    /// bar is not needed.
+    /// How many downloads the bar under the toolbar names: more than the
+    /// cards can wear as numbers. `nil` while the bar is not needed.
     var selectionCountShownInBar: Int? {
-        var firstCount = TorrentSelectionCount.smallestSeveral
-        #if DEBUG
-        if debugNumbersSelectedCards {
-            firstCount = TorrentSelectionCount.largestCardNumber + 1
-        }
-        #endif
-        return selection.count >= firstCount ? selection.count : nil
+        selection.count > TorrentSelectionCount.largestCardNumber ? selection.count : nil
     }
 
     func canToggleRunningState(for id: UUID) -> Bool {

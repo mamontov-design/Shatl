@@ -124,19 +124,23 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedTorrentCount, 0)
     }
 
-    func testNumberedCardsHoldTheBarBackUntilTen() throws {
+    #endif
+
+    /// From two to nine selected cards wear their numbers and there is no
+    /// bar; from ten the bar names the count and the cards wear check marks.
+    func testSelectedCardsWearNumbersUpToNineAndTheBarComesFromTen() throws {
         let records = (0..<10).map { _ in makeTestRecord() }
         let store = makeBundle(records).store
         let ids = records.map(\.id)
 
+        // One selected card wears the check mark.
         store.clickTorrent(id: ids[4], .plain, visibleTorrentIDs: ids)
-        store.clickTorrent(id: ids[1], .toggle, visibleTorrentIDs: ids)
-        XCTAssertEqual(store.selectionCountShownInBar, 2)
-        XCTAssertNil(try rowState(ids[1], in: store).selectionNumber)
+        XCTAssertNil(store.selectionCountShownInBar)
+        XCTAssertNil(try rowState(ids[4], in: store).selectionNumber)
 
-        store.toggleSelectedCardNumbersForDebug()
         // Numbered in the order of the clicks, not of the list: the card
         // clicked last wears the count.
+        store.clickTorrent(id: ids[1], .toggle, visibleTorrentIDs: ids)
         XCTAssertNil(store.selectionCountShownInBar)
         XCTAssertEqual(try rowState(ids[4], in: store).selectionNumber, 1)
         XCTAssertEqual(try rowState(ids[1], in: store).selectionNumber, 2)
@@ -150,22 +154,14 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertEqual(try rowState(ids[2], in: store).selectionNumber, 2)
         XCTAssertNil(try rowState(ids[4], in: store).selectionNumber)
 
+        // Nine is the last number a card can wear.
+        store.selectAllTorrents(visibleTorrentIDs: Array(ids[0..<9]))
+        XCTAssertNil(store.selectionCountShownInBar)
+        XCTAssertEqual(try rowState(ids[8], in: store).selectionNumber, 9)
+
         store.selectAllTorrents(visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectionCountShownInBar, 10)
         XCTAssertNil(try rowState(ids[1], in: store).selectionNumber)
-    }
-    #endif
-
-    func testBarNamesTheCountFromTwoSelected() {
-        let records = [makeTestRecord(), makeTestRecord()]
-        let store = makeBundle(records).store
-        let ids = records.map(\.id)
-
-        XCTAssertNil(store.selectionCountShownInBar)
-        store.clickTorrent(id: ids[0], .plain, visibleTorrentIDs: ids)
-        XCTAssertNil(store.selectionCountShownInBar)
-        store.clickTorrent(id: ids[1], .toggle, visibleTorrentIDs: ids)
-        XCTAssertEqual(store.selectionCountShownInBar, 2)
     }
 
     func testToolbarStartsWhileAnySelectedDownloadIsStopped() {

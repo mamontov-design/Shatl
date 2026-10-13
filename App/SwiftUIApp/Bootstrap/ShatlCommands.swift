@@ -35,10 +35,6 @@ struct ShatlCommands: Commands {
                 get: { store.debugSimulatesLowDiskSpace },
                 set: { _ in store.toggleLowDiskSpaceForDebug() }
             ))
-            Toggle("menu.debug.number_selected_cards", isOn: Binding(
-                get: { store.debugNumbersSelectedCards },
-                set: { _ in store.toggleSelectedCardNumbersForDebug() }
-            ))
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)

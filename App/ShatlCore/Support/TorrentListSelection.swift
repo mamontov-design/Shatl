@@ -225,11 +225,14 @@ nonisolated enum TorrentListRunAction: Equatable, Sendable {
     }
 }
 
-/// Where the count of the selected downloads is shown.
+/// Where the count of the selected downloads is shown: on the cards
+/// themselves while they can wear it, in the bar under the toolbar after.
 nonisolated enum TorrentSelectionCount {
-    /// From this many the bar under the toolbar names the count.
+    /// From this many the selected cards wear their numbers in place of
+    /// the check mark.
     static let smallestSeveral = 2
     /// The largest number a card can wear: `9.circle.fill` is the last of
-    /// the one-digit symbols that read at the size of the check mark.
+    /// the one-digit symbols that read at the size of the check mark. From
+    /// one more the bar names the count and the cards wear check marks.
     static let largestCardNumber = 9
 }
