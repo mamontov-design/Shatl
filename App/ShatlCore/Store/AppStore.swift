@@ -1584,27 +1584,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         return didAccept
     }
 
-    /// ↑ and ↓ in the list, with Shift to select several. Returns the card
-    /// the selection reached, to scroll to it.
-    @discardableResult
-    func moveTorrentSelection(
-        _ step: TorrentListSelectionStep,
-        extending: Bool = false,
-        visibleTorrentIDs: [UUID]
-    ) -> UUID? {
-        let target = selection.move(
-            step,
-            extending: extending,
-            visible: visibleTorrentIDs,
-            joinable: joinableTorrentIDs,
-            alone: aloneSelectableTorrentIDs
-        )
-        if target != nil {
-            refreshSelectedTorrentNavigationAvailability()
-        }
-        return target
-    }
-
     /// ⌘A: every download that can share a selection.
     func selectAllTorrents(visibleTorrentIDs: [UUID]) {
         selection.selectAll(visible: visibleTorrentIDs, joinable: joinableTorrentIDs)

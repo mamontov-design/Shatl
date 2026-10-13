@@ -7,9 +7,10 @@ import SwiftUI
 import os
 #endif
 
-/// What of the list is in sight, and where the list has to stand to show a
-/// card. Plain arithmetic, apart from AppKit, in the coordinates of the
-/// list's content: `origin` is the top of what the scroll view shows.
+/// What of the list is in sight, and where the list has to stand to keep
+/// a growing card in sight or to rest at its end. Plain arithmetic, apart
+/// from AppKit, in the coordinates of the list's content: `origin` is the
+/// top of what the scroll view shows.
 nonisolated struct TorrentListSight: Equatable, Sendable {
     var origin: CGFloat
     var viewportHeight: CGFloat
@@ -38,27 +39,6 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
 
     private func origin(forBottomAt lowerEdge: CGFloat) -> CGFloat {
         lowerEdge + coveredBottom - viewportHeight
-    }
-
-    /// Where the list stands to show the card at `frame`, moved as little
-    /// as possible: where it stands now when the card is in sight already.
-    /// A card taller than what is in sight shows its top.
-    func stand(showing frame: CGRect) -> CGFloat {
-        let top = origin + coveredTop + topMargin
-        let bottom = origin + viewportHeight - coveredBottom - bottomMargin
-
-        if frame.minY < top || frame.height > bottom - top {
-            return clamped(origin(forTopOf: frame))
-        } else if frame.maxY > bottom {
-            return clamped(origin(forBottomAt: frame.maxY + bottomMargin))
-        }
-        return origin
-    }
-
-    /// The same, as a move to make; `nil` when the card is in sight.
-    func origin(showing frame: CGRect) -> CGFloat? {
-        let stand = stand(showing: frame)
-        return abs(stand - origin) > 0.5 ? stand : nil
     }
 
     /// The next step after a card that is growing at `frame`: down, as far
@@ -97,20 +77,21 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
 ///
 /// SwiftUI's own animated scrolling is lost when something interrupts it:
 /// the next request, or the list being drawn anew under it, which a running
-/// download does every second. Arrows pressed faster than one scroll takes
-/// left the selected card out of sight, and so did arrows pressed slowly over
-/// running downloads (measured in October 2026; `ScrollPosition` loses them
-/// the same way). A scroll set on the clip view itself is not lost.
+/// download does every second (measured in October 2026 on the arrows that
+/// selected cards then; `ScrollPosition` loses a scroll the same way). A
+/// scroll set on the clip view itself is not lost.
 ///
-/// The driver is given a goal, a card to show or an end to stand at, and
-/// not a place: where the goal lies is worked out anew with every frame of
-/// the display, from the list as it is then. The list around the cards
-/// changes while it moves. The bar under the toolbar comes and goes with
-/// the selection and takes the list from under the toolbar and back; cards
-/// leave one after another; the content changes its height over several
-/// frames. A place worked out once was wrong by the time the list got
-/// there, and a list the system had moved meanwhile looked like one moved
-/// by hand (the owner's recording of three downloads removed at once).
+/// The driver moves the list in two cases: with a card that expands, and to
+/// its new end after cards have left. For the second it is given a goal,
+/// the end to stand at, and not a place: where the goal lies is worked out
+/// anew with every frame of the display, from the list as it is then. The
+/// list around the cards changes while it moves. The bar under the toolbar
+/// comes and goes with the selection and takes the list from under the
+/// toolbar and back; cards leave one after another; the content changes its
+/// height over several frames. A place worked out once was wrong by the
+/// time the list got there, and a list the system had moved meanwhile
+/// looked like one moved by hand (the owner's recording of three downloads
+/// removed at once).
 ///
 /// The list moves by the system's spring, the one the cards move by, and
 /// keeps its speed when the goal changes. It gives way only to scrolling by
@@ -121,8 +102,8 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
 final class TorrentListScrollDriver {
     fileprivate weak var anchorView: NSView?
 
-    /// Room kept clear between a card brought into sight and the edges of
-    /// the list: its own padding above, and under it the speed chips.
+    /// Room kept clear between a card kept in sight and the edges of the
+    /// list: its own padding above, and under it the speed chips.
     var topMargin: CGFloat = 8
     var bottomMargin: CGFloat = 8
 
@@ -197,14 +178,6 @@ final class TorrentListScrollDriver {
 
     // MARK: Moving to a goal
 
-    /// What the list is on its way to.
-    private enum Goal {
-        /// A card in sight; its frame in the content's coordinates.
-        case show(CGRect)
-        /// The end the list will have once `room` under its content is gone.
-        case settle(room: CGFloat)
-    }
-
     /// What decides where the list may stand. When it has changed between
     /// two frames, a move of the list is the system's own, made to keep the
     /// content where it was on screen; when it has not, the list was moved
@@ -224,7 +197,9 @@ final class TorrentListScrollDriver {
     }
 
     private struct Steering {
-        var goal: Goal
+        /// The goal: the end the list will have once this much room under
+        /// its content is gone.
+        var room: CGFloat
         /// How long the move takes when nothing changes on the way; 0 for a
         /// move made at once.
         var duration: TimeInterval
@@ -267,14 +242,14 @@ final class TorrentListScrollDriver {
         reach.scroll.reflectScrolledClipView(clip)
     }
 
-    /// Sets the list on its way to `goal`. A move in progress goes on to the
-    /// new goal from where it is and at the speed it has, and what waited
-    /// for it to end waits for the new one.
-    private func steer(to goal: Goal, duration: TimeInterval, in reach: Reach, onEnd: (() -> Void)? = nil) {
+    /// Sets the list on its way to the end it will have without `room`. A
+    /// move in progress goes on to the new goal from where it is and at the
+    /// speed it has, and what waited for it to end waits for the new one.
+    private func steer(toTheEndWithout room: CGFloat, duration: TimeInterval, in reach: Reach, onEnd: (() -> Void)? = nil) {
         let now = CACurrentMediaTime()
         let sight = sight(of: reach)
         var next = Steering(
-            goal: goal,
+            room: room,
             duration: duration,
             position: sight.origin,
             lastFrame: now,
@@ -287,10 +262,8 @@ final class TorrentListScrollDriver {
             next.velocity = steering.velocity
             next.lastFrame = steering.lastFrame
             next.onEnd = steering.onEnd
-            if case .settle = goal, case .settle = steering.goal {
-                next.contentHeightBeforeRoom = steering.contentHeightBeforeRoom
-            }
-        } else if case .settle = goal {
+            next.contentHeightBeforeRoom = steering.contentHeightBeforeRoom
+        } else {
             next.contentHeightBeforeRoom = sight.contentHeight
         }
         if let onEnd {
@@ -329,20 +302,15 @@ final class TorrentListScrollDriver {
 
     /// Where the goal lies for a list standing at `position`, as things are
     /// now; `nil` while it cannot be told yet.
-    private func stand(for steering: Steering, in sight: TorrentListSight, _ reach: Reach) -> CGFloat? {
+    private func stand(for steering: Steering, in sight: TorrentListSight) -> CGFloat? {
         var sight = sight
         sight.origin = steering.position
-        switch steering.goal {
-        case .show(let frame):
-            return sight.stand(showing: scrolled(frame, in: reach))
-        case .settle(let room):
-            if let before = steering.contentHeightBeforeRoom, abs(sight.contentHeight - before) < 0.5 {
-                return nil
-            }
-            // Laid out without the room for a pass: wait for it.
-            guard sight.contentHeight >= room - 0.5 else { return nil }
-            return sight.stand(afterTakingAway: room)
+        if let before = steering.contentHeightBeforeRoom, abs(sight.contentHeight - before) < 0.5 {
+            return nil
         }
+        // Laid out without the room for a pass: wait for it.
+        guard sight.contentHeight >= steering.room - 0.5 else { return nil }
+        return sight.stand(afterTakingAway: steering.room)
     }
 
     /// One frame of a move.
@@ -372,14 +340,12 @@ final class TorrentListScrollDriver {
         let deltaTime = min(max(now - steering.lastFrame, 0), 0.05)
         steering.lastFrame = now
 
-        guard let stand = stand(for: steering, in: sight, reach) else {
+        guard let stand = stand(for: steering, in: sight) else {
             steering.lastSetOrigin = sight.origin
             self.steering = steering
             return
         }
-        if case .settle = steering.goal {
-            steering.contentHeightBeforeRoom = nil
-        }
+        steering.contentHeightBeforeRoom = nil
 
         let before = steering.position
         if steering.duration > 0 {
@@ -420,7 +386,7 @@ final class TorrentListScrollDriver {
         }
         liveScrollObservation = nil
 
-        if takingTheListToItsGoal, let reach, let stand = stand(for: steering, in: sight(of: reach), reach) {
+        if takingTheListToItsGoal, let reach, let stand = stand(for: steering, in: sight(of: reach)) {
             set(stand, in: reach)
         }
         for action in steering.onEnd {
@@ -458,18 +424,6 @@ final class TorrentListScrollDriver {
             frameWhileFollowing()
         }
         return steering != nil || following != nil
-    }
-
-    // MARK: A card brought into sight
-
-    /// Takes the list just far enough to show `frame`, a card's frame in
-    /// the content's coordinates, and keeps the card in sight while what is
-    /// around the list settles. A card taller than the list shows its top.
-    func reveal(_ frame: CGRect, duration: TimeInterval) {
-        guard let reach else { return }
-        // The card asked for now, not the one that was growing.
-        stopFollowing()
-        steer(to: .show(frame), duration: duration, in: reach)
     }
 
     // MARK: A card that grows
@@ -660,13 +614,8 @@ final class TorrentListScrollDriver {
         #endif
         // One call when the list has settled is enough, however many cards
         // have left on the way.
-        let isSettlingAlready: Bool
-        if case .settle? = steering?.goal {
-            isSettlingAlready = true
-        } else {
-            isSettlingAlready = false
-        }
-        steer(to: .settle(room: room), duration: duration, in: reach, onEnd: isSettlingAlready ? nil : onSettled)
+        let isSettlingAlready = steering != nil
+        steer(toTheEndWithout: room, duration: duration, in: reach, onEnd: isSettlingAlready ? nil : onSettled)
     }
 }
 

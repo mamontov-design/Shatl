@@ -3,28 +3,6 @@
 
 import Foundation
 
-/// Where ↑ and ↓ move the selection among the cards on screen.
-nonisolated enum TorrentListSelectionStep: Sendable {
-    case previous
-    case next
-
-    /// With no selection, or one hidden by the search, ↓ takes the first card
-    /// and ↑ the last. At either end the selection stays where it is.
-    func target(from selectedID: UUID?, in visibleIDs: [UUID]) -> UUID? {
-        guard !visibleIDs.isEmpty else { return nil }
-        guard let selectedID, let index = visibleIDs.firstIndex(of: selectedID) else {
-            return self == .next ? visibleIDs.first : visibleIDs.last
-        }
-
-        switch self {
-        case .previous:
-            return visibleIDs[max(index - 1, visibleIDs.startIndex)]
-        case .next:
-            return visibleIDs[min(index + 1, visibleIDs.endIndex - 1)]
-        }
-    }
-}
-
 /// How a card was clicked.
 nonisolated enum TorrentListSelectionClick: Sendable {
     /// Selects the card alone; a click on the only selected card clears it.
@@ -52,8 +30,6 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
     private(set) var order: [UUID] = []
     /// Where a Shift range starts: the card selected last without Shift.
     private(set) var anchor: UUID?
-    /// The far end of a Shift range, which Shift+arrows move.
-    private(set) var lead: UUID?
 
     init() {}
 
@@ -83,14 +59,12 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         ids = []
         order = []
         anchor = nil
-        lead = nil
     }
 
     mutating func selectOnly(_ id: UUID) {
         ids = [id]
         order = [id]
         anchor = id
-        lead = id
     }
 
     /// A card that left the list leaves the selection.
@@ -145,7 +119,6 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
 
             add(id)
             anchor = id
-            lead = id
             return true
 
         case .range:
@@ -162,65 +135,17 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
 
             run(from: start, to: id, visible: visibleIDs, joinable: joinable).forEach { add($0) }
             anchor = start
-            lead = id
             return true
         }
-    }
-
-    /// ↑ and ↓. Without Shift the selection moves to the next card that can
-    /// be selected, stepping over the cards with an error. With Shift the run
-    /// from the anchor grows or shrinks by a card, stepping over the cards
-    /// that cannot join; cards selected apart from the run stay. Returns the
-    /// card to scroll to, or `nil` when nothing changed.
-    @discardableResult
-    mutating func move(
-        _ step: TorrentListSelectionStep,
-        extending: Bool,
-        visible visibleIDs: [UUID],
-        joinable: Set<UUID>,
-        alone: Set<UUID>
-    ) -> UUID? {
-        guard extending, hasJoinableSelection(joinable),
-              let start = resolvedAnchor(in: visibleIDs) else {
-            let selectableIDs = visibleIDs.filter { joinable.contains($0) || alone.contains($0) }
-            let current = lead.flatMap { ids.contains($0) ? $0 : nil } ?? single
-            guard let target = step.target(from: current, in: selectableIDs),
-                  ids != [target] else {
-                return nil
-            }
-            selectOnly(target)
-            return target
-        }
-
-        let end = lead.flatMap { visibleIDs.contains($0) ? $0 : nil } ?? start
-        guard let endIndex = visibleIDs.firstIndex(of: end) else { return nil }
-
-        let candidates: [UUID]
-        switch step {
-        case .previous:
-            candidates = Array(visibleIDs[..<endIndex].reversed())
-        case .next:
-            candidates = Array(visibleIDs[(endIndex + 1)...])
-        }
-        guard let target = candidates.first(where: joinable.contains) else { return nil }
-
-        let previousRun = run(from: start, to: end, visible: visibleIDs, joinable: joinable)
-        let newRun = run(from: start, to: target, visible: visibleIDs, joinable: joinable)
-        drop(Set(previousRun).subtracting(newRun))
-        newRun.forEach { add($0) }
-        anchor = start
-        lead = target
-        return target
     }
 
     /// ⌘A: every card that can share a selection.
     mutating func selectAll(visible visibleIDs: [UUID], joinable: Set<UUID>) {
         let all = visibleIDs.filter(joinable.contains)
-        guard let first = all.first, let last = all.last else { return }
+        guard let first = all.first else { return }
         ids = Set(all)
         order = all
         anchor = first
-        lead = last
     }
 
     /// Drops the cards the search has hidden and those that can no longer
@@ -274,8 +199,8 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
         order.append(id)
     }
 
-    /// Takes cards out. An end of the Shift range that went with them moves
-    /// to the card selected last.
+    /// Takes cards out. A start of the Shift range that went with them
+    /// moves to the card selected last.
     private mutating func drop(_ dropped: Set<UUID>) {
         guard !dropped.isEmpty else { return }
         ids.subtract(dropped)
@@ -283,9 +208,6 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
 
         if let anchor, !ids.contains(anchor) {
             self.anchor = order.last
-        }
-        if let lead, !ids.contains(lead) {
-            self.lead = anchor
         }
     }
 }

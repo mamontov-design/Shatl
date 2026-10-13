@@ -57,7 +57,7 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertFalse(try rowState(ids[0], in: store).isSelected)
     }
 
-    func testShiftClickAndShiftArrowsSelectARun() {
+    func testShiftClickSelectsARun() {
         let records = (0..<4).map { _ in makeTestRecord() }
         let store = makeBundle(records).store
         let ids = records.map(\.id)
@@ -66,15 +66,15 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         store.clickTorrent(id: ids[2], .range, visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectedTorrents.map(\.id), Array(ids[0...2]))
 
-        XCTAssertEqual(store.moveTorrentSelection(.next, extending: true, visibleTorrentIDs: ids), ids[3])
+        store.clickTorrent(id: ids[3], .range, visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectedTorrentCount, 4)
 
-        XCTAssertEqual(store.moveTorrentSelection(.previous, visibleTorrentIDs: ids), ids[2])
+        store.clickTorrent(id: ids[2], .plain, visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectedTorrentID, ids[2])
     }
 
     /// A card with an error acts through its own buttons: it is never
-    /// selected, by a click, by the arrows or by "Show in List".
+    /// selected, by a click, by ⌘A or by "Show in List".
     func testCardWithAnErrorIsNeverSelected() throws {
         let failed = failedRecord()
         let records = [makeTestRecord(), failed, makeTestRecord()]
@@ -97,10 +97,7 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertEqual(store.selectedTorrentID, ids[0])
         XCTAssertFalse(try rowState(failed.id, in: store).isSelected)
 
-        // The arrows step over it.
-        XCTAssertEqual(store.moveTorrentSelection(.next, visibleTorrentIDs: ids), ids[2])
-        XCTAssertEqual(store.moveTorrentSelection(.previous, visibleTorrentIDs: ids), ids[0])
-
+        // ⌘A leaves it out.
         store.selectAllTorrents(visibleTorrentIDs: ids)
         XCTAssertEqual(store.selectedTorrents.map(\.id), [ids[0], ids[2]])
 
