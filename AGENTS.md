@@ -104,13 +104,21 @@ persistence, deletion, restore, or shared UI state.
   `TorrentListScrollDriver`, which sets the scroll view's clip origin in
   AppKit. An animated SwiftUI `scrollTo` (or `ScrollPosition`) is lost when
   the next request or the 1 Hz redraw interrupts it: arrows left the selected
-  card out of sight (measured in October 2026). Only the card being shown
-  and the card that expands report their frames; the driver sets each step
-  of a move itself, once per frame of the display, and does nothing between
-  requests. A card that expands partly out of sight is brought into sight
-  along the curve it grows by, from the frame it begins to grow in, never in
-  one step before it. Content that shrinks under a list scrolled down pushes
-  it there in one frame, so room is kept under the content while cards leave.
+  card out of sight (measured in October 2026). The driver is given a goal,
+  a card to show or an end to stand at, never a place: it works the place
+  out anew with every frame of the display and moves by the system's
+  spring, keeping its speed when the goal changes. What is around the list
+  changes while it moves: the selection bar under the toolbar takes the list
+  from under the toolbar and back, cards leave one after another. A list the
+  system has moved for that is not a list scrolled by hand; the driver gives
+  way only when the list moves with nothing around it changed. Only the card
+  being shown and the card that expands report their frames; the driver does
+  nothing between requests. A card that expands partly out of sight is
+  brought into sight along the curve it grows by, from the frame it begins
+  to grow in, never in one step before it. Content that shrinks under a list
+  scrolled down pushes it there in one frame, so room is kept under the
+  content while cards leave, until the driver says the list stands at its
+  new end.
 - In the add window nothing is shown or hidden through an effect of its own
   over the settings plate: no opacity, scale or blur on the files stage. For
   as long as such an effect lasts, SwiftUI keeps the plate's labels in one

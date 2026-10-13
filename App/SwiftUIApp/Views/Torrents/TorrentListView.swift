@@ -24,7 +24,6 @@ struct TorrentListView: View {
     /// Room added under the content while cards leave; see
     /// `TorrentListScrollDriver.glideAfterRemoval`.
     @State private var roomForLeavingCards: CGFloat = 0
-    @State private var roomTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// A request to show a card; a new one each time, so the same card can
@@ -314,9 +313,6 @@ struct TorrentListView: View {
                 )
                 expansionCount += 1
             }
-            .onDisappear {
-                roomTask?.cancel()
-            }
             .onChange(of: store.listRevealRequest) { _, request in
                 guard let request else { return }
                 reveal(request.torrentID, with: scrollProxy)
@@ -361,36 +357,21 @@ struct TorrentListView: View {
     /// Called as cards leave the list, before the content has lost their
     /// height. A list scrolled down would be pushed to its new end in one
     /// frame; room under the content holds it where it is, the scroll driver
-    /// glides it down, and the room goes once the cards are gone.
+    /// takes it down, and the room goes once the list stands at its new end.
     private func keepListInPlaceWhileCardsLeave() {
-        guard let position = scrollDriver.position else {
-            #if DEBUG
-            scrollDriver.trace("removal: the list's scroll view is not found")
-            #endif
-            return
-        }
-        // At its top the list has nowhere to be pushed.
-        guard position.isScrolled else {
-            #if DEBUG
-            scrollDriver.trace("removal: the list stands at its top, \(Int(position.origin)) of \(Int(position.lowestOrigin))")
-            #endif
-            return
-        }
+        guard let position = scrollDriver.position else { return }
+        // At its top the list has nowhere to be pushed; with room under it
+        // already, it is on its way and takes this card in its stride.
+        guard position.isScrolled || roomForLeavingCards > 0 else { return }
 
         // As tall as the content was: enough for the list to stay where it
         // is, whatever has left.
         let room = max(roomForLeavingCards, position.contentHeight - roomForLeavingCards)
         roomForLeavingCards = room
-        scrollDriver.glideAfterRemoval(
+        scrollDriver.settleAfterRemoval(
             room: room,
-            before: position,
             duration: scrollDuration(ShatlMotion.cardListMutationDuration)
-        )
-
-        roomTask?.cancel()
-        roomTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(ShatlMotion.cardListMutationDuration + 0.08))
-            guard !Task.isCancelled else { return }
+        ) {
             roomForLeavingCards = 0
         }
     }
