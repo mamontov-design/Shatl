@@ -249,7 +249,6 @@
 "menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
 "menu.debug.cycle_drop_screen" = "Show the Drop Screen";
 "menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
-"menu.debug.number_selected_cards" = "Number the Selected Cards";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";
 "menu.debug.runtime_error.no_write_access" = "No Write Access";

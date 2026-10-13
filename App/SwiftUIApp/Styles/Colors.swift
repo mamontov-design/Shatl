@@ -265,16 +265,6 @@ enum ShatlShadow {
         )
     )
 
-    /// Animated metric-set shadow used while its icon changes.
-    static let metricBounce = ShatlShadowToken(
-        light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.12, radius: 5.5)
-        ),
-        dark: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.32, radius: 5.5)
-        )
-    )
-
     /// Drop shadow of the add box on the empty main window.
     static let addTorrentEmptyStateBox = ShatlShadowToken(
         light: ShatlShadowAppearance(

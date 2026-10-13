@@ -257,13 +257,7 @@ struct TorrentCardView: View, Equatable {
                 refuseSelection()
             }
         }
-        // With many downloads running, the speed set stops bouncing and, at
-        // the deepest level, digits stop rolling.
-        .transformEnvironment(\.shatlMetricSetBounceEnabled) { isEnabled in
-            if row.simplification > .full {
-                isEnabled = false
-            }
-        }
+        // With the most downloads running, digits stop rolling.
         .environment(\.shatlRollsMetricDigits, row.simplification < .lightest)
     }
 
@@ -670,8 +664,7 @@ struct TorrentCardView: View, Equatable {
             outlineColorOverride: metricSetOutlineColorOverride,
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             showsShadows: showsMetricShadows,
-            foldsDownloadSpeed: foldsDownloadSpeed,
-            outlinesUnfoldedSpeedLevelChange: row.simplification.outlinesUnfoldedSpeedLevelChange
+            foldsDownloadSpeed: foldsDownloadSpeed
         )
         #if DEBUG
         .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "compactTransfer"))

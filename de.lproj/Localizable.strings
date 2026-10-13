@@ -249,7 +249,6 @@
 "menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
 "menu.debug.cycle_drop_screen" = "Drop-Bildschirm zeigen";
 "menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
-"menu.debug.number_selected_cards" = "Ausgewählte Karten nummerieren";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
 "menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";

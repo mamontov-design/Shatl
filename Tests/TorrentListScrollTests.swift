@@ -6,7 +6,7 @@ import SwiftUI
 import XCTest
 @testable import Shatl
 
-/// Where the list has to stand to show a card: the arithmetic of
+/// Where the list has to stand: the arithmetic of
 /// `TorrentListScrollDriver`, apart from AppKit.
 final class TorrentListSightTests: XCTestCase {
     /// Eight cards of 91 pt, 8 pt apart and 8 pt from the edges, in a list
@@ -25,49 +25,26 @@ final class TorrentListSightTests: XCTestCase {
         CGRect(x: 8, y: 8 + CGFloat(number - 1) * 99, width: 424, height: height)
     }
 
-    func testCardInSightMovesNothing() {
-        XCTAssertNil(sight(origin: 0).origin(showing: card(1)))
-        XCTAssertNil(sight(origin: 0).origin(showing: card(4)))
-        XCTAssertNil(sight(origin: 360).origin(showing: card(8)))
-    }
-
-    func testCardBelowIsShownAtTheBottomWithItsMargin() {
-        // The fifth card ends at 495: its margin has to fit above 440.
-        XCTAssertEqual(sight(origin: 0).origin(showing: card(5)), 63)
-        XCTAssertEqual(sight(origin: 63).origin(showing: card(6)), 162)
-        XCTAssertEqual(sight(origin: 0).origin(showing: card(8)), 360)
-    }
-
-    func testCardAboveIsShownAtTheTopWithItsMargin() {
-        XCTAssertEqual(sight(origin: 360).origin(showing: card(4)), 297)
-        XCTAssertEqual(sight(origin: 360).origin(showing: card(1)), 0)
-    }
-
-    /// The list scrolls under the toolbar: a card there is not in sight.
+    /// The list scrolls under the toolbar: its top lies below the scroll
+    /// view's own, and a growing card keeps its top clear of the toolbar.
     func testToolbarCoversTheTopOfTheList() {
-        var underToolbar = TorrentListSight(
-            origin: 0,
+        let underToolbar = TorrentListSight(
+            origin: -52,
             viewportHeight: 500,
-            contentHeight: 800,
+            contentHeight: 1500,
             coveredTop: 52,
             topMargin: 8,
             bottomMargin: 8,
             lowestOrigin: -52
         )
         XCTAssertEqual(underToolbar.lowestOrigin, -52)
-        XCTAssertEqual(underToolbar.highestOrigin, 300)
-        // The first card lies under the toolbar while the list stands at 0.
-        XCTAssertEqual(underToolbar.origin(showing: card(1)), -52)
+        XCTAssertEqual(underToolbar.highestOrigin, 1000)
+        XCTAssertEqual(underToolbar.clamped(-200), -52)
 
-        underToolbar.origin = -52
-        XCTAssertNil(underToolbar.origin(showing: card(1)))
-        XCTAssertNil(underToolbar.origin(showing: card(4)))
-        XCTAssertEqual(underToolbar.origin(showing: card(5)), 3)
-    }
-
-    func testCardTallerThanTheListShowsItsTop() {
-        let tall = card(3, height: 600)
-        XCTAssertEqual(sight(origin: 0, contentHeight: 1400).origin(showing: tall), 198)
+        // The second card starts at 107: its margin and the toolbar fit
+        // above it.
+        let tall = card(2, height: 700)
+        XCTAssertEqual(underToolbar.origin(following: tall), 47)
     }
 
     func testListNeverLeavesItsEnds() {
@@ -116,6 +93,13 @@ final class TorrentListSightTests: XCTestCase {
         XCTAssertEqual(middle.origin(following: expanded, heldBackBy: 50), 74)
         // Held back never means going up.
         XCTAssertNil(middle.origin(following: expanded, heldBackBy: 80))
+    }
+
+    /// The driver asks where the list stands best with every frame, and
+    /// gets a place even when there is nothing to move.
+    func testAListNotPastItsEndStandsWhereItIs() {
+        XCTAssertEqual(sight(origin: 100, contentHeight: 1501).stand(afterTakingAway: 800), 100)
+        XCTAssertEqual(sight(origin: 360, contentHeight: 1501).stand(afterTakingAway: 800), 261)
     }
 
     /// Cards have left and room under the content held the list in place:
@@ -250,61 +234,28 @@ final class TorrentListScrollFollowTests: XCTestCase {
             .max() ?? 0
     }
 
-    private func pressArrow(down: Bool, in window: NSWindow) throws {
-        let characters = down ? "\u{F701}" : "\u{F700}"
-        let event = try XCTUnwrap(NSEvent.keyEvent(
-            with: .keyDown,
-            location: .zero,
-            modifierFlags: [.numericPad, .function],
-            timestamp: ProcessInfo.processInfo.systemUptime,
-            windowNumber: window.windowNumber,
-            context: nil,
-            characters: characters,
-            charactersIgnoringModifiers: characters,
-            isARepeat: false,
-            keyCode: down ? 125 : 126
-        ))
-        window.sendEvent(event)
-    }
-
-    /// Arrows pressed as fast as a held key repeats, over a list that is
-    /// drawn anew all the while, as running downloads draw it. An animated
-    /// `scrollTo` lost most of these: the selection went on and the list
-    /// stayed behind.
-    func testArrowsPressedFastOverAChangingListKeepTheSelectedCardInSight() async throws {
+    /// A list on its way gives way to scrolling by hand: moved while nothing
+    /// around it has changed, it stays where it was put.
+    func testAListOnItsWayGivesWayToScrollingByHand() async throws {
         let list = try await makeList()
         defer { list.window.orderOut(nil) }
-        let store = list.store
+        try await scrollToEnd(list)
+        let before = list.offset
 
-        let redrawing = Task { @MainActor in
-            var step = 0
-            while !Task.isCancelled {
-                step += 1
-                var changed = store.torrents
-                for index in changed.indices {
-                    changed[index].progress = min(0.99, 0.3 + Double(step) * 0.001)
-                }
-                store.torrents = changed
-                try? await Task.sleep(for: .milliseconds(70))
-            }
+        // The last card leaves and the list sets off for its new end.
+        await list.store.removeTorrent(id: list.records[7].id, policy: .removeFromListOnly)
+        let start = CACurrentMediaTime()
+        while list.offset > before - 5, CACurrentMediaTime() - start < 0.6 {
+            try await Task.sleep(for: .milliseconds(4))
         }
-        defer { redrawing.cancel() }
+        XCTAssertLessThan(list.offset, before - 5, "The list must be on its way for this to test anything")
 
-        for _ in 0..<8 {
-            try pressArrow(down: true, in: list.window)
-            try await Task.sleep(for: .milliseconds(40))
-        }
-        try await Task.sleep(for: .milliseconds(800))
-        XCTAssertEqual(store.selectedTorrentID, list.records[7].id)
-        XCTAssertEqual(list.offset, list.end, accuracy: 1, "The last card is selected: the list stands at its end")
+        list.scroll.contentView.scroll(to: .zero)
+        list.scroll.reflectScrolledClipView(list.scroll.contentView)
+        try await Task.sleep(for: .milliseconds(900))
 
-        for _ in 0..<8 {
-            try pressArrow(down: false, in: list.window)
-            try await Task.sleep(for: .milliseconds(40))
-        }
-        try await Task.sleep(for: .milliseconds(800))
-        XCTAssertEqual(store.selectedTorrentID, list.records[0].id)
-        XCTAssertEqual(list.offset, 0, accuracy: 1, "The first card is selected: the list stands at its top")
+        XCTAssertEqual(list.store.torrents.count, 7)
+        XCTAssertEqual(list.offset, 0, accuracy: 1, "The list was not taken back to its end")
     }
 
     /// The content loses a leaving card's height in one frame, and the list
@@ -442,5 +393,158 @@ final class TorrentListScrollFollowTests: XCTestCase {
 
         XCTAssertGreaterThan(list.end, before + 20, "The card has grown, and the content with it")
         XCTAssertEqual(list.offset, list.end, accuracy: 1, "The list has followed the card down")
+    }
+}
+
+/// The list in the main window, under a real toolbar and the bar that counts
+/// the selected downloads. The bar comes and goes with the selection and
+/// changes the list around its cards: the list leaves the toolbar's cover and
+/// gets shorter, and the system moves it to keep its content where it was.
+/// A list on its way took that for scrolling by hand and stopped (the owner's
+/// recording, October 2026).
+@MainActor
+final class TorrentListScrollUnderTheBarTests: XCTestCase {
+    private struct MainWindow {
+        let store: AppStore
+        let records: [TorrentRecord]
+        let window: NSWindow
+        let scroll: NSScrollView
+
+        var clip: NSClipView { scroll.contentView }
+        var contentHeight: CGFloat { scroll.documentView?.frame.height ?? 0 }
+        var end: CGFloat { contentHeight - clip.bounds.height + scroll.contentInsets.bottom }
+        /// What of the content lies at the list's lower edge. The edge does
+        /// not move in the window when the bar comes or goes, so this tells
+        /// where the content is on screen, whatever the list's frame is.
+        var contentAtLowerEdge: CGFloat { clip.bounds.origin.y + clip.bounds.height }
+    }
+
+    private func allViews(in root: NSView) -> [NSView] {
+        [root] + root.subviews.flatMap { allViews(in: $0) }
+    }
+
+    /// Sixteen stopped downloads in a main window that shows four of them.
+    private func makeMainWindow() async throws -> MainWindow {
+        var folders: [URL] = []
+        let records: [TorrentRecord] = try (0..<16).map { index in
+            let folder = FileManager.default.temporaryDirectory
+                .appendingPathComponent("ShatlListUnderTheBar-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data("payload".utf8).write(to: folder.appendingPathComponent("test-file.bin"), options: .atomic)
+            folders.append(folder)
+            return makeTestRecord(
+                originalName: "Download \(index + 1)",
+                savePath: folder.path,
+                status: .stopped,
+                progress: 0.3
+            )
+        }
+        var preferences = AppPreferences.defaultValue
+        preferences.hasCompletedOnboarding = true
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: records, preferences: preferences)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+            folders.forEach { try? FileManager.default.removeItem(at: $0) }
+        }
+        // The downloads have to be whole for the store, or their cards show
+        // errors and cannot be selected.
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: records)
+        for record in records {
+            await bundle.bookmarkStore.saveBookmark(
+                for: record.id,
+                url: URL(fileURLWithPath: record.canonicalSavePath, isDirectory: true)
+            )
+            let archiveURL = try await bundle.archiveStore.destinationURL(for: record.id)
+            try Data("archive".utf8).write(to: archiveURL, options: .atomic)
+        }
+
+        let controller = NSHostingController(
+            rootView: MainWindowView()
+                .environmentObject(bundle.store)
+                .environmentObject(ShatlAccentState())
+        )
+        // The toolbar has to be the window's own for the list to lie under it.
+        controller.sceneBridgingOptions = [.toolbars, .title]
+        let size = NSSize(width: 440, height: 460)
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentViewController = controller
+        window.setContentSize(size)
+        window.orderFrontRegardless()
+        window.makeKey()
+        try await Task.sleep(for: .milliseconds(1800))
+
+        let scroll = try XCTUnwrap(
+            allViews(in: try XCTUnwrap(window.contentView)).compactMap { $0 as? NSScrollView }.first
+        )
+        XCTAssertGreaterThan(scroll.contentInsets.top, 20, "The list must lie under the toolbar for this to test anything")
+        return MainWindow(store: bundle.store, records: records, window: window, scroll: scroll)
+    }
+
+    /// Ten selected downloads, enough for the bar to name their count,
+    /// leave a list scrolled to its end. With the last of them the bar goes
+    /// too. With three downloads and the bar of that time, the list went a
+    /// card's way, stood with half a window of nothing under its last card,
+    /// and jumped to its end when the room under it was taken away.
+    func testSeveralSelectedDownloadsLeaveInOneMoveAsTheBarGoes() async throws {
+        let main = try await makeMainWindow()
+        defer { main.window.orderOut(nil) }
+        let leaving = (5..<15).map { main.records[$0].id }
+        let visible = main.records.map(\.id)
+        for (index, id) in leaving.enumerated() {
+            _ = main.store.clickTorrent(id: id, index == 0 ? .plain : .toggle, visibleTorrentIDs: visible)
+        }
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(main.store.selectionCountShownInBar, 10, "The bar must be there for this to test anything")
+        main.clip.scroll(to: NSPoint(x: 0, y: main.end))
+        main.scroll.reflectScrolledClipView(main.clip)
+        try await Task.sleep(for: .milliseconds(500))
+        XCTAssertEqual(main.contentAtLowerEdge, 1592, accuracy: 1)
+
+        var samples: [(time: TimeInterval, lowerEdge: CGFloat)] = []
+        let start = CACurrentMediaTime()
+        let watching = Task { @MainActor in
+            while CACurrentMediaTime() - start < 2.6 {
+                samples.append((CACurrentMediaTime() - start, main.contentAtLowerEdge))
+                try? await Task.sleep(for: .milliseconds(4))
+            }
+        }
+        await main.store.removeTorrents(ids: leaving, policy: .removeFromListOnly)
+        await watching.value
+
+        XCTAssertEqual(main.store.torrents.count, 6)
+        XCTAssertNil(main.store.selectionCountShownInBar)
+        XCTAssertEqual(main.contentHeight, 602, accuracy: 1, "The room under the content is gone")
+        XCTAssertEqual(main.contentAtLowerEdge, 602, accuracy: 1, "The last card stands at the list's lower edge")
+
+        // On its way the list never stands: the fault was a stop with
+        // nothing under the last card, until the room was taken away.
+        var longestStop: TimeInterval = 0
+        var stop = try XCTUnwrap(samples.first)
+        for sample in samples.dropFirst() {
+            if abs(sample.lowerEdge - stop.lowerEdge) > 0.5 {
+                stop = sample
+            } else if abs(sample.lowerEdge - 1592) > 6, abs(sample.lowerEdge - 602) > 1.5 {
+                longestStop = max(longestStop, sample.time - stop.time)
+            }
+        }
+        XCTAssertLessThan(longestStop, 0.2, "The list came to its end in one move")
+
+        // The way there is 990 pt. By the spring a way of 297 pt is at its
+        // fastest under 1500 pt a second, and this one in proportion. A
+        // frame the display skipped is made up for in the next one; the
+        // jump took what was left of the way in one frame.
+        let fastest: CGFloat = 1500 * 990 / 297
+        let longestJump = zip(samples, samples.dropFirst())
+            .map { before, after in
+                abs(after.lowerEdge - before.lowerEdge) - fastest * max(CGFloat(after.time - before.time), 2.0 / 60)
+            }
+            .max() ?? 0
+        XCTAssertLessThan(longestJump, 20, "The list did not jump on its way")
     }
 }

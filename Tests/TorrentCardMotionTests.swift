@@ -121,13 +121,13 @@ final class TorrentCardMotionTests: XCTestCase {
 /// and a count wavering at a threshold does not switch them back and forth.
 @MainActor
 final class CardSimplificationTests: XCTestCase {
-    func testLevelsStartAtFifteenAndTwentyFiveActiveDownloads() {
+    func testLevelsStartAtTenAndTwentyFiveActiveDownloads() {
         func level(_ count: Int) -> CardSimplificationLevel {
             CardSimplificationLevel.level(activeDownloads: count, previous: .full)
         }
         XCTAssertEqual(level(0), .full)
-        XCTAssertEqual(level(14), .full)
-        XCTAssertEqual(level(15), .lighter)
+        XCTAssertEqual(level(9), .full)
+        XCTAssertEqual(level(10), .lighter)
         XCTAssertEqual(level(24), .lighter)
         XCTAssertEqual(level(25), .lightest)
         XCTAssertEqual(level(100), .lightest)
@@ -136,23 +136,17 @@ final class CardSimplificationTests: XCTestCase {
     func testLevelsEndOnlyThreeBelowTheirThreshold() {
         XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 22, previous: .lightest), .lightest)
         XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 21, previous: .lightest), .lighter)
-        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 12, previous: .lighter), .lighter)
-        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 11, previous: .lighter), .full)
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 7, previous: .lighter), .lighter)
+        XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 6, previous: .lighter), .full)
         // A fall through both thresholds lands where the count is.
         XCTAssertEqual(CardSimplificationLevel.level(activeDownloads: 3, previous: .lightest), .full)
     }
 
-    /// From the first level the download speed shows its level icon alone;
-    /// there, opened under the pointer, a new speed level still lights the
-    /// outline of its set.
+    /// From the first level the download speed shows its level icon alone.
     func testTheDownloadSpeedFoldsFromTheFirstLevel() {
         XCTAssertFalse(CardSimplificationLevel.full.foldsDownloadSpeed)
         XCTAssertTrue(CardSimplificationLevel.lighter.foldsDownloadSpeed)
         XCTAssertTrue(CardSimplificationLevel.lightest.foldsDownloadSpeed)
-
-        XCTAssertFalse(CardSimplificationLevel.full.outlinesUnfoldedSpeedLevelChange)
-        XCTAssertTrue(CardSimplificationLevel.lighter.outlinesUnfoldedSpeedLevelChange)
-        XCTAssertFalse(CardSimplificationLevel.lightest.outlinesUnfoldedSpeedLevelChange)
     }
 
     func testOnlyDownloadingAndCheckingCount() {

@@ -85,10 +85,10 @@ persistence, deletion, restore, or shared UI state.
   plain stack stays even though it tires on dozens of cards. Card guards:
   hover waits for a resting pointer (`TorrentCardHoverTiming`), the progress
   bar moves in steps (`TorrentProgressBarSteps`), speed icons change level
-  with hysteresis (`TransferSpeedLevel`), only the download speed bounces, and
+  with hysteresis (`TransferSpeedLevel`) and change it quietly, and
   metric shadows sit under the plate so changing digits leave the blur alone.
   With many active downloads the cards leave out their costliest motion
-  (`CardSimplificationLevel`: from 15, no bounce and no metric shadows, a
+  (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
   its number under the pointer, `foldsDownloadSpeed`; from 25, digits also
   stop rolling and the bar steps 10 %); the level enters each card through
@@ -100,17 +100,32 @@ persistence, deletion, restore, or shared UI state.
   steps one after another, and goes back in one move. If a hang returns,
   sample it first. The large add-review file tree may use its separate
   cached/flattened `LazyVStack` path.
-- The list is moved to a card, and with a card, through
-  `TorrentListScrollDriver`, which sets the scroll view's clip origin in
-  AppKit. An animated SwiftUI `scrollTo` (or `ScrollPosition`) is lost when
-  the next request or the 1 Hz redraw interrupts it: arrows left the selected
-  card out of sight (measured in October 2026). Only the card being shown
-  and the card that expands report their frames; the driver sets each step
-  of a move itself, once per frame of the display, and does nothing between
-  requests. A card that expands partly out of sight is brought into sight
-  along the curve it grows by, from the frame it begins to grow in, never in
-  one step before it. Content that shrinks under a list scrolled down pushes
-  it there in one frame, so room is kept under the content while cards leave.
+- The list is moved with a card that expands, and to its new end after
+  cards leave, through `TorrentListScrollDriver`, which sets the scroll
+  view's clip origin in AppKit. An animated SwiftUI `scrollTo` (or
+  `ScrollPosition`) is lost when the next request or the 1 Hz redraw
+  interrupts it (measured in October 2026). After cards leave the driver is
+  given a goal, the end to stand at, never a place: it works the place out
+  anew with every frame of the display and moves by the system's spring,
+  keeping its speed when the goal changes. What is around the list changes
+  while it moves: the selection bar under the toolbar takes the list from
+  under the toolbar and back, cards leave one after another. A list the
+  system has moved for that is not a list scrolled by hand; the driver gives
+  way only when the list moves with nothing around it changed. Only the card
+  that expands reports its frame; the driver does nothing between requests.
+  A card that expands partly out of sight is brought into sight along the
+  curve it grows by, from the frame it begins to grow in, never in one step
+  before it. Content that shrinks under a list scrolled down pushes it there
+  in one frame, so room is kept under the content while cards leave, until
+  the driver says the list stands at its new end.
+- Arrow keys do not select cards. Every step drew the whole list anew, and
+  with 15 active downloads a held arrow gave one frame of 60-70 ms per step
+  (measured in October 2026; the figures are in the owner's chronicle). ⌘A,
+  Esc, Space and Delete work on the list as before. Do not bring the arrows
+  back before the list stops being rebuilt on every change of the store.
+- From two to nine selected cards wear their numbers in place of the check
+  mark, in the order they were selected; from ten the bar under the toolbar
+  names the count and the cards wear check marks (`TorrentSelectionCount`).
 - In the add window nothing is shown or hidden through an effect of its own
   over the settings plate: no opacity, scale or blur on the files stage. For
   as long as such an effect lasts, SwiftUI keeps the plate's labels in one

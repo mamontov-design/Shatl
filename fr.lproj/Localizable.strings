@@ -249,7 +249,6 @@
 "menu.debug.preview_unsupported_session" = "Afficher « Impossible d’ouvrir la liste des téléchargements »";
 "menu.debug.cycle_drop_screen" = "Afficher l’écran de dépôt";
 "menu.debug.simulate_low_space" = "Simuler un disque plein";
-"menu.debug.number_selected_cards" = "Numéroter les cartes sélectionnées";
 "menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
 "menu.debug.runtime_error.disk_full" = "Disque plein";
 "menu.debug.runtime_error.no_write_access" = "Écriture non autorisée";

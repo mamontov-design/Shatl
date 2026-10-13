@@ -15,24 +15,14 @@ struct TorrentListView: View {
     private nonisolated static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
     @FocusState private var isListFocused: Bool
-    /// Moves the list to a card and with a card; see the type.
+    /// Moves the list with a card and after cards that leave; see the type.
     @State private var scrollDriver = TorrentListScrollDriver()
-    /// The card the arrows have just selected, to be brought into sight.
-    @State private var cardToReveal: CardToReveal?
     /// Counts the expansions, each of which the list follows.
     @State private var expansionCount = 0
     /// Room added under the content while cards leave; see
     /// `TorrentListScrollDriver.glideAfterRemoval`.
     @State private var roomForLeavingCards: CGFloat = 0
-    @State private var roomTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// A request to show a card; a new one each time, so the same card can
-    /// be asked for again.
-    private struct CardToReveal: Equatable {
-        var id: UUID
-        var serial: Int
-    }
 
     /// The coordinates of the scrolled content, in which cards report their
     /// frames to the scroll driver.
@@ -139,17 +129,9 @@ struct TorrentListView: View {
                                 )
                                 .equatable()
                             }
-                            // Only the card being shown and the card that
-                            // expands tell the scroll driver where they are.
+                            // Only the card that expands tells the scroll
+                            // driver where it is.
                             .background {
-                                if cardToReveal?.id == torrentID, let cardToReveal {
-                                    CardFrameReader(
-                                        space: Self.contentSpace,
-                                        serial: cardToReveal.serial
-                                    ) { frame in
-                                        scrollDriver.reveal(frame, duration: scrollDuration(ShatlMotion.cardLayoutDuration))
-                                    }
-                                }
                                 if store.expandedTorrentID == torrentID {
                                     ExpandingCardFrameReader(
                                         space: Self.contentSpace,
@@ -204,25 +186,15 @@ struct TorrentListView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The keyboard works on the list as the toolbar does on the
-            // selected cards: arrows select, with Shift several; ⌘A selects
-            // all, Esc none; Space starts or stops, Delete offers to remove.
-            // The search field keeps its own keys.
+            // selected cards: ⌘A selects all, Esc none; Space starts or
+            // stops, Delete offers to remove. The search field keeps its own
+            // keys. Arrows do not select: every step drew the whole list
+            // anew, and a held arrow dropped to a quarter of the frames
+            // (measured in October 2026).
             .focusable()
             .focusEffectDisabled()
             .focused($isListFocused)
             .defaultFocus($isListFocused, true)
-            .onMoveCommand { direction in
-                moveSelection(direction)
-            }
-            // Shift+↑ and Shift+↓ are not move commands for the system.
-            .onKeyPress(keys: [.upArrow, .downArrow], phases: [.down, .repeat]) { press in
-                guard press.modifiers.contains(.shift) else { return .ignored }
-                moveSelection(
-                    press.key == .upArrow ? .previous : .next,
-                    extending: true
-                )
-                return .handled
-            }
             // With nothing selected Esc stays with the system: it leaves
             // full screen.
             .onKeyPress(.escape) {
@@ -314,43 +286,11 @@ struct TorrentListView: View {
                 )
                 expansionCount += 1
             }
-            .onDisappear {
-                roomTask?.cancel()
-            }
             .onChange(of: store.listRevealRequest) { _, request in
                 guard let request else { return }
                 reveal(request.torrentID, with: scrollProxy)
             }
         }
-    }
-
-    /// Selects the card above or below and scrolls just enough to show it.
-    private func moveSelection(_ direction: MoveCommandDirection) {
-        let step: TorrentListSelectionStep
-        switch direction {
-        case .up:
-            step = .previous
-        case .down:
-            step = .next
-        default:
-            return
-        }
-
-        moveSelection(step, extending: false)
-    }
-
-    private func moveSelection(_ step: TorrentListSelectionStep, extending: Bool) {
-        guard let target = store.moveTorrentSelection(
-            step,
-            extending: extending,
-            visibleTorrentIDs: visibleTorrentIDs
-        ) else {
-            return
-        }
-        // Through the scroll driver and not a `ScrollViewProxy`: an animated
-        // `scrollTo` is lost when the next arrow or the next redraw of the
-        // list interrupts it.
-        cardToReveal = CardToReveal(id: target, serial: (cardToReveal?.serial ?? 0) + 1)
     }
 
     /// No gliding with Reduce Motion: the list is simply there.
@@ -361,36 +301,21 @@ struct TorrentListView: View {
     /// Called as cards leave the list, before the content has lost their
     /// height. A list scrolled down would be pushed to its new end in one
     /// frame; room under the content holds it where it is, the scroll driver
-    /// glides it down, and the room goes once the cards are gone.
+    /// takes it down, and the room goes once the list stands at its new end.
     private func keepListInPlaceWhileCardsLeave() {
-        guard let position = scrollDriver.position else {
-            #if DEBUG
-            scrollDriver.trace("removal: the list's scroll view is not found")
-            #endif
-            return
-        }
-        // At its top the list has nowhere to be pushed.
-        guard position.isScrolled else {
-            #if DEBUG
-            scrollDriver.trace("removal: the list stands at its top, \(Int(position.origin)) of \(Int(position.lowestOrigin))")
-            #endif
-            return
-        }
+        guard let position = scrollDriver.position else { return }
+        // At its top the list has nowhere to be pushed; with room under it
+        // already, it is on its way and takes this card in its stride.
+        guard position.isScrolled || roomForLeavingCards > 0 else { return }
 
         // As tall as the content was: enough for the list to stay where it
         // is, whatever has left.
         let room = max(roomForLeavingCards, position.contentHeight - roomForLeavingCards)
         roomForLeavingCards = room
-        scrollDriver.glideAfterRemoval(
+        scrollDriver.settleAfterRemoval(
             room: room,
-            before: position,
             duration: scrollDuration(ShatlMotion.cardListMutationDuration)
-        )
-
-        roomTask?.cancel()
-        roomTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(ShatlMotion.cardListMutationDuration + 0.08))
-            guard !Task.isCancelled else { return }
+        ) {
             roomForLeavingCards = 0
         }
     }
@@ -452,24 +377,6 @@ private extension TorrentListSelectionClick {
             return false
         }
         return event.clickCount == 2
-    }
-}
-
-/// Tells where a card is, once for each `serial`.
-private struct CardFrameReader: View {
-    let space: String
-    let serial: Int
-    let onFrame: (CGRect) -> Void
-
-    var body: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .onChange(of: serial, initial: true) {
-                    onFrame(proxy.frame(in: .named(space)))
-                }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
 

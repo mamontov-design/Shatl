@@ -7,9 +7,10 @@ import SwiftUI
 import os
 #endif
 
-/// What of the list is in sight, and where the list has to stand to show a
-/// card. Plain arithmetic, apart from AppKit, in the coordinates of the
-/// list's content: `origin` is the top of what the scroll view shows.
+/// What of the list is in sight, and where the list has to stand to keep
+/// a growing card in sight or to rest at its end. Plain arithmetic, apart
+/// from AppKit, in the coordinates of the list's content: `origin` is the
+/// top of what the scroll view shows.
 nonisolated struct TorrentListSight: Equatable, Sendable {
     var origin: CGFloat
     var viewportHeight: CGFloat
@@ -40,25 +41,6 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
         lowerEdge + coveredBottom - viewportHeight
     }
 
-    /// Where the list has to stand to show the card at `frame`, moved as
-    /// little as possible; `nil` when the card is in sight already. A card
-    /// taller than what is in sight shows its top.
-    func origin(showing frame: CGRect) -> CGFloat? {
-        let top = origin + coveredTop + topMargin
-        let bottom = origin + viewportHeight - coveredBottom - bottomMargin
-
-        let target: CGFloat
-        if frame.minY < top || frame.height > bottom - top {
-            target = origin(forTopOf: frame)
-        } else if frame.maxY > bottom {
-            target = origin(forBottomAt: frame.maxY + bottomMargin)
-        } else {
-            return nil
-        }
-        let clampedTarget = clamped(target)
-        return abs(clampedTarget - origin) > 0.5 ? clampedTarget : nil
-    }
-
     /// The next step after a card that is growing at `frame`: down, as far
     /// as the content already reaches, and never past the card's own top.
     /// `nil` when the card's lower edge is in sight.
@@ -76,12 +58,18 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
     }
 
     /// Where the list belongs once `room`, added under the content while
-    /// cards left, is taken away again; `nil` when it can stay where it is.
-    func origin(afterTakingAway room: CGFloat) -> CGFloat? {
+    /// cards left, is taken away again: the end it will have then, or where
+    /// it stands now when that is not past the end.
+    func stand(afterTakingAway room: CGFloat) -> CGFloat {
         var withoutRoom = self
         withoutRoom.contentHeight = contentHeight - room
-        let target = withoutRoom.highestOrigin
-        return origin > target + 0.5 ? target : nil
+        return min(origin, withoutRoom.highestOrigin)
+    }
+
+    /// The same, as a move to make; `nil` when the list can stay.
+    func origin(afterTakingAway room: CGFloat) -> CGFloat? {
+        let stand = stand(afterTakingAway: room)
+        return origin > stand + 0.5 ? stand : nil
     }
 }
 
@@ -89,22 +77,33 @@ nonisolated struct TorrentListSight: Equatable, Sendable {
 ///
 /// SwiftUI's own animated scrolling is lost when something interrupts it:
 /// the next request, or the list being drawn anew under it, which a running
-/// download does every second. Arrows pressed faster than one scroll takes
-/// left the selected card out of sight, and so did arrows pressed slowly over
-/// running downloads (measured in October 2026; `ScrollPosition` loses them
-/// the same way). A scroll set on the clip view itself is not lost: the last
-/// request wins, wherever the list was on its way to.
+/// download does every second (measured in October 2026 on the arrows that
+/// selected cards then; `ScrollPosition` loses a scroll the same way). A
+/// scroll set on the clip view itself is not lost.
 ///
-/// The driver sets every step of a move itself, once per frame of the
-/// display, and so depends on no animation context it is called in. It runs
-/// only while something moves. One invisible view in the list's content,
-/// `TorrentListScrollAnchor`, is all it needs to find the scroll view.
+/// The driver moves the list in two cases: with a card that expands, and to
+/// its new end after cards have left. For the second it is given a goal,
+/// the end to stand at, and not a place: where the goal lies is worked out
+/// anew with every frame of the display, from the list as it is then. The
+/// list around the cards changes while it moves. The bar under the toolbar
+/// comes and goes with the selection and takes the list from under the
+/// toolbar and back; cards leave one after another; the content changes its
+/// height over several frames. A place worked out once was wrong by the
+/// time the list got there, and a list the system had moved meanwhile
+/// looked like one moved by hand (the owner's recording of three downloads
+/// removed at once).
+///
+/// The list moves by the system's spring, the one the cards move by, and
+/// keeps its speed when the goal changes. It gives way only to scrolling by
+/// hand. The driver runs while something moves and not otherwise. One
+/// invisible view in the list's content, `TorrentListScrollAnchor`, is all
+/// it needs to find the scroll view.
 @MainActor
 final class TorrentListScrollDriver {
     fileprivate weak var anchorView: NSView?
 
-    /// Room kept clear between a card brought into sight and the edges of
-    /// the list: its own padding above, and under it the speed chips.
+    /// Room kept clear between a card kept in sight and the edges of the
+    /// list: its own padding above, and under it the speed chips.
     var topMargin: CGFloat = 8
     var bottomMargin: CGFloat = 8
 
@@ -177,80 +176,226 @@ final class TorrentListScrollDriver {
         )
     }
 
-    // MARK: Moving
+    // MARK: Moving to a goal
 
-    private struct Glide {
-        var from: CGFloat
-        var to: CGFloat
-        var start: CFTimeInterval
-        var duration: TimeInterval
+    /// What decides where the list may stand. When it has changed between
+    /// two frames, a move of the list is the system's own, made to keep the
+    /// content where it was on screen; when it has not, the list was moved
+    /// by hand.
+    private struct Surroundings: Equatable {
+        var viewportHeight: CGFloat
+        var contentHeight: CGFloat
+        var lowestOrigin: CGFloat
+        var coveredBottom: CGFloat
+
+        init(_ sight: TorrentListSight) {
+            viewportHeight = sight.viewportHeight
+            contentHeight = sight.contentHeight
+            lowestOrigin = sight.lowestOrigin
+            coveredBottom = sight.coveredBottom
+        }
     }
 
-    private var glide: Glide?
-    private var glideEnd: DispatchWorkItem?
+    private struct Steering {
+        /// The goal: the end the list will have once this much room under
+        /// its content is gone.
+        var room: CGFloat
+        /// How long the move takes when nothing changes on the way; 0 for a
+        /// move made at once.
+        var duration: TimeInterval
+        /// Where the list stands, finer than the pixels it is put on.
+        var position: CGFloat
+        var velocity: CGFloat = 0
+        var lastFrame: CFTimeInterval
+        /// Where the driver last put the list, on whole pixels.
+        var lastSetOrigin: CGFloat
+        var surroundings: Surroundings
+        /// When the list last moved or anything around it last changed.
+        var lastChange: CFTimeInterval
+        /// The content's height as cards began to leave. Until it changes,
+        /// the room is not laid out, and the end worked out from the old
+        /// height less the new room comes out at the list's very top.
+        var contentHeightBeforeRoom: CGFloat?
+        /// Called once the list has arrived, or has given way.
+        var onEnd: [() -> Void] = []
+    }
+
+    /// The list stays on its goal this long after everything has come to
+    /// rest: the bar under the toolbar begins to move a frame or two after
+    /// the change that brings it.
+    private static let restBeforeLeavingGoal: TimeInterval = 0.2
+    /// However things go, a move is over this long after its time.
+    private static let patience: TimeInterval = 1.2
+
+    private var steering: Steering?
+    private var steeringDeadline: DispatchWorkItem?
+    private var liveScrollObservation: NSObjectProtocol?
     private let ticker = TorrentListScrollTicker()
-    /// Where the driver last put the list. Found elsewhere, the list was
-    /// moved by someone else, the user's own scrolling first of all, and a
-    /// glide gives way.
-    private var lastSetOrigin: CGFloat?
 
     private func set(_ origin: CGFloat, in reach: Reach) {
         let clip = reach.clip
         // On whole pixels: text between them is drawn blurred.
         let scale = reach.scroll.window?.backingScaleFactor ?? 2
         let aligned = (origin * scale).rounded() / scale
+        guard abs(aligned - clip.bounds.origin.y) > 0.001 else { return }
         clip.setBoundsOrigin(NSPoint(x: clip.bounds.origin.x, y: aligned))
         reach.scroll.reflectScrolledClipView(clip)
-        lastSetOrigin = clip.bounds.origin.y
     }
 
-    /// Takes the list to `origin` over `duration`, slow at both ends. A
-    /// newer glide takes over from wherever this one has got to.
-    private func glide(to origin: CGFloat, in reach: Reach, duration: TimeInterval) {
-        glideEnd?.cancel()
-        glideEnd = nil
-        guard duration > 0 else {
-            glide = nil
-            set(origin, in: reach)
-            stopTickerIfIdle()
-            return
-        }
-        glide = Glide(
-            from: reach.clip.bounds.origin.y,
-            to: origin,
-            start: CACurrentMediaTime(),
-            duration: duration
+    /// Sets the list on its way to the end it will have without `room`. A
+    /// move in progress goes on to the new goal from where it is and at the
+    /// speed it has, and what waited for it to end waits for the new one.
+    private func steer(toTheEndWithout room: CGFloat, duration: TimeInterval, in reach: Reach, onEnd: (() -> Void)? = nil) {
+        let now = CACurrentMediaTime()
+        let sight = sight(of: reach)
+        var next = Steering(
+            room: room,
+            duration: duration,
+            position: sight.origin,
+            lastFrame: now,
+            lastSetOrigin: sight.origin,
+            surroundings: Surroundings(sight),
+            lastChange: now
         )
-        lastSetOrigin = reach.clip.bounds.origin.y
-        startTicker(in: reach)
+        if let steering {
+            next.position = steering.position + (sight.origin - steering.lastSetOrigin)
+            next.velocity = steering.velocity
+            next.lastFrame = steering.lastFrame
+            next.onEnd = steering.onEnd
+            next.contentHeightBeforeRoom = steering.contentHeightBeforeRoom
+        } else {
+            next.contentHeightBeforeRoom = sight.contentHeight
+        }
+        if let onEnd {
+            next.onEnd.append(onEnd)
+        }
+        steering = next
 
+        if liveScrollObservation == nil {
+            liveScrollObservation = NotificationCenter.default.addObserver(
+                forName: NSScrollView.willStartLiveScrollNotification,
+                object: reach.scroll,
+                queue: nil
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    #if DEBUG
+                    self?.trace("gave way: the list is scrolled by hand")
+                    #endif
+                    self?.endSteering(takingTheListToItsGoal: false)
+                }
+            }
+        }
         // The display may not be drawing this window at all; the list
         // arrives all the same.
-        let end = DispatchWorkItem { [weak self] in
-            self?.finishGlide()
+        steeringDeadline?.cancel()
+        let deadline = DispatchWorkItem { [weak self] in
+            #if DEBUG
+            self?.trace("out of patience: the list is put on its goal")
+            #endif
+            self?.endSteering(takingTheListToItsGoal: true)
         }
-        glideEnd = end
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.05, execute: end)
+        steeringDeadline = deadline
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + Self.patience, execute: deadline)
+
+        startTicker(in: reach)
     }
 
-    private func finishGlide() {
-        guard let glide else { return }
-        self.glide = nil
-        glideEnd?.cancel()
-        glideEnd = nil
-        if let reach {
-            set(glide.to, in: reach)
+    /// Where the goal lies for a list standing at `position`, as things are
+    /// now; `nil` while it cannot be told yet.
+    private func stand(for steering: Steering, in sight: TorrentListSight) -> CGFloat? {
+        var sight = sight
+        sight.origin = steering.position
+        if let before = steering.contentHeightBeforeRoom, abs(sight.contentHeight - before) < 0.5 {
+            return nil
+        }
+        // Laid out without the room for a pass: wait for it.
+        guard sight.contentHeight >= steering.room - 0.5 else { return nil }
+        return sight.stand(afterTakingAway: steering.room)
+    }
+
+    /// One frame of a move.
+    private func steerOneFrame() {
+        guard var steering, let reach else {
+            endSteering(takingTheListToItsGoal: false)
+            return
+        }
+        let sight = sight(of: reach)
+        let now = CACurrentMediaTime()
+        let surroundings = Surroundings(sight)
+        let moved = sight.origin - steering.lastSetOrigin
+
+        if surroundings != steering.surroundings {
+            // The system keeps the content where it was as the list's
+            // frame and insets change: the list goes on from there.
+            steering.surroundings = surroundings
+            steering.position += moved
+            steering.lastChange = now
+        } else if abs(moved) > 1 {
+            #if DEBUG
+            trace("gave way: the list was moved by \(Int(moved)) with nothing around it changed")
+            #endif
+            endSteering(takingTheListToItsGoal: false)
+            return
+        }
+        let deltaTime = min(max(now - steering.lastFrame, 0), 0.05)
+        steering.lastFrame = now
+
+        guard let stand = stand(for: steering, in: sight) else {
+            steering.lastSetOrigin = sight.origin
+            self.steering = steering
+            return
+        }
+        steering.contentHeightBeforeRoom = nil
+
+        let before = steering.position
+        if steering.duration > 0 {
+            Spring.smooth(duration: steering.duration).update(
+                value: &steering.position,
+                velocity: &steering.velocity,
+                target: stand,
+                deltaTime: deltaTime
+            )
+        } else {
+            steering.position = stand
+            steering.velocity = 0
+        }
+        let isOnGoal = abs(stand - steering.position) < 0.5 && abs(steering.velocity) < 8
+        if isOnGoal {
+            steering.position = stand
+            steering.velocity = 0
+        }
+        if abs(steering.position - before) > 0.01 {
+            steering.lastChange = now
+        }
+        set(steering.position, in: reach)
+        steering.lastSetOrigin = reach.clip.bounds.origin.y
+        self.steering = steering
+
+        if isOnGoal, now - steering.lastChange >= Self.restBeforeLeavingGoal {
+            endSteering(takingTheListToItsGoal: false)
+        }
+    }
+
+    private func endSteering(takingTheListToItsGoal: Bool) {
+        guard let steering else { return }
+        self.steering = nil
+        steeringDeadline?.cancel()
+        steeringDeadline = nil
+        if let liveScrollObservation {
+            NotificationCenter.default.removeObserver(liveScrollObservation)
+        }
+        liveScrollObservation = nil
+
+        if takingTheListToItsGoal, let reach, let stand = stand(for: steering, in: sight(of: reach)) {
+            set(stand, in: reach)
+        }
+        for action in steering.onEnd {
+            action()
         }
         if following != nil {
             startFollowingFromHere()
         }
         stopTickerIfIdle()
-    }
-
-    private func cancelGlide() {
-        glide = nil
-        glideEnd?.cancel()
-        glideEnd = nil
     }
 
     private func startTicker(in reach: Reach) {
@@ -261,51 +406,24 @@ final class TorrentListScrollDriver {
     }
 
     private func stopTickerIfIdle() {
-        if glide == nil, following == nil {
+        if steering == nil, following == nil {
             ticker.stop()
         }
     }
 
     /// One frame of the display. Tells whether anything is still moving.
     private func frame() -> Bool {
-        guard let reach else {
-            cancelGlide()
+        guard reach != nil else {
+            endSteering(takingTheListToItsGoal: false)
             stopFollowing()
             return false
         }
-        if let glide {
-            if let lastSetOrigin, abs(reach.clip.bounds.origin.y - lastSetOrigin) > 1 {
-                #if DEBUG
-                trace("glide given up: the list was moved to \(Int(reach.clip.bounds.origin.y)) from outside")
-                #endif
-                cancelGlide()
-            } else {
-                let progress = (CACurrentMediaTime() - glide.start) / glide.duration
-                if progress >= 1 {
-                    finishGlide()
-                } else {
-                    let done = UnitCurve.easeInOut.value(at: progress)
-                    set(glide.from + (glide.to - glide.from) * done, in: reach)
-                }
-            }
+        if steering != nil {
+            steerOneFrame()
         } else if following != nil {
             frameWhileFollowing()
         }
-        return glide != nil || following != nil
-    }
-
-    // MARK: A card brought into sight
-
-    /// Glides the list just far enough to show `frame`, a card's frame in
-    /// the content's coordinates. A card taller than the list shows its top.
-    func reveal(_ frame: CGRect, duration: TimeInterval) {
-        guard let reach else { return }
-        // The card asked for now, not the one that was growing.
-        stopFollowing()
-        guard let origin = sight(of: reach).origin(showing: scrolled(frame, in: reach)) else {
-            return
-        }
-        glide(to: origin, in: reach, duration: duration)
+        return steering != nil || following != nil
     }
 
     // MARK: A card that grows
@@ -430,7 +548,7 @@ final class TorrentListScrollDriver {
 
     /// Counts what is left to cover from where the list stands now, so the
     /// next step starts here and not with a jump: called when the card's
-    /// frame is first known, and when a glide has ended.
+    /// frame is first known, and when a move of the list has ended.
     private func startFollowingFromHere() {
         guard let follow = following, let frame = follow.frame, let reach else { return }
         let sight = sight(of: reach)
@@ -441,8 +559,8 @@ final class TorrentListScrollDriver {
     }
 
     private func stepAfterFollowedCard() {
-        // A glide in progress has the list; the following goes on after it.
-        guard glide == nil, let follow = following, let frame = follow.frame, let reach else {
+        // A move in progress has the list; the following goes on after it.
+        guard steering == nil, let follow = following, let frame = follow.frame, let reach else {
             return
         }
         // Not growing on screen yet: nothing is covered.
@@ -473,104 +591,32 @@ final class TorrentListScrollDriver {
 
     // MARK: Cards that leave
 
-    private var settleObservation: NSObjectProtocol?
-    private var settleGiveUp: DispatchWorkItem?
-
-    /// Glides the list down to where it belongs after cards have left.
+    /// Takes the list down to where it belongs after cards have left.
     ///
     /// The content loses a leaving card's height at once, in one frame, and
     /// a list scrolled past its new end was pushed there in that frame: the
     /// cards fade out smoothly, the list jumped. The list view adds `room`
-    /// under its content for the time of the removal, so nothing is pushed;
-    /// once the content is laid out with it, the list glides to the end it
-    /// will have without the room, and the room is then taken away unseen.
+    /// under its content for the time of the removal, so nothing is pushed.
+    /// The list goes to the end it will have without the room, wherever
+    /// that end moves meanwhile, and `onSettled` is called once it stands
+    /// there: the room can then be taken away unseen.
     ///
-    /// Called before that layout, with the list standing at `before`. The
-    /// glide waits for the content to be laid out with the room: worked out
-    /// any sooner, from the old height less the new room, the end came out
-    /// far too high and the list went to its top. Should the list have been
-    /// pushed all the same before the room was there, it is put back first.
-    func glideAfterRemoval(room: CGFloat, before: Position, duration: TimeInterval) {
-        cancelSettle()
+    /// Called before the room is laid out, and again for every card that
+    /// leaves while the list is on its way.
+    func settleAfterRemoval(room: CGFloat, duration: TimeInterval, onSettled: @escaping () -> Void) {
+        guard let reach else {
+            onSettled()
+            return
+        }
         stopFollowing()
-        guard let reach else { return }
         #if DEBUG
         trace("removal: room \(Int(room)), \(describe(reach))")
         #endif
-
-        reach.document.postsFrameChangedNotifications = true
-        settleObservation = NotificationCenter.default.addObserver(
-            forName: NSView.frameDidChangeNotification,
-            object: reach.document,
-            queue: nil
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.settle(room: room, before: before, duration: duration)
-            }
-        }
-        // Not kept past the removal: if the content never changed its
-        // height, there was nothing to glide after.
-        let giveUp = DispatchWorkItem { [weak self] in
-            #if DEBUG
-            if self?.settleObservation != nil {
-                self?.trace("removal: gave up, the content was never laid out with the room")
-            }
-            #endif
-            self?.cancelSettle()
-        }
-        settleGiveUp = giveUp
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(duration, 0.1), execute: giveUp)
+        // One call when the list has settled is enough, however many cards
+        // have left on the way.
+        let isSettlingAlready = steering != nil
+        steer(toTheEndWithout: room, duration: duration, in: reach, onEnd: isSettlingAlready ? nil : onSettled)
     }
-
-    private func settle(room: CGFloat, before: Position, duration: TimeInterval) {
-        guard settleObservation != nil, let reach else { return }
-        var sight = sight(of: reach)
-        // Still without the room under the content: wait for it.
-        guard sight.contentHeight >= room - 0.5,
-              abs(sight.contentHeight - before.contentHeight) > 0.5,
-              sight.highestOrigin >= before.origin - 0.5 else {
-            #if DEBUG
-            trace("removal: content changed, the room is not there yet, \(describe(reach))")
-            #endif
-            return
-        }
-        cancelSettle()
-
-        if sight.origin < before.origin - 0.5 {
-            // Pushed before the room was there; there is room for it now.
-            #if DEBUG
-            trace("removal: the list was pushed from \(Int(before.origin)) to \(Int(sight.origin)), put back")
-            #endif
-            cancelGlide()
-            set(before.origin, in: reach)
-            sight.origin = before.origin
-        }
-        guard let origin = sight.origin(afterTakingAway: room) else {
-            #if DEBUG
-            trace("removal: the list can stay, \(describe(reach))")
-            #endif
-            return
-        }
-        #if DEBUG
-        trace("removal: gliding to \(Int(origin)) over \(duration) s, \(describe(reach))")
-        #endif
-        glide(to: origin, in: reach, duration: duration)
-    }
-
-    private func cancelSettle() {
-        if let settleObservation {
-            NotificationCenter.default.removeObserver(settleObservation)
-        }
-        settleObservation = nil
-        settleGiveUp?.cancel()
-        settleGiveUp = nil
-    }
-
-    #if DEBUG
-    fileprivate var traceObservations: [NSObjectProtocol] = []
-    fileprivate var tracedOrigin: CGFloat?
-    fileprivate var tracedContentHeight: CGFloat?
-    #endif
 }
 
 /// Calls back once per frame of the display while the list is being moved,
@@ -601,10 +647,9 @@ private final class TorrentListScrollTicker: NSObject {
 }
 
 #if DEBUG
-/// Debug builds only, and for the time being: a trace of where the list
-/// stands, in the system log. In October 2026 a list barely taller than its
-/// window still jumped in one frame as a card left it in the owner's window,
-/// and nowhere else. To be removed with the cause found.
+/// Debug builds only: what the driver decided, in the system log (category
+/// `ListScroll`). The owner's window showed twice what no hosted window
+/// did, and this is how it is read from there.
 extension TorrentListScrollDriver {
     private static let logger = Logger(subsystem: "mamontov.design.shatl", category: "ListScroll")
 
@@ -615,58 +660,9 @@ extension TorrentListScrollDriver {
     fileprivate func describe(_ reach: Reach) -> String {
         let sight = sight(of: reach)
         let insets = reach.scroll.contentInsets
-        var farBelow = reach.clip.bounds
-        farBelow.origin.y = 1_000_000
-        let highestByAppKit = reach.clip.constrainBoundsRect(farBelow).origin.y
-        let contentOrigin = anchorView?.convert(NSPoint.zero, to: reach.clip) ?? .zero
-        return "origin \(Int(sight.origin)) of \(Int(sight.lowestOrigin))…\(Int(sight.highestOrigin))"
-            + " (AppKit: …\(Int(highestByAppKit))), content \(Int(reach.document.frame.minY))…\(Int(sight.contentHeight)),"
-            + " viewport \(Int(sight.viewportHeight)), insets \(Int(insets.top))/\(Int(insets.bottom)),"
-            + " covered \(Int(sight.coveredTop))/\(Int(sight.coveredBottom)), cards from \(Int(contentOrigin.y))"
-    }
-
-    /// Notes every change of the content's height and every step of the
-    /// list longer than a glide makes, from whoever makes it.
-    fileprivate func traceScrollView() {
-        for observation in traceObservations {
-            NotificationCenter.default.removeObserver(observation)
-        }
-        traceObservations = []
-        guard let reach else { return }
-        tracedOrigin = reach.clip.bounds.origin.y
-        tracedContentHeight = reach.document.frame.height
-        trace("list found: \(describe(reach))")
-
-        reach.clip.postsBoundsChangedNotifications = true
-        reach.document.postsFrameChangedNotifications = true
-        traceObservations.append(NotificationCenter.default.addObserver(
-            forName: NSView.boundsDidChangeNotification,
-            object: reach.clip,
-            queue: nil
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, let reach = self.reach else { return }
-                let origin = reach.clip.bounds.origin.y
-                if let before = self.tracedOrigin, abs(origin - before) > 12 {
-                    self.trace("step: \(Int(before)) → \(Int(origin)), content \(Int(reach.document.frame.height))")
-                }
-                self.tracedOrigin = origin
-            }
-        })
-        traceObservations.append(NotificationCenter.default.addObserver(
-            forName: NSView.frameDidChangeNotification,
-            object: reach.document,
-            queue: nil
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, let reach = self.reach else { return }
-                let height = reach.document.frame.height
-                if let before = self.tracedContentHeight, abs(height - before) > 12 {
-                    self.trace("content: \(Int(before)) → \(Int(height)), origin \(Int(reach.clip.bounds.origin.y))")
-                }
-                self.tracedContentHeight = height
-            }
-        })
+        return "origin \(Int(sight.origin)) of \(Int(sight.lowestOrigin))…\(Int(sight.highestOrigin)),"
+            + " content \(Int(sight.contentHeight)), viewport \(Int(sight.viewportHeight)),"
+            + " insets \(Int(insets.top))/\(Int(insets.bottom))"
     }
 }
 #endif
@@ -678,30 +674,12 @@ struct TorrentListScrollAnchor: NSViewRepresentable {
     let driver: TorrentListScrollDriver
 
     func makeNSView(context: Context) -> NSView {
-        let view = AnchorView(frame: .zero)
-        attach(view)
+        let view = NSView(frame: .zero)
+        driver.anchorView = view
         return view
     }
 
     func updateNSView(_ view: NSView, context: Context) {
-        attach(view)
-    }
-
-    private func attach(_ view: NSView) {
         driver.anchorView = view
-        #if DEBUG
-        (view as? AnchorView)?.onMoveToWindow = { [weak driver] in
-            driver?.traceScrollView()
-        }
-        #endif
-    }
-
-    private final class AnchorView: NSView {
-        var onMoveToWindow: (() -> Void)?
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            onMoveToWindow?()
-        }
     }
 }

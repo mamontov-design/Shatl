@@ -8,13 +8,14 @@ import Foundation
 /// downloads: the list keeps every card alive, and each active card animates
 /// its numbers every second, on screen or not. Measured on an M1 in
 /// September 2026: 25 active downloads scrolled with 17 % late frames with
-/// everything on, 5 % without the bounce and 2 % without the rolling digits.
+/// everything on, 5 % without the bounce the speed set then made at a new
+/// speed level, and 2 % without the rolling digits. The bounce is gone from
+/// every level since October 2026.
 nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendable {
-    /// Rolling digits, bouncing speed sets and metric shadows.
+    /// Rolling digits and metric shadows.
     case full
-    /// No bounce and no metric shadows; the progress bar steps 5 %, and the
-    /// download speed shows its level icon alone, its number under the
-    /// pointer.
+    /// No metric shadows; the progress bar steps 5 %, and the download speed
+    /// shows its level icon alone, its number under the pointer.
     case lighter
     /// Also digits that change without rolling, in cards and speed chips; the
     /// progress bar steps 10 %, and a finished card folds in a single move.
@@ -27,18 +28,11 @@ nonisolated enum CardSimplificationLevel: Int, CaseIterable, Comparable, Sendabl
         self >= .lighter
     }
 
-    /// Opened under the pointer at the first level, the speed set still marks
-    /// a new speed level with its outline, without growing. The deepest level
-    /// marks nothing.
-    var outlinesUnfoldedSpeedLevelChange: Bool {
-        self == .lighter
-    }
-
     /// Active downloads from which each level starts.
     var threshold: Int {
         switch self {
         case .full: 0
-        case .lighter: 15
+        case .lighter: 10
         case .lightest: 25
         }
     }

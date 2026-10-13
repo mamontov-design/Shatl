@@ -12,12 +12,13 @@ enum ShatlMotion {
     static let metricResize = Animation.smooth(duration: metricResizeDuration)
     static let metricResizeDuration: TimeInterval = 0.5
 
-    /// Durations for the one-shot metric-set keyframe animation.
-    static let metricSetBounceUpDuration: TimeInterval = 0.14
-    static let metricSetBounceHoldDuration: TimeInterval = 0.14
-    static let metricSetBounceDownDuration: TimeInterval = 0.24
-    static let metricSetBounceTotalDuration =
-        metricSetBounceUpDuration + metricSetBounceHoldDuration + metricSetBounceDownDuration
+    /// The flash a Settings toggle gives the outline of the sets it changed
+    /// on the preview card: in, held, out.
+    static let metricSetOutlineFlashInDuration: TimeInterval = 0.14
+    static let metricSetOutlineFlashHoldDuration: TimeInterval = 0.14
+    static let metricSetOutlineFlashOutDuration: TimeInterval = 0.24
+    static let metricSetOutlineFlashTotalDuration =
+        metricSetOutlineFlashInDuration + metricSetOutlineFlashHoldDuration + metricSetOutlineFlashOutDuration
 
     /// The Settings preview blurs what a toggle did not change: in softly,
     /// out slowly, and held for four seconds after the last flash. A card
@@ -26,13 +27,11 @@ enum ShatlMotion {
     static let previewFocusBlurRadius: CGFloat = 3
     static let previewFocusIn = Animation.smooth(duration: 0.3)
     static let previewFocusOut = Animation.smooth(duration: 0.5)
-    static let previewFocusHold = Duration.seconds(metricSetBounceTotalDuration + 4)
+    static let previewFocusHold = Duration.seconds(metricSetOutlineFlashTotalDuration + 4)
 
-    /// Color changes stay in sync with the complete bounce, including in previews.
-    static let speedMetricColor = Animation.easeInOut(duration: metricSetBounceTotalDuration)
-
-    /// Peak scale of the metric-set bounce animation.
-    static let metricSetBounceScale: CGFloat = 1.1
+    /// A new speed level changes the colours of its set over the time an
+    /// outline flashes, so the two stay in step in the previews.
+    static let speedMetricColor = Animation.easeInOut(duration: metricSetOutlineFlashTotalDuration)
 
     /// Local animation for card height changes as large blocks appear or disappear.
     static let cardLayout = Animation.smooth(duration: cardLayoutDuration)
@@ -200,10 +199,6 @@ private struct ShatlRollsMetricDigitsKey: EnvironmentKey {
     static let defaultValue = true
 }
 
-private struct ShatlMetricSetBounceEnabledKey: EnvironmentKey {
-    static let defaultValue = true
-}
-
 private struct ShatlMetricSetOutlinePulseColorKey: EnvironmentKey {
     static let defaultValue = ShatlColor.metricPulseHighlight
 }
@@ -241,11 +236,6 @@ extension EnvironmentValues {
     var shatlRollsMetricDigits: Bool {
         get { self[ShatlRollsMetricDigitsKey.self] }
         set { self[ShatlRollsMetricDigitsKey.self] = newValue }
-    }
-
-    var shatlMetricSetBounceEnabled: Bool {
-        get { self[ShatlMetricSetBounceEnabledKey.self] }
-        set { self[ShatlMetricSetBounceEnabledKey.self] = newValue }
     }
 
     var shatlMetricSetOutlinePulseColor: Color {

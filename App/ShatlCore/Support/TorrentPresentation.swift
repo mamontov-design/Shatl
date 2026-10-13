@@ -91,8 +91,7 @@ nonisolated struct BottomTransferChipPresentation: Identifiable, Equatable, Send
 /// How fast a transfer goes, as its speed icon shows it. A level goes up as
 /// soon as the speed reaches the next threshold, but comes down only once the
 /// speed falls 10 % below the threshold of the level it holds: a speed that
-/// wavers at a threshold would otherwise swap the icon, and bounce the metric
-/// set, every second.
+/// wavers at a threshold would otherwise swap the icon every second.
 nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
     case tortoise
     case walk
