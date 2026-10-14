@@ -316,7 +316,10 @@
 "settings.about.contact_section" = "開発者に連絡";
 "settings.about.contact_row" = "フィードバックを送信、または問題を報告";
 "settings.about.write" = "送信…";
-"settings.about.logo.caption" = "あなたのMacのために、愛を込めて";
+"settings.about.links.website" = "Webサイト";
+"settings.about.links.privacy" = "プライバシー";
+"settings.about.links.terms" = "利用規約";
+"settings.about.footer" = "2026, Mamontov Design. 愛を込めて、二度目の挑戦で作りました。";
 
 "settings.localization.section" = "インターフェイスの言語";
 "settings.localization.app_language" = "Shatlの言語";

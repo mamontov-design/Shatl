@@ -322,7 +322,10 @@
 "settings.about.contact_section" = "Contact the developer";
 "settings.about.contact_row" = "Send feedback or report a problem";
 "settings.about.write" = "Write…";
-"settings.about.logo.caption" = "Made with love for your Mac";
+"settings.about.links.website" = "Website";
+"settings.about.links.privacy" = "Privacy";
+"settings.about.links.terms" = "Terms of Use";
+"settings.about.footer" = "2026, Mamontov Design. Made with love, on the second try.";
 
 "settings.localization.section" = "Interface language";
 "settings.localization.app_language" = "Shatl language";

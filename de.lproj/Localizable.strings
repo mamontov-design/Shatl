@@ -322,7 +322,10 @@
 "settings.about.contact_section" = "Entwickler kontaktieren";
 "settings.about.contact_row" = "Feedback senden oder ein Problem melden";
 "settings.about.write" = "Schreiben…";
-"settings.about.logo.caption" = "Mit Liebe für deinen Mac gemacht";
+"settings.about.links.website" = "Website";
+"settings.about.links.privacy" = "Datenschutz";
+"settings.about.links.terms" = "Nutzungsbedingungen";
+"settings.about.footer" = "2026, Mamontov Design. Mit Liebe gemacht, im zweiten Anlauf.";
 
 "settings.localization.section" = "Sprache der Oberfläche";
 "settings.localization.app_language" = "Sprache von Shatl";

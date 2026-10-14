@@ -244,6 +244,51 @@ struct ShatlButton: View {
     }
 }
 
+/// A small capsule that opens a page in the browser: its name is the
+/// button, and the arrow says that the page opens outside the app.
+struct ShatlLinkButton: View {
+    let title: ShatlTextContent
+    let url: URL
+
+    @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @State private var isHovered = false
+
+    init(title: String, url: URL) {
+        self.title = .verbatim(title)
+        self.url = url
+    }
+
+    var body: some View {
+        Button {
+            NSWorkspace.shared.open(url)
+        } label: {
+            HStack(spacing: 2) {
+                title.text
+                    .lineLimit(1)
+                    .fixedSize()
+
+                Image(systemName: "arrow.up.right.circle.fill")
+                    .accessibilityHidden(true)
+            }
+            .shatlTypography(ShatlTypography.captionRegular)
+            .frame(height: ShatlTypography.captionRegular.variant(for: typographyProfile).lineHeight)
+            .foregroundStyle(isHovered ? ShatlColor.linkButtonHoverLabel : ShatlColor.typographyPrimary)
+            .padding(.leading, 8)
+            .padding(.trailing, 4)
+            .padding(.vertical, 4)
+            .background(isHovered ? ShatlColor.linkButtonHoverBackground : ShatlColor.backgroundSecondary)
+            .clipShape(Capsule(style: .continuous))
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(ShatlPressedButtonStyle())
+        .onHover { isHovered = $0 }
+        .animation(ShatlMotion.cardState, value: isHovered)
+        .pointerStyle(.link)
+        .accessibilityAddTraits(.isLink)
+        .accessibilityRemoveTraits(.isButton)
+    }
+}
+
 struct ShatlMessageBlock: View {
     let title: String
     let message: String

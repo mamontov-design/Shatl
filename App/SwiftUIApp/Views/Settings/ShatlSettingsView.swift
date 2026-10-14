@@ -798,6 +798,8 @@ private struct AboutSettingsTab: View {
                     }
                 }
             }
+
+            AboutSettingsFooter(localeOverride: store.preferences.localeOverride)
         }
         .padding(.horizontal, 16)
         .padding(.top, 0)
@@ -809,21 +811,12 @@ private struct AboutSettingsTab: View {
     }
 
     private var aboutWordmarkContainer: some View {
-        VStack(alignment: .center, spacing: 12) {
-            ShatlWordmark(
-                selection: Binding(
-                    get: { store.preferences.preferredBrandMark },
-                    set: { store.setPreferredBrandMark($0) }
-                )
+        ShatlWordmark(
+            selection: Binding(
+                get: { store.preferences.preferredBrandMark },
+                set: { store.setPreferredBrandMark($0) }
             )
-
-            Text("settings.about.logo.caption")
-                .shatlTypography(ShatlTypography.bodyRegular)
-                .foregroundStyle(ShatlColor.typographySecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
+        )
         .padding(.horizontal, 12)
         .padding(.top, 24)
         .padding(.bottom, 8)
@@ -844,6 +837,72 @@ private struct AboutSettingsTab: View {
 
         guard let url = components.url else { return }
         NSWorkspace.shared.open(url)
+    }
+}
+
+/// The pages the footer of "О программе" opens in the browser.
+enum AboutLink: CaseIterable, Identifiable {
+    case website
+    case privacy
+    case terms
+
+    var id: Self { self }
+
+    var titleKey: String {
+        switch self {
+        case .website:
+            "settings.about.links.website"
+        case .privacy:
+            "settings.about.links.privacy"
+        case .terms:
+            "settings.about.links.terms"
+        }
+    }
+
+    func url(localeOverride: AppLocaleOverride) -> URL {
+        switch self {
+        case .website:
+            ShatlLinks.website
+        case .privacy:
+            ShatlLinks.privacy(localeOverride: localeOverride)
+        case .terms:
+            ShatlLinks.terms(localeOverride: localeOverride)
+        }
+    }
+}
+
+/// The foot of "О программе": a line, the links and the signature.
+struct AboutSettingsFooter: View {
+    /// Between the links.
+    static let linkSpacing: CGFloat = 6
+
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        // Spaced as the tab's groups are.
+        VStack(spacing: 8) {
+            // The line is as wide as a group's rows; without it the links
+            // read as part of the group above.
+            ShatlSettingsParameterDivider()
+                .padding(12)
+
+            HStack(spacing: Self.linkSpacing) {
+                ForEach(AboutLink.allCases) { link in
+                    ShatlLinkButton(
+                        title: L10n.string(link.titleKey, localeOverride: localeOverride),
+                        url: link.url(localeOverride: localeOverride)
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            Text(L10n.string("settings.about.footer", localeOverride: localeOverride))
+                .shatlTypography(ShatlTypography.captionRegular)
+                .foregroundStyle(ShatlColor.typographySecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
     }
 }
 

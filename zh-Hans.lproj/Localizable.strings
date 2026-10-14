@@ -316,7 +316,10 @@
 "settings.about.contact_section" = "联系开发者";
 "settings.about.contact_row" = "发送反馈或报告问题";
 "settings.about.write" = "撰写…";
-"settings.about.logo.caption" = "为你的 Mac 用心打造";
+"settings.about.links.website" = "网站";
+"settings.about.links.privacy" = "隐私";
+"settings.about.links.terms" = "使用条款";
+"settings.about.footer" = "2026, Mamontov Design. 用心打造，第二次才成功。";
 
 "settings.localization.section" = "界面语言";
 "settings.localization.app_language" = "Shatl 语言";

@@ -92,6 +92,11 @@ enum ShatlColor {
     static let statusTextSeedingDefault = Color("statusTextSeedingDefault")
     static let statusTextSeedingHover = Color("statusTextSeedingHover")
 
+    /// A link button under the pointer wears the colours of the
+    /// "Скачивается" badge, as the mockup binds them.
+    static let linkButtonHoverBackground = statusBadgeDownloadingDefault
+    static let linkButtonHoverLabel = statusTextDownloadingDefault
+
     static let typographyPrimary = Color("typographyPrimary")
     static let typographyPrimaryInverted = Color("typographyPrimaryInverted")
     static let typographySecondary = Color("typographySecondary")

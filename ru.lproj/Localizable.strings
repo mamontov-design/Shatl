@@ -334,7 +334,10 @@
 "settings.about.contact_section" = "Связаться с разработчиком";
 "settings.about.contact_row" = "Отправить отзыв или сообщить о проблеме";
 "settings.about.write" = "Написать…";
-"settings.about.logo.caption" = "Сделано с любовью для вашего Mac";
+"settings.about.links.website" = "Сайт";
+"settings.about.links.privacy" = "Конфиденциальность";
+"settings.about.links.terms" = "Условия использования";
+"settings.about.footer" = "2026, Mamontov Design. Сделано с любовью, со второй попытки.";
 
 "settings.localization.section" = "Язык интерфейса";
 "settings.localization.app_language" = "Язык Shatl";
