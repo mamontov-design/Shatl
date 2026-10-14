@@ -138,6 +138,12 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     /// Whether the bar was ever shown, so a Mac already in Halo sees it once
     /// at launch.
     var hasSeenHaloSpeedNotice = false
+
+    /// Settings name Halo's speed limit only once the bar no longer will:
+    /// after "Больше не показывать" nothing else in the app says it.
+    var namesHaloSpeedLimitInSettings: Bool {
+        !showsHaloSpeedNotice
+    }
 }
 
 extension AppPreferences {

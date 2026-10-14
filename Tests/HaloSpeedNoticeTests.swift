@@ -8,7 +8,8 @@ import XCTest
 
 /// Halo caps downloads at 5 MB/s and uploads at 2.5 MB/s. A bar under the
 /// toolbar says so each time Halo is switched on, until "Больше не
-/// показывать"; a Mac already in Halo sees it once at launch.
+/// показывать"; a Mac already in Halo sees it once at launch. Settings say
+/// it only after that button, when the bar no longer will.
 @MainActor
 final class HaloSpeedNoticeTests: XCTestCase {
     private func makeStore(_ configure: (inout AppPreferences) -> Void = { _ in }) -> AppStore {
@@ -55,6 +56,23 @@ final class HaloSpeedNoticeTests: XCTestCase {
         store.setPerformanceProfile(.balanced)
         store.setPerformanceProfile(.economical)
         XCTAssertFalse(store.isHaloSpeedNoticeVisible)
+    }
+
+    func testSettingsNameTheLimitOnlyAfterDontShowAgain() {
+        let store = makeStore()
+        XCTAssertFalse(store.preferences.namesHaloSpeedLimitInSettings)
+
+        store.setPerformanceProfile(.economical)
+        store.dismissHaloSpeedNotice()
+        XCTAssertFalse(store.preferences.namesHaloSpeedLimitInSettings)
+
+        store.stopShowingHaloSpeedNotice()
+        XCTAssertTrue(store.preferences.namesHaloSpeedLimitInSettings)
+
+        // The line stays whatever the mode: the tab's height never follows
+        // the mode.
+        store.setPerformanceProfile(.balanced)
+        XCTAssertTrue(store.preferences.namesHaloSpeedLimitInSettings)
     }
 
     /// Halo chosen before the bar existed: shown once at launch, then only on

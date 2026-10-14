@@ -60,10 +60,7 @@ struct ShatlSettingsView: View {
                             isSelected: store.preferences.performanceProfile == profile,
                             imageContainerHeight: 100,
                             imageContentVerticalPadding: 26,
-                            overlaysSelectionMark: true,
-                            // Halo saves the battery.
-                            titleSymbol: profile == .economical ? "leaf.fill" : nil,
-                            titleSymbolColor: ShatlColor.haloLeaf
+                            overlaysSelectionMark: true
                         ) {
                             store.setPerformanceProfile(profile)
                         } content: {
@@ -73,12 +70,15 @@ struct ShatlSettingsView: View {
                 }
 
                 VStack(spacing: 4) {
-                    ShatlSettingsParameterCaption(
-                        localizedLines: [
-                            "settings.downloads.performance.caption.main",
-                            "settings.downloads.performance.caption.economical",
-                        ]
-                    )
+                    ShatlSettingsParameterCaption(localizedText: "settings.downloads.performance.caption.main")
+
+                    // The bar under the toolbar names Halo's limit; this
+                    // line takes over once the bar is switched off for good.
+                    if store.preferences.namesHaloSpeedLimitInSettings {
+                        ShatlSettingsParameterCaption(
+                            localizedText: "settings.downloads.performance.caption.economical"
+                        )
+                    }
 
                     #if DEBUG
                     EngineResourceBudgetCaption()
@@ -150,6 +150,7 @@ struct ShatlSettingsView: View {
         .padding(.top, 0)
         .padding(.bottom, 16)
         .animation(ShatlMotion.cardState, value: store.preferences.performanceProfile)
+        .animation(ShatlMotion.cardState, value: store.preferences.namesHaloSpeedLimitInSettings)
     }
 
     private var appearanceTab: some View {

@@ -771,9 +771,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
     var imageContainerHeight: CGFloat? = nil
     var imageContentVerticalPadding: CGFloat? = nil
     var overlaysSelectionMark = false
-    /// A symbol before the title, at the title's size, in its own color.
-    var titleSymbol: String? = nil
-    var titleSymbolColor: Color = ShatlColor.typographySecondary
     let action: () -> Void
     @ViewBuilder var content: Content
     @State private var isActivationPulseActive = false
@@ -786,8 +783,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         imageContainerHeight: CGFloat? = nil,
         imageContentVerticalPadding: CGFloat? = nil,
         overlaysSelectionMark: Bool = false,
-        titleSymbol: String? = nil,
-        titleSymbolColor: Color = ShatlColor.typographySecondary,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
@@ -797,8 +792,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         self.imageContainerHeight = imageContainerHeight
         self.imageContentVerticalPadding = imageContentVerticalPadding
         self.overlaysSelectionMark = overlaysSelectionMark
-        self.titleSymbol = titleSymbol
-        self.titleSymbolColor = titleSymbolColor
         self.action = action
         self.content = content()
     }
@@ -810,8 +803,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         imageContainerHeight: CGFloat? = nil,
         imageContentVerticalPadding: CGFloat? = nil,
         overlaysSelectionMark: Bool = false,
-        titleSymbol: String? = nil,
-        titleSymbolColor: Color = ShatlColor.typographySecondary,
         action: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
@@ -821,8 +812,6 @@ struct ShatlSettingsInputCard<Content: View>: View {
         self.imageContainerHeight = imageContainerHeight
         self.imageContentVerticalPadding = imageContentVerticalPadding
         self.overlaysSelectionMark = overlaysSelectionMark
-        self.titleSymbol = titleSymbol
-        self.titleSymbolColor = titleSymbolColor
         self.action = action
         self.content = content()
     }
@@ -947,20 +936,12 @@ struct ShatlSettingsInputCard<Content: View>: View {
     }
 
     private func labelText(typography: ShatlTextStyle, color: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            if let titleSymbol {
-                Image(systemName: titleSymbol)
-                    .foregroundStyle(titleSymbolColor)
-                    .accessibilityHidden(true)
-            }
-
-            title.text
-                .foregroundStyle(color)
-                .multilineTextAlignment(.leading)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .shatlTypography(typography)
+        title.text
+            .foregroundStyle(color)
+            .multilineTextAlignment(.leading)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .shatlTypography(typography)
         .frame(
             maxWidth: .infinity,
             alignment: .leading
