@@ -4,7 +4,9 @@
 import AppKit
 import SwiftUI
 
-extension Color {
+/// Off the main actor: AppKit and Core Animation resolve a colour on their own
+/// threads, as when a gradient is drawn, and every colour here is a constant.
+nonisolated extension Color {
     /// An sRGB colour written as Figma shows it: `Color(rgb: 0xF0F0F0)`.
     init(rgb: UInt32) {
         self.init(nsColor: NSColor(rgba: rgb << 8 | 0xFF))
@@ -22,13 +24,13 @@ extension Color {
     init(light: Color, dark: Color) {
         let light = NSColor(light)
         let dark = NSColor(dark)
-        self.init(nsColor: NSColor(name: nil) { appearance in
+        self.init(nsColor: NSColor(name: nil) { @Sendable appearance in
             appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
         })
     }
 }
 
-private extension NSColor {
+private nonisolated extension NSColor {
     convenience init(rgba: UInt32) {
         self.init(
             srgbRed: CGFloat(rgba >> 24 & 0xFF) / 255,

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Mamontov Design
 // SPDX-License-Identifier: GPL-3.0-only
 
+import AppKit
 import SwiftUI
 import XCTest
 @testable import Shatl
@@ -14,6 +15,27 @@ final class ColorTokenTests: XCTestCase {
 
         XCTAssertEqual(try components(token, in: .light), [0x11, 0x22, 0x33, 0xFF])
         XCTAssertEqual(try components(token, in: .dark), [0xDD, 0xEE, 0xFF, 0x80])
+    }
+
+    /// AppKit and Core Animation ask a dynamic colour for its value on their
+    /// own threads, as when a gradient is drawn off the main thread. The
+    /// choice between light and dark must not demand the main thread there.
+    func testATokenResolvesOffTheMainThread() async {
+        let color = NSColor(ShatlColor.Extra.speedometerGradientStart)
+        let resolved: [Int] = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var components: [Int] = []
+                NSAppearance(named: .darkAqua)?.performAsCurrentDrawingAppearance {
+                    if let srgb = color.usingColorSpace(.sRGB) {
+                        components = [srgb.redComponent, srgb.greenComponent, srgb.blueComponent]
+                            .map { Int(($0 * 255).rounded()) }
+                    }
+                }
+                continuation.resume(returning: components)
+            }
+        }
+
+        XCTAssertEqual(resolved.count, 3)
     }
 
     /// Colours are written in Palette.swift and named in Colors.swift, after
