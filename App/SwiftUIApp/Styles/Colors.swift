@@ -87,7 +87,7 @@ enum ShatlColor {
     static let onboardingBackground = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark2)
     static let onboardingForeground = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDark6)
 
-    static let outlinePrimary = Color(light: ShatlPalette.gray7, dark: ShatlPalette.grayDarkA8)
+    static let outlinePrimary = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA8)
     static let outlineSecondary = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA3)
     static let outlineTertiary = Color(light: ShatlPalette.gray4, dark: ShatlPalette.grayDarkA3)
 
