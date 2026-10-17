@@ -252,17 +252,17 @@ struct ShatlSettingsView: View {
             return nil
         case .checking:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusChecking,
+                color: ShatlColor.Extra.portStatusChecking,
                 description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
             )
         case .open:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusOpen,
+                color: ShatlColor.Extra.portStatusOpen,
                 description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
             )
         case .closed:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusClosed,
+                color: ShatlColor.Extra.portStatusClosed,
                 description: L10n.string("settings.downloads.network.port_status.closed", localeOverride: localeOverride)
             )
         }
@@ -939,7 +939,6 @@ struct ShatlPerformanceProfileSpeedometer: View {
     let profile: AppPerformanceProfile
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var accentState: ShatlAccentState
     @State private var isWiggling = false
 
@@ -968,9 +967,7 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var trackColor: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.16)
-            : Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255).opacity(0.08)
+        ShatlColor.Extra.speedometerTrack
     }
 
     private var progressLayer: some View {
@@ -1000,18 +997,10 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var progressGradientStops: [Gradient.Stop] {
-        let lighterPurple = Color(red: 190 / 255, green: 154 / 255, blue: 255 / 255)
-        let darkerPurple = Color(red: 136 / 255, green: 95 / 255, blue: 255 / 255)
-
-        return colorScheme == .dark
-            ? [
-                Gradient.Stop(color: darkerPurple, location: 0.08),
-                Gradient.Stop(color: lighterPurple, location: 0.92),
-            ]
-            : [
-                Gradient.Stop(color: lighterPurple, location: 0.08),
-                Gradient.Stop(color: darkerPurple, location: 0.92),
-            ]
+        [
+            Gradient.Stop(color: ShatlColor.Extra.speedometerGradientStart, location: 0.08),
+            Gradient.Stop(color: ShatlColor.Extra.speedometerGradientEnd, location: 0.92),
+        ]
     }
 
     private var arrowRotation: Double {
@@ -1245,17 +1234,17 @@ private struct ThemeAppearanceDemo: View {
 
                 ShatlWindowButtonCloseShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 244.0 / 255.0, green: 63.0 / 255.0, blue: 94.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonClose
                         : buttonColor)
 
                 ShatlWindowButtonMinimizeShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 234.0 / 255.0, green: 179.0 / 255.0, blue: 8.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonMinimize
                         : buttonColor)
 
                 ShatlWindowButtonExpandShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 34.0 / 255.0, green: 197.0 / 255.0, blue: 94.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonZoom
                         : buttonColor)
             }
             .frame(width: 76, height: 76)
@@ -1282,19 +1271,9 @@ private struct ThemeAppearanceDemo: View {
     }
 
     private var buttonColor: Color {
-        if theme == .dark {
-            return Color(
-                red: 113.0 / 255.0,
-                green: 113.0 / 255.0,
-                blue: 122.0 / 255.0
-            )
-        }
-
-        return Color(
-            red: 212.0 / 255.0,
-            green: 212.0 / 255.0,
-            blue: 216.0 / 255.0
-        )
+        theme == .dark
+            ? ShatlColor.Extra.themePreviewWindowButtonDark
+            : ShatlColor.Extra.themePreviewWindowButtonLight
     }
 }
 

@@ -263,8 +263,6 @@ private enum OnboardingStep: Int, CaseIterable {
 }
 
 private struct OnboardingStepShell<Presentation: View, Description: View, Actions: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     let stepID: Int
     let title: String
     let showsCaptionTopBorder: Bool
@@ -339,17 +337,11 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     }
 
     private var presentationBackground: LinearGradient {
-        let colors: [Color] = colorScheme == .dark
-            ? [
-                Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255),
-                Color.black.opacity(0),
-            ]
-            : [
-                Color(red: 244 / 255, green: 244 / 255, blue: 245 / 255),
-                Color.white,
-            ]
-
-        return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+        LinearGradient(
+            colors: [ShatlColor.Extra.onboardingGradientTop, ShatlColor.Extra.onboardingGradientBottom],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     private var labelsContainer: some View {
