@@ -829,6 +829,11 @@ struct TorrentCardView: View, Equatable {
         .clipShape(progressGroupShape)
         .overlay {
             progressGroupShape
+                .strokeBorder(progressGroupBorderColor, lineWidth: 0.5)
+                .allowsHitTesting(false)
+        }
+        .overlay {
+            progressGroupShape
                 .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
                 .opacity(usesOutlinedProgressGroup ? 1 : 0)
                 .allowsHitTesting(false)
@@ -966,6 +971,41 @@ struct TorrentCardView: View, Equatable {
             return usesHoverStatusPalette
                 ? ShatlColor.statusBadgeErrorHover
                 : ShatlColor.statusBadgeErrorDefault
+        }
+    }
+
+    /// The hairline round a filled badge; its tokens are clear in dark. An
+    /// outlined badge and a badge painted by its caller go without it.
+    private var progressGroupBorderColor: Color {
+        if progressGroupBackgroundColorOverride != nil || usesOutlinedProgressGroup {
+            return .clear
+        }
+
+        if presentationMode == .onboardingDemo, !usesProductionProgressColors {
+            return .clear
+        }
+
+        switch statusKind {
+        case .downloading, .checking:
+            return usesHoverStatusPalette
+                ? ShatlColor.statusBadgeBorderDownloadingHover
+                : ShatlColor.statusBadgeBorderDownloadingDefault
+        case .stopped:
+            return usesHoverStatusPalette
+                ? ShatlColor.statusBadgeBorderPausedHover
+                : ShatlColor.statusBadgeBorderPausedDefault
+        case .seeding:
+            return usesHoverStatusPalette
+                ? ShatlColor.statusBadgeBorderSeedingHover
+                : ShatlColor.statusBadgeBorderSeedingDefault
+        case .completed:
+            return usesHoverStatusPalette
+                ? ShatlColor.statusBadgeBorderCompletedHover
+                : ShatlColor.statusBadgeBorderCompletedDefault
+        case .error:
+            return usesHoverStatusPalette
+                ? ShatlColor.statusBadgeBorderErrorHover
+                : ShatlColor.statusBadgeBorderErrorDefault
         }
     }
 
