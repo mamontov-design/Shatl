@@ -12,6 +12,9 @@ Sparkle is resolved through Swift Package Manager rather than stored in
 `Artifacts/`. Its complete license text is retained in `Licenses/` for release
 notices.
 
+The Radix Colors values are copied into `App/SwiftUIApp/Styles/Palette.swift`;
+their MIT license text is kept in `Licenses/` as well.
+
 Current pipeline:
 
 - OpenSSL is built into `Vendor/Artifacts/openssl/macos-arm64/`.

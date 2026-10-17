@@ -135,6 +135,13 @@ persistence, deletion, restore, or shared UI state.
   back under it, which is why the add window has a fixed background
   (`ShatlColor.backgroundAddWindow`) and not the system's, tinted by the
   wallpaper. `AddTorrentReviewAppearanceTests` watches where the labels sit.
+- Colours follow Figma. `ShatlPalette` (`Palette.swift`) holds the Radix
+  values of Figma's Palette collection, `ShatlColor` (`Colors.swift`) the
+  tokens of its Tokens collection under their iOS code syntax names, each a
+  light and dark pair. Views use only `ShatlColor`; the one colour asset is
+  `AccentColor`, which the system needs. Change a colour in Figma first, then
+  point the token at the same step here; `ColorTokenTests` rejects colours
+  written into views.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

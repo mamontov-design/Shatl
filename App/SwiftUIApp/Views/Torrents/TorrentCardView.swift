@@ -1041,7 +1041,7 @@ struct TorrentCardView: View, Equatable {
         case .selected:
             ShatlColor.accent
         case .error:
-            ShatlColor.cerisePink
+            ShatlColor.errorOutline
         }
     }
 

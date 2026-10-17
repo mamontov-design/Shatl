@@ -7,7 +7,6 @@ import SwiftUI
 enum ShatlButtonRole {
     case borderedNeutral
     case borderedColored
-    case borderedMonochrome
     case lineMessage
 }
 
@@ -211,8 +210,6 @@ struct ShatlButton: View {
             ShatlColor.buttonNeutral
         case .borderedColored:
             ShatlColor.accent
-        case .borderedMonochrome:
-            ShatlColor.onboardingButtonBody
         case .lineMessage:
             ShatlColor.lineMessageButtonBackground
         }
@@ -224,8 +221,6 @@ struct ShatlButton: View {
             ShatlColor.typographyPrimary
         case .borderedColored:
             ShatlColor.typographyPrimaryInverted
-        case .borderedMonochrome:
-            ShatlColor.onboardingButtonText
         case .lineMessage:
             ShatlColor.lineMessageButtonLabel
         }
@@ -1034,7 +1029,7 @@ struct TorrentCardPreviewView: View {
     var showsExpansionToggle = true
     var pulsesMetricSetOutlines = false
     var metricSetOutlineFlashTrigger = 0
-    var metricSetOutlineFlashColor = ShatlColor.neonBlue
+    var metricSetOutlineFlashColor = ShatlColor.accentColored
     var progressBarFillColorOverride: Color? = nil
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
@@ -1064,7 +1059,7 @@ struct TorrentCardPreviewView: View {
         showsExpansionToggle: Bool = true,
         pulsesMetricSetOutlines: Bool = false,
         metricSetOutlineFlashTrigger: Int = 0,
-        metricSetOutlineFlashColor: Color = ShatlColor.neonBlue,
+        metricSetOutlineFlashColor: Color = ShatlColor.accentColored,
         progressBarFillColorOverride: Color? = nil,
         progressGroupBackgroundColorOverride: Color? = nil,
         progressGroupForegroundColorOverride: Color? = nil,
@@ -1145,7 +1140,7 @@ struct TorrentCardPreviewView: View {
                 .environment(\.shatlMetricSetOutlinePulseEnabled, pulsesMetricSetOutlines)
                 .environment(\.shatlMetricSetOutlineFlashTrigger, metricSetOutlineFlashTrigger)
                 .environment(\.shatlDownloadSpeedOutlineFlashTrigger, downloadSpeedOutlineFlashTrigger)
-                .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
+                .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.accentColored)
                 .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
                 .environment(\.shatlIsCardPreview, true)
                 .environment(\.shatlCardPreviewFocus, focus)
@@ -1204,7 +1199,7 @@ struct TorrentCardPreviewView: View {
     }
 
     private var expandHintColor: Color {
-        ShatlColor.neonBlue.opacity(0.5)
+        ShatlColor.accentColored.opacity(0.5)
     }
 
     private var expandHintBlendMode: BlendMode {

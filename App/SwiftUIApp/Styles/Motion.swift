@@ -200,11 +200,11 @@ private struct ShatlRollsMetricDigitsKey: EnvironmentKey {
 }
 
 private struct ShatlMetricSetOutlinePulseColorKey: EnvironmentKey {
-    static let defaultValue = ShatlColor.metricPulseHighlight
+    static let defaultValue = ShatlColor.accentColored
 }
 
 private struct ShatlMetricSetOutlineFlashColorKey: EnvironmentKey {
-    static let defaultValue = ShatlColor.metricPulseHighlight
+    static let defaultValue = ShatlColor.accentColored
 }
 
 private struct ShatlIsCardPreviewKey: EnvironmentKey {

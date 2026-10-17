@@ -602,14 +602,14 @@ struct DataCollectionInfo: View {
 
     private var collectsIconColor: Color {
         accentState.isUsingAppAccent
-            ? ShatlColor.neonBlue
+            ? ShatlColor.accentColored
             : accentState.systemAccentColor
     }
 
     private var doesNotCollectIconColor: Color {
         accentState.isUsingAppAccent
-            ? ShatlColor.neonBlue
-            : ShatlColor.slate
+            ? ShatlColor.accentColored
+            : ShatlColor.Extra.dataCollectionCross
     }
 }
 
