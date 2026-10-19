@@ -505,7 +505,15 @@ private struct OnboardingSettingsCard<Illustration: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
-        .background(ShatlColor.cardBackgroundDefault)
+        .background {
+            GeometryReader { proxy in
+                ZStack(alignment: .trailing) {
+                    ShatlColor.backgroundPrimary
+                    ShatlColor.backgroundSecondary
+                        .frame(width: proxy.size.width / 2)
+                }
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
