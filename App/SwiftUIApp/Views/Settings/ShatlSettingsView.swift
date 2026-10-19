@@ -1061,8 +1061,6 @@ private struct AppearanceSettingsTab: View {
                 metricSetOutlineFlashColor: ShatlColor.accent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 usesProductionProgressColors: true,
-                cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
-                cardOutlineColorOverride: colorScheme == .light ? ShatlColor.outlinePrimary : nil,
                 shadowStyle: .settings,
                 cardWidth: nil,
                 focus: previewFocus

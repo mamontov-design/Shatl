@@ -1544,7 +1544,9 @@ struct ShatlMetricSet: View {
     var metricIconColorOverride: Color? = nil
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
-    var dividerColorOverride: Color? = nil
+    /// The quiet plate of the expanded metrics: filled, with no outline and
+    /// no shadow; `Muted` in Figma.
+    var isMuted = false
     var colorizesDownloadSpeed = false
     /// The shadow under the set's plate.
     var showsShadows = true
@@ -1609,7 +1611,7 @@ struct ShatlMetricSet: View {
         .background {
             let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(plateColor)
-            if showsShadows, restOpacity > 0 {
+            if showsShadows, !isMuted, restOpacity > 0 {
                 plate.shadow(
                     color: ShatlColor.shadowKeyColor.opacity(restOpacity),
                     radius: restShadow.radius,
@@ -1650,11 +1652,11 @@ struct ShatlMetricSet: View {
     }
 
     private var metricBackgroundColor: Color {
-        backgroundColorOverride ?? ShatlColor.metricBackground
+        backgroundColorOverride ?? (isMuted ? ShatlColor.metricBackgroundMuted : ShatlColor.metricBackground)
     }
 
     private var metricOutlineColor: Color {
-        outlineColorOverride ?? ShatlColor.metricOutline
+        outlineColorOverride ?? (isMuted ? .clear : ShatlColor.metricOutline)
     }
 
     /// The number comes back once the pointer rests on the set, and folds
@@ -1679,7 +1681,7 @@ struct ShatlMetricSet: View {
 
     private var metricDivider: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
-            .fill(dividerColorOverride ?? ShatlColor.metricDivider)
+            .fill(isMuted ? ShatlColor.metricDividerMuted : ShatlColor.metricDivider)
             .frame(width: 2, height: ShatlMetricLayout.contentHeight)
     }
 
@@ -2052,7 +2054,7 @@ struct ShatlMetricGroup: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
-    var metricSetDividerColorOverride: Color? = nil
+    var isMuted = false
     var showsShadows = true
     #if DEBUG
     @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
@@ -2072,7 +2074,7 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
-                dividerColorOverride: metricSetDividerColorOverride,
+                isMuted: isMuted,
                 showsShadows: showsShadows
             )
             #if DEBUG
@@ -2089,7 +2091,7 @@ struct ShatlMetricGroupSet: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
-    var metricSetDividerColorOverride: Color? = nil
+    var isMuted = false
     var showsShadows = true
 
     var body: some View {
@@ -2100,7 +2102,7 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    metricSetDividerColorOverride: metricSetDividerColorOverride,
+                    isMuted: isMuted,
                     showsShadows: showsShadows
                 )
                     .layoutPriority(1)

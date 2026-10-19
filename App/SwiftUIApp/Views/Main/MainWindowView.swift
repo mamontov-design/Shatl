@@ -204,11 +204,12 @@ struct MainWindowView: View {
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }
-        // Experiment: in light the window takes card/default, so the white
-        // cards stand on a grey ground; the dark theme keeps the system's.
+        // In light the list and the empty window stand on a grey ground
+        // under the white cards; in dark the window keeps the system's
+        // background, tinted by the wallpaper.
         .background {
             if colorScheme == .light {
-                ShatlColor.cardDefault.ignoresSafeArea()
+                ShatlColor.Extra.macosWindowBackground.ignoresSafeArea()
             }
         }
         // Two listeners with one answer. The catcher lies over the content

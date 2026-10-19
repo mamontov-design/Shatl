@@ -232,7 +232,7 @@ struct TorrentCardView: View, Equatable {
             }
             .allowsHitTesting(false)
             .animation(ShatlMotion.cardState, value: cardOutlineState)
-            .animation(ShatlMotion.cardState, value: usesHoverOutline)
+            .animation(ShatlMotion.cardState, value: isOutlineHovered)
             .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
         .shatlSelectionRefusalShake(trigger: selectionRefusalCount)
@@ -456,7 +456,7 @@ struct TorrentCardView: View, Equatable {
         Button {
             onToggleExpanded()
         } label: {
-            Image(systemName: row.isExpanded ? "arrow.up.right.and.arrow.down.left" : "arrow.down.left.and.arrow.up.right")
+            Image(systemName: row.isExpanded ? "rectangle.compress.vertical" : "rectangle.expand.vertical")
                 .shatlTypography(ShatlTypography.bodyRegular)
                 .foregroundStyle(expandButtonForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
@@ -696,10 +696,7 @@ struct TorrentCardView: View, Equatable {
             if !dynamicGroups.isEmpty {
                 ShatlMetricGroupSet(
                     groups: dynamicGroups,
-                    metricSetBackgroundColorOverride: expandedMetricBackgroundColor,
-                    metricSetOutlineColorOverride: expandedMetricOutlineColor,
-                    metricSetDividerColorOverride: expandedMetricDividerColor,
-                    showsShadows: showsExpandedMetricShadows
+                    isMuted: true
                 )
                     #if DEBUG
                     .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedDynamic"))
@@ -713,10 +710,7 @@ struct TorrentCardView: View, Equatable {
 
             ShatlMetricGroup(
                 group: sizeGroup,
-                metricSetBackgroundColorOverride: expandedMetricBackgroundColor,
-                metricSetOutlineColorOverride: expandedMetricOutlineColor,
-                metricSetDividerColorOverride: expandedMetricDividerColor,
-                showsShadows: showsExpandedMetricShadows
+                isMuted: true
             )
                 #if DEBUG
                 .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedSize"))
@@ -725,29 +719,6 @@ struct TorrentCardView: View, Equatable {
         }
         .geometryGroup()
         .animation(ShatlMotion.metricResize, value: animationKey)
-    }
-
-    /// Experiment: in light the expanded metrics sit on a filled plate with
-    /// no outline and no shadow; the speed and time left keep theirs.
-    private var usesFilledExpandedMetrics: Bool {
-        colorScheme == .light && metricSetBackgroundColorOverride == nil
-    }
-
-    private var expandedMetricBackgroundColor: Color? {
-        usesFilledExpandedMetrics ? ShatlColor.onboardingBackground : metricSetBackgroundColorOverride
-    }
-
-    private var expandedMetricOutlineColor: Color? {
-        usesFilledExpandedMetrics ? .clear : metricSetOutlineColorOverride
-    }
-
-    /// Two steps darker than the fill, so the divider between a pair stays.
-    private var expandedMetricDividerColor: Color? {
-        usesFilledExpandedMetrics ? ShatlColor.metricOutline : nil
-    }
-
-    private var showsExpandedMetricShadows: Bool {
-        usesFilledExpandedMetrics ? false : showsMetricShadows
     }
 
     /// Only in the list: the onboarding and the settings preview have no
@@ -853,11 +824,6 @@ struct TorrentCardView: View, Equatable {
         .frame(minWidth: progressGroupMinimumWidth, alignment: .center)
         .background(progressGroupColor)
         .clipShape(progressGroupShape)
-        .overlay {
-            progressGroupShape
-                .strokeBorder(progressGroupBorderColor, lineWidth: 0.5)
-                .allowsHitTesting(false)
-        }
         .overlay {
             progressGroupShape
                 .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
@@ -1000,41 +966,6 @@ struct TorrentCardView: View, Equatable {
         }
     }
 
-    /// The hairline round a filled badge; its tokens are clear in dark. An
-    /// outlined badge and a badge painted by its caller go without it.
-    private var progressGroupBorderColor: Color {
-        if progressGroupBackgroundColorOverride != nil || usesOutlinedProgressGroup {
-            return .clear
-        }
-
-        if presentationMode == .onboardingDemo, !usesProductionProgressColors {
-            return .clear
-        }
-
-        switch statusKind {
-        case .downloading, .checking:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeBorderDownloadingHover
-                : ShatlColor.statusBadgeBorderDownloadingDefault
-        case .stopped:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeBorderPausedHover
-                : ShatlColor.statusBadgeBorderPausedDefault
-        case .seeding:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeBorderSeedingHover
-                : ShatlColor.statusBadgeBorderSeedingDefault
-        case .completed:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeBorderCompletedHover
-                : ShatlColor.statusBadgeBorderCompletedDefault
-        case .error:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeBorderErrorHover
-                : ShatlColor.statusBadgeBorderErrorDefault
-        }
-    }
-
     private var pendingProgressGroupBorderColor: Color {
         usesHoverStatusPalette
             ? ShatlColor.statusBadgeDownloadingHover
@@ -1103,22 +1034,22 @@ struct TorrentCardView: View, Equatable {
     private var cardOutlineColor: Color {
         switch cardOutlineState {
         case .normal:
-            cardOutlineColorOverride ?? (usesHoverOutline ? ShatlColor.accent.opacity(0.5) : ShatlColor.outlinePrimary)
+            cardOutlineColorOverride ?? (isOutlineHovered ? ShatlColor.cardOutlineHover : ShatlColor.cardOutlineDefault)
         case .selected:
-            ShatlColor.accent
+            ShatlColor.cardOutlineSelected
         case .error:
-            ShatlColor.errorOutline
+            ShatlColor.cardOutlineError
         }
     }
 
-    /// Experiment: in light the card under the pointer wears the accent at
-    /// half strength on its outline instead of a darker fill.
-    private var usesHoverOutline: Bool {
-        colorScheme == .light && presentationMode == .normal && isHovered
+    /// The card under the pointer answers with its outline; its fill stays.
+    private var isOutlineHovered: Bool {
+        presentationMode == .normal && isHovered
     }
 
+    /// A selected card keeps the thicker outline when its download fails.
     private var cardOutlineLineWidth: CGFloat {
-        cardOutlineState == .selected ? 1 : 0.5
+        row.isSelected ? 1 : 0.5
     }
 
     private var originalTitleLine: some View {
@@ -1404,17 +1335,7 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.onboardingForeground
         }
 
-        // Experiment: in light the card stays white; only its outline
-        // answers the pointer.
-        if colorScheme == .light {
-            return ShatlColor.backgroundTertiary
-        }
-
-        if row.isSelected {
-            return ShatlColor.cardDefault
-        }
-
-        return isHovered ? ShatlColor.cardHover : ShatlColor.cardDefault
+        return ShatlColor.cardBackgroundDefault
     }
 
     private var cardBackground: some View {

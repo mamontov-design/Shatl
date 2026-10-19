@@ -206,7 +206,7 @@ struct OnboardingFlowView: View {
     }
 
     private var expandedDescriptionIcon: Text {
-        Text(Image(systemName: "arrow.down.left.and.arrow.up.right"))
+        Text(Image(systemName: "rectangle.expand.vertical"))
             .foregroundColor(ShatlColor.accentColored)
     }
 
@@ -505,15 +505,7 @@ private struct OnboardingSettingsCard<Illustration: View>: View {
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
-        .background {
-            GeometryReader { proxy in
-                ZStack(alignment: .trailing) {
-                    ShatlColor.cardDefault
-                    ShatlColor.cardHover
-                        .frame(width: proxy.size.width / 2)
-                }
-            }
-        }
+        .background(ShatlColor.cardBackgroundDefault)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

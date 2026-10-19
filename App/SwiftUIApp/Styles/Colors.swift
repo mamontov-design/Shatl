@@ -65,10 +65,17 @@ enum ShatlColor {
 
     static let buttonNeutral = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA8)
 
-    static let cardDefault = Color(light: ShatlPalette.gray2, dark: ShatlPalette.grayDarkA3)
-    static let cardHover = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDarkA4)
+    /// A card keeps one fill whatever happens to it; its outline answers the
+    /// pointer and the selection.
+    static let cardBackgroundDefault = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDarkA3)
 
-    /// The outline of a card whose download has an error.
+    static let cardOutlineDefault = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA6)
+    static let cardOutlineHover = Color(light: ShatlPalette.gray8, dark: ShatlPalette.grayDarkA8)
+    /// Three quarters of the accent, which follows the one the user picked.
+    static let cardOutlineSelected = accent.opacity(0.75)
+    static let cardOutlineError = Color(light: ShatlPalette.red8, dark: ShatlPalette.redDarkA8)
+
+    /// The check mark of a selected card whose download has an error.
     static let errorOutline = Color(light: ShatlPalette.red9, dark: ShatlPalette.redDark10)
     /// The fill of a message that needs attention now, under white text:
     /// no room for a download in the add window.
@@ -85,6 +92,10 @@ enum ShatlColor {
     static let metricBackground = Color(light: ShatlPalette.white, dark: ShatlPalette.clear)
     static let metricDivider = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDarkA3)
     static let metricOutline = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA6)
+    /// The expanded metrics sit on a filled plate with no outline or
+    /// shadow; the speed and the time left keep the outlined plate.
+    static let metricBackgroundMuted = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark3)
+    static let metricDividerMuted = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDark6)
 
     static let onboardingBackground = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark2)
     static let onboardingForeground = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDark6)
@@ -113,40 +124,27 @@ enum ShatlColor {
     static let speedLabelHare = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
     static let speedLabelBolt = Color(light: ShatlPalette.ruby11, dark: ShatlPalette.rubyDark12)
 
-    static let statusBadgeDownloadingDefault = Color(light: ShatlPalette.violetA3, dark: ShatlPalette.violetDark7)
-    static let statusBadgeDownloadingHover = Color(light: ShatlPalette.violetA4, dark: ShatlPalette.violetDark9)
-    static let statusBadgePausedDefault = Color(light: ShatlPalette.amberA3, dark: ShatlPalette.amberDark7)
-    static let statusBadgePausedHover = Color(light: ShatlPalette.amberA4, dark: ShatlPalette.amberDark8)
-    static let statusBadgeSeedingDefault = Color(light: ShatlPalette.skyA3, dark: ShatlPalette.skyDark7)
-    static let statusBadgeSeedingHover = Color(light: ShatlPalette.skyA4, dark: ShatlPalette.skyDark8)
-    static let statusBadgeCompletedDefault = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDark7)
-    static let statusBadgeCompletedHover = Color(light: ShatlPalette.grayA4, dark: ShatlPalette.grayDark8)
-    static let statusBadgeErrorDefault = Color(light: ShatlPalette.redA3, dark: ShatlPalette.redDark7)
-    static let statusBadgeErrorHover = Color(light: ShatlPalette.redA4, dark: ShatlPalette.redDark8)
+    static let statusBadgeDownloadingDefault = Color(light: ShatlPalette.purple3, dark: ShatlPalette.purpleDark6)
+    static let statusBadgeDownloadingHover = Color(light: ShatlPalette.purple4, dark: ShatlPalette.purpleDark7)
+    static let statusBadgePausedDefault = Color(light: ShatlPalette.amber3, dark: ShatlPalette.yellowDark6)
+    static let statusBadgePausedHover = Color(light: ShatlPalette.amber4, dark: ShatlPalette.yellowDark7)
+    static let statusBadgeSeedingDefault = Color(light: ShatlPalette.sky3, dark: ShatlPalette.skyDark6)
+    static let statusBadgeSeedingHover = Color(light: ShatlPalette.sky4, dark: ShatlPalette.skyDark7)
+    static let statusBadgeCompletedDefault = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark6)
+    static let statusBadgeCompletedHover = Color(light: ShatlPalette.gray4, dark: ShatlPalette.grayDark7)
+    static let statusBadgeErrorDefault = Color(light: ShatlPalette.red3, dark: ShatlPalette.redDark6)
+    static let statusBadgeErrorHover = Color(light: ShatlPalette.red4, dark: ShatlPalette.redDark7)
 
-    /// The hairline round a status badge, 0.5 pt inside its edge. Clear in
-    /// dark, where the fill alone sets the badge off.
-    static let statusBadgeBorderDownloadingDefault = Color(light: ShatlPalette.violetA7, dark: ShatlPalette.clear)
-    static let statusBadgeBorderDownloadingHover = Color(light: ShatlPalette.violetA8, dark: ShatlPalette.clear)
-    static let statusBadgeBorderPausedDefault = Color(light: ShatlPalette.amberA7, dark: ShatlPalette.clear)
-    static let statusBadgeBorderPausedHover = Color(light: ShatlPalette.amberA8, dark: ShatlPalette.clear)
-    static let statusBadgeBorderSeedingDefault = Color(light: ShatlPalette.skyA7, dark: ShatlPalette.clear)
-    static let statusBadgeBorderSeedingHover = Color(light: ShatlPalette.skyA8, dark: ShatlPalette.clear)
-    static let statusBadgeBorderCompletedDefault = Color(light: ShatlPalette.grayA7, dark: ShatlPalette.clear)
-    static let statusBadgeBorderCompletedHover = Color(light: ShatlPalette.grayA8, dark: ShatlPalette.clear)
-    static let statusBadgeBorderErrorDefault = Color(light: ShatlPalette.redA7, dark: ShatlPalette.clear)
-    static let statusBadgeBorderErrorHover = Color(light: ShatlPalette.redA8, dark: ShatlPalette.clear)
-
-    static let statusTextDownloadingDefault = Color(light: ShatlPalette.violetA11, dark: ShatlPalette.violetDark12)
-    static let statusTextDownloadingHover = Color(light: ShatlPalette.violetA11, dark: ShatlPalette.violetDark12)
-    static let statusTextPausedDefault = Color(light: ShatlPalette.amberA11, dark: ShatlPalette.amberDark12)
-    static let statusTextPausedHover = Color(light: ShatlPalette.amberA11, dark: ShatlPalette.amberDark12)
-    static let statusTextSeedingDefault = Color(light: ShatlPalette.skyA11, dark: ShatlPalette.skyDark12)
-    static let statusTextSeedingHover = Color(light: ShatlPalette.skyA11, dark: ShatlPalette.skyDark12)
-    static let statusTextCompletedDefault = Color(light: ShatlPalette.grayA11, dark: ShatlPalette.grayDark12)
-    static let statusTextCompletedHover = Color(light: ShatlPalette.grayA11, dark: ShatlPalette.grayDark12)
-    static let statusTextErrorDefault = Color(light: ShatlPalette.redA11, dark: ShatlPalette.redDark12)
-    static let statusTextErrorHover = Color(light: ShatlPalette.redA11, dark: ShatlPalette.redDark12)
+    static let statusTextDownloadingDefault = Color(light: ShatlPalette.violet11, dark: ShatlPalette.violetDark12)
+    static let statusTextDownloadingHover = Color(light: ShatlPalette.violet11, dark: ShatlPalette.violetDark12)
+    static let statusTextPausedDefault = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
+    static let statusTextPausedHover = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
+    static let statusTextSeedingDefault = Color(light: ShatlPalette.blueA11, dark: ShatlPalette.blueDarkA12)
+    static let statusTextSeedingHover = Color(light: ShatlPalette.blueA11, dark: ShatlPalette.blueDarkA12)
+    static let statusTextCompletedDefault = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark12)
+    static let statusTextCompletedHover = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark12)
+    static let statusTextErrorDefault = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark12)
+    static let statusTextErrorHover = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark12)
 
     /// A link button under the pointer wears the colours of the
     /// "Скачивается" badge, as the mockup binds them.
@@ -166,6 +164,11 @@ extension ShatlColor {
         /// The crosses beside what is not sent, in Settings → Data and in
         /// onboarding, while the accent comes from the system.
         static let dataCollectionCross = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark10)
+
+        /// The main window's ground in light, under the white cards. In dark the
+        /// window keeps the system's background, tinted by the wallpaper, and
+        /// this value only names it.
+        static let macosWindowBackground = Color(light: ShatlPalette.gray2, dark: ShatlPalette.windowBackgroundDark)
 
         /// The empty part of a performance mode's speedometer.
         static let speedometerTrack = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA6)
