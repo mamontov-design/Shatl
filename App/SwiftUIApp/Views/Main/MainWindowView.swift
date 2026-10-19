@@ -204,10 +204,10 @@ struct MainWindowView: View {
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }
-        // Experiment: in dark a layer of card/default over the system's
-        // window background, which keeps the wallpaper's tint.
+        // Experiment: in light the window takes card/default, so the white
+        // cards stand on a grey ground; the dark theme keeps the system's.
         .background {
-            if colorScheme == .dark {
+            if colorScheme == .light {
                 ShatlColor.cardDefault.ignoresSafeArea()
             }
         }
