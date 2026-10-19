@@ -1544,6 +1544,7 @@ struct ShatlMetricSet: View {
     var metricIconColorOverride: Color? = nil
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
+    var dividerColorOverride: Color? = nil
     var colorizesDownloadSpeed = false
     /// The shadow under the set's plate.
     var showsShadows = true
@@ -1678,7 +1679,7 @@ struct ShatlMetricSet: View {
 
     private var metricDivider: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
-            .fill(ShatlColor.metricDivider)
+            .fill(dividerColorOverride ?? ShatlColor.metricDivider)
             .frame(width: 2, height: ShatlMetricLayout.contentHeight)
     }
 
@@ -2051,6 +2052,7 @@ struct ShatlMetricGroup: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var metricSetDividerColorOverride: Color? = nil
     var showsShadows = true
     #if DEBUG
     @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
@@ -2070,6 +2072,7 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
+                dividerColorOverride: metricSetDividerColorOverride,
                 showsShadows: showsShadows
             )
             #if DEBUG
@@ -2086,6 +2089,7 @@ struct ShatlMetricGroupSet: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var metricSetDividerColorOverride: Color? = nil
     var showsShadows = true
 
     var body: some View {
@@ -2096,6 +2100,7 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
+                    metricSetDividerColorOverride: metricSetDividerColorOverride,
                     showsShadows: showsShadows
                 )
                     .layoutPriority(1)

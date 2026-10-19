@@ -232,6 +232,7 @@ struct TorrentCardView: View, Equatable {
             }
             .allowsHitTesting(false)
             .animation(ShatlMotion.cardState, value: cardOutlineState)
+            .animation(ShatlMotion.cardState, value: usesHoverOutline)
             .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
         .shatlSelectionRefusalShake(trigger: selectionRefusalCount)
@@ -695,9 +696,10 @@ struct TorrentCardView: View, Equatable {
             if !dynamicGroups.isEmpty {
                 ShatlMetricGroupSet(
                     groups: dynamicGroups,
-                    metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
-                    metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    showsShadows: showsMetricShadows
+                    metricSetBackgroundColorOverride: expandedMetricBackgroundColor,
+                    metricSetOutlineColorOverride: expandedMetricOutlineColor,
+                    metricSetDividerColorOverride: expandedMetricDividerColor,
+                    showsShadows: showsExpandedMetricShadows
                 )
                     #if DEBUG
                     .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedDynamic"))
@@ -711,9 +713,10 @@ struct TorrentCardView: View, Equatable {
 
             ShatlMetricGroup(
                 group: sizeGroup,
-                metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
-                metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                showsShadows: showsMetricShadows
+                metricSetBackgroundColorOverride: expandedMetricBackgroundColor,
+                metricSetOutlineColorOverride: expandedMetricOutlineColor,
+                metricSetDividerColorOverride: expandedMetricDividerColor,
+                showsShadows: showsExpandedMetricShadows
             )
                 #if DEBUG
                 .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedSize"))
@@ -722,6 +725,29 @@ struct TorrentCardView: View, Equatable {
         }
         .geometryGroup()
         .animation(ShatlMotion.metricResize, value: animationKey)
+    }
+
+    /// Experiment: in light the expanded metrics sit on a filled plate with
+    /// no outline and no shadow; the speed and time left keep theirs.
+    private var usesFilledExpandedMetrics: Bool {
+        colorScheme == .light && metricSetBackgroundColorOverride == nil
+    }
+
+    private var expandedMetricBackgroundColor: Color? {
+        usesFilledExpandedMetrics ? ShatlColor.onboardingBackground : metricSetBackgroundColorOverride
+    }
+
+    private var expandedMetricOutlineColor: Color? {
+        usesFilledExpandedMetrics ? .clear : metricSetOutlineColorOverride
+    }
+
+    /// Two steps darker than the fill, so the divider between a pair stays.
+    private var expandedMetricDividerColor: Color? {
+        usesFilledExpandedMetrics ? ShatlColor.metricOutline : nil
+    }
+
+    private var showsExpandedMetricShadows: Bool {
+        usesFilledExpandedMetrics ? false : showsMetricShadows
     }
 
     /// Only in the list: the onboarding and the settings preview have no
@@ -1077,12 +1103,18 @@ struct TorrentCardView: View, Equatable {
     private var cardOutlineColor: Color {
         switch cardOutlineState {
         case .normal:
-            cardOutlineColorOverride ?? ShatlColor.outlinePrimary
+            cardOutlineColorOverride ?? (usesHoverOutline ? ShatlColor.accent.opacity(0.5) : ShatlColor.outlinePrimary)
         case .selected:
             ShatlColor.accent
         case .error:
             ShatlColor.errorOutline
         }
+    }
+
+    /// Experiment: in light the card under the pointer wears the accent at
+    /// half strength on its outline instead of a darker fill.
+    private var usesHoverOutline: Bool {
+        colorScheme == .light && presentationMode == .normal && isHovered
     }
 
     private var cardOutlineLineWidth: CGFloat {
@@ -1370,6 +1402,12 @@ struct TorrentCardView: View, Equatable {
 
         if presentationMode == .onboardingDemo, !usesProductionCardColors {
             return ShatlColor.onboardingForeground
+        }
+
+        // Experiment: in light the card stays white; only its outline
+        // answers the pointer.
+        if colorScheme == .light {
+            return ShatlColor.backgroundTertiary
         }
 
         if row.isSelected {

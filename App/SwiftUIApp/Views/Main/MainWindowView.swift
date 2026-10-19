@@ -18,6 +18,7 @@ nonisolated enum SessionRestoreStatusTiming {
 }
 
 struct MainWindowView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: AppStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
@@ -202,6 +203,13 @@ struct MainWindowView: View {
                 .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
+        }
+        // Experiment: in dark a layer of card/default over the system's
+        // window background, which keeps the wallpaper's tint.
+        .background {
+            if colorScheme == .dark {
+                ShatlColor.cardDefault.ignoresSafeArea()
+            }
         }
         // Two listeners with one answer. The catcher lies over the content
         // and takes a drag before a system text field under it can; SwiftUI's
