@@ -161,7 +161,7 @@ enum ShatlColor {
     static let statusTextSeedingDefault = Color(light: ShatlPalette.blue10, dark: ShatlPalette.blueDarkA12)
     static let statusTextSeedingHover = Color(light: ShatlPalette.blue11, dark: ShatlPalette.blueDarkA12)
     static let statusTextSeedingStalledDefault = Color(light: ShatlPalette.blue9, dark: ShatlPalette.blueDarkA12)
-    static let statusTextSeedingStalledHover = Color(light: ShatlPalette.blue11, dark: ShatlPalette.blueDarkA12)
+    static let statusTextSeedingStalledHover = Color(light: ShatlPalette.blue10, dark: ShatlPalette.blueDarkA12)
     static let statusTextCompletedDefault = Color(light: ShatlPalette.gold10, dark: ShatlPalette.goldDark12)
     static let statusTextCompletedHover = Color(light: ShatlPalette.gold11, dark: ShatlPalette.goldDark12)
     static let statusTextErrorDefault = Color(light: ShatlPalette.red10, dark: ShatlPalette.redDark12)

@@ -1360,6 +1360,9 @@ struct ShatlMetricItem: View {
     /// The chevron shows while the speed has the ETA beside it; at the end
     /// of a download the ETA leaves and takes it along.
     var showsFoldMark = true
+    /// On the quiet plate of the expanded metrics the unit is a step
+    /// darker, so that it holds on the grey.
+    var isMuted = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
@@ -1389,7 +1392,7 @@ struct ShatlMetricItem: View {
                     if let unit = item.unit {
                         Text(unit)
                             .shatlTypography(ShatlTypography.metricSemibold)
-                            .foregroundStyle(cellPalette?.label ?? ShatlColor.typographyTertiary)
+                            .foregroundStyle(unitColor)
                             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -1447,6 +1450,11 @@ struct ShatlMetricItem: View {
 
     private var foldMarkColor: Color {
         cellPalette.map { $0.icon.opacity(0.35) } ?? ShatlColor.typographyTertiary
+    }
+
+    private var unitColor: Color {
+        if let cellPalette { return cellPalette.label }
+        return isMuted ? ShatlColor.typographySecondary : ShatlColor.typographyTertiary
     }
 
     private var spokenValue: String {
@@ -1587,7 +1595,8 @@ struct ShatlMetricSet: View {
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
                     showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
                     isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded,
-                    showsFoldMark: items.contains { $0.id == "eta" }
+                    showsFoldMark: items.contains { $0.id == "eta" },
+                    isMuted: isMuted
                 )
                 .transition(metricContentTransition)
             }
