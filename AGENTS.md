@@ -85,8 +85,10 @@ persistence, deletion, restore, or shared UI state.
   plain stack stays even though it tires on dozens of cards. Card guards:
   hover waits for a resting pointer (`TorrentCardHoverTiming`), the progress
   bar moves in steps (`TorrentProgressBarSteps`), speed icons change level
-  with hysteresis (`TransferSpeedLevel`) and change it quietly, and
-  metric shadows sit under the plate so changing digits leave the blur alone.
+  with hysteresis (`TransferSpeedLevel`) and change it quietly, a badge
+  loses its fill for "Простаивает" only after a spell without speed and
+  takes it back on held speed (`TransferActivity`), never second by second,
+  and metric shadows sit under the plate so changing digits leave the blur alone.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
