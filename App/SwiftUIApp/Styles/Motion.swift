@@ -140,6 +140,9 @@ enum ShatlMotion {
     /// A download that finishes shows its new status for a second, once the
     /// status has changed, before its card starts folding into one line.
     static let finishedCardPause: TimeInterval = metricResizeDuration + 1
+    /// After that, the card rests this long once each step has settled,
+    /// before the next begins, so the steps read one by one.
+    static let finishedCardStepPause: TimeInterval = 0.5
 
     /// A finished card's last step: the title slides aside, and the status
     /// badge comes in once the title is out of its way. On the way back it

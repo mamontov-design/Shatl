@@ -1120,8 +1120,9 @@ struct TorrentCardView: View, Equatable {
     }
 
     /// Takes a download that finished in view into the one-line layout step
-    /// by step, each step once the one before has settled. A finished
-    /// download that starts again or fails goes back in one move.
+    /// by step, each step once the one before has settled and the card has
+    /// rested a moment. A finished download that starts again or fails goes
+    /// back in one move.
     private func followFinishedLayout() async {
         guard finishSteps.appearedFinished != nil else {
             finishSteps.appearedFinished = row.usesFinishedLayout
@@ -1175,28 +1176,28 @@ struct TorrentCardView: View, Equatable {
             withAnimation(ShatlMotion.cardLayout) {
                 onCollapse()
             }
-            guard await settle(for: ShatlMotion.cardLayoutDuration) else { return }
+            guard await settle(for: ShatlMotion.cardLayoutDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .statusHidden {
             withAnimation(ShatlMotion.metricResize) {
                 finishStage = .statusHidden
             }
-            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+            guard await settle(for: ShatlMotion.metricResizeDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .barHidden {
             withAnimation(ShatlMotion.metricResize) {
                 finishStage = .barHidden
             }
-            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+            guard await settle(for: ShatlMotion.metricResizeDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .merged {
             withAnimation(ShatlMotion.cardLayout) {
                 finishStage = .merged
             }
-            guard await settle(for: ShatlMotion.finishedStatusSettleDuration) else { return }
+            guard await settle(for: ShatlMotion.finishedStatusSettleDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         withAnimation(ShatlMotion.metricResize) {
