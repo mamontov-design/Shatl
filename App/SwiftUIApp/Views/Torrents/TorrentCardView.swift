@@ -88,6 +88,31 @@ private enum TorrentCardOutlineState: Equatable {
     case error
 }
 
+/// What a status badge wears. A fill means the download is doing
+/// something; an outline means it stands. "Скачана" and "Ошибка" are filled
+/// all the same.
+private enum TorrentStatusBadgeLook: Equatable {
+    case downloading
+    case adding
+    case saved
+    case paused
+    case seeding
+    case completed
+    case error
+
+    var palette: ShatlStatusBadgePalette {
+        switch self {
+        case .downloading: .downloading
+        case .adding: .downloadingStalled
+        case .saved: .saved
+        case .paused: .paused
+        case .seeding: .seeding
+        case .completed: .completed
+        case .error: .error
+        }
+    }
+}
+
 enum TorrentCardPresentationMode {
     case normal
     case onboardingDemo
@@ -826,12 +851,15 @@ struct TorrentCardView: View, Equatable {
         .clipShape(progressGroupShape)
         .overlay {
             progressGroupShape
-                .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
-                .opacity(usesOutlinedProgressGroup ? 1 : 0)
+                .strokeBorder(
+                    progressGroupOutlineColor ?? .clear,
+                    style: StrokeStyle(lineWidth: 1, dash: badgeLook == .saved ? [4, 2] : [])
+                )
+                .opacity(progressGroupOutlineColor == nil ? 0 : 1)
                 .allowsHitTesting(false)
         }
         .frame(height: ShatlMetricLayout.containerHeight)
-        .animation(ShatlMotion.cardState, value: usesOutlinedProgressGroup)
+        .animation(ShatlMotion.cardState, value: badgeLook)
     }
 
     private static let progressGroupPadding: CGFloat = 6
@@ -873,10 +901,31 @@ struct TorrentCardView: View, Equatable {
         return row.isSavedForLater ? "saved" : statusKind.rawValue
     }
 
-    /// The badge of a download being added and of a saved one is an outline
-    /// around its icon, in the colours of a download.
+    /// The badge of a download being added and of a saved one shows its icon
+    /// alone.
     private var usesOutlinedProgressGroup: Bool {
         row.isPendingAddition || row.isSavedForLater
+    }
+
+    private var badgeLook: TorrentStatusBadgeLook {
+        if row.isPendingAddition {
+            return .adding
+        }
+        if row.isSavedForLater {
+            return .saved
+        }
+        switch statusKind {
+        case .downloading, .checking:
+            return .downloading
+        case .stopped:
+            return .paused
+        case .seeding:
+            return .seeding
+        case .completed:
+            return .completed
+        case .error:
+            return .error
+        }
     }
 
     private var progressIconName: String {
@@ -938,38 +987,18 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.backgroundPrimary
         }
 
-        if usesOutlinedProgressGroup {
-            return .clear
-        }
-
-        switch statusKind {
-        case .downloading, .checking:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeDownloadingHover
-                : ShatlColor.statusBadgeDownloadingDefault
-        case .stopped:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgePausedHover
-                : ShatlColor.statusBadgePausedDefault
-        case .seeding:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeSeedingHover
-                : ShatlColor.statusBadgeSeedingDefault
-        case .completed:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeCompletedHover
-                : ShatlColor.statusBadgeCompletedDefault
-        case .error:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeErrorHover
-                : ShatlColor.statusBadgeErrorDefault
-        }
+        let palette = badgeLook.palette
+        return usesHoverStatusPalette ? palette.fill.hover : palette.fill.rest
     }
 
-    private var pendingProgressGroupBorderColor: Color {
-        usesHoverStatusPalette
-            ? ShatlColor.statusBadgeDownloadingHover
-            : ShatlColor.statusBadgeDownloadingDefault
+    /// Nil for a filled badge, and on the onboarding's plain cards.
+    private var progressGroupOutlineColor: Color? {
+        if progressGroupBackgroundColorOverride != nil
+            || (presentationMode == .onboardingDemo && !usesProductionProgressColors) {
+            return nil
+        }
+        guard let outline = badgeLook.palette.outline else { return nil }
+        return usesHoverStatusPalette ? outline.hover : outline.rest
     }
 
     private var progressGroupForegroundColor: Color {
@@ -981,34 +1010,8 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.typographyPrimary
         }
 
-        if row.isSavedForLater {
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextDownloadingHover
-                : ShatlColor.statusTextDownloadingDefault
-        }
-
-        switch statusKind {
-        case .downloading, .checking:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextDownloadingHover
-                : ShatlColor.statusTextDownloadingDefault
-        case .stopped:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextPausedHover
-                : ShatlColor.statusTextPausedDefault
-        case .seeding:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextSeedingHover
-                : ShatlColor.statusTextSeedingDefault
-        case .completed:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextCompletedHover
-                : ShatlColor.statusTextCompletedDefault
-        case .error:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextErrorHover
-                : ShatlColor.statusTextErrorDefault
-        }
+        let palette = badgeLook.palette
+        return usesHoverStatusPalette ? palette.text.hover : palette.text.rest
     }
 
     private var metricSetBackgroundColorOverride: Color? {

@@ -75,8 +75,6 @@ enum ShatlColor {
     static let cardOutlineSelected = accent.opacity(0.75)
     static let cardOutlineError = Color(light: ShatlPalette.red8, dark: ShatlPalette.redDarkA8)
 
-    /// The check mark of a selected card whose download has an error.
-    static let errorOutline = Color(light: ShatlPalette.red9, dark: ShatlPalette.redDark10)
     /// The fill of a message that needs attention now, under white text:
     /// no room for a download in the add window.
     static let errorSolidBackground = Color(light: ShatlPalette.red9, dark: ShatlPalette.redDark9)
@@ -108,42 +106,65 @@ enum ShatlColor {
     /// the bar does not read as a hole in the card.
     static let progressBarTrack = Color(light: ShatlPalette.white, dark: ShatlPalette.blackA4)
 
-    static let speedBadgeTortoise = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDarkA3)
+    static let speedBadgeTortoise = Color(light: ShatlPalette.slate3, dark: ShatlPalette.slateDarkA3)
     static let speedBadgeWalk = Color(light: ShatlPalette.teal3, dark: ShatlPalette.tealDarkA3)
     static let speedBadgeRun = Color(light: ShatlPalette.grass3, dark: ShatlPalette.grassDarkA3)
     static let speedBadgeHare = Color(light: ShatlPalette.orange3, dark: ShatlPalette.orangeDarkA3)
     static let speedBadgeBolt = Color(light: ShatlPalette.ruby3, dark: ShatlPalette.rubyDarkA3)
-    static let speedIconTortoise = Color(light: ShatlPalette.gray9, dark: ShatlPalette.grayDark9)
+    static let speedIconTortoise = Color(light: ShatlPalette.slate9, dark: ShatlPalette.slateDark9)
     static let speedIconWalk = Color(light: ShatlPalette.teal9, dark: ShatlPalette.tealDark9)
     static let speedIconRun = Color(light: ShatlPalette.grass9, dark: ShatlPalette.grassDark9)
     static let speedIconHare = Color(light: ShatlPalette.orange9, dark: ShatlPalette.orangeDark9)
     static let speedIconBolt = Color(light: ShatlPalette.ruby9, dark: ShatlPalette.rubyDark9)
-    static let speedLabelTortoise = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark12)
+    static let speedLabelTortoise = Color(light: ShatlPalette.slate11, dark: ShatlPalette.slateDark12)
     static let speedLabelWalk = Color(light: ShatlPalette.teal11, dark: ShatlPalette.tealDark12)
     static let speedLabelRun = Color(light: ShatlPalette.grass11, dark: ShatlPalette.grassDark12)
     static let speedLabelHare = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
     static let speedLabelBolt = Color(light: ShatlPalette.ruby11, dark: ShatlPalette.rubyDark12)
 
-    static let statusBadgeDownloadingDefault = Color(light: ShatlPalette.purple3, dark: ShatlPalette.purpleDark6)
-    static let statusBadgeDownloadingHover = Color(light: ShatlPalette.purple4, dark: ShatlPalette.purpleDark7)
-    static let statusBadgePausedDefault = Color(light: ShatlPalette.amber3, dark: ShatlPalette.yellowDark6)
-    static let statusBadgePausedHover = Color(light: ShatlPalette.amber4, dark: ShatlPalette.yellowDark7)
+    /// A filled badge says the download is doing something; an outlined one
+    /// says it stands: idle, paused, being added or saved. "Скачана" and
+    /// "Ошибка" keep their fill. Its text and icon are a step lighter at
+    /// rest and darken under the pointer.
+    static let statusBadgeDownloadingDefault = Color(light: ShatlPalette.purple3, dark: ShatlPalette.purpleDark7)
+    static let statusBadgeDownloadingHover = Color(light: ShatlPalette.purple4, dark: ShatlPalette.purpleDark8)
+    static let statusBadgeDownloadingStalledDefault = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgeDownloadingStalledHover = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgePausedDefault = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgePausedHover = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
     static let statusBadgeSeedingDefault = Color(light: ShatlPalette.sky3, dark: ShatlPalette.skyDark6)
     static let statusBadgeSeedingHover = Color(light: ShatlPalette.sky4, dark: ShatlPalette.skyDark7)
-    static let statusBadgeCompletedDefault = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark6)
-    static let statusBadgeCompletedHover = Color(light: ShatlPalette.gray4, dark: ShatlPalette.grayDark7)
+    static let statusBadgeSeedingStalledDefault = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgeSeedingStalledHover = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgeCompletedDefault = Color(light: ShatlPalette.gold3, dark: ShatlPalette.goldDark6)
+    static let statusBadgeCompletedHover = Color(light: ShatlPalette.gold4, dark: ShatlPalette.goldDark7)
     static let statusBadgeErrorDefault = Color(light: ShatlPalette.red3, dark: ShatlPalette.redDark6)
     static let statusBadgeErrorHover = Color(light: ShatlPalette.red4, dark: ShatlPalette.redDark7)
 
-    static let statusTextDownloadingDefault = Color(light: ShatlPalette.violet11, dark: ShatlPalette.violetDark12)
+    /// The outline of a standing badge, 1 pt inside. A saved download's is
+    /// dashed and a step darker, so that the dashes hold.
+    static let statusBadgeOutlineDownloadingStalledDefault = Color(light: ShatlPalette.purple6, dark: ShatlPalette.purpleDark7)
+    static let statusBadgeOutlineDownloadingStalledHover = Color(light: ShatlPalette.purple7, dark: ShatlPalette.purpleDark8)
+    static let statusBadgeOutlineDownloadingStalledDashedDefault = Color(light: ShatlPalette.purple7, dark: ShatlPalette.purpleDark8)
+    static let statusBadgeOutlineDownloadingStalledDashedHover = Color(light: ShatlPalette.purple8, dark: ShatlPalette.purpleDark9)
+    static let statusBadgeOutlinePausedDefault = Color(light: ShatlPalette.purple6, dark: ShatlPalette.purpleDark7)
+    static let statusBadgeOutlinePausedHover = Color(light: ShatlPalette.purple7, dark: ShatlPalette.purpleDark8)
+    static let statusBadgeOutlineSeedingStalledDefault = Color(light: ShatlPalette.sky6, dark: ShatlPalette.skyDark7)
+    static let statusBadgeOutlineSeedingStalledHover = Color(light: ShatlPalette.sky7, dark: ShatlPalette.skyDark8)
+
+    static let statusTextDownloadingDefault = Color(light: ShatlPalette.violet10, dark: ShatlPalette.violetDark12)
     static let statusTextDownloadingHover = Color(light: ShatlPalette.violet11, dark: ShatlPalette.violetDark12)
-    static let statusTextPausedDefault = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
-    static let statusTextPausedHover = Color(light: ShatlPalette.orange11, dark: ShatlPalette.orangeDark12)
-    static let statusTextSeedingDefault = Color(light: ShatlPalette.blue11, dark: ShatlPalette.blueDarkA12)
+    static let statusTextDownloadingStalledDefault = Color(light: ShatlPalette.violet9, dark: ShatlPalette.violetDark12)
+    static let statusTextDownloadingStalledHover = Color(light: ShatlPalette.violet10, dark: ShatlPalette.violetDark12)
+    static let statusTextPausedDefault = Color(light: ShatlPalette.violet9, dark: ShatlPalette.violetDark12)
+    static let statusTextPausedHover = Color(light: ShatlPalette.violet10, dark: ShatlPalette.violetDark12)
+    static let statusTextSeedingDefault = Color(light: ShatlPalette.blue10, dark: ShatlPalette.blueDarkA12)
     static let statusTextSeedingHover = Color(light: ShatlPalette.blue11, dark: ShatlPalette.blueDarkA12)
-    static let statusTextCompletedDefault = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark12)
-    static let statusTextCompletedHover = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark12)
-    static let statusTextErrorDefault = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark12)
+    static let statusTextSeedingStalledDefault = Color(light: ShatlPalette.blue9, dark: ShatlPalette.blueDarkA12)
+    static let statusTextSeedingStalledHover = Color(light: ShatlPalette.blue11, dark: ShatlPalette.blueDarkA12)
+    static let statusTextCompletedDefault = Color(light: ShatlPalette.gold10, dark: ShatlPalette.goldDark12)
+    static let statusTextCompletedHover = Color(light: ShatlPalette.gold11, dark: ShatlPalette.goldDark12)
+    static let statusTextErrorDefault = Color(light: ShatlPalette.red10, dark: ShatlPalette.redDark12)
     static let statusTextErrorHover = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark12)
 
     /// A link button under the pointer wears the colours of the
@@ -174,8 +195,8 @@ extension ShatlColor {
         static let speedometerTrack = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA6)
         /// The two ends of the speedometer's gradient, at its start and end
         /// angle.
-        static let speedometerGradientStart = Color(light: ShatlPalette.violet6, dark: ShatlPalette.violetDark10)
-        static let speedometerGradientEnd = Color(light: ShatlPalette.violet8, dark: ShatlPalette.violetDark11)
+        static let speedometerGradientStart = Color(light: ShatlPalette.purple6, dark: ShatlPalette.violetDark10)
+        static let speedometerGradientEnd = Color(light: ShatlPalette.violet9, dark: ShatlPalette.violetDark11)
 
         /// The window buttons on the theme previews in Settings while the
         /// app's own accent is on.
@@ -225,6 +246,62 @@ enum ShatlGlassTint {
 
         return 0.00
     }
+}
+
+/// The colours of a torrent's status badge, each at rest and under the
+/// pointer.
+struct ShatlStatusBadgePalette {
+    struct Tone {
+        let rest: Color
+        let hover: Color
+    }
+
+    let fill: Tone
+    /// Nil for a filled badge.
+    let outline: Tone?
+    let text: Tone
+
+    static let downloading = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeDownloadingDefault, hover: ShatlColor.statusBadgeDownloadingHover),
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextDownloadingDefault, hover: ShatlColor.statusTextDownloadingHover)
+    )
+    /// A download with no speed, one being added, and a saved one.
+    static let downloadingStalled = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeDownloadingStalledDefault, hover: ShatlColor.statusBadgeDownloadingStalledHover),
+        outline: Tone(rest: ShatlColor.statusBadgeOutlineDownloadingStalledDefault, hover: ShatlColor.statusBadgeOutlineDownloadingStalledHover),
+        text: Tone(rest: ShatlColor.statusTextDownloadingStalledDefault, hover: ShatlColor.statusTextDownloadingStalledHover)
+    )
+    static let saved = Self(
+        fill: downloadingStalled.fill,
+        outline: Tone(rest: ShatlColor.statusBadgeOutlineDownloadingStalledDashedDefault, hover: ShatlColor.statusBadgeOutlineDownloadingStalledDashedHover),
+        text: downloadingStalled.text
+    )
+    static let paused = Self(
+        fill: Tone(rest: ShatlColor.statusBadgePausedDefault, hover: ShatlColor.statusBadgePausedHover),
+        outline: Tone(rest: ShatlColor.statusBadgeOutlinePausedDefault, hover: ShatlColor.statusBadgeOutlinePausedHover),
+        text: Tone(rest: ShatlColor.statusTextPausedDefault, hover: ShatlColor.statusTextPausedHover)
+    )
+    static let seeding = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeSeedingDefault, hover: ShatlColor.statusBadgeSeedingHover),
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextSeedingDefault, hover: ShatlColor.statusTextSeedingHover)
+    )
+    static let seedingStalled = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeSeedingStalledDefault, hover: ShatlColor.statusBadgeSeedingStalledHover),
+        outline: Tone(rest: ShatlColor.statusBadgeOutlineSeedingStalledDefault, hover: ShatlColor.statusBadgeOutlineSeedingStalledHover),
+        text: Tone(rest: ShatlColor.statusTextSeedingStalledDefault, hover: ShatlColor.statusTextSeedingStalledHover)
+    )
+    static let completed = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeCompletedDefault, hover: ShatlColor.statusBadgeCompletedHover),
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextCompletedDefault, hover: ShatlColor.statusTextCompletedHover)
+    )
+    static let error = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeErrorDefault, hover: ShatlColor.statusBadgeErrorHover),
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextErrorDefault, hover: ShatlColor.statusTextErrorHover)
+    )
 }
 
 struct ShatlSpeedMetricPalette: Equatable {
