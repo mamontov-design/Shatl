@@ -108,6 +108,7 @@
 "torrent.status.completed" = "Downloaded";
 "torrent.status.error" = "Error";
 "torrent.status.checking" = "Checking";
+"torrent.status.idle" = "Stalled";
 
 "torrent.card.original_title" = "Torrent name — %@";
 "torrent.card.selection_refusal" = "Use the buttons below for this download";

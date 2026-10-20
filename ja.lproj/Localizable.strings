@@ -107,6 +107,7 @@
 "torrent.status.completed" = "ダウンロード済み";
 "torrent.status.error" = "エラー";
 "torrent.status.checking" = "確認中";
+"torrent.status.idle" = "停滞中";
 
 "torrent.card.original_title" = "Torrent名：%@";
 "torrent.card.selection_refusal" = "このダウンロードは下のボタンで操作します";

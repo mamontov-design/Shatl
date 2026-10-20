@@ -157,14 +157,82 @@ final class TorrentPresentationTests: XCTestCase {
     }
 
     func testSpeedLevelsStartAfreshAfterAStop() {
+        let now = ContinuousClock.now
         var metrics = TorrentMetrics()
         metrics.downloadSpeedBytesPerSecond = 3 * 1_024 * 1_024
         metrics.uploadSpeedBytesPerSecond = 100 * 1_024
-        let levels = TransferSpeedLevels().following(metrics)
-        XCTAssertEqual(levels, TransferSpeedLevels(download: .run, upload: .tortoise))
+        let levels = TransferSpeedLevels().following(metrics, at: now)
+        XCTAssertEqual(levels.download, .run)
+        XCTAssertEqual(levels.upload, .tortoise)
 
         metrics.downloadSpeedBytesPerSecond = 0
-        XCTAssertEqual(levels.following(metrics), TransferSpeedLevels(download: nil, upload: .tortoise))
+        let next = levels.following(metrics, at: now + .seconds(1))
+        XCTAssertNil(next.download)
+        XCTAssertEqual(next.upload, .tortoise)
+    }
+
+    /// "Простаивает" waits so that the badge does not flicker with bursts
+    /// of speed: 10 seconds without speed while a transfer looks for its
+    /// first peers, 5 once it has moved, and it wakes once speed has held
+    /// for 3.
+    func testTransferStandsAfterAQuietSpellAndWakesOnHeldSpeed() {
+        let start = ContinuousClock.now
+        func at(_ second: Int) -> ContinuousClock.Instant { start + .seconds(second) }
+        var activity = TransferActivity()
+
+        for second in 0...9 {
+            activity = activity.following(bytesPerSecond: 0, at: at(second))
+        }
+        XCTAssertFalse(activity.isIdle, "Nine seconds of a first search")
+        activity = activity.following(bytesPerSecond: 0, at: at(10))
+        XCTAssertTrue(activity.isIdle)
+
+        activity = activity.following(bytesPerSecond: 1_024, at: at(11))
+        activity = activity.following(bytesPerSecond: 1_024, at: at(12))
+        activity = activity.following(bytesPerSecond: 0, at: at(13))
+        XCTAssertTrue(activity.isIdle, "A burst of two seconds does not wake it")
+
+        for second in 14...16 {
+            activity = activity.following(bytesPerSecond: 1_024, at: at(second))
+        }
+        XCTAssertTrue(activity.isIdle)
+        activity = activity.following(bytesPerSecond: 1_024, at: at(17))
+        XCTAssertFalse(activity.isIdle, "Three seconds of speed wake it")
+
+        for second in 18...22 {
+            activity = activity.following(bytesPerSecond: 0, at: at(second))
+        }
+        XCTAssertFalse(activity.isIdle)
+        activity = activity.following(bytesPerSecond: 0, at: at(23))
+        XCTAssertTrue(activity.isIdle, "Once it has moved, five seconds are enough")
+    }
+
+    /// The state changes only when speed goes or comes, so a card that keeps
+    /// standing, or keeps waiting, is not rebuilt every second.
+    func testTransferActivityHoldsStillBetweenItsMoments() {
+        let start = ContinuousClock.now
+        let waiting = TransferActivity().following(bytesPerSecond: 0, at: start)
+        XCTAssertEqual(waiting.following(bytesPerSecond: 0, at: start + .seconds(1)), waiting)
+
+        var idle = waiting
+        for second in 2...10 {
+            idle = idle.following(bytesPerSecond: 0, at: start + .seconds(second))
+        }
+        XCTAssertTrue(idle.isIdle)
+        XCTAssertEqual(idle.following(bytesPerSecond: 0, at: start + .seconds(11)), idle)
+    }
+
+    /// A transfer that has moved once and then stops is quick to stand,
+    /// even if it moved in its first seconds.
+    func testTransferThatMovedStandsAfterFiveSeconds() {
+        let start = ContinuousClock.now
+        var activity = TransferActivity().following(bytesPerSecond: 1_024, at: start)
+        for second in 1...5 {
+            activity = activity.following(bytesPerSecond: 0, at: start + .seconds(second))
+        }
+        XCTAssertFalse(activity.isIdle)
+        activity = activity.following(bytesPerSecond: 0, at: start + .seconds(6))
+        XCTAssertTrue(activity.isIdle)
     }
 
     func testDetailedSpeedKeepsSubKilobyteValuesVisible() {

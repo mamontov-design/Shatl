@@ -110,6 +110,7 @@
 "torrent.status.completed" = "Скачана";
 "torrent.status.error" = "Ошибка";
 "torrent.status.checking" = "Проверяется";
+"torrent.status.idle" = "Простаивает";
 
 "torrent.card.original_title" = "Название торрента — %@";
 "torrent.card.selection_refusal" = "Эта загрузка управляется кнопками ниже";

@@ -108,6 +108,7 @@
 "torrent.status.completed" = "Téléchargé";
 "torrent.status.error" = "Erreur";
 "torrent.status.checking" = "Vérification";
+"torrent.status.idle" = "Inactif";
 
 "torrent.card.original_title" = "Nom du torrent — %@";
 "torrent.card.selection_refusal" = "Ce téléchargement se gère avec les boutons ci-dessous";

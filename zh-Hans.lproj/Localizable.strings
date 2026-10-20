@@ -107,6 +107,7 @@
 "torrent.status.completed" = "已下载";
 "torrent.status.error" = "错误";
 "torrent.status.checking" = "检查中";
+"torrent.status.idle" = "停滞中";
 
 "torrent.card.original_title" = "Torrent 名称：%@";
 "torrent.card.selection_refusal" = "此下载请使用下方按钮操作";

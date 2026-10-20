@@ -108,6 +108,7 @@
 "torrent.status.completed" = "Geladen";
 "torrent.status.error" = "Fehler";
 "torrent.status.checking" = "Prüfen";
+"torrent.status.idle" = "Stockt";
 
 "torrent.card.original_title" = "Torrent-Name — %@";
 "torrent.card.selection_refusal" = "Diesen Download steuern die Tasten unten";

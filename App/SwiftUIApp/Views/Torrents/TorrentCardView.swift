@@ -93,20 +93,23 @@ private enum TorrentCardOutlineState: Equatable {
 /// all the same.
 private enum TorrentStatusBadgeLook: Equatable {
     case downloading
+    case downloadingIdle
     case adding
     case saved
     case paused
     case seeding
+    case seedingIdle
     case completed
     case error
 
     var palette: ShatlStatusBadgePalette {
         switch self {
         case .downloading: .downloading
-        case .adding: .downloadingStalled
+        case .downloadingIdle, .adding: .downloadingStalled
         case .saved: .saved
         case .paused: .paused
         case .seeding: .seeding
+        case .seedingIdle: .seedingStalled
         case .completed: .completed
         case .error: .error
         }
@@ -898,7 +901,10 @@ struct TorrentCardView: View, Equatable {
         if row.isPendingAddition {
             return "pending-addition"
         }
-        return row.isSavedForLater ? "saved" : statusKind.rawValue
+        if row.isSavedForLater {
+            return "saved"
+        }
+        return row.isIdle ? "\(statusKind.rawValue)-idle" : statusKind.rawValue
     }
 
     /// The badge of a download being added and of a saved one shows its icon
@@ -915,12 +921,14 @@ struct TorrentCardView: View, Equatable {
             return .saved
         }
         switch statusKind {
-        case .downloading, .checking:
+        case .downloading:
+            return row.isIdle ? .downloadingIdle : .downloading
+        case .checking:
             return .downloading
         case .stopped:
             return .paused
         case .seeding:
-            return .seeding
+            return row.isIdle ? .seedingIdle : .seeding
         case .completed:
             return .completed
         case .error:

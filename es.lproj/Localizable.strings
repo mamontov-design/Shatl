@@ -108,6 +108,7 @@
 "torrent.status.completed" = "Descargada";
 "torrent.status.error" = "Error";
 "torrent.status.checking" = "Comprobando";
+"torrent.status.idle" = "Estancada";
 
 "torrent.card.original_title" = "Nombre del torrent — %@";
 "torrent.card.selection_refusal" = "Esta descarga se gestiona con los botones de abajo";
