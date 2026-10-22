@@ -112,6 +112,21 @@ nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
         }
     }
 
+    /// The threshold as the speed-colours legend in Settings names it, in
+    /// bytes of a thousand, which the detailed speed is written in: 250 КБ/с,
+    /// 2 МБ/с. The threshold itself counts in 1 024s, as the simplified
+    /// speed does. The slowest level begins with any speed; the legend says
+    /// 1 КБ/с, the owner's wording.
+    var nominalBytesPerSecond: Int64 {
+        switch self {
+        case .tortoise: 1_000
+        case .walk: 250_000
+        case .run: 2_000_000
+        case .hare: 8_000_000
+        case .bolt: 25_000_000
+        }
+    }
+
     /// The level of a speed seen for the first time.
     init(bytesPerSecond: Int64) {
         self = Self.allCases.last { bytesPerSecond >= $0.threshold } ?? .tortoise

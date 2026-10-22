@@ -1380,7 +1380,7 @@ struct ShatlMetricItem: View {
 
             if let iconName = item.iconName {
                 Image(systemName: iconName)
-                    .shatlTypography(iconTypography(for: iconName))
+                    .shatlTypography(ShatlTypography.metricIcon(iconName))
                     .foregroundStyle(iconColor)
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
@@ -1488,13 +1488,18 @@ struct ShatlMetricItem: View {
             text
         }
     }
+}
 
-    private func iconTypography(for iconName: String) -> ShatlTextStyle {
+extension ShatlTypography {
+    /// A metric's icon. The tortoise, the hare and the bolt are drawn a size
+    /// smaller, as they are wider and heavier than the figures; the Settings
+    /// legend of speed colours draws them the same way.
+    static func metricIcon(_ iconName: String) -> ShatlTextStyle {
         switch iconName {
         case "tortoise.fill", "hare.fill", "bolt.fill":
-            ShatlTypography.groupSemibold
+            groupSemibold
         default:
-            ShatlTypography.metricSemibold
+            metricSemibold
         }
     }
 }
@@ -2005,7 +2010,7 @@ private struct ShatlInfoBottomMetricItem: View {
         HStack(spacing: 5) {
             if let iconName = item.iconName {
                 Image(systemName: iconName)
-                    .shatlTypography(iconTypography(for: iconName))
+                    .shatlTypography(ShatlTypography.metricIcon(iconName))
                     .foregroundStyle(ShatlColor.typographyPrimary)
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
@@ -2045,15 +2050,6 @@ private struct ShatlInfoBottomMetricItem: View {
                 .animation(ShatlMotion.metricResize, value: number)
         } else {
             text
-        }
-    }
-
-    private func iconTypography(for iconName: String) -> ShatlTextStyle {
-        switch iconName {
-        case "tortoise.fill", "hare.fill", "bolt.fill":
-            ShatlTypography.groupSemibold
-        default:
-            ShatlTypography.metricSemibold
         }
     }
 }

@@ -171,6 +171,24 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(next.upload, .tortoise)
     }
 
+    /// The legend of speed colours in Settings names each level, fastest
+    /// first, by a round speed. Behind it stands the same number counted in
+    /// 1 024s, the level's own threshold, so the legend and the icons agree.
+    func testSpeedLegendNamesEachLevelByItsThreshold() {
+        let names = TransferSpeedLevel.allCases.reversed().map {
+            Metrics.formatSpeed($0.nominalBytesPerSecond, mode: .detailed)
+        }
+        XCTAssertEqual(names, ["25 МБ/с", "8 МБ/с", "2 МБ/с", "250 КБ/с", "1 КБ/с"])
+
+        for level in TransferSpeedLevel.allCases where level != .tortoise {
+            let nominal = level.nominalBytesPerSecond
+            let counted = nominal >= 1_000_000
+                ? nominal / 1_000_000 * 1_048_576
+                : nominal / 1_000 * 1_024
+            XCTAssertEqual(level.threshold, counted, "\(level)")
+        }
+    }
+
     /// "Простаивает" waits so that the badge does not flicker with bursts
     /// of speed: 10 seconds without speed while a transfer looks for its
     /// first peers, 5 once it has moved, and it wakes once speed has held
