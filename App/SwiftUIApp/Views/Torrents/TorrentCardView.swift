@@ -8,9 +8,12 @@ nonisolated enum TorrentCardLayout {
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
 }
 
+/// What the speed set animates on: its width, and every switch that brings
+/// or takes away its coloured plate and its divider.
 private struct CompactTransferMetricAnimationKey: Equatable {
     var widthSignature: [MetricItemWidthAnimationSignature]?
     var colorizesDownloadSpeed: Bool
+    var usesMonochromeAppearance: Bool
     var foldsDownloadSpeed: Bool
 }
 
@@ -605,6 +608,7 @@ struct TorrentCardView: View, Equatable {
         CompactTransferMetricAnimationKey(
             widthSignature: row.compactTransferMetricSet?.items.metricWidthAnimationSignature,
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
+            usesMonochromeAppearance: row.usesMonochromeAppearance,
             foldsDownloadSpeed: foldsDownloadSpeed
         )
     }
