@@ -137,6 +137,9 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     var expandedMetricGroups: ExpandedMetricGroupsPresentation?
     var metricsMode: MetricsPresentationMode
     var colorizesDownloadSpeed: Bool = false
+    /// Statuses and the speed set in greys; the speed icon keeps its colour
+    /// while `colorizesDownloadSpeed` is on.
+    var usesMonochromeAppearance: Bool = false
     #if DEBUG
     var enablesCardLayoutDiagnostics: Bool = false
     var enablesMetricAnimationDiagnostics: Bool = false

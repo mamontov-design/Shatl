@@ -69,6 +69,43 @@ final class AppPreferencesStoreTests: XCTestCase {
         XCTAssertTrue(preferences.canSendAnonymousUsageStatistics)
     }
 
+    /// Turning the monochrome appearance on takes the speed colours off. They
+    /// may be turned on again and stay on; turning monochrome off gives
+    /// nothing back.
+    func testMonochromeAppearanceTakesTheSpeedColoursOffOnce() {
+        var preferences = AppPreferences.defaultValue
+        XCTAssertFalse(preferences.usesMonochromeAppearance)
+        XCTAssertFalse(preferences.colorizesDownloadSpeed)
+
+        preferences.colorizesDownloadSpeed = true
+        preferences.setUsesMonochromeAppearance(true)
+        XCTAssertTrue(preferences.usesMonochromeAppearance)
+        XCTAssertFalse(preferences.colorizesDownloadSpeed)
+
+        preferences.colorizesDownloadSpeed = true
+        XCTAssertTrue(preferences.usesMonochromeAppearance)
+        XCTAssertTrue(preferences.colorizesDownloadSpeed)
+
+        preferences.colorizesDownloadSpeed = false
+        preferences.setUsesMonochromeAppearance(false)
+        XCTAssertFalse(preferences.usesMonochromeAppearance)
+        XCTAssertFalse(preferences.colorizesDownloadSpeed)
+    }
+
+    /// Preferences saved before the monochrome appearance read it as off.
+    func testPreferencesWithoutMonochromeReadItAsOff() throws {
+        var saved = AppPreferences.defaultValue
+        saved.usesMonochromeAppearance = true
+        let data = try JSONEncoder().encode(saved)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertNotNil(object.removeValue(forKey: "usesMonochromeAppearance"))
+        let decoded = try JSONDecoder().decode(
+            AppPreferences.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        XCTAssertFalse(decoded.usesMonochromeAppearance)
+    }
+
     func testUpdaterSettingsAreNotEncodedInAppPreferences() throws {
         let data = try JSONEncoder().encode(AppPreferences.defaultValue)
         let object = try XCTUnwrap(
