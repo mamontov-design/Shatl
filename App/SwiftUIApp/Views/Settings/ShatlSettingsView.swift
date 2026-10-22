@@ -1117,10 +1117,9 @@ private struct AppearanceSettingsTab: View {
                     localizedTitle: "settings.appearance.monochrome.toggle",
                     isOn: Binding(
                         get: { store.preferences.usesMonochromeAppearance },
-                        set: {
-                            store.preferences.setUsesMonochromeAppearance($0)
-                            focusPreview(on: .downloadSpeed)
-                        }
+                        // A setting for the whole app: the demo card takes
+                        // it without a focus of its own.
+                        set: { store.preferences.setUsesMonochromeAppearance($0) }
                     )
                 )
             }
