@@ -302,6 +302,10 @@
 "settings.appearance.theme.dark" = "深色";
 "settings.appearance.metrics.section" = "数据显示";
 "settings.appearance.speed_colors.toggle" = "以颜色区分下载速度";
+"settings.appearance.speed_colors.info.help" = "了解速度颜色";
+"settings.appearance.speed_colors.popover.title" = "速度颜色";
+"settings.appearance.speed_colors.popover.caption" = "下载速度的图标始终显示，颜色能帮你一眼分辨速度。";
+"settings.appearance.speed_colors.popover.threshold" = "%@ 及以上";
 "settings.appearance.metrics.toggle" = "以简洁模式显示数据";
 "settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。";
 "settings.appearance.metrics.info.help" = "了解数值精度";

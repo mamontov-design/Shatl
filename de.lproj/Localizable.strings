@@ -308,6 +308,10 @@
 "settings.appearance.theme.dark" = "Dunkel";
 "settings.appearance.metrics.section" = "Datenanzeige";
 "settings.appearance.speed_colors.toggle" = "Downloadgeschwindigkeit farblich kennzeichnen";
+"settings.appearance.speed_colors.info.help" = "Mehr über die Farben der Geschwindigkeit";
+"settings.appearance.speed_colors.popover.title" = "Farben der Geschwindigkeit";
+"settings.appearance.speed_colors.popover.caption" = "Das Symbol der Downloadgeschwindigkeit ist immer zu sehen, und die Farbe hilft Ihnen, sie auf einen Blick einzuordnen.";
+"settings.appearance.speed_colors.popover.threshold" = "Ab %@";
 "settings.appearance.metrics.toggle" = "Daten im vereinfachten Modus anzeigen";
 "settings.appearance.metrics.caption" = "Blendet weniger wichtige Details aus, rundet Werte und macht Daten leichter erfassbar.";
 "settings.appearance.metrics.info.help" = "Mehr über die Genauigkeit der Werte";

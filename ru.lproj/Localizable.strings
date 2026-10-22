@@ -320,6 +320,10 @@
 "settings.appearance.theme.dark" = "Тёмная";
 "settings.appearance.metrics.section" = "Отображение данных";
 "settings.appearance.speed_colors.toggle" = "Цветовая индикация скорости загрузки";
+"settings.appearance.speed_colors.info.help" = "Подробнее о цветах скорости";
+"settings.appearance.speed_colors.popover.title" = "Цвета скорости";
+"settings.appearance.speed_colors.popover.caption" = "Значок у скорости скачивания виден всегда, а цвет помогает различать её с одного взгляда.";
+"settings.appearance.speed_colors.popover.threshold" = "Начиная с %@";
 "settings.appearance.metrics.toggle" = "Отображать данные в упрощённом режиме";
 "settings.appearance.metrics.caption" = "Скрывает малозначимые детали, округляет значения и делает данные легче для восприятия.";
 "settings.appearance.metrics.info.help" = "Подробнее о точности значений";

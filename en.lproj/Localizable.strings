@@ -308,6 +308,10 @@
 "settings.appearance.theme.dark" = "Dark";
 "settings.appearance.metrics.section" = "Data display";
 "settings.appearance.speed_colors.toggle" = "Color-code download speed";
+"settings.appearance.speed_colors.info.help" = "Learn about speed colors";
+"settings.appearance.speed_colors.popover.title" = "Speed colors";
+"settings.appearance.speed_colors.popover.caption" = "The download speed always shows its icon, and color helps you read it at a glance.";
+"settings.appearance.speed_colors.popover.threshold" = "From %@";
 "settings.appearance.metrics.toggle" = "Display data in simplified mode";
 "settings.appearance.metrics.caption" = "Hides less important details, rounds values, and makes data easier to understand.";
 "settings.appearance.metrics.info.help" = "Learn about value precision";
