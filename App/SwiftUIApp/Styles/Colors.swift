@@ -106,11 +106,11 @@ enum ShatlColor {
     /// the bar does not read as a hole in the card.
     static let progressBarTrack = Color(light: ShatlPalette.white, dark: ShatlPalette.blackA4)
 
-    static let speedBadgeTortoise = Color(light: ShatlPalette.slate3, dark: ShatlPalette.slateDarkA3)
-    static let speedBadgeWalk = Color(light: ShatlPalette.teal3, dark: ShatlPalette.tealDarkA3)
-    static let speedBadgeRun = Color(light: ShatlPalette.grass3, dark: ShatlPalette.grassDarkA3)
-    static let speedBadgeHare = Color(light: ShatlPalette.orange3, dark: ShatlPalette.orangeDarkA3)
-    static let speedBadgeBolt = Color(light: ShatlPalette.ruby3, dark: ShatlPalette.rubyDarkA3)
+    static let speedBadgeTortoise = Color(light: ShatlPalette.slate3, dark: ShatlPalette.slateDark4)
+    static let speedBadgeWalk = Color(light: ShatlPalette.teal3, dark: ShatlPalette.tealDark4)
+    static let speedBadgeRun = Color(light: ShatlPalette.grass3, dark: ShatlPalette.grassDark4)
+    static let speedBadgeHare = Color(light: ShatlPalette.orange3, dark: ShatlPalette.orangeDark4)
+    static let speedBadgeBolt = Color(light: ShatlPalette.ruby3, dark: ShatlPalette.rubyDark4)
     static let speedIconTortoise = Color(light: ShatlPalette.slate9, dark: ShatlPalette.slateDark9)
     static let speedIconWalk = Color(light: ShatlPalette.teal9, dark: ShatlPalette.tealDark9)
     static let speedIconRun = Color(light: ShatlPalette.grass9, dark: ShatlPalette.grassDark9)
