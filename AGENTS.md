@@ -85,8 +85,10 @@ persistence, deletion, restore, or shared UI state.
   plain stack stays even though it tires on dozens of cards. Card guards:
   hover waits for a resting pointer (`TorrentCardHoverTiming`), the progress
   bar moves in steps (`TorrentProgressBarSteps`), speed icons change level
-  with hysteresis (`TransferSpeedLevel`) and change it quietly, and
-  metric shadows sit under the plate so changing digits leave the blur alone.
+  with hysteresis (`TransferSpeedLevel`) and change it quietly, a badge
+  loses its fill for "Простаивает" only after a spell without speed and
+  takes it back on held speed (`TransferActivity`), never second by second,
+  and metric shadows sit under the plate so changing digits leave the blur alone.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
@@ -135,6 +137,13 @@ persistence, deletion, restore, or shared UI state.
   back under it, which is why the add window has a fixed background
   (`ShatlColor.backgroundAddWindow`) and not the system's, tinted by the
   wallpaper. `AddTorrentReviewAppearanceTests` watches where the labels sit.
+- Colours follow Figma. `ShatlPalette` (`Palette.swift`) holds the Radix
+  values of Figma's Palette collection, `ShatlColor` (`Colors.swift`) the
+  tokens of its Tokens collection under their iOS code syntax names, each a
+  light and dark pair. Views use only `ShatlColor`; the one colour asset is
+  `AccentColor`, which the system needs. Change a colour in Figma first, then
+  point the token at the same step here; `ColorTokenTests` rejects colours
+  written into views.
 - Release builds must keep file diagnostics disabled. Debug settings and the
   Debug menu stay behind `#if DEBUG`.
 - Any source change makes existing ZIP, DMG, appcast signatures, and release

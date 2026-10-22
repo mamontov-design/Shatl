@@ -108,6 +108,7 @@
 "torrent.status.completed" = "Téléchargé";
 "torrent.status.error" = "Erreur";
 "torrent.status.checking" = "Vérification";
+"torrent.status.idle" = "Inactif";
 
 "torrent.card.original_title" = "Nom du torrent — %@";
 "torrent.card.selection_refusal" = "Ce téléchargement se gère avec les boutons ci-dessous";
@@ -307,6 +308,10 @@
 "settings.appearance.theme.dark" = "Sombre";
 "settings.appearance.metrics.section" = "Affichage des données";
 "settings.appearance.speed_colors.toggle" = "Indiquer la vitesse de téléchargement en couleur";
+"settings.appearance.speed_colors.info.help" = "En savoir plus sur les couleurs de vitesse";
+"settings.appearance.speed_colors.popover.title" = "Couleurs de vitesse";
+"settings.appearance.speed_colors.popover.caption" = "L’icône de la vitesse de téléchargement est toujours visible, et la couleur vous aide à la repérer d’un coup d’œil.";
+"settings.appearance.speed_colors.popover.threshold" = "À partir de %@";
 "settings.appearance.metrics.toggle" = "Afficher les données en mode simplifié";
 "settings.appearance.metrics.caption" = "Masque les détails peu importants, arrondit les valeurs et rend les données plus faciles à comprendre.";
 "settings.appearance.metrics.info.help" = "En savoir plus sur la précision des valeurs";

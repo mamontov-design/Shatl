@@ -112,6 +112,21 @@ nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
         }
     }
 
+    /// The threshold as the speed-colours legend in Settings names it, in
+    /// bytes of a thousand, which the detailed speed is written in: 250 КБ/с,
+    /// 2 МБ/с. The threshold itself counts in 1 024s, as the simplified
+    /// speed does. The slowest level begins with any speed; the legend says
+    /// 1 КБ/с, the owner's wording.
+    var nominalBytesPerSecond: Int64 {
+        switch self {
+        case .tortoise: 1_000
+        case .walk: 250_000
+        case .run: 2_000_000
+        case .hare: 8_000_000
+        case .bolt: 25_000_000
+        }
+    }
+
     /// The level of a speed seen for the first time.
     init(bytesPerSecond: Int64) {
         self = Self.allCases.last { bytesPerSecond >= $0.threshold } ?? .tortoise
@@ -165,17 +180,76 @@ nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
     }
 }
 
-/// The speed levels a torrent's icons show, kept from one update to the next.
+/// Whether a running transfer stands: "Простаивает". Speed comes and goes
+/// in bursts, and a badge that followed every second would flicker, so the
+/// state waits. A transfer that has not moved yet is looking for its first
+/// peers and stands after 10 seconds without speed; one that has moved,
+/// after 5. It wakes once speed has held for 3.
+///
+/// The state remembers only when speed went or came, not how long it has
+/// been, so it changes at those moments alone and an idle card is not
+/// rebuilt every second.
+nonisolated struct TransferActivity: Equatable, Sendable {
+    static let firstSearchPatience = Duration.seconds(10)
+    static let patience = Duration.seconds(5)
+    static let wakeDelay = Duration.seconds(3)
+
+    private(set) var isIdle = false
+    private var hasMoved = false
+    /// When speed went away, while the transfer still counts as moving.
+    private var quietSince: ContinuousClock.Instant?
+    /// When speed came back, while the transfer still stands.
+    private var movingSince: ContinuousClock.Instant?
+
+    func following(bytesPerSecond: Int64, at now: ContinuousClock.Instant) -> TransferActivity {
+        var next = self
+        if bytesPerSecond > 0 {
+            next.quietSince = nil
+            if next.isIdle {
+                let since = next.movingSince ?? now
+                if since.duration(to: now) >= Self.wakeDelay {
+                    next.isIdle = false
+                    next.movingSince = nil
+                } else {
+                    next.movingSince = since
+                }
+            }
+            if !next.isIdle {
+                next.hasMoved = true
+            }
+        } else {
+            next.movingSince = nil
+            if !next.isIdle {
+                let since = next.quietSince ?? now
+                let patience = next.hasMoved ? Self.patience : Self.firstSearchPatience
+                if since.duration(to: now) >= patience {
+                    next.isIdle = true
+                    next.quietSince = nil
+                } else {
+                    next.quietSince = since
+                }
+            }
+        }
+        return next
+    }
+}
+
+/// The speed levels a torrent's icons show, and whether each way stands,
+/// kept from one update to the next.
 nonisolated struct TransferSpeedLevels: Equatable, Sendable {
     var download: TransferSpeedLevel?
     var upload: TransferSpeedLevel?
+    var downloadActivity = TransferActivity()
+    var uploadActivity = TransferActivity()
 
     /// The levels for new metrics that follow these. A speed of zero shows no
     /// icon, and the next speed starts afresh.
-    func following(_ metrics: TorrentMetrics) -> TransferSpeedLevels {
+    func following(_ metrics: TorrentMetrics, at now: ContinuousClock.Instant) -> TransferSpeedLevels {
         TransferSpeedLevels(
             download: Self.level(metrics.downloadSpeedBytesPerSecond, after: download),
-            upload: Self.level(metrics.uploadSpeedBytesPerSecond, after: upload)
+            upload: Self.level(metrics.uploadSpeedBytesPerSecond, after: upload),
+            downloadActivity: downloadActivity.following(bytesPerSecond: metrics.downloadSpeedBytesPerSecond, at: now),
+            uploadActivity: uploadActivity.following(bytesPerSecond: metrics.uploadSpeedBytesPerSecond, at: now)
         )
     }
 

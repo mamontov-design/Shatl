@@ -237,7 +237,7 @@ private struct ShatlWordmarkArtwork: View {
 
     private var strokeColor: Color {
         if accentState.isUsingAppAccent {
-            ShatlColor.neonBlue.opacity(strokeOpacity)
+            ShatlColor.accentColored.opacity(strokeOpacity)
         } else {
             accentState.systemAccentColor.opacity(strokeOpacity)
         }
@@ -656,7 +656,7 @@ private struct ShatlLogomarkArtwork: View {
 
     private var starColor: Color {
         if accentState.isUsingAppAccent {
-            ShatlColor.neonBlue.opacity(starOpacity)
+            ShatlColor.accentColored.opacity(starOpacity)
         } else {
             accentState.systemAccentColor.opacity(starOpacity)
         }

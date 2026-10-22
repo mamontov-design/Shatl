@@ -107,6 +107,7 @@
 "torrent.status.completed" = "ダウンロード済み";
 "torrent.status.error" = "エラー";
 "torrent.status.checking" = "確認中";
+"torrent.status.idle" = "停滞中";
 
 "torrent.card.original_title" = "Torrent名：%@";
 "torrent.card.selection_refusal" = "このダウンロードは下のボタンで操作します";
@@ -301,6 +302,10 @@
 "settings.appearance.theme.dark" = "ダーク";
 "settings.appearance.metrics.section" = "データ表示";
 "settings.appearance.speed_colors.toggle" = "ダウンロード速度を色分けして表示";
+"settings.appearance.speed_colors.info.help" = "速度の色について";
+"settings.appearance.speed_colors.popover.title" = "速度の色";
+"settings.appearance.speed_colors.popover.caption" = "ダウンロード速度のアイコンは常に表示され、色によってひと目で見分けられます。";
+"settings.appearance.speed_colors.popover.threshold" = "%@以上";
 "settings.appearance.metrics.toggle" = "データをシンプルモードで表示";
 "settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。";
 "settings.appearance.metrics.info.help" = "値の精度について";

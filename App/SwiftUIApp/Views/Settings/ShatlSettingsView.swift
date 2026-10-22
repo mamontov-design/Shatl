@@ -252,17 +252,17 @@ struct ShatlSettingsView: View {
             return nil
         case .checking:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusChecking,
+                color: ShatlColor.Extra.portStatusChecking,
                 description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
             )
         case .open:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusOpen,
+                color: ShatlColor.Extra.portStatusOpen,
                 description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
             )
         case .closed:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.portStatusClosed,
+                color: ShatlColor.Extra.portStatusClosed,
                 description: L10n.string("settings.downloads.network.port_status.closed", localeOverride: localeOverride)
             )
         }
@@ -602,14 +602,14 @@ struct DataCollectionInfo: View {
 
     private var collectsIconColor: Color {
         accentState.isUsingAppAccent
-            ? ShatlColor.neonBlue
+            ? ShatlColor.accentColored
             : accentState.systemAccentColor
     }
 
     private var doesNotCollectIconColor: Color {
         accentState.isUsingAppAccent
-            ? ShatlColor.neonBlue
-            : ShatlColor.slate
+            ? ShatlColor.accentColored
+            : ShatlColor.Extra.dataCollectionCross
     }
 }
 
@@ -939,7 +939,6 @@ struct ShatlPerformanceProfileSpeedometer: View {
     let profile: AppPerformanceProfile
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var accentState: ShatlAccentState
     @State private var isWiggling = false
 
@@ -968,9 +967,7 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var trackColor: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.16)
-            : Color(red: 63 / 255, green: 63 / 255, blue: 70 / 255).opacity(0.08)
+        ShatlColor.Extra.speedometerTrack
     }
 
     private var progressLayer: some View {
@@ -1000,18 +997,10 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var progressGradientStops: [Gradient.Stop] {
-        let lighterPurple = Color(red: 190 / 255, green: 154 / 255, blue: 255 / 255)
-        let darkerPurple = Color(red: 136 / 255, green: 95 / 255, blue: 255 / 255)
-
-        return colorScheme == .dark
-            ? [
-                Gradient.Stop(color: darkerPurple, location: 0.08),
-                Gradient.Stop(color: lighterPurple, location: 0.92),
-            ]
-            : [
-                Gradient.Stop(color: lighterPurple, location: 0.08),
-                Gradient.Stop(color: darkerPurple, location: 0.92),
-            ]
+        [
+            Gradient.Stop(color: ShatlColor.Extra.speedometerGradientStart, location: 0.08),
+            Gradient.Stop(color: ShatlColor.Extra.speedometerGradientEnd, location: 0.92),
+        ]
     }
 
     private var arrowRotation: Double {
@@ -1033,7 +1022,6 @@ private struct AppearanceSettingsTab: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var metricPreviewPulseTrigger = 0
     @State private var downloadSpeedPreviewPulseTrigger = 0
-    @State private var isMetricsInfoPresented = false
     @State private var previewFocus: TorrentCardPreviewFocus?
     @State private var previewFocusReleaseTask: Task<Void, Never>?
 
@@ -1072,8 +1060,6 @@ private struct AppearanceSettingsTab: View {
                 metricSetOutlineFlashColor: ShatlColor.accent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 usesProductionProgressColors: true,
-                cardBackgroundColorOverride: colorScheme == .dark ? ShatlColor.cardDefault : nil,
-                cardOutlineColorOverride: colorScheme == .light ? ShatlColor.outlinePrimary : nil,
                 shadowStyle: .settings,
                 cardWidth: nil,
                 focus: previewFocus
@@ -1089,8 +1075,9 @@ private struct AppearanceSettingsTab: View {
     private var metricsModeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             ShatlSettingsParameter {
-                ShatlSettingsToggleRow(
+                ShatlSettingsInfoToggleRow(
                     localizedTitle: "settings.appearance.speed_colors.toggle",
+                    localizedHelp: "settings.appearance.speed_colors.info.help",
                     isOn: Binding(
                         get: { store.preferences.colorizesDownloadSpeed },
                         set: {
@@ -1099,42 +1086,18 @@ private struct AppearanceSettingsTab: View {
                             focusPreview(on: .downloadSpeed)
                         }
                     )
-                )
+                ) {
+                    SpeedColorsInfoPopover(localeOverride: store.preferences.localeOverride)
+                }
 
                 ShatlSettingsParameterDivider()
 
-                HStack(spacing: 16) {
-                    Text("settings.appearance.metrics.toggle")
-                        .shatlTypography(ShatlTypography.bodyRegular)
-                        .foregroundStyle(ShatlColor.typographyPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Spacer(minLength: 0)
-
-                    HStack(spacing: 8) {
-                        Button {
-                            isMetricsInfoPresented = true
-                        } label: {
-                            Image(systemName: "info.circle")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundStyle(.tint)
-                                .frame(width: 16, height: 16)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help(Text("settings.appearance.metrics.info.help"))
-                        .accessibilityLabel(Text("settings.appearance.metrics.info.help"))
-                        .popover(isPresented: $isMetricsInfoPresented) {
-                            MetricsPresentationInfoPopover()
-                        }
-
-                        ShatlSettingsControlVerticalDivider()
-
-                        Toggle("", isOn: simplifiedMetricsModeBinding)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-                    }
+                ShatlSettingsInfoToggleRow(
+                    localizedTitle: "settings.appearance.metrics.toggle",
+                    localizedHelp: "settings.appearance.metrics.info.help",
+                    isOn: simplifiedMetricsModeBinding
+                ) {
+                    MetricsPresentationInfoPopover()
                 }
             }
 
@@ -1202,11 +1165,167 @@ private struct ShatlSettingsControlVerticalDivider: View {
     }
 }
 
+/// A toggle with an "i" before it that opens a popover explaining it.
+private struct ShatlSettingsInfoToggleRow<Popover: View>: View {
+    let title: ShatlTextContent
+    let help: ShatlTextContent
+    @Binding var isOn: Bool
+    let popover: () -> Popover
+    @State private var isPopoverPresented = false
+
+    init(
+        localizedTitle key: String,
+        localizedHelp helpKey: String,
+        isOn: Binding<Bool>,
+        @ViewBuilder popover: @escaping () -> Popover
+    ) {
+        self.title = .localized(key)
+        self.help = .localized(helpKey)
+        self._isOn = isOn
+        self.popover = popover
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            title.text
+                .shatlTypography(ShatlTypography.bodyRegular)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 8) {
+                Button {
+                    isPopoverPresented = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(.tint)
+                        .frame(width: 16, height: 16)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(help.text)
+                .accessibilityLabel(help.text)
+                .popover(isPresented: $isPopoverPresented, content: popover)
+
+                ShatlSettingsControlVerticalDivider()
+
+                Toggle("", isOn: $isOn)
+                    .labelsHidden()
+                    .accessibilityLabel(title.text)
+                    .toggleStyle(.switch)
+                    .controlSize(.mini)
+            }
+        }
+    }
+}
+
+/// What the speed colours mean: the five levels, fastest first, each named
+/// by the speed it begins at. The badges stand on a plate of their own, as
+/// they stand on a card: on the popover's grey glass the light ones lost
+/// their edges.
+private struct SpeedColorsInfoPopover: View {
+    let localeOverride: AppLocaleOverride
+    @Environment(\.shatlTypographyProfile) private var typographyProfile
+
+    /// A row is as tall as a badge, and the label column keeps the badges'
+    /// pitch whatever the height of its own lines, in Japanese and Chinese
+    /// too; a divider sits in the middle of the gap.
+    private static let rowHeight: CGFloat = 21
+    private static let rowSpacing: CGFloat = 8
+    private static let platePadding: CGFloat = 4
+
+    private var levels: [TransferSpeedLevel] {
+        TransferSpeedLevel.allCases.reversed()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("settings.appearance.speed_colors.popover.title")
+                .shatlTypography(ShatlTypography.subheadlineBold)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("settings.appearance.speed_colors.popover.caption")
+                .shatlTypography(ShatlTypography.captionRegular)
+                .foregroundStyle(ShatlColor.typographySecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            legend
+        }
+        .padding(16)
+        .frame(width: 340, alignment: .leading)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                ForEach(Array(levels.enumerated()), id: \.element) { index, level in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(ShatlColor.cardOutlineDefault)
+                            .frame(height: 1)
+                            .frame(height: Self.rowSpacing)
+                    }
+                    label(for: level)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: Self.rowHeight)
+                }
+            }
+            .padding(.vertical, Self.platePadding)
+
+            VStack(spacing: Self.rowSpacing) {
+                ForEach(levels, id: \.self) { level in
+                    badge(for: level)
+                }
+            }
+            .padding(Self.platePadding)
+            .background(
+                ShatlColor.backgroundTertiary,
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+            )
+        }
+    }
+
+    /// "Начиная с 25 МБ/с", the speed in semibold. The phrase is one string
+    /// with a place for the speed, which comes first in Japanese.
+    private func label(for level: TransferSpeedLevel) -> Text {
+        let speed = Metrics.formatSpeed(level.nominalBytesPerSecond, mode: .detailed, localeOverride: localeOverride)
+        let phrase = L10n.string("settings.appearance.speed_colors.popover.threshold", localeOverride: localeOverride)
+        let parts = phrase.components(separatedBy: "%@")
+        var number = AttributedString(speed)
+        number.font = ShatlTypography.bodySemibold.variant(for: typographyProfile).font
+        var text = AttributedString(parts.first ?? "")
+        text += number
+        text += AttributedString(parts.dropFirst().joined())
+        return Text(text)
+            .font(ShatlTypography.bodyRegular.variant(for: typographyProfile).font)
+            .foregroundStyle(ShatlColor.typographyPrimary)
+    }
+
+    private func badge(for level: TransferSpeedLevel) -> some View {
+        let iconName = level.downloadIconName
+        let palette = ShatlSpeedMetricPalette.downloadSymbol(iconName)
+        return Image(systemName: iconName)
+            .shatlTypography(ShatlTypography.metricIcon(iconName))
+            .foregroundStyle(palette?.icon ?? ShatlColor.typographySecondary)
+            .frame(width: 32, height: Self.rowHeight)
+            .background(
+                palette?.badge ?? .clear,
+                in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+            )
+            .accessibilityHidden(true)
+    }
+}
+
 private struct MetricsPresentationInfoPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("settings.appearance.metrics.popover.title")
-                .shatlTypography(ShatlTypography.bodySemibold)
+                .shatlTypography(ShatlTypography.subheadlineBold)
                 .foregroundStyle(ShatlColor.typographyPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -1245,17 +1364,17 @@ private struct ThemeAppearanceDemo: View {
 
                 ShatlWindowButtonCloseShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 244.0 / 255.0, green: 63.0 / 255.0, blue: 94.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonClose
                         : buttonColor)
 
                 ShatlWindowButtonMinimizeShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 234.0 / 255.0, green: 179.0 / 255.0, blue: 8.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonMinimize
                         : buttonColor)
 
                 ShatlWindowButtonExpandShape()
                     .fill(accentState.isUsingAppAccent
-                        ? Color(red: 34.0 / 255.0, green: 197.0 / 255.0, blue: 94.0 / 255.0)
+                        ? ShatlColor.Extra.windowButtonZoom
                         : buttonColor)
             }
             .frame(width: 76, height: 76)
@@ -1282,19 +1401,9 @@ private struct ThemeAppearanceDemo: View {
     }
 
     private var buttonColor: Color {
-        if theme == .dark {
-            return Color(
-                red: 113.0 / 255.0,
-                green: 113.0 / 255.0,
-                blue: 122.0 / 255.0
-            )
-        }
-
-        return Color(
-            red: 212.0 / 255.0,
-            green: 212.0 / 255.0,
-            blue: 216.0 / 255.0
-        )
+        theme == .dark
+            ? ShatlColor.Extra.themePreviewWindowButtonDark
+            : ShatlColor.Extra.themePreviewWindowButtonLight
     }
 }
 

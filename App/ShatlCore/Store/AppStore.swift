@@ -636,15 +636,29 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         // "Сохранена" is how a stopped download looks until its first start,
         // not a status of its own.
         let isSavedForLater = record.isSavedForLater && record.status == .stopped && errorState == nil
+        // "Простаивает" is how a download or a seeding looks once it has gone
+        // without speed for a while, not a status of its own.
+        let isIdle = errorState == nil && {
+            switch record.status {
+            case .downloading: inputs.speedLevels?.downloadActivity.isIdle == true
+            case .seeding: inputs.speedLevels?.uploadActivity.isIdle == true
+            default: false
+            }
+        }()
+        let statusTitle = if isSavedForLater {
+            L10n.string("torrent.status.saved", localeOverride: shared.localeOverride)
+        } else if isIdle {
+            L10n.string("torrent.status.idle", localeOverride: shared.localeOverride)
+        } else {
+            record.status.localizedTitle(localeOverride: shared.localeOverride)
+        }
         var state = TorrentRowState(
             id: record.id,
             title: record.displayName,
             originalTitle: record.originalName,
             hasAlias: record.alias?.isEmpty == false,
             status: record.status,
-            statusTitle: isSavedForLater
-                ? L10n.string("torrent.status.saved", localeOverride: shared.localeOverride)
-                : record.status.localizedTitle(localeOverride: shared.localeOverride),
+            statusTitle: statusTitle,
             progress: presentedProgress(for: record),
             compactTransferMetricSet: compactTransferMetricSet,
             expandedMetricGroups: expandedMetricGroups,
@@ -677,7 +691,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 record.persistentIssue?.kind == .savePathUnavailable
                     || (record.persistentIssue == nil && record.runtimeErrorState != nil)
             ),
-            isSavedForLater: isSavedForLater
+            isSavedForLater: isSavedForLater,
+            isIdle: isIdle
         )
         #if DEBUG
         state.enablesCardLayoutDiagnostics = shared.enablesCardLayoutDiagnostics
@@ -3090,6 +3105,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var shouldRefreshSelectedNavigationAvailability = false
         var durableChange = DurableSnapshotChange.none
         var speedLevels = transferSpeedLevels
+        let now = ContinuousClock.now
 
         for index in updatedTorrents.indices {
             guard let snapshot = snapshotsByID[updatedTorrents[index].id] else { continue }
@@ -3142,9 +3158,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 updatedTorrents[index].lastKnownProgress = snapshot.progress
             }
             updatedTorrents[index].metrics = snapshot.metrics
-            // A torrent that stopped or finished starts its icons afresh.
+            // A torrent that stopped or finished starts its icons afresh, and
+            // looks for its first peers again.
             let previousSpeedLevels = resolvedStatus == previousStatus ? speedLevels[torrentID] : nil
-            speedLevels[torrentID] = (previousSpeedLevels ?? TransferSpeedLevels()).following(snapshot.metrics)
+            speedLevels[torrentID] = (previousSpeedLevels ?? TransferSpeedLevels()).following(snapshot.metrics, at: now)
             let previousRuntimeError = updatedTorrents[index].runtimeErrorState
             updatedTorrents[index].runtimeErrorState = snapshot.errorState
             notifyDownloadStoppedIfNeeded(

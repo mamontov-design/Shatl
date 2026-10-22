@@ -88,6 +88,34 @@ private enum TorrentCardOutlineState: Equatable {
     case error
 }
 
+/// What a status badge wears. A fill means the download is doing
+/// something; an outline means it stands. "Скачана" and "Ошибка" are filled
+/// all the same.
+private enum TorrentStatusBadgeLook: Equatable {
+    case downloading
+    case downloadingIdle
+    case adding
+    case saved
+    case paused
+    case seeding
+    case seedingIdle
+    case completed
+    case error
+
+    var palette: ShatlStatusBadgePalette {
+        switch self {
+        case .downloading: .downloading
+        case .downloadingIdle, .adding: .downloadingStalled
+        case .saved: .saved
+        case .paused: .paused
+        case .seeding: .seeding
+        case .seedingIdle: .seedingStalled
+        case .completed: .completed
+        case .error: .error
+        }
+    }
+}
+
 enum TorrentCardPresentationMode {
     case normal
     case onboardingDemo
@@ -232,6 +260,7 @@ struct TorrentCardView: View, Equatable {
             }
             .allowsHitTesting(false)
             .animation(ShatlMotion.cardState, value: cardOutlineState)
+            .animation(ShatlMotion.cardState, value: isOutlineHovered)
             .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
         .shatlSelectionRefusalShake(trigger: selectionRefusalCount)
@@ -455,7 +484,7 @@ struct TorrentCardView: View, Equatable {
         Button {
             onToggleExpanded()
         } label: {
-            Image(systemName: row.isExpanded ? "arrow.up.right.and.arrow.down.left" : "arrow.down.left.and.arrow.up.right")
+            Image(systemName: row.isExpanded ? "rectangle.compress.vertical" : "rectangle.expand.vertical")
                 .shatlTypography(ShatlTypography.bodyRegular)
                 .foregroundStyle(expandButtonForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
@@ -695,9 +724,7 @@ struct TorrentCardView: View, Equatable {
             if !dynamicGroups.isEmpty {
                 ShatlMetricGroupSet(
                     groups: dynamicGroups,
-                    metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
-                    metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                    showsShadows: showsMetricShadows
+                    isMuted: true
                 )
                     #if DEBUG
                     .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedDynamic"))
@@ -711,9 +738,7 @@ struct TorrentCardView: View, Equatable {
 
             ShatlMetricGroup(
                 group: sizeGroup,
-                metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
-                metricSetOutlineColorOverride: metricSetOutlineColorOverride,
-                showsShadows: showsMetricShadows
+                isMuted: true
             )
                 #if DEBUG
                 .environment(\.shatlMetricSetDiagnosticsContext, metricDiagnosticsContext(source: "expandedSize"))
@@ -829,12 +854,15 @@ struct TorrentCardView: View, Equatable {
         .clipShape(progressGroupShape)
         .overlay {
             progressGroupShape
-                .strokeBorder(pendingProgressGroupBorderColor, lineWidth: 1)
-                .opacity(usesOutlinedProgressGroup ? 1 : 0)
+                .strokeBorder(
+                    progressGroupOutlineColor ?? .clear,
+                    style: StrokeStyle(lineWidth: 1, dash: badgeLook == .saved ? [4, 2] : [])
+                )
+                .opacity(progressGroupOutlineColor == nil ? 0 : 1)
                 .allowsHitTesting(false)
         }
         .frame(height: ShatlMetricLayout.containerHeight)
-        .animation(ShatlMotion.cardState, value: usesOutlinedProgressGroup)
+        .animation(ShatlMotion.cardState, value: badgeLook)
     }
 
     private static let progressGroupPadding: CGFloat = 6
@@ -873,13 +901,39 @@ struct TorrentCardView: View, Equatable {
         if row.isPendingAddition {
             return "pending-addition"
         }
-        return row.isSavedForLater ? "saved" : statusKind.rawValue
+        if row.isSavedForLater {
+            return "saved"
+        }
+        return row.isIdle ? "\(statusKind.rawValue)-idle" : statusKind.rawValue
     }
 
-    /// The badge of a download being added and of a saved one is an outline
-    /// around its icon, in the colours of a download.
+    /// The badge of a download being added and of a saved one shows its icon
+    /// alone.
     private var usesOutlinedProgressGroup: Bool {
         row.isPendingAddition || row.isSavedForLater
+    }
+
+    private var badgeLook: TorrentStatusBadgeLook {
+        if row.isPendingAddition {
+            return .adding
+        }
+        if row.isSavedForLater {
+            return .saved
+        }
+        switch statusKind {
+        case .downloading:
+            return row.isIdle ? .downloadingIdle : .downloading
+        case .checking:
+            return .downloading
+        case .stopped:
+            return .paused
+        case .seeding:
+            return row.isIdle ? .seedingIdle : .seeding
+        case .completed:
+            return .completed
+        case .error:
+            return .error
+        }
     }
 
     private var progressIconName: String {
@@ -941,38 +995,18 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.backgroundPrimary
         }
 
-        if usesOutlinedProgressGroup {
-            return .clear
-        }
-
-        switch statusKind {
-        case .downloading, .checking:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeDownloadingHover
-                : ShatlColor.statusBadgeDownloadingDefault
-        case .stopped:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgePausedHover
-                : ShatlColor.statusBadgePausedDefault
-        case .seeding:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeSeedingHover
-                : ShatlColor.statusBadgeSeedingDefault
-        case .completed:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeCompletedHover
-                : ShatlColor.statusBadgeCompletedDefault
-        case .error:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusBadgeErrorHover
-                : ShatlColor.statusBadgeErrorDefault
-        }
+        let palette = badgeLook.palette
+        return usesHoverStatusPalette ? palette.fill.hover : palette.fill.rest
     }
 
-    private var pendingProgressGroupBorderColor: Color {
-        usesHoverStatusPalette
-            ? ShatlColor.statusBadgeDownloadingHover
-            : ShatlColor.statusBadgeDownloadingDefault
+    /// Nil for a filled badge, and on the onboarding's plain cards.
+    private var progressGroupOutlineColor: Color? {
+        if progressGroupBackgroundColorOverride != nil
+            || (presentationMode == .onboardingDemo && !usesProductionProgressColors) {
+            return nil
+        }
+        guard let outline = badgeLook.palette.outline else { return nil }
+        return usesHoverStatusPalette ? outline.hover : outline.rest
     }
 
     private var progressGroupForegroundColor: Color {
@@ -984,34 +1018,8 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.typographyPrimary
         }
 
-        if row.isSavedForLater {
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextDownloadingHover
-                : ShatlColor.statusTextDownloadingDefault
-        }
-
-        switch statusKind {
-        case .downloading, .checking:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextDownloadingHover
-                : ShatlColor.statusTextDownloadingDefault
-        case .stopped:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextPausedHover
-                : ShatlColor.statusTextPausedDefault
-        case .seeding:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextSeedingHover
-                : ShatlColor.statusTextSeedingDefault
-        case .completed:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextCompletedHover
-                : ShatlColor.statusTextCompletedDefault
-        case .error:
-            return usesHoverStatusPalette
-                ? ShatlColor.statusTextErrorHover
-                : ShatlColor.statusTextErrorDefault
-        }
+        let palette = badgeLook.palette
+        return usesHoverStatusPalette ? palette.text.hover : palette.text.rest
     }
 
     private var metricSetBackgroundColorOverride: Color? {
@@ -1037,16 +1045,22 @@ struct TorrentCardView: View, Equatable {
     private var cardOutlineColor: Color {
         switch cardOutlineState {
         case .normal:
-            cardOutlineColorOverride ?? ShatlColor.outlinePrimary
+            cardOutlineColorOverride ?? (isOutlineHovered ? ShatlColor.cardOutlineHover : ShatlColor.cardOutlineDefault)
         case .selected:
-            ShatlColor.accent
+            ShatlColor.cardOutlineSelected
         case .error:
-            ShatlColor.cerisePink
+            ShatlColor.cardOutlineError
         }
     }
 
+    /// The card under the pointer answers with its outline; its fill stays.
+    private var isOutlineHovered: Bool {
+        presentationMode == .normal && isHovered
+    }
+
+    /// A selected card keeps the thicker outline when its download fails.
     private var cardOutlineLineWidth: CGFloat {
-        cardOutlineState == .selected ? 1 : 0.5
+        row.isSelected ? 1 : 0.5
     }
 
     private var originalTitleLine: some View {
@@ -1106,8 +1120,9 @@ struct TorrentCardView: View, Equatable {
     }
 
     /// Takes a download that finished in view into the one-line layout step
-    /// by step, each step once the one before has settled. A finished
-    /// download that starts again or fails goes back in one move.
+    /// by step, each step once the one before has settled and the card has
+    /// rested a moment. A finished download that starts again or fails goes
+    /// back in one move.
     private func followFinishedLayout() async {
         guard finishSteps.appearedFinished != nil else {
             finishSteps.appearedFinished = row.usesFinishedLayout
@@ -1161,28 +1176,28 @@ struct TorrentCardView: View, Equatable {
             withAnimation(ShatlMotion.cardLayout) {
                 onCollapse()
             }
-            guard await settle(for: ShatlMotion.cardLayoutDuration) else { return }
+            guard await settle(for: ShatlMotion.cardLayoutDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .statusHidden {
             withAnimation(ShatlMotion.metricResize) {
                 finishStage = .statusHidden
             }
-            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+            guard await settle(for: ShatlMotion.metricResizeDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .barHidden {
             withAnimation(ShatlMotion.metricResize) {
                 finishStage = .barHidden
             }
-            guard await settle(for: ShatlMotion.metricResizeDuration) else { return }
+            guard await settle(for: ShatlMotion.metricResizeDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         if layoutStage < .merged {
             withAnimation(ShatlMotion.cardLayout) {
                 finishStage = .merged
             }
-            guard await settle(for: ShatlMotion.finishedStatusSettleDuration) else { return }
+            guard await settle(for: ShatlMotion.finishedStatusSettleDuration + ShatlMotion.finishedCardStepPause) else { return }
         }
 
         withAnimation(ShatlMotion.metricResize) {
@@ -1332,11 +1347,7 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.onboardingForeground
         }
 
-        if row.isSelected {
-            return ShatlColor.cardDefault
-        }
-
-        return isHovered ? ShatlColor.cardHover : ShatlColor.cardDefault
+        return ShatlColor.cardBackgroundDefault
     }
 
     private var cardBackground: some View {

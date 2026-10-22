@@ -7,7 +7,6 @@ import SwiftUI
 enum ShatlButtonRole {
     case borderedNeutral
     case borderedColored
-    case borderedMonochrome
     case lineMessage
 }
 
@@ -211,8 +210,6 @@ struct ShatlButton: View {
             ShatlColor.buttonNeutral
         case .borderedColored:
             ShatlColor.accent
-        case .borderedMonochrome:
-            ShatlColor.onboardingButtonBody
         case .lineMessage:
             ShatlColor.lineMessageButtonBackground
         }
@@ -224,8 +221,6 @@ struct ShatlButton: View {
             ShatlColor.typographyPrimary
         case .borderedColored:
             ShatlColor.typographyPrimaryInverted
-        case .borderedMonochrome:
-            ShatlColor.onboardingButtonText
         case .lineMessage:
             ShatlColor.lineMessageButtonLabel
         }
@@ -1034,7 +1029,7 @@ struct TorrentCardPreviewView: View {
     var showsExpansionToggle = true
     var pulsesMetricSetOutlines = false
     var metricSetOutlineFlashTrigger = 0
-    var metricSetOutlineFlashColor = ShatlColor.neonBlue
+    var metricSetOutlineFlashColor = ShatlColor.accentColored
     var progressBarFillColorOverride: Color? = nil
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
@@ -1064,7 +1059,7 @@ struct TorrentCardPreviewView: View {
         showsExpansionToggle: Bool = true,
         pulsesMetricSetOutlines: Bool = false,
         metricSetOutlineFlashTrigger: Int = 0,
-        metricSetOutlineFlashColor: Color = ShatlColor.neonBlue,
+        metricSetOutlineFlashColor: Color = ShatlColor.accentColored,
         progressBarFillColorOverride: Color? = nil,
         progressGroupBackgroundColorOverride: Color? = nil,
         progressGroupForegroundColorOverride: Color? = nil,
@@ -1145,7 +1140,7 @@ struct TorrentCardPreviewView: View {
                 .environment(\.shatlMetricSetOutlinePulseEnabled, pulsesMetricSetOutlines)
                 .environment(\.shatlMetricSetOutlineFlashTrigger, metricSetOutlineFlashTrigger)
                 .environment(\.shatlDownloadSpeedOutlineFlashTrigger, downloadSpeedOutlineFlashTrigger)
-                .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.neonBlue)
+                .environment(\.shatlMetricSetOutlinePulseColor, ShatlColor.accentColored)
                 .environment(\.shatlMetricSetOutlineFlashColor, metricSetOutlineFlashColor)
                 .environment(\.shatlIsCardPreview, true)
                 .environment(\.shatlCardPreviewFocus, focus)
@@ -1204,7 +1199,7 @@ struct TorrentCardPreviewView: View {
     }
 
     private var expandHintColor: Color {
-        ShatlColor.neonBlue.opacity(0.5)
+        ShatlColor.accentColored.opacity(0.5)
     }
 
     private var expandHintBlendMode: BlendMode {
@@ -1365,6 +1360,9 @@ struct ShatlMetricItem: View {
     /// The chevron shows while the speed has the ETA beside it; at the end
     /// of a download the ETA leaves and takes it along.
     var showsFoldMark = true
+    /// On the quiet plate of the expanded metrics the unit is a step
+    /// darker, so that it holds on the grey.
+    var isMuted = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlRollsMetricDigits) private var rollsDigits
 
@@ -1382,7 +1380,7 @@ struct ShatlMetricItem: View {
 
             if let iconName = item.iconName {
                 Image(systemName: iconName)
-                    .shatlTypography(iconTypography(for: iconName))
+                    .shatlTypography(ShatlTypography.metricIcon(iconName))
                     .foregroundStyle(iconColor)
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
@@ -1394,7 +1392,7 @@ struct ShatlMetricItem: View {
                     if let unit = item.unit {
                         Text(unit)
                             .shatlTypography(ShatlTypography.metricSemibold)
-                            .foregroundStyle(cellPalette?.label ?? ShatlColor.typographyTertiary)
+                            .foregroundStyle(unitColor)
                             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -1454,6 +1452,11 @@ struct ShatlMetricItem: View {
         cellPalette.map { $0.icon.opacity(0.35) } ?? ShatlColor.typographyTertiary
     }
 
+    private var unitColor: Color {
+        if let cellPalette { return cellPalette.label }
+        return isMuted ? ShatlColor.typographySecondary : ShatlColor.typographyTertiary
+    }
+
     private var spokenValue: String {
         [item.number, item.unit].compactMap { $0 }.joined(separator: " ")
     }
@@ -1485,13 +1488,18 @@ struct ShatlMetricItem: View {
             text
         }
     }
+}
 
-    private func iconTypography(for iconName: String) -> ShatlTextStyle {
+extension ShatlTypography {
+    /// A metric's icon. The tortoise, the hare and the bolt are drawn a size
+    /// smaller, as they are wider and heavier than the figures; the Settings
+    /// legend of speed colours draws them the same way.
+    static func metricIcon(_ iconName: String) -> ShatlTextStyle {
         switch iconName {
         case "tortoise.fill", "hare.fill", "bolt.fill":
-            ShatlTypography.groupSemibold
+            groupSemibold
         default:
-            ShatlTypography.metricSemibold
+            metricSemibold
         }
     }
 }
@@ -1549,6 +1557,9 @@ struct ShatlMetricSet: View {
     var metricIconColorOverride: Color? = nil
     var backgroundColorOverride: Color? = nil
     var outlineColorOverride: Color? = nil
+    /// The quiet plate of the expanded metrics: filled, with no outline and
+    /// no shadow; `Muted` in Figma.
+    var isMuted = false
     var colorizesDownloadSpeed = false
     /// The shadow under the set's plate.
     var showsShadows = true
@@ -1589,7 +1600,8 @@ struct ShatlMetricSet: View {
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
                     showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
                     isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded,
-                    showsFoldMark: items.contains { $0.id == "eta" }
+                    showsFoldMark: items.contains { $0.id == "eta" },
+                    isMuted: isMuted
                 )
                 .transition(metricContentTransition)
             }
@@ -1613,7 +1625,7 @@ struct ShatlMetricSet: View {
         .background {
             let plate = RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(plateColor)
-            if showsShadows, restOpacity > 0 {
+            if showsShadows, !isMuted, restOpacity > 0 {
                 plate.shadow(
                     color: ShatlColor.shadowKeyColor.opacity(restOpacity),
                     radius: restShadow.radius,
@@ -1654,11 +1666,11 @@ struct ShatlMetricSet: View {
     }
 
     private var metricBackgroundColor: Color {
-        backgroundColorOverride ?? ShatlColor.metricBackground
+        backgroundColorOverride ?? (isMuted ? ShatlColor.metricBackgroundMuted : ShatlColor.metricBackground)
     }
 
     private var metricOutlineColor: Color {
-        outlineColorOverride ?? ShatlColor.metricOutline
+        outlineColorOverride ?? (isMuted ? .clear : ShatlColor.metricOutline)
     }
 
     /// The number comes back once the pointer rests on the set, and folds
@@ -1683,7 +1695,7 @@ struct ShatlMetricSet: View {
 
     private var metricDivider: some View {
         RoundedRectangle(cornerRadius: 1, style: .continuous)
-            .fill(ShatlColor.metricDivider)
+            .fill(isMuted ? ShatlColor.metricDividerMuted : ShatlColor.metricDivider)
             .frame(width: 2, height: ShatlMetricLayout.contentHeight)
     }
 
@@ -1998,7 +2010,7 @@ private struct ShatlInfoBottomMetricItem: View {
         HStack(spacing: 5) {
             if let iconName = item.iconName {
                 Image(systemName: iconName)
-                    .shatlTypography(iconTypography(for: iconName))
+                    .shatlTypography(ShatlTypography.metricIcon(iconName))
                     .foregroundStyle(ShatlColor.typographyPrimary)
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
@@ -2040,15 +2052,6 @@ private struct ShatlInfoBottomMetricItem: View {
             text
         }
     }
-
-    private func iconTypography(for iconName: String) -> ShatlTextStyle {
-        switch iconName {
-        case "tortoise.fill", "hare.fill", "bolt.fill":
-            ShatlTypography.groupSemibold
-        default:
-            ShatlTypography.metricSemibold
-        }
-    }
 }
 
 struct ShatlMetricGroup: View {
@@ -2056,6 +2059,7 @@ struct ShatlMetricGroup: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var isMuted = false
     var showsShadows = true
     #if DEBUG
     @Environment(\.shatlMetricSetDiagnosticsContext) private var diagnosticsContext
@@ -2075,6 +2079,7 @@ struct ShatlMetricGroup: View {
                 metricIconColorOverride: metricIconColorOverride,
                 backgroundColorOverride: metricSetBackgroundColorOverride,
                 outlineColorOverride: metricSetOutlineColorOverride,
+                isMuted: isMuted,
                 showsShadows: showsShadows
             )
             #if DEBUG
@@ -2091,6 +2096,7 @@ struct ShatlMetricGroupSet: View {
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
     var metricSetOutlineColorOverride: Color? = nil
+    var isMuted = false
     var showsShadows = true
 
     var body: some View {
@@ -2101,6 +2107,7 @@ struct ShatlMetricGroupSet: View {
                     metricIconColorOverride: metricIconColorOverride,
                     metricSetBackgroundColorOverride: metricSetBackgroundColorOverride,
                     metricSetOutlineColorOverride: metricSetOutlineColorOverride,
+                    isMuted: isMuted,
                     showsShadows: showsShadows
                 )
                     .layoutPriority(1)
