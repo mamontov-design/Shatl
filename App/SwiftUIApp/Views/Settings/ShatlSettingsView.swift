@@ -1325,7 +1325,7 @@ private struct MetricsPresentationInfoPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("settings.appearance.metrics.popover.title")
-                .shatlTypography(ShatlTypography.bodySemibold)
+                .shatlTypography(ShatlTypography.subheadlineBold)
                 .foregroundStyle(ShatlColor.typographyPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
