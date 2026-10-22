@@ -1022,6 +1022,7 @@ struct TorrentCardPreviewView: View {
     var localeOverride: AppLocaleOverride = .russian
     var metricsMode: MetricsPresentationMode = .simplified
     var colorizesDownloadSpeed = false
+    var usesMonochromeAppearance = false
     var downloadSpeedOutlineFlashTrigger = 0
     var initiallyExpanded = false
     var centersExpandedCard = false
@@ -1052,6 +1053,7 @@ struct TorrentCardPreviewView: View {
         localeOverride: AppLocaleOverride = .russian,
         metricsMode: MetricsPresentationMode = .simplified,
         colorizesDownloadSpeed: Bool = false,
+        usesMonochromeAppearance: Bool = false,
         downloadSpeedOutlineFlashTrigger: Int = 0,
         initiallyExpanded: Bool = false,
         centersExpandedCard: Bool = false,
@@ -1074,6 +1076,7 @@ struct TorrentCardPreviewView: View {
         self.localeOverride = localeOverride
         self.metricsMode = metricsMode
         self.colorizesDownloadSpeed = colorizesDownloadSpeed
+        self.usesMonochromeAppearance = usesMonochromeAppearance
         self.downloadSpeedOutlineFlashTrigger = downloadSpeedOutlineFlashTrigger
         self.initiallyExpanded = initiallyExpanded
         self.centersExpandedCard = centersExpandedCard
@@ -1163,6 +1166,7 @@ struct TorrentCardPreviewView: View {
                 isExpanded: isExpanded,
                 metricsMode: metricsMode,
                 colorizesDownloadSpeed: colorizesDownloadSpeed,
+                usesMonochromeAppearance: usesMonochromeAppearance,
                 localeOverride: localeOverride
             ),
             resolvePrimaryLocation: { nil },
@@ -1254,6 +1258,7 @@ private extension TorrentRowState {
         isExpanded: Bool,
         metricsMode: MetricsPresentationMode,
         colorizesDownloadSpeed: Bool = false,
+        usesMonochromeAppearance: Bool = false,
         localeOverride: AppLocaleOverride
     ) -> TorrentRowState {
         let record = TorrentRecord.previewDemo(progress: progress, tick: tick)
@@ -1287,6 +1292,7 @@ private extension TorrentRowState {
             expandedMetricGroups: isExpanded ? expandedMetricGroups : nil,
             metricsMode: metricsMode,
             colorizesDownloadSpeed: colorizesDownloadSpeed,
+            usesMonochromeAppearance: usesMonochromeAppearance,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,
@@ -1561,6 +1567,9 @@ struct ShatlMetricSet: View {
     /// no shadow; `Muted` in Figma.
     var isMuted = false
     var colorizesDownloadSpeed = false
+    /// The monochrome appearance: the set is the plain one, and with
+    /// `colorizesDownloadSpeed` on only the speed icon takes its colour.
+    var usesMonochromeAppearance = false
     /// The shadow under the set's plate.
     var showsShadows = true
     /// The download speed shows its level icon alone; its number comes back
@@ -1596,7 +1605,9 @@ struct ShatlMetricSet: View {
 
                 ShatlMetricItem(
                     item: item,
-                    iconColorOverride: metricIconColorOverride,
+                    iconColorOverride: item.id == "download-speed"
+                        ? monochromeSpeedIconColor ?? metricIconColorOverride
+                        : metricIconColorOverride,
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
                     showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
                     isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded,
@@ -1654,9 +1665,20 @@ struct ShatlMetricSet: View {
     }
 
     private var speedPalette: ShatlSpeedMetricPalette? {
+        guard !usesMonochromeAppearance else { return nil }
+        return levelPalette
+    }
+
+    /// The colours of the speed's level while the speed is coloured.
+    private var levelPalette: ShatlSpeedMetricPalette? {
         guard colorizesDownloadSpeed,
               let speed = items.first(where: { $0.id == "download-speed" }) else { return nil }
         return ShatlSpeedMetricPalette.downloadSymbol(speed.iconName)
+    }
+
+    /// Monochrome with the speed coloured: the icon alone keeps its colour.
+    private var monochromeSpeedIconColor: Color? {
+        usesMonochromeAppearance ? levelPalette?.icon : nil
     }
 
     private var usesColoredDownloadSpeed: Bool { speedPalette != nil }

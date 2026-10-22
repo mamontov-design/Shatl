@@ -111,6 +111,8 @@ enum ShatlColor {
     static let speedBadgeRun = Color(light: ShatlPalette.grass3, dark: ShatlPalette.grassDark4)
     static let speedBadgeHare = Color(light: ShatlPalette.orange3, dark: ShatlPalette.orangeDark4)
     static let speedBadgeBolt = Color(light: ShatlPalette.ruby3, dark: ShatlPalette.rubyDark4)
+    /// The monochrome appearance leaves the speed without a plate.
+    static let speedBadgeMonochromatic = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
     static let speedIconTortoise = Color(light: ShatlPalette.slate9, dark: ShatlPalette.slateDark9)
     static let speedIconWalk = Color(light: ShatlPalette.teal9, dark: ShatlPalette.tealDark9)
     static let speedIconRun = Color(light: ShatlPalette.grass9, dark: ShatlPalette.grassDark9)
@@ -166,6 +168,21 @@ enum ShatlColor {
     static let statusTextCompletedHover = Color(light: ShatlPalette.gold11, dark: ShatlPalette.goldDark12)
     static let statusTextErrorDefault = Color(light: ShatlPalette.red10, dark: ShatlPalette.redDark12)
     static let statusTextErrorHover = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark12)
+
+    /// The monochrome appearance: a fill and an outline keep their meaning in
+    /// greys, and "Ошибка" is the one status left in colour.
+    static let statusBadgeMonochromaticFilledDefault = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark7)
+    static let statusBadgeMonochromaticFilledHover = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDark7)
+    static let statusBadgeMonochromaticStalledDefault = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgeMonochromaticStalledHover = Color(light: ShatlPalette.clear, dark: ShatlPalette.clear)
+    static let statusBadgeOutlineMonochromaticStalledDefault = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDark7)
+    static let statusBadgeOutlineMonochromaticStalledHover = Color(light: ShatlPalette.gray7, dark: ShatlPalette.grayDark8)
+    static let statusBadgeOutlineMonochromaticStalledDashedDefault = Color(light: ShatlPalette.gray7, dark: ShatlPalette.grayDark8)
+    static let statusBadgeOutlineMonochromaticStalledDashedHover = Color(light: ShatlPalette.gray8, dark: ShatlPalette.grayDark9)
+    static let statusTextMonochromaticDefault = Color(light: ShatlPalette.gray12, dark: ShatlPalette.grayDark12)
+    static let statusTextMonochromaticHover = Color(light: ShatlPalette.gray12, dark: ShatlPalette.grayDark12)
+    static let statusTextMonochromaticErrorDefault = Color(light: ShatlPalette.red10, dark: ShatlPalette.redDark9)
+    static let statusTextMonochromaticErrorHover = Color(light: ShatlPalette.red11, dark: ShatlPalette.redDark10)
 
     /// A link button under the pointer wears the colours of the
     /// "Скачивается" badge, as the mockup binds them.
@@ -301,6 +318,29 @@ struct ShatlStatusBadgePalette {
         fill: Tone(rest: ShatlColor.statusBadgeErrorDefault, hover: ShatlColor.statusBadgeErrorHover),
         outline: nil,
         text: Tone(rest: ShatlColor.statusTextErrorDefault, hover: ShatlColor.statusTextErrorHover)
+    )
+
+    /// The monochrome appearance: a filled grey badge for a download that
+    /// works, a grey outline for one that stands, red text for an error.
+    static let monochromaticFilled = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeMonochromaticFilledDefault, hover: ShatlColor.statusBadgeMonochromaticFilledHover),
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextMonochromaticDefault, hover: ShatlColor.statusTextMonochromaticHover)
+    )
+    static let monochromaticError = Self(
+        fill: monochromaticFilled.fill,
+        outline: nil,
+        text: Tone(rest: ShatlColor.statusTextMonochromaticErrorDefault, hover: ShatlColor.statusTextMonochromaticErrorHover)
+    )
+    static let monochromaticStalled = Self(
+        fill: Tone(rest: ShatlColor.statusBadgeMonochromaticStalledDefault, hover: ShatlColor.statusBadgeMonochromaticStalledHover),
+        outline: Tone(rest: ShatlColor.statusBadgeOutlineMonochromaticStalledDefault, hover: ShatlColor.statusBadgeOutlineMonochromaticStalledHover),
+        text: monochromaticFilled.text
+    )
+    static let monochromaticSaved = Self(
+        fill: monochromaticStalled.fill,
+        outline: Tone(rest: ShatlColor.statusBadgeOutlineMonochromaticStalledDashedDefault, hover: ShatlColor.statusBadgeOutlineMonochromaticStalledDashedHover),
+        text: monochromaticFilled.text
     )
 }
 

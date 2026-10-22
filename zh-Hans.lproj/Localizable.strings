@@ -297,6 +297,7 @@
 "settings.downloads.network.port_status.closed" = "端口已关闭";
 
 "settings.appearance.theme.section" = "主题";
+"settings.appearance.monochrome.toggle" = "单色外观";
 "settings.appearance.theme.system" = "跟随系统";
 "settings.appearance.theme.light" = "浅色";
 "settings.appearance.theme.dark" = "深色";

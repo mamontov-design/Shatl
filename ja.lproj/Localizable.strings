@@ -297,6 +297,7 @@
 "settings.downloads.network.port_status.closed" = "ポートは閉じています";
 
 "settings.appearance.theme.section" = "テーマ";
+"settings.appearance.monochrome.toggle" = "モノクロ表示";
 "settings.appearance.theme.system" = "システムに合わせる";
 "settings.appearance.theme.light" = "ライト";
 "settings.appearance.theme.dark" = "ダーク";

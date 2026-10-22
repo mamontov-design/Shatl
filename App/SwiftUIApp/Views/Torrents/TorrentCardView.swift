@@ -102,8 +102,18 @@ private enum TorrentStatusBadgeLook: Equatable {
     case completed
     case error
 
-    var palette: ShatlStatusBadgePalette {
-        switch self {
+    /// In the monochrome appearance the fill and the outline keep their
+    /// meaning in greys; only "Ошибка" keeps its colour.
+    func palette(monochrome: Bool) -> ShatlStatusBadgePalette {
+        if monochrome {
+            return switch self {
+            case .downloading, .seeding, .completed: .monochromaticFilled
+            case .error: .monochromaticError
+            case .downloadingIdle, .seedingIdle, .adding, .paused: .monochromaticStalled
+            case .saved: .monochromaticSaved
+            }
+        }
+        return switch self {
         case .downloading: .downloading
         case .downloadingIdle, .adding: .downloadingStalled
         case .saved: .saved
@@ -692,6 +702,7 @@ struct TorrentCardView: View, Equatable {
             backgroundColorOverride: metricSetBackgroundColorOverride,
             outlineColorOverride: metricSetOutlineColorOverride,
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
+            usesMonochromeAppearance: row.usesMonochromeAppearance,
             showsShadows: showsMetricShadows,
             foldsDownloadSpeed: foldsDownloadSpeed
         )
@@ -863,6 +874,7 @@ struct TorrentCardView: View, Equatable {
         }
         .frame(height: ShatlMetricLayout.containerHeight)
         .animation(ShatlMotion.cardState, value: badgeLook)
+        .animation(ShatlMotion.cardState, value: row.usesMonochromeAppearance)
     }
 
     private static let progressGroupPadding: CGFloat = 6
@@ -911,6 +923,10 @@ struct TorrentCardView: View, Equatable {
     /// alone.
     private var usesOutlinedProgressGroup: Bool {
         row.isPendingAddition || row.isSavedForLater
+    }
+
+    private var badgePalette: ShatlStatusBadgePalette {
+        badgeLook.palette(monochrome: row.usesMonochromeAppearance)
     }
 
     private var badgeLook: TorrentStatusBadgeLook {
@@ -995,7 +1011,7 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.backgroundPrimary
         }
 
-        let palette = badgeLook.palette
+        let palette = badgePalette
         return usesHoverStatusPalette ? palette.fill.hover : palette.fill.rest
     }
 
@@ -1005,7 +1021,7 @@ struct TorrentCardView: View, Equatable {
             || (presentationMode == .onboardingDemo && !usesProductionProgressColors) {
             return nil
         }
-        guard let outline = badgeLook.palette.outline else { return nil }
+        guard let outline = badgePalette.outline else { return nil }
         return usesHoverStatusPalette ? outline.hover : outline.rest
     }
 
@@ -1018,7 +1034,7 @@ struct TorrentCardView: View, Equatable {
             return ShatlColor.typographyPrimary
         }
 
-        let palette = badgeLook.palette
+        let palette = badgePalette
         return usesHoverStatusPalette ? palette.text.hover : palette.text.rest
     }
 

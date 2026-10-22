@@ -1049,6 +1049,7 @@ private struct AppearanceSettingsTab: View {
                 localeOverride: store.preferences.localeOverride,
                 metricsMode: store.preferences.metricsMode,
                 colorizesDownloadSpeed: store.preferences.colorizesDownloadSpeed,
+                usesMonochromeAppearance: store.preferences.usesMonochromeAppearance,
                 downloadSpeedOutlineFlashTrigger: downloadSpeedPreviewPulseTrigger,
                 initiallyExpanded: true,
                 centersExpandedCard: true,
@@ -1108,6 +1109,21 @@ private struct AppearanceSettingsTab: View {
     private var themeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             ShatlSettingsParameterHeader(localizedTitle: "settings.appearance.theme.section")
+
+            // Turned on, it takes the speed colours off; they may be turned on
+            // again and then colour the speed icon alone.
+            ShatlSettingsParameter {
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.appearance.monochrome.toggle",
+                    isOn: Binding(
+                        get: { store.preferences.usesMonochromeAppearance },
+                        set: {
+                            store.preferences.setUsesMonochromeAppearance($0)
+                            focusPreview(on: .downloadSpeed)
+                        }
+                    )
+                )
+            }
 
             HStack(alignment: .top, spacing: 8) {
                 ForEach(AppTheme.allCases) { theme in

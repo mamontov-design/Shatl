@@ -315,6 +315,7 @@
 "settings.downloads.network.port_status.closed" = "Порт закрыт";
 
 "settings.appearance.theme.section" = "Тема";
+"settings.appearance.monochrome.toggle" = "Монохромное оформление";
 "settings.appearance.theme.system" = "Как в системе";
 "settings.appearance.theme.light" = "Светлая";
 "settings.appearance.theme.dark" = "Тёмная";

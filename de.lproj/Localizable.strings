@@ -303,6 +303,7 @@
 "settings.downloads.network.port_status.closed" = "Port ist geschlossen";
 
 "settings.appearance.theme.section" = "Design";
+"settings.appearance.monochrome.toggle" = "Monochromes Erscheinungsbild";
 "settings.appearance.theme.system" = "Wie im System";
 "settings.appearance.theme.light" = "Hell";
 "settings.appearance.theme.dark" = "Dunkel";
