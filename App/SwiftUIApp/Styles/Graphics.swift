@@ -202,8 +202,23 @@ struct ShatlWordmark: View {
     }
 }
 
+/// The star of both marks in the monochrome appearance: no glass and no
+/// fill, a 1 pt outline inside its edge in the monochrome accent, as Figma
+/// draws it. The star morphs and cannot be inset, so the outline is a 2 pt
+/// one cut to the star.
+private struct ShatlMonochromeStar<StarShape: Shape>: View {
+    let shape: StarShape
+
+    var body: some View {
+        shape
+            .stroke(ShatlColor.accentMonochrome, style: StrokeStyle(lineWidth: 2, lineJoin: .miter))
+            .clipShape(shape)
+    }
+}
+
 private struct ShatlWordmarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     let animationPhase: CGFloat
     let renderingMode: ShatlBrandRenderingMode
@@ -236,7 +251,9 @@ private struct ShatlWordmarkArtwork: View {
     }
 
     private var strokeColor: Color {
-        if accentState.isUsingAppAccent {
+        if usesMonochrome {
+            ShatlColor.accentMonochrome.opacity(strokeOpacity)
+        } else if accentState.isUsingAppAccent {
             ShatlColor.accentColored.opacity(strokeOpacity)
         } else {
             accentState.systemAccentColor.opacity(strokeOpacity)
@@ -283,16 +300,20 @@ private struct ShatlWordmarkArtwork: View {
 
     @ViewBuilder
     private var starLayer: some View {
-        switch renderingMode {
-        case .glass:
-            ShatlWordmarkStarMorphShape(progress: animationPhase)
-                .glassEffect(
-                    .clear.tint(starColor),
-                    in: ShatlWordmarkStarMorphShape(progress: animationPhase)
-                )
-        case .flat:
-            ShatlWordmarkStarMorphShape(progress: animationPhase)
-                .fill(starColor)
+        if usesMonochrome {
+            ShatlMonochromeStar(shape: ShatlWordmarkStarMorphShape(progress: animationPhase))
+        } else {
+            switch renderingMode {
+            case .glass:
+                ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    .glassEffect(
+                        .clear.tint(starColor),
+                        in: ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    )
+            case .flat:
+                ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    .fill(starColor)
+            }
         }
     }
 }
@@ -615,6 +636,7 @@ private nonisolated struct ShatlWordmarkStarMorphShape: Shape {
 
 private struct ShatlLogomarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     let animationPhase: CGFloat
     let renderingMode: ShatlBrandRenderingMode
@@ -647,7 +669,9 @@ private struct ShatlLogomarkArtwork: View {
     }
 
     private var aColor: Color {
-        if accentState.isUsingAppAccent {
+        if usesMonochrome {
+            ShatlColor.accentMonochrome.opacity(strokeOpacity)
+        } else if accentState.isUsingAppAccent {
             ShatlColor.accent.opacity(strokeOpacity)
         } else {
             Color("AccentColor").opacity(strokeOpacity)
@@ -717,16 +741,20 @@ private struct ShatlLogomarkArtwork: View {
 
     @ViewBuilder
     private var starLayer: some View {
-        switch renderingMode {
-        case .glass:
-            ShatlLogomarkStarMorphShape(progress: animationPhase)
-                .glassEffect(
-                    .clear.tint(starColor),
-                    in: ShatlLogomarkStarMorphShape(progress: animationPhase)
-                )
-        case .flat:
-            ShatlLogomarkStarMorphShape(progress: animationPhase)
-                .fill(starColor)
+        if usesMonochrome {
+            ShatlMonochromeStar(shape: ShatlLogomarkStarMorphShape(progress: animationPhase))
+        } else {
+            switch renderingMode {
+            case .glass:
+                ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    .glassEffect(
+                        .clear.tint(starColor),
+                        in: ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    )
+            case .flat:
+                ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    .fill(starColor)
+            }
         }
     }
 }
