@@ -1139,15 +1139,18 @@ private struct AppearanceSettingsTab: View {
             // Turned on, it takes the speed colours off; they may be turned on
             // again and then colour the speed icon alone.
             ShatlSettingsParameter {
-                ShatlSettingsToggleRow(
+                ShatlSettingsInfoToggleRow(
                     localizedTitle: "settings.appearance.monochrome.toggle",
+                    localizedHelp: "settings.appearance.monochrome.info.help",
                     isOn: Binding(
                         get: { store.preferences.usesMonochromeAppearance },
                         // A setting for the whole app: the demo card takes
                         // it without a focus of its own.
                         set: { store.preferences.setUsesMonochromeAppearance($0) }
                     )
-                )
+                ) {
+                    MonochromeAppearanceInfoPopover(localeOverride: store.preferences.localeOverride)
+                }
             }
 
             HStack(alignment: .top, spacing: 8) {
@@ -1359,6 +1362,42 @@ private struct SpeedColorsInfoPopover: View {
                 in: RoundedRectangle(cornerRadius: 5, style: .continuous)
             )
             .accessibilityHidden(true)
+    }
+}
+
+/// What the monochrome appearance changes, what it does to the speed
+/// colours, and how to grey the window buttons too: macOS keeps them in
+/// colour unless Graphite is its accent, so the link opens Appearance in
+/// System Settings.
+private struct MonochromeAppearanceInfoPopover: View {
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("settings.appearance.monochrome.popover.title")
+                .shatlTypography(ShatlTypography.subheadlineBold)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            popoverText("settings.appearance.monochrome.popover.scope")
+            popoverText("settings.appearance.monochrome.popover.speed_colors")
+            popoverText("settings.appearance.monochrome.popover.graphite")
+
+            ShatlLinkButton(
+                title: L10n.string("settings.appearance.monochrome.popover.link", localeOverride: localeOverride),
+                url: ShatlLinks.appearanceSettings
+            )
+        }
+        .padding(16)
+        .frame(width: 340, alignment: .leading)
+    }
+
+    private func popoverText(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .shatlTypography(ShatlTypography.bodyRegular)
+            .foregroundStyle(ShatlColor.typographySecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

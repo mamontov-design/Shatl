@@ -8,6 +8,9 @@ enum ShatlLinks {
     /// language.
     static let website = URL(string: "https://mamontov-design.github.io/Shatl/")!
 
+    /// System Settings at Appearance, where the accent colour is picked.
+    static let appearanceSettings = URL(string: "x-apple.systempreferences:com.apple.Appearance-Settings.extension")!
+
     static func privacy(localeOverride: AppLocaleOverride = .system) -> URL {
         legalPage("privacy", localeOverride: localeOverride)
     }

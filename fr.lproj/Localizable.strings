@@ -304,6 +304,12 @@
 
 "settings.appearance.theme.section" = "Thème";
 "settings.appearance.monochrome.toggle" = "Apparence monochrome";
+"settings.appearance.monochrome.info.help" = "En savoir plus sur l’apparence en noir et blanc";
+"settings.appearance.monochrome.popover.title" = "Apparence en noir et blanc";
+"settings.appearance.monochrome.popover.scope" = "La liste des téléchargements, les Réglages et le logo passent en noir et blanc, et la couleur d’accentuation en noir, quelle que soit celle choisie dans macOS. Seules les erreurs gardent leur couleur.";
+"settings.appearance.monochrome.popover.speed_colors" = "L’indication de la vitesse en couleur se désactive alors. Vous pouvez la réactiver : seule l’icône de la vitesse sera alors en couleur.";
+"settings.appearance.monochrome.popover.graphite" = "Pour que les boutons des fenêtres deviennent gris eux aussi, choisissez la couleur d’accentuation « Graphite » dans Réglages Système.";
+"settings.appearance.monochrome.popover.link" = "Apparence dans macOS";
 "settings.appearance.theme.system" = "Comme le système";
 "settings.appearance.theme.light" = "Clair";
 "settings.appearance.theme.dark" = "Sombre";

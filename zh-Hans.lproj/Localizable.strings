@@ -298,6 +298,12 @@
 
 "settings.appearance.theme.section" = "主题";
 "settings.appearance.monochrome.toggle" = "单色外观";
+"settings.appearance.monochrome.info.help" = "了解黑白外观";
+"settings.appearance.monochrome.popover.title" = "黑白外观";
+"settings.appearance.monochrome.popover.scope" = "下载列表、设置和标志会变为黑白，强调色也会变为黑色，无论在 macOS 中选择了哪种强调色。只有错误会保留颜色。";
+"settings.appearance.monochrome.popover.speed_colors" = "此时，速度颜色区分会关闭。你可以重新打开它，届时只有速度图标会显示颜色。";
+"settings.appearance.monochrome.popover.graphite" = "若要让窗口按钮也变为灰色，请在系统设置中将强调色设为“石墨色”。";
+"settings.appearance.monochrome.popover.link" = "macOS 外观";
 "settings.appearance.theme.system" = "跟随系统";
 "settings.appearance.theme.light" = "浅色";
 "settings.appearance.theme.dark" = "深色";

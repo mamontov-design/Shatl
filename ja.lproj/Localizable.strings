@@ -298,6 +298,12 @@
 
 "settings.appearance.theme.section" = "テーマ";
 "settings.appearance.monochrome.toggle" = "モノクロ表示";
+"settings.appearance.monochrome.info.help" = "白黒表示について";
+"settings.appearance.monochrome.popover.title" = "白黒表示";
+"settings.appearance.monochrome.popover.scope" = "ダウンロードリスト、設定、ロゴが白黒になり、アクセントカラーはmacOSで選んだ色にかかわらず黒になります。色が残るのはエラーだけです。";
+"settings.appearance.monochrome.popover.speed_colors" = "このとき、速度の色分け表示はオフになります。もう一度オンにすると、速度のアイコンだけに色が付きます。";
+"settings.appearance.monochrome.popover.graphite" = "ウインドウのボタンもグレーにするには、システム設定でアクセントカラーを「グラファイト」にしてください。";
+"settings.appearance.monochrome.popover.link" = "macOSの外観";
 "settings.appearance.theme.system" = "システムに合わせる";
 "settings.appearance.theme.light" = "ライト";
 "settings.appearance.theme.dark" = "ダーク";
