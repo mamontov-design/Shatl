@@ -690,6 +690,9 @@ struct ShatlSettingsParameterDivider: View {
 /// switch achieved, such as whether the router opened a port.
 struct ShatlSettingsStatusDot: Equatable {
     var color: Color
+    /// A ring inside the dot's edge, 1 pt: the monochrome appearance keeps
+    /// a check in progress apart from an open port this way.
+    var outline: Color? = nil
     /// What the dot means, for VoiceOver and the tooltip: colour alone does
     /// not tell red from green for everyone.
     var description: String
@@ -732,8 +735,12 @@ struct ShatlSettingsToggleRow: View {
                 if let statusDot {
                     Circle()
                         .fill(statusDot.color)
-                        .animation(animatesStatusDot ? ShatlMotion.speedMetricColor : nil, value: statusDot.color)
-                        .frame(width: 6, height: 6)
+                        .overlay {
+                            Circle()
+                                .strokeBorder(statusDot.outline ?? .clear, lineWidth: 1)
+                        }
+                        .animation(animatesStatusDot ? ShatlMotion.speedMetricColor : nil, value: statusDot)
+                        .frame(width: 8, height: 8)
                         .transition(reduceMotion ? .opacity : ShatlMotion.appearFromTop)
                         .accessibilityElement()
                         .accessibilityLabel(statusDot.description)

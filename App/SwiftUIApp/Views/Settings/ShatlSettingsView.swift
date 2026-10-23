@@ -5,6 +5,7 @@ import AppKit
 import SwiftUI
 
 struct ShatlSettingsView: View {
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @EnvironmentObject private var store: AppStore
     @State private var selectedTab: SettingsTab = .downloads
     @State private var animatesPortStatusDot = false
@@ -253,11 +254,13 @@ struct ShatlSettingsView: View {
         case .checking:
             return ShatlSettingsStatusDot(
                 color: ShatlColor.Extra.indicatorStatusChecking,
+                outline: usesMonochrome ? ShatlColor.accentMonochrome : nil,
                 description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
             )
         case .open:
+            // Monochrome: an open port in the accent; a closed one stays red.
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.indicatorStatusSuccess,
+                color: usesMonochrome ? ShatlColor.accentMonochrome : ShatlColor.Extra.indicatorStatusSuccess,
                 description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
             )
         case .closed:
