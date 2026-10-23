@@ -1392,6 +1392,7 @@ private struct ThemeAppearanceDemo: View {
 
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     var body: some View {
         ZStack {
@@ -1404,19 +1405,13 @@ private struct ThemeAppearanceDemo: View {
                     .frame(width: 76, height: 76)
 
                 ShatlWindowButtonCloseShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonClose
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonClose))
 
                 ShatlWindowButtonMinimizeShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonMinimize
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonMinimize))
 
                 ShatlWindowButtonExpandShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonZoom
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonZoom))
             }
             .frame(width: 76, height: 76)
         }
@@ -1439,6 +1434,15 @@ private struct ThemeAppearanceDemo: View {
                 .frame(width: 74, height: 74)
                 .shatlShadow(ShatlShadow.themePreview)
         }
+    }
+
+    /// The window buttons are coloured with our accent and grey with an
+    /// accent picked in System Settings; with Graphite in the monochrome
+    /// appearance they take the hovered card outline.
+    private func windowButtonColor(_ colored: Color) -> Color {
+        if accentState.isUsingAppAccent { return colored }
+        if usesMonochrome, accentState.isGraphite { return ShatlColor.cardOutlineHover }
+        return buttonColor
     }
 
     private var buttonColor: Color {

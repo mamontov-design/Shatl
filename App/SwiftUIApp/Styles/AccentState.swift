@@ -9,14 +9,19 @@ import SwiftUI
 final class ShatlAccentState: ObservableObject {
     @Published private(set) var isUsingAppAccent: Bool
     @Published private(set) var systemAccentColor: Color
+    /// The user picked Graphite, the grey accent, in System Settings.
+    @Published private(set) var isGraphite: Bool
 
     private let notificationCenter: NotificationCenter
+    private let defaults: UserDefaults
     private var systemColorsObserver: NSObjectProtocol?
 
-    init(notificationCenter: NotificationCenter = .default) {
+    init(notificationCenter: NotificationCenter = .default, defaults: UserDefaults = .standard) {
         self.notificationCenter = notificationCenter
+        self.defaults = defaults
         self.isUsingAppAccent = Self.resolveIsUsingAppAccent()
         self.systemAccentColor = Self.resolveSystemAccentColor()
+        self.isGraphite = Self.accentIsGraphite(in: defaults)
 
         systemColorsObserver = notificationCenter.addObserver(
             forName: NSColor.systemColorsDidChangeNotification,
@@ -38,6 +43,14 @@ final class ShatlAccentState: ObservableObject {
     func refresh() {
         isUsingAppAccent = Self.resolveIsUsingAppAccent()
         systemAccentColor = Self.resolveSystemAccentColor()
+        isGraphite = Self.accentIsGraphite(in: defaults)
+    }
+
+    /// macOS keeps the accent picked in System Settings as a number in the
+    /// global domain, and Graphite is -1. AppKit has no API that names the
+    /// accent; this key has stood since macOS 10.14. Multicolor removes it.
+    static func accentIsGraphite(in defaults: UserDefaults) -> Bool {
+        (defaults.object(forKey: "AppleAccentColor") as? NSNumber)?.intValue == -1
     }
 
     private static func resolveIsUsingAppAccent() -> Bool {
