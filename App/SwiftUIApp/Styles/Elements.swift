@@ -241,12 +241,15 @@ struct ShatlButton: View {
 }
 
 /// A small capsule that opens a page in the browser: its name is the
-/// button, and the arrow says that the page opens outside the app.
+/// button, and the arrow says that the page opens outside the app. Under
+/// the pointer it wears the "Скачивается" badge's colours, or, in the
+/// monochrome appearance, the monochrome accent with inverted text.
 struct ShatlLinkButton: View {
     let title: ShatlTextContent
     let url: URL
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @State private var isHovered = false
 
     init(title: String, url: URL) {
@@ -268,11 +271,11 @@ struct ShatlLinkButton: View {
             }
             .shatlTypography(ShatlTypography.captionRegular)
             .frame(height: ShatlTypography.captionRegular.variant(for: typographyProfile).lineHeight)
-            .foregroundStyle(isHovered ? ShatlColor.linkButtonHoverLabel : ShatlColor.typographyPrimary)
+            .foregroundStyle(isHovered ? hoverLabel : ShatlColor.typographyPrimary)
             .padding(.leading, 8)
             .padding(.trailing, 4)
             .padding(.vertical, 4)
-            .background(isHovered ? ShatlColor.linkButtonHoverBackground : ShatlColor.backgroundSecondary)
+            .background(isHovered ? hoverBackground : ShatlColor.backgroundSecondary)
             .clipShape(Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
         }
@@ -282,6 +285,14 @@ struct ShatlLinkButton: View {
         .pointerStyle(.link)
         .accessibilityAddTraits(.isLink)
         .accessibilityRemoveTraits(.isButton)
+    }
+
+    private var hoverBackground: Color {
+        usesMonochrome ? ShatlColor.accentMonochrome : ShatlColor.linkButtonHoverBackground
+    }
+
+    private var hoverLabel: Color {
+        usesMonochrome ? ShatlColor.typographyPrimaryInverted : ShatlColor.linkButtonHoverLabel
     }
 }
 
