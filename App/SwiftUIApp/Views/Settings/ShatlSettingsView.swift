@@ -13,24 +13,28 @@ struct ShatlSettingsView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             downloadsTab
+                .shatlMonochromeTint()
                 .tabItem {
                     Label("settings.tab.downloads", systemImage: "arrow.up.and.down")
                 }
                 .tag(SettingsTab.downloads)
 
             appearanceTab
+                .shatlMonochromeTint()
                 .tabItem {
                     Label("settings.tab.appearance", systemImage: "bubbles.and.sparkles")
                 }
                 .tag(SettingsTab.appearance)
 
             dataTab
+                .shatlMonochromeTint()
                 .tabItem {
                     Label("settings.tab.data", systemImage: "chart.bar")
                 }
                 .tag(SettingsTab.data)
 
             aboutTab
+                .shatlMonochromeTint()
                 .tabItem {
                     Label("settings.tab.about", systemImage: "info.circle")
                 }
@@ -38,6 +42,7 @@ struct ShatlSettingsView: View {
 
             #if DEBUG
             debugTab
+                .shatlMonochromeTint()
                 .tabItem {
                     Label("settings.tab.debug", systemImage: "ladybug")
                 }
