@@ -939,6 +939,7 @@ struct ShatlPerformanceProfileSpeedometer: View {
     let profile: AppPerformanceProfile
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @EnvironmentObject private var accentState: ShatlAccentState
     @State private var isWiggling = false
 
@@ -950,11 +951,9 @@ struct ShatlPerformanceProfileSpeedometer: View {
 
             progressLayer
 
-            ShatlPerformanceSpeedometerArrowShape(level: profile.speedometerLevel)
-                .fill(ShatlColor.typographyPrimary, style: FillStyle(eoFill: true))
+            arrow
                 .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
                 .rotationEffect(.degrees(arrowRotation), anchor: .center)
-                .shatlShadow(ShatlShadow.speedometerArrow)
                 .animation(arrowAnimation, value: isWiggling)
         }
         .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
@@ -966,8 +965,23 @@ struct ShatlPerformanceProfileSpeedometer: View {
         }
     }
 
+    /// In the monochrome appearance the arrow is a short one with no
+    /// shadow, which stops short of the black scale; the long one lay on it
+    /// black on black.
+    @ViewBuilder
+    private var arrow: some View {
+        if usesMonochrome {
+            ShatlPerformanceSpeedometerCompactArrowShape(level: profile.speedometerLevel)
+                .fill(ShatlColor.accentMonochrome, style: FillStyle(eoFill: true))
+        } else {
+            ShatlPerformanceSpeedometerArrowShape(level: profile.speedometerLevel)
+                .fill(ShatlColor.typographyPrimary, style: FillStyle(eoFill: true))
+                .shatlShadow(ShatlShadow.speedometerArrow)
+        }
+    }
+
     private var trackColor: Color {
-        ShatlColor.Extra.speedometerTrack
+        usesMonochrome ? ShatlColor.Extra.speedometerMonochromeTrack : ShatlColor.Extra.speedometerTrack
     }
 
     private var progressLayer: some View {
@@ -982,6 +996,10 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var progressFillStyle: AnyShapeStyle {
+        // Monochrome: a plain scale in its accent, whatever macOS has.
+        if usesMonochrome {
+            return AnyShapeStyle(ShatlColor.accentMonochrome)
+        }
         guard accentState.isUsingAppAccent else {
             return AnyShapeStyle(accentState.systemAccentColor)
         }
