@@ -252,17 +252,17 @@ struct ShatlSettingsView: View {
             return nil
         case .checking:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusChecking,
+                color: ShatlColor.Extra.indicatorStatusChecking,
                 description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
             )
         case .open:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusOpen,
+                color: ShatlColor.Extra.indicatorStatusSuccess,
                 description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
             )
         case .closed:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusClosed,
+                color: ShatlColor.Extra.indicatorStatusFailure,
                 description: L10n.string("settings.downloads.network.port_status.closed", localeOverride: localeOverride)
             )
         }
