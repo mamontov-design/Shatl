@@ -83,6 +83,7 @@ enum ShatlTextContent {
 /// container animates the same change, e.g. `.geometryGroup()` plus
 /// `.animation(ShatlMotion.metricResize, value:)`.
 struct ShatlButton: View {
+    @Environment(\.shatlAccent) private var accent
     let title: ShatlTextContent?
     var busyTitle: ShatlTextContent?
     var isBusy = false
@@ -209,7 +210,7 @@ struct ShatlButton: View {
         case .borderedNeutral:
             ShatlColor.buttonNeutral
         case .borderedColored:
-            ShatlColor.accent
+            accent
         case .lineMessage:
             ShatlColor.lineMessageButtonBackground
         }
@@ -285,6 +286,7 @@ struct ShatlLinkButton: View {
 }
 
 struct ShatlMessageBlock: View {
+    @Environment(\.shatlAccent) private var accent
     let title: String
     let message: String
     var buttonTitle: String?
@@ -312,7 +314,7 @@ struct ShatlMessageBlock: View {
         .clipShape(messageBlockShape)
         .overlay {
             messageBlockShape
-                .strokeBorder(ShatlColor.accent, lineWidth: 1)
+                .strokeBorder(accent, lineWidth: 1)
         }
         .shatlShadow(ShatlShadow.messageBlock)
     }
@@ -760,6 +762,7 @@ struct ShatlSettingsToggleRow: View {
 }
 
 struct ShatlSettingsInputCard<Content: View>: View {
+    @Environment(\.shatlAccent) private var accent
     let title: ShatlTextContent
     let isSelected: Bool
     var isEnabled = true
@@ -866,7 +869,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         .overlay {
             if isSelected {
                 RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous)
-                    .strokeBorder(ShatlColor.accent.opacity(0.75), lineWidth: 1)
+                    .strokeBorder(accent.opacity(0.75), lineWidth: 1)
             }
         }
         .animation(ShatlMotion.cardState, value: isSelected)
@@ -896,7 +899,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         Image(systemName: "checkmark.circle.fill")
             .resizable()
             .scaledToFit()
-            .foregroundStyle(ShatlColor.accent)
+            .foregroundStyle(accent)
             .frame(width: 15, height: 15)
             .scaleEffect(isSelected ? 1 : 0.65, anchor: .center)
             .opacity(isSelected ? 1 : 0)
@@ -916,7 +919,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
 
             labelText(
                 typography: ShatlTypography.bodySemibold,
-                color: ShatlColor.accent
+                color: accent
             )
             .opacity(isSelected ? 1 : 0)
         }
@@ -1357,6 +1360,7 @@ private struct TorrentCardPreviewHeightPreferenceKey: PreferenceKey {
 }
 
 struct ShatlMetricItem: View {
+    @Environment(\.shatlAccent) private var accent
     let item: MetricItemPresentation
     var iconColorOverride: Color? = nil
     var speedPalette: ShatlSpeedMetricPalette? = nil
@@ -1474,7 +1478,7 @@ struct ShatlMetricItem: View {
             return iconColorOverride
         }
 
-        return item.usesAccentIcon ? ShatlColor.accent : ShatlColor.typographySecondary
+        return item.usesAccentIcon ? accent : ShatlColor.typographySecondary
     }
 
     @ViewBuilder

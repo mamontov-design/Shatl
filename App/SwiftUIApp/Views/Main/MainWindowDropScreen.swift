@@ -24,6 +24,7 @@ enum MainWindowDropLayout {
 /// message block in the middle. A release anywhere in the window counts; the
 /// frame is a sign, not a target.
 struct MainWindowDropScreen: View {
+    @Environment(\.shatlAccent) private var accent
     let offer: DraggedDownloadOffer
     let localeOverride: AppLocaleOverride
 
@@ -40,7 +41,7 @@ struct MainWindowDropScreen: View {
                 style: .continuous
             )
             .strokeBorder(
-                ShatlColor.accent,
+                accent,
                 style: StrokeStyle(lineWidth: 1, dash: [4, 2])
             )
         }

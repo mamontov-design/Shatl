@@ -76,3 +76,31 @@ final class ShatlAccentState: ObservableObject {
         )
     }
 }
+
+private struct ShatlMonochromeAppearanceKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// The monochrome appearance, as every window's root passes it down.
+    var shatlUsesMonochromeAppearance: Bool {
+        get { self[ShatlMonochromeAppearanceKey.self] }
+        set { self[ShatlMonochromeAppearanceKey.self] = newValue }
+    }
+
+    /// The accent our views draw with. The asset's, which macOS replaces
+    /// with the accent picked in System Settings; in the monochrome
+    /// appearance the monochrome one, whatever macOS has.
+    var shatlAccent: Color {
+        shatlUsesMonochromeAppearance ? ShatlColor.accentMonochrome : ShatlColor.accent
+    }
+}
+
+extension View {
+    /// The monochrome appearance at a window's root: our views take its
+    /// accent from the environment, the system's controls from the tint.
+    func shatlMonochromeAppearance(_ isOn: Bool) -> some View {
+        environment(\.shatlUsesMonochromeAppearance, isOn)
+            .tint(isOn ? ShatlColor.accentMonochrome : nil)
+    }
+}

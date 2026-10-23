@@ -79,6 +79,7 @@ struct ShatlApp: App {
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
                 .frame(
                     minWidth: AddTorrentReviewLayout.minimumWindowWidth,
                     minHeight: AddTorrentReviewLayout.minimumWindowHeight
@@ -103,6 +104,7 @@ struct ShatlApp: App {
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
                 // Release width: 440.
                 .frame(width: 440)
                 .windowFullScreenBehavior(.disabled)
@@ -124,6 +126,7 @@ struct ShatlApp: App {
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
                 .onAppear {
                     appDelegate.terminationHandler = store
                     appDelegate.userAttentionHandler = store

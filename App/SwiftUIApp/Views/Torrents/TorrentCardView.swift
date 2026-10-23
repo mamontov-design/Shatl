@@ -532,15 +532,21 @@ struct TorrentCardView: View, Equatable {
         }
     }
 
+    /// The app's accent, or the monochrome one: the card takes it from its
+    /// row, as everything else it shows.
+    private var accent: Color {
+        row.usesMonochromeAppearance ? ShatlColor.accentMonochrome : ShatlColor.accent
+    }
+
     private var expandButtonForegroundColor: Color {
-        return isExpandButtonHovered ? ShatlColor.accent : ShatlColor.typographyTertiary
+        return isExpandButtonHovered ? accent : ShatlColor.typographyTertiary
     }
 
     /// A check mark, or the card's number among the selected ones.
     private var selectedIndicator: some View {
         Image(systemName: row.selectionNumber.map { "\($0).circle.fill" } ?? "checkmark.circle.fill")
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(ShatlColor.accent)
+            .foregroundStyle(accent)
             .contentTransition(.symbolEffect(.replace))
             .animation(ShatlMotion.cardControlSlide, value: row.selectionNumber)
     }
@@ -1067,7 +1073,7 @@ struct TorrentCardView: View, Equatable {
         case .normal:
             cardOutlineColorOverride ?? (isOutlineHovered ? ShatlColor.cardOutlineHover : ShatlColor.cardOutlineDefault)
         case .selected:
-            ShatlColor.cardOutlineSelected
+            row.usesMonochromeAppearance ? ShatlColor.cardOutlineSelectedMonochrome : ShatlColor.cardOutlineSelected
         case .error:
             ShatlColor.cardOutlineError
         }

@@ -76,6 +76,8 @@ enum ShatlColor {
     static let cardOutlineHover = Color(light: ShatlPalette.gray8, dark: ShatlPalette.grayDarkA8)
     /// Three quarters of the accent, which follows the one the user picked.
     static let cardOutlineSelected = accent.opacity(0.75)
+    /// The same in the monochrome appearance.
+    static let cardOutlineSelectedMonochrome = accentMonochrome.opacity(0.75)
     static let cardOutlineError = Color(light: ShatlPalette.red8, dark: ShatlPalette.redDarkA8)
 
     /// The fill of a message that needs attention now, under white text:
