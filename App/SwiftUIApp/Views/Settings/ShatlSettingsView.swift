@@ -580,6 +580,7 @@ enum DataCollectionInfoStyle {
 }
 
 struct DataCollectionInfo: View {
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     let style: DataCollectionInfoStyle
 
     @EnvironmentObject private var accentState: ShatlAccentState
@@ -603,14 +604,17 @@ struct DataCollectionInfo: View {
         .frame(maxWidth: style == .onboarding ? .infinity : nil)
     }
 
+    /// Monochrome: both lists in its accent, whatever accent macOS has.
     private var collectsIconColor: Color {
-        accentState.isUsingAppAccent
+        if usesMonochrome { return ShatlColor.accentMonochrome }
+        return accentState.isUsingAppAccent
             ? ShatlColor.accentColored
             : accentState.systemAccentColor
     }
 
     private var doesNotCollectIconColor: Color {
-        accentState.isUsingAppAccent
+        if usesMonochrome { return ShatlColor.accentMonochrome }
+        return accentState.isUsingAppAccent
             ? ShatlColor.accentColored
             : ShatlColor.Extra.dataCollectionCross
     }
