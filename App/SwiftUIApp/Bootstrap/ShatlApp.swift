@@ -104,10 +104,7 @@ struct ShatlApp: App {
                 .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
-                // The tabs take the tint inside: the tab bar above them is
-                // the system's toolbar, and a tint over it turned its
-                // selected tab blue with Graphite as the accent of macOS.
-                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance, tintsControls: false)
+                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
                 // Release width: 440.
                 .frame(width: 440)
                 .windowFullScreenBehavior(.disabled)

@@ -112,29 +112,8 @@ extension EnvironmentValues {
 extension View {
     /// The monochrome appearance at a window's root: our views take its
     /// accent from the environment, the system's controls from the tint.
-    /// `tintsControls: false` passes only the environment, for a root whose
-    /// content applies `shatlMonochromeTint()` itself.
-    func shatlMonochromeAppearance(_ isOn: Bool, tintsControls: Bool = true) -> some View {
-        modifier(ShatlMonochromeTint(isEnabled: tintsControls))
-            .environment(\.shatlUsesMonochromeAppearance, isOn)
-    }
-
-    /// The monochrome accent as the tint of the system's controls below:
-    /// switches, the caret and the focus ring of text fields.
-    func shatlMonochromeTint() -> some View {
-        modifier(ShatlMonochromeTint(isEnabled: true))
-    }
-}
-
-private struct ShatlMonochromeTint: ViewModifier {
-    let isEnabled: Bool
-    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
-
-    func body(content: Content) -> some View {
-        if isEnabled {
-            content.tint(usesMonochrome ? ShatlColor.accentMonochrome : nil)
-        } else {
-            content
-        }
+    func shatlMonochromeAppearance(_ isOn: Bool) -> some View {
+        environment(\.shatlUsesMonochromeAppearance, isOn)
+            .tint(isOn ? ShatlColor.accentMonochrome : nil)
     }
 }
