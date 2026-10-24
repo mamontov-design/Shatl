@@ -204,12 +204,15 @@ struct MainWindowView: View {
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }
-        // In light the list and the empty window stand on a grey ground
-        // under the white cards; in dark the window keeps the system's
-        // background, tinted by the wallpaper.
+        // In light the list stands on a grey ground under the white cards;
+        // the other stages, and every stage in dark, keep the system's
+        // background, tinted by the wallpaper. The ground comes and goes
+        // with the stage change, in its transaction.
         .background {
-            if colorScheme == .light {
-                ShatlColor.Extra.macosWindowBackground.ignoresSafeArea()
+            if colorScheme == .light, stage.standsOnListGround {
+                ShatlColor.Extra.macosWindowBackground
+                    .ignoresSafeArea()
+                    .transition(.opacity)
             }
         }
         // Two listeners with one answer. The catcher lies over the content

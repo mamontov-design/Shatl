@@ -12,19 +12,23 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
 
     /// `saveFolderPath` lets a card name the folder its error is about;
     /// `metricsMode` writes sizes as the rest of the card does.
+    /// `hasOneFile`: a download of one file is told about that file, not
+    /// about "one or more" of its files.
     init?(
         _ errorState: TorrentErrorState?,
         saveFolderPath: String? = nil,
+        hasOneFile: Bool = false,
         metricsMode: MetricsPresentationMode = .simplified,
         localeOverride: AppLocaleOverride = .russian
     ) {
         guard let errorState else { return nil }
 
         self.kind = errorState.kind
-        self.title = Self.localizedTitle(for: errorState, localeOverride: localeOverride)
+        self.title = Self.localizedTitle(for: errorState, hasOneFile: hasOneFile, localeOverride: localeOverride)
         self.message = Self.localizedMessage(
             for: errorState,
             saveFolderPath: saveFolderPath,
+            hasOneFile: hasOneFile,
             metricsMode: metricsMode,
             localeOverride: localeOverride
         )
@@ -33,11 +37,16 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
 
     private static func localizedTitle(
         for errorState: TorrentErrorState,
+        hasOneFile: Bool,
         localeOverride: AppLocaleOverride
     ) -> String {
         switch errorState.kind {
         case .missingContent:
-            L10n.string("torrent.error.missing_content.title", localeOverride: localeOverride, defaultValue: errorState.title)
+            L10n.string(
+                "\(ShatlErrorCatalog.missingContentKey(hasOneFile: hasOneFile)).title",
+                localeOverride: localeOverride,
+                defaultValue: errorState.title
+            )
         case .savePathUnavailable:
             L10n.string("torrent.error.save_path_unavailable.title", localeOverride: localeOverride, defaultValue: errorState.title)
         case .torrentNotFound:
@@ -54,6 +63,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
     private static func localizedMessage(
         for errorState: TorrentErrorState,
         saveFolderPath: String?,
+        hasOneFile: Bool,
         metricsMode: MetricsPresentationMode,
         localeOverride: AppLocaleOverride
     ) -> String {
@@ -73,7 +83,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
             }
         case .missingContent:
             folderMessage(
-                key: "torrent.error.missing_content",
+                key: ShatlErrorCatalog.missingContentKey(hasOneFile: hasOneFile),
                 saveFolderPath: saveFolderPath,
                 localeOverride: localeOverride,
                 fallback: errorState.message
@@ -91,7 +101,7 @@ nonisolated struct TorrentRowErrorState: Equatable, Sendable {
             // A file error names its folder; any other cause has none to name.
             if let cause = errorState.cause {
                 folderMessage(
-                    key: "torrent.error.runtime.\(ShatlErrorCatalog.causeKey(cause))",
+                    key: ShatlErrorCatalog.runtimeErrorKey(cause, hasOneFile: hasOneFile),
                     saveFolderPath: saveFolderPath,
                     localeOverride: localeOverride,
                     fallback: errorState.message

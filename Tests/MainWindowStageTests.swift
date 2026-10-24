@@ -60,6 +60,15 @@ final class MainWindowStageTests: XCTestCase {
         )
     }
 
+    /// The grey ground is the list's: the empty list and the session stages
+    /// keep the window's own background.
+    func testOnlyTheListStandsOnTheGreyGround() {
+        XCTAssertTrue(MainWindowStage.list.standsOnListGround)
+        XCTAssertFalse(MainWindowStage.empty.standsOnListGround)
+        XCTAssertFalse(MainWindowStage.loadingSession.standsOnListGround)
+        XCTAssertFalse(MainWindowStage.sessionLoadFailure(.unreadable).standsOnListGround)
+    }
+
     func testToolbarAddAndSearchBelongToTheListOnly() {
         XCTAssertTrue(MainWindowStage.list.allowsListActions)
         XCTAssertFalse(MainWindowStage.empty.allowsListActions)

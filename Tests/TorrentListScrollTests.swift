@@ -117,11 +117,27 @@ final class TorrentListSightTests: XCTestCase {
 /// The list in a window: the cases the owner reported in October 2026.
 @MainActor
 final class TorrentListScrollFollowTests: XCTestCase {
+    /// The room under the last card, as the main window gives it: larger
+    /// while the speed chips are shown on macOS 27.
+    private final class BottomPadding: ObservableObject {
+        @Published var value: CGFloat
+        init(_ value: CGFloat) { self.value = value }
+    }
+
+    private struct PaddedList: View {
+        @ObservedObject var padding: BottomPadding
+
+        var body: some View {
+            TorrentListView(searchText: "", bottomContentPadding: padding.value, onRemoveSelected: {})
+        }
+    }
+
     private struct HostedList {
         let store: AppStore
         let records: [TorrentRecord]
         let window: NSWindow
         let scroll: NSScrollView
+        let padding: BottomPadding
 
         var offset: CGFloat { scroll.contentView.bounds.origin.y }
         var end: CGFloat {
@@ -133,7 +149,10 @@ final class TorrentListScrollFollowTests: XCTestCase {
         [root] + root.subviews.flatMap { allViews(in: $0) }
     }
 
-    private func makeList(cards: Int = 8) async throws -> HostedList {
+    private func makeList(
+        cards: Int = 8,
+        bottomPadding: CGFloat = ShatlBottomChipLayout.standardListBottomPadding
+    ) async throws -> HostedList {
         let records = (0..<cards).map { index in
             makeTestRecord(originalName: "Download \(index + 1)", status: .stopped, progress: 0.3)
         }
@@ -144,8 +163,9 @@ final class TorrentListScrollFollowTests: XCTestCase {
         await bundle.sessionStore.replaceAllRecordsForTesting(from: records)
 
         let size = NSSize(width: 440, height: 440)
+        let padding = BottomPadding(bottomPadding)
         let hosting = NSHostingView(
-            rootView: TorrentListView(searchText: "", bottomContentPadding: 8, onRemoveSelected: {})
+            rootView: PaddedList(padding: padding)
                 .environmentObject(bundle.store)
                 .frame(width: size.width, height: size.height)
         )
@@ -163,7 +183,7 @@ final class TorrentListScrollFollowTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(900))
 
         let scroll = try XCTUnwrap(allViews(in: hosting).compactMap { $0 as? NSScrollView }.first)
-        let list = HostedList(store: bundle.store, records: records, window: window, scroll: scroll)
+        let list = HostedList(store: bundle.store, records: records, window: window, scroll: scroll, padding: padding)
         XCTAssertGreaterThan(list.end, 40, "The list must be taller than its window for this to test anything")
         return list
     }
@@ -295,6 +315,62 @@ final class TorrentListScrollFollowTests: XCTestCase {
         XCTAssertLessThan(longestJump(in: samples), 15, "The list came to its top in a glide")
         let early = try XCTUnwrap(samples.last { $0.time < 0.08 })
         XCTAssertGreaterThan(early.offset, before - 25, "The list has barely set off")
+    }
+
+    /// The speed chips go, and the room under the last card goes with them.
+    /// A list at its end was pushed to its new end in one frame (the
+    /// owner's window, macOS 27); it glides there with the chips.
+    func testChipsThatGoGlideAListAtItsEndToItsNewEnd() async throws {
+        let list = try await makeList(bottomPadding: ShatlBottomChipLayout.modernListBottomPadding)
+        defer { list.window.orderOut(nil) }
+        try await scrollToEnd(list)
+        let before = list.offset
+        let lost = ShatlBottomChipLayout.modernListBottomPadding - ShatlBottomChipLayout.standardListBottomPadding
+
+        list.padding.value = ShatlBottomChipLayout.standardListBottomPadding
+        let samples = try await offsets(of: list, for: 0.9)
+
+        XCTAssertEqual(list.offset, list.end, accuracy: 1, "The list stands at its new end")
+        XCTAssertEqual(list.offset, before - lost, accuracy: 1)
+        XCTAssertLessThan(longestJump(in: samples), 15, "The list came to its new end in a glide")
+        let early = try XCTUnwrap(samples.last { $0.time < 0.03 })
+        XCTAssertGreaterThan(early.offset, before - lost / 2, "The list has barely set off")
+    }
+
+    /// The speed chips come under a list at its end: it goes down with the
+    /// room they bring, so its last card does not stay under them.
+    func testChipsThatComeTakeAListAtItsEndDownWithThem() async throws {
+        let list = try await makeList()
+        defer { list.window.orderOut(nil) }
+        try await scrollToEnd(list)
+        let before = list.offset
+        let gained = ShatlBottomChipLayout.modernListBottomPadding - ShatlBottomChipLayout.standardListBottomPadding
+
+        list.padding.value = ShatlBottomChipLayout.modernListBottomPadding
+        let samples = try await offsets(of: list, for: 0.9)
+
+        XCTAssertEqual(list.offset, list.end, accuracy: 1, "The list stands at its new end")
+        XCTAssertEqual(list.offset, before + gained, accuracy: 1)
+        XCTAssertLessThan(longestJump(in: samples), 15, "The list went down in a glide")
+    }
+
+    /// A list at its top stays there when the chips come, and one scrolled
+    /// to its middle stays where it is.
+    func testChipsThatComeLeaveAListAwayFromItsEndWhereItIs() async throws {
+        let list = try await makeList()
+        defer { list.window.orderOut(nil) }
+
+        list.padding.value = ShatlBottomChipLayout.modernListBottomPadding
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(list.offset, 0, accuracy: 0.5)
+
+        try await scrollToEnd(list, short: 60)
+        let middle = list.offset
+        list.padding.value = ShatlBottomChipLayout.standardListBottomPadding
+        try await Task.sleep(for: .milliseconds(700))
+        list.padding.value = ShatlBottomChipLayout.modernListBottomPadding
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(list.offset, middle, accuracy: 1)
     }
 
     /// A card cut by the window's lower edge, then expanded: the list went

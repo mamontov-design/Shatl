@@ -123,10 +123,14 @@
 "torrent.metric.uploaded" = "Subido";
 "torrent.metric.size" = "Tamaño";
 
-"torrent.error.missing_content.title" = "No se encuentran los archivos de la descarga";
-"torrent.error.missing_content.message" = "Los archivos no están en la carpeta de descarga: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
-"torrent.error.missing_content.named_message" = "Los archivos de esta descarga no están en la carpeta «%@»: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.title" = "Faltan archivos de la descarga";
+"torrent.error.missing_content.message" = "Faltan uno o varios archivos de esta descarga en su carpeta: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.named_message" = "En la carpeta «%@» faltan uno o varios archivos de esta descarga: puede que se hayan movido, renombrado o eliminado. Descárgalos de nuevo o quita la descarga de la lista.";
 "torrent.error.missing_content.notification" = "Puede que se hayan movido, renombrado o eliminado. Puedes volver a descargarlos desde la lista de descargas.";
+"torrent.error.missing_content.single.title" = "No se encuentra el archivo de la descarga";
+"torrent.error.missing_content.single.message" = "El archivo no está en la carpeta de descarga: puede que se haya movido, renombrado o eliminado. Descárgalo de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.single.named_message" = "El archivo de esta descarga no está en la carpeta «%@»: puede que se haya movido, renombrado o eliminado. Descárgalo de nuevo o quita la descarga de la lista.";
+"torrent.error.missing_content.single.notification" = "Puede que se haya movido, renombrado o eliminado. Puedes volver a descargarlo desde la lista de descargas.";
 "torrent.error.save_path_unavailable.title" = "La carpeta de descarga no está disponible";
 "torrent.error.save_path_unavailable.message" = "La carpeta de descarga no está disponible: puede que el disco donde está se haya desconectado o que la carpeta se haya eliminado. Conecta el disco y comprueba de nuevo, o descarga en otra carpeta.";
 "torrent.error.save_path_unavailable.named_message" = "La carpeta «%@» no está disponible: puede que el disco donde está se haya desconectado o que la carpeta se haya eliminado. Conecta el disco y comprueba de nuevo, o descarga en otra carpeta.";
@@ -143,9 +147,12 @@
 "torrent.error.runtime.disk_error.message" = "El disco con la carpeta de descarga informó de un error de lectura o escritura y la descarga se detuvo. Comprueba el disco en Utilidad de Discos y vuelve a iniciarla.";
 "torrent.error.runtime.disk_error.named_message" = "El disco con la carpeta «%@» informó de un error de lectura o escritura y la descarga se detuvo. Comprueba el disco en Utilidad de Discos y vuelve a iniciarla.";
 "torrent.error.runtime.disk_error.notification" = "El disco informó de un error de lectura o escritura. Puedes volver a iniciarla desde la lista de descargas.";
-"torrent.error.runtime.files_missing.message" = "Los archivos de la descarga desaparecieron de su carpeta y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
-"torrent.error.runtime.files_missing.named_message" = "Los archivos de la descarga desaparecieron de la carpeta «%@» y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
-"torrent.error.runtime.files_missing.notification" = "Los archivos de la descarga desaparecieron de su carpeta. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.files_missing.message" = "Uno o varios archivos de la descarga desaparecieron de su carpeta y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
+"torrent.error.runtime.files_missing.named_message" = "Uno o varios archivos de la descarga desaparecieron de la carpeta «%@» y la descarga se detuvo. Vuelve a iniciarla: si los archivos no están, podrás descargarlos de nuevo.";
+"torrent.error.runtime.files_missing.notification" = "Uno o varios archivos de la descarga desaparecieron de su carpeta. Puedes volver a iniciarla desde la lista de descargas.";
+"torrent.error.runtime.files_missing.single.message" = "El archivo de la descarga desapareció de su carpeta y la descarga se detuvo. Vuelve a iniciarla: si el archivo no está, podrás descargarlo de nuevo.";
+"torrent.error.runtime.files_missing.single.named_message" = "El archivo de la descarga desapareció de la carpeta «%@» y la descarga se detuvo. Vuelve a iniciarla: si el archivo no está, podrás descargarlo de nuevo.";
+"torrent.error.runtime.files_missing.single.notification" = "El archivo de la descarga desapareció de su carpeta. Puedes volver a iniciarla desde la lista de descargas.";
 "torrent.error.runtime.other.message" = "La descarga se detuvo por un error interno. Vuelve a iniciarla. Si el error se repite, quita la descarga de la lista y vuelve a añadir el archivo .torrent o el enlace magnet.";
 "torrent.error.runtime.other.notification" = "Se produjo un error interno. Puedes volver a iniciarla desde la lista de descargas.";
 "torrent.error.not_enough_space.title" = "No hay espacio suficiente";

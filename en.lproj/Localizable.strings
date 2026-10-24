@@ -123,10 +123,14 @@
 "torrent.metric.uploaded" = "Uploaded";
 "torrent.metric.size" = "Size";
 
-"torrent.error.missing_content.title" = "Download files not found";
-"torrent.error.missing_content.message" = "The files aren’t in the download folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
-"torrent.error.missing_content.named_message" = "The files for this download aren’t in the “%@” folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
+"torrent.error.missing_content.title" = "Download is missing files";
+"torrent.error.missing_content.message" = "One or more of the download’s files aren’t in its folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
+"torrent.error.missing_content.named_message" = "One or more files of this download aren’t in the “%@” folder—they may have been moved, renamed, or deleted. Download them again or remove the download from the list.";
 "torrent.error.missing_content.notification" = "They may have been moved, renamed, or deleted. You can download them again from the download list.";
+"torrent.error.missing_content.single.title" = "Download file not found";
+"torrent.error.missing_content.single.message" = "The download’s file isn’t in its folder—it may have been moved, renamed, or deleted. Download it again or remove the download from the list.";
+"torrent.error.missing_content.single.named_message" = "The file of this download isn’t in the “%@” folder—it may have been moved, renamed, or deleted. Download it again or remove the download from the list.";
+"torrent.error.missing_content.single.notification" = "It may have been moved, renamed, or deleted. You can download it again from the download list.";
 "torrent.error.save_path_unavailable.title" = "Download folder is unavailable";
 "torrent.error.save_path_unavailable.message" = "The download folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
 "torrent.error.save_path_unavailable.named_message" = "The “%@” folder is unavailable—the disk it’s on may be disconnected, or the folder was deleted. Connect the disk and check again, or download to another folder.";
@@ -143,9 +147,12 @@
 "torrent.error.runtime.disk_error.message" = "The disk with the download folder reported a read or write error, and the download stopped. Check the disk in Disk Utility and retry.";
 "torrent.error.runtime.disk_error.named_message" = "The disk with the “%@” folder reported a read or write error, and the download stopped. Check the disk in Disk Utility and retry.";
 "torrent.error.runtime.disk_error.notification" = "The disk reported a read or write error. You can retry from the download list.";
-"torrent.error.runtime.files_missing.message" = "The download’s files disappeared from its folder, and it stopped. Retry: if the files are gone, you’ll be able to download them again.";
-"torrent.error.runtime.files_missing.named_message" = "The download’s files disappeared from the “%@” folder, and it stopped. Retry: if the files are gone, you’ll be able to download them again.";
-"torrent.error.runtime.files_missing.notification" = "The download’s files disappeared from its folder. You can retry from the download list.";
+"torrent.error.runtime.files_missing.message" = "One or more of the download’s files disappeared from its folder, and the download stopped. Retry: if the files are gone, you’ll be able to download them again.";
+"torrent.error.runtime.files_missing.named_message" = "One or more of the download’s files disappeared from the “%@” folder, and the download stopped. Retry: if the files are gone, you’ll be able to download them again.";
+"torrent.error.runtime.files_missing.notification" = "One or more of the download’s files disappeared from its folder. You can retry from the download list.";
+"torrent.error.runtime.files_missing.single.message" = "The download’s file disappeared from its folder, and it stopped. Retry: if the file is gone, you’ll be able to download it again.";
+"torrent.error.runtime.files_missing.single.named_message" = "The download’s file disappeared from the “%@” folder, and it stopped. Retry: if the file is gone, you’ll be able to download it again.";
+"torrent.error.runtime.files_missing.single.notification" = "The download’s file disappeared from its folder. You can retry from the download list.";
 "torrent.error.runtime.other.message" = "The download stopped because of an internal error. Retry. If the error comes back, remove the download from the list and add the .torrent file or magnet link again.";
 "torrent.error.runtime.other.notification" = "An internal error occurred. You can retry from the download list.";
 "torrent.error.not_enough_space.title" = "Not enough space";

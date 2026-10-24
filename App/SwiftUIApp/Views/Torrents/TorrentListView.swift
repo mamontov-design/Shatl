@@ -19,9 +19,10 @@ struct TorrentListView: View {
     @State private var scrollDriver = TorrentListScrollDriver()
     /// Counts the expansions, each of which the list follows.
     @State private var expansionCount = 0
-    /// Room added under the content while cards leave; see
-    /// `TorrentListScrollDriver.glideAfterRemoval`.
-    @State private var roomForLeavingCards: CGFloat = 0
+    /// Room added under the content while it shrinks: cards leave, or the
+    /// speed chips go and the room under the last card with them; see
+    /// `TorrentListScrollDriver.settleAfterRemoval`.
+    @State private var roomWhileContentShrinks: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The coordinates of the scrolled content, in which cards report their
@@ -161,9 +162,9 @@ struct TorrentListView: View {
                 .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
                 .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
                 // Added and taken away in one step, never animated: it only
-                // holds the content's height while cards leave.
-                .padding(.bottom, roomForLeavingCards)
-                .animation(nil, value: roomForLeavingCards)
+                // holds the content's height while the content shrinks.
+                .padding(.bottom, roomWhileContentShrinks)
+                .animation(nil, value: roomWhileContentShrinks)
                 .background {
                     Color.clear
                         .contentShape(Rectangle())
@@ -271,11 +272,21 @@ struct TorrentListView: View {
             .onChange(of: visibleTorrentIDs) { oldVisibleTorrentIDs, newVisibleTorrentIDs in
                 store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)
                 if !Set(oldVisibleTorrentIDs).isSubset(of: newVisibleTorrentIDs) {
-                    keepListInPlaceWhileCardsLeave()
+                    keepListInPlaceWhileContentShrinks(over: ShatlMotion.cardListMutationDuration)
                 }
             }
-            .onChange(of: bottomContentPadding, initial: true) { _, padding in
+            // The room under the last card follows the speed chips. SwiftUI
+            // animates it, but the scroll view takes the new height at once:
+            // a list at its end was pushed to its new end in one frame when
+            // the chips went, and lost its last card under them when they
+            // came. It glides both ways now, at the chips' pace.
+            .onChange(of: bottomContentPadding, initial: true) { oldPadding, padding in
                 scrollDriver.bottomMargin = padding
+                if padding < oldPadding {
+                    keepListInPlaceWhileContentShrinks(over: ShatlMotion.mainContentModeDuration)
+                } else if padding > oldPadding, scrollDriver.position?.isAtItsEnd == true {
+                    scrollDriver.keepToTheEnd(duration: scrollDuration(ShatlMotion.mainContentModeDuration))
+                }
             }
             .onChange(of: store.expandedTorrentID) { _, expandedTorrentID in
                 guard expandedTorrentID != nil else { return }
@@ -298,25 +309,27 @@ struct TorrentListView: View {
         reduceMotion ? 0 : duration
     }
 
-    /// Called as cards leave the list, before the content has lost their
-    /// height. A list scrolled down would be pushed to its new end in one
+    /// Called as the content shrinks, before it has lost the height: cards
+    /// leave the list, or the room under the last card goes with the speed
+    /// chips. A list scrolled down would be pushed to its new end in one
     /// frame; room under the content holds it where it is, the scroll driver
-    /// takes it down, and the room goes once the list stands at its new end.
-    private func keepListInPlaceWhileCardsLeave() {
+    /// takes it down over `duration`, and the room goes once the list stands
+    /// at its new end.
+    private func keepListInPlaceWhileContentShrinks(over duration: TimeInterval) {
         guard let position = scrollDriver.position else { return }
         // At its top the list has nowhere to be pushed; with room under it
-        // already, it is on its way and takes this card in its stride.
-        guard position.isScrolled || roomForLeavingCards > 0 else { return }
+        // already, it is on its way and takes this change in its stride.
+        guard position.isScrolled || roomWhileContentShrinks > 0 else { return }
 
         // As tall as the content was: enough for the list to stay where it
-        // is, whatever has left.
-        let room = max(roomForLeavingCards, position.contentHeight - roomForLeavingCards)
-        roomForLeavingCards = room
+        // is, whatever has gone.
+        let room = max(roomWhileContentShrinks, position.contentHeight - roomWhileContentShrinks)
+        roomWhileContentShrinks = room
         scrollDriver.settleAfterRemoval(
             room: room,
-            duration: scrollDuration(ShatlMotion.cardListMutationDuration)
+            duration: scrollDuration(duration)
         ) {
-            roomForLeavingCards = 0
+            roomWhileContentShrinks = 0
         }
     }
 

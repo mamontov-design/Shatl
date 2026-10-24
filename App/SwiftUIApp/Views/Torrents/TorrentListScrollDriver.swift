@@ -3,9 +3,6 @@
 
 import AppKit
 import SwiftUI
-#if DEBUG
-import os
-#endif
 
 /// What of the list is in sight, and where the list has to stand to keep
 /// a growing card in sight or to rest at its end. Plain arithmetic, apart
@@ -112,11 +109,16 @@ final class TorrentListScrollDriver {
         /// The top of what the scroll view shows.
         var origin: CGFloat
         var lowestOrigin: CGFloat
+        var highestOrigin: CGFloat
         var contentHeight: CGFloat
         var viewportHeight: CGFloat
 
         /// Away from its top: content that shrinks can push it.
         var isScrolled: Bool { origin > lowestOrigin + 0.5 }
+        /// Scrolled down as far as it goes. A list at its top is not, even
+        /// when its top is also its end: content that grows under it leaves
+        /// it at its top.
+        var isAtItsEnd: Bool { isScrolled && origin >= highestOrigin - 0.5 }
     }
 
     fileprivate struct Reach {
@@ -171,6 +173,7 @@ final class TorrentListScrollDriver {
         return Position(
             origin: sight.origin,
             lowestOrigin: sight.lowestOrigin,
+            highestOrigin: sight.highestOrigin,
             contentHeight: sight.contentHeight,
             viewportHeight: sight.viewportHeight
         )
@@ -200,6 +203,11 @@ final class TorrentListScrollDriver {
         /// The goal: the end the list will have once this much room under
         /// its content is gone.
         var room: CGFloat
+        /// The goal is the end itself, wherever it now lies: content grew
+        /// under a list that stood at its end, and the list goes down with
+        /// it. Otherwise the list only gives back what it stands past its
+        /// end.
+        var keepsToTheEnd = false
         /// How long the move takes when nothing changes on the way; 0 for a
         /// move made at once.
         var duration: TimeInterval
@@ -245,11 +253,18 @@ final class TorrentListScrollDriver {
     /// Sets the list on its way to the end it will have without `room`. A
     /// move in progress goes on to the new goal from where it is and at the
     /// speed it has, and what waited for it to end waits for the new one.
-    private func steer(toTheEndWithout room: CGFloat, duration: TimeInterval, in reach: Reach, onEnd: (() -> Void)? = nil) {
+    private func steer(
+        toTheEndWithout room: CGFloat,
+        keepingToTheEnd: Bool = false,
+        duration: TimeInterval,
+        in reach: Reach,
+        onEnd: (() -> Void)? = nil
+    ) {
         let now = CACurrentMediaTime()
         let sight = sight(of: reach)
         var next = Steering(
             room: room,
+            keepsToTheEnd: keepingToTheEnd,
             duration: duration,
             position: sight.origin,
             lastFrame: now,
@@ -278,9 +293,6 @@ final class TorrentListScrollDriver {
                 queue: nil
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    #if DEBUG
-                    self?.trace("gave way: the list is scrolled by hand")
-                    #endif
                     self?.endSteering(takingTheListToItsGoal: false)
                 }
             }
@@ -289,9 +301,6 @@ final class TorrentListScrollDriver {
         // arrives all the same.
         steeringDeadline?.cancel()
         let deadline = DispatchWorkItem { [weak self] in
-            #if DEBUG
-            self?.trace("out of patience: the list is put on its goal")
-            #endif
             self?.endSteering(takingTheListToItsGoal: true)
         }
         steeringDeadline = deadline
@@ -310,6 +319,9 @@ final class TorrentListScrollDriver {
         }
         // Laid out without the room for a pass: wait for it.
         guard sight.contentHeight >= steering.room - 0.5 else { return nil }
+        if steering.keepsToTheEnd {
+            return sight.highestOrigin
+        }
         return sight.stand(afterTakingAway: steering.room)
     }
 
@@ -331,9 +343,6 @@ final class TorrentListScrollDriver {
             steering.position += moved
             steering.lastChange = now
         } else if abs(moved) > 1 {
-            #if DEBUG
-            trace("gave way: the list was moved by \(Int(moved)) with nothing around it changed")
-            #endif
             endSteering(takingTheListToItsGoal: false)
             return
         }
@@ -500,9 +509,6 @@ final class TorrentListScrollDriver {
         let frame = scrolled(frame, in: reach)
         following?.frame = frame
         if follow.frame == nil {
-            #if DEBUG
-            trace("expansion: card at \(Int(frame.minY))…\(Int(frame.maxY)), \(describe(reach))")
-            #endif
             startFollowingFromHere()
         } else if follow.frame != frame, follow.start == nil {
             // The card moves: the cards have begun to change on screen.
@@ -609,13 +615,22 @@ final class TorrentListScrollDriver {
             return
         }
         stopFollowing()
-        #if DEBUG
-        trace("removal: room \(Int(room)), \(describe(reach))")
-        #endif
         // One call when the list has settled is enough, however many cards
         // have left on the way.
         let isSettlingAlready = steering != nil
         steer(toTheEndWithout: room, duration: duration, in: reach, onEnd: isSettlingAlready ? nil : onSettled)
+    }
+
+    /// Content grows under a list that stands at its end: the speed chips
+    /// come, and the room under the last card grows with them. The list
+    /// goes down to its new end over `duration`, so the last card stays
+    /// clear of the chips.
+    ///
+    /// Called before the content has grown; the list sets off once it has.
+    func keepToTheEnd(duration: TimeInterval) {
+        guard let reach else { return }
+        stopFollowing()
+        steer(toTheEndWithout: 0, keepingToTheEnd: true, duration: duration, in: reach)
     }
 }
 
@@ -645,27 +660,6 @@ private final class TorrentListScrollTicker: NSObject {
         }
     }
 }
-
-#if DEBUG
-/// Debug builds only: what the driver decided, in the system log (category
-/// `ListScroll`). The owner's window showed twice what no hosted window
-/// did, and this is how it is read from there.
-extension TorrentListScrollDriver {
-    private static let logger = Logger(subsystem: "mamontov.design.shatl", category: "ListScroll")
-
-    func trace(_ message: String) {
-        Self.logger.notice("\(message, privacy: .public)")
-    }
-
-    fileprivate func describe(_ reach: Reach) -> String {
-        let sight = sight(of: reach)
-        let insets = reach.scroll.contentInsets
-        return "origin \(Int(sight.origin)) of \(Int(sight.lowestOrigin))…\(Int(sight.highestOrigin)),"
-            + " content \(Int(sight.contentHeight)), viewport \(Int(sight.viewportHeight)),"
-            + " insets \(Int(insets.top))/\(Int(insets.bottom))"
-    }
-}
-#endif
 
 /// The view through which `TorrentListScrollDriver` finds the list's scroll
 /// view. It sits in the scrolled content, at its top left corner, takes no

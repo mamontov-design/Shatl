@@ -262,6 +262,11 @@ final class RuntimeRetryTests: XCTestCase {
                     XCTAssertNotEqual(L10n.string(key, localeOverride: locale), key, "\(locale) \(key)")
                 }
             }
+            // Files that went missing are told apart for a download of one file.
+            for suffix in ["message", "named_message", "notification"] {
+                let key = "\(ShatlErrorCatalog.runtimeErrorKey(.filesMissing, hasOneFile: true)).\(suffix)"
+                XCTAssertNotEqual(L10n.string(key, localeOverride: locale), key, "\(locale) \(key)")
+            }
             for key in ["torrent.error.runtime.other.message", "torrent.error.runtime.other.notification"] {
                 XCTAssertNotEqual(L10n.string(key, localeOverride: locale), key, "\(locale) \(key)")
             }

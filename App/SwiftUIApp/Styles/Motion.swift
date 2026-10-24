@@ -79,8 +79,10 @@ enum ShatlMotion {
     /// How small a stage is as it comes or goes.
     static let mainContentScale: CGFloat = 0.985
 
-    /// Animation of a main window stage change; also the bottom chips.
-    static let mainContentMode = Animation.smooth(duration: 0.24)
+    /// Animation of a main window stage change; also the bottom chips and
+    /// the room the list keeps for them.
+    static let mainContentMode = Animation.smooth(duration: mainContentModeDuration)
+    static let mainContentModeDuration: TimeInterval = 0.24
 
     /// A drag crossing the window leaves one part of it and enters the next
     /// at once: the drop screen waits this long before it goes, so it does

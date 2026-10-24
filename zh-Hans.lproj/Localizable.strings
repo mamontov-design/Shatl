@@ -122,10 +122,14 @@
 "torrent.metric.uploaded" = "已上传";
 "torrent.metric.size" = "大小";
 
-"torrent.error.missing_content.title" = "找不到下载文件";
-"torrent.error.missing_content.message" = "下载文件夹中没有这些文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
-"torrent.error.missing_content.named_message" = "“%@”文件夹中没有此下载的文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.title" = "下载缺少文件";
+"torrent.error.missing_content.message" = "下载文件夹中缺少此下载的一个或多个文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.named_message" = "“%@”文件夹中缺少此下载的一个或多个文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
 "torrent.error.missing_content.notification" = "这些文件可能已被移动、重命名或删除。可以在下载列表中重新下载。";
+"torrent.error.missing_content.single.title" = "找不到下载文件";
+"torrent.error.missing_content.single.message" = "下载文件夹中没有这个文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.single.named_message" = "“%@”文件夹中没有此下载的文件，可能已被移动、重命名或删除。请重新下载，或将此下载从列表中移除。";
+"torrent.error.missing_content.single.notification" = "该文件可能已被移动、重命名或删除。可以在下载列表中重新下载。";
 "torrent.error.save_path_unavailable.title" = "下载文件夹不可用";
 "torrent.error.save_path_unavailable.message" = "下载文件夹不可用：所在磁盘可能已断开连接，或文件夹已被删除。请连接磁盘后再次检查，或下载到其他文件夹。";
 "torrent.error.save_path_unavailable.named_message" = "“%@”文件夹不可用：所在磁盘可能已断开连接，或文件夹已被删除。请连接磁盘后再次检查，或下载到其他文件夹。";
@@ -142,9 +146,12 @@
 "torrent.error.runtime.disk_error.message" = "下载文件夹所在的磁盘报告了读写错误，下载已停止。请在磁盘工具中检查磁盘后重试。";
 "torrent.error.runtime.disk_error.named_message" = "“%@”文件夹所在的磁盘报告了读写错误，下载已停止。请在磁盘工具中检查磁盘后重试。";
 "torrent.error.runtime.disk_error.notification" = "磁盘报告了读写错误。可以在下载列表中重试。";
-"torrent.error.runtime.files_missing.message" = "此下载的文件已从其文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
-"torrent.error.runtime.files_missing.named_message" = "此下载的文件已从“%@”文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
-"torrent.error.runtime.files_missing.notification" = "此下载的文件已从其文件夹中消失。可以在下载列表中重试。";
+"torrent.error.runtime.files_missing.message" = "此下载的一个或多个文件已从其文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
+"torrent.error.runtime.files_missing.named_message" = "此下载的一个或多个文件已从“%@”文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
+"torrent.error.runtime.files_missing.notification" = "此下载的一个或多个文件已从其文件夹中消失。可以在下载列表中重试。";
+"torrent.error.runtime.files_missing.single.message" = "此下载的文件已从其文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
+"torrent.error.runtime.files_missing.single.named_message" = "此下载的文件已从“%@”文件夹中消失，下载已停止。请重试：如果文件已不存在，可以重新下载。";
+"torrent.error.runtime.files_missing.single.notification" = "此下载的文件已从其文件夹中消失。可以在下载列表中重试。";
 "torrent.error.runtime.other.message" = "下载因内部错误而停止。请重试。如果错误再次出现，请将此下载从列表中移除，然后重新添加 .torrent 文件或 magnet 链接。";
 "torrent.error.runtime.other.notification" = "发生了内部错误。可以在下载列表中重试。";
 "torrent.error.not_enough_space.title" = "空间不足";

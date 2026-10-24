@@ -208,9 +208,10 @@ extension ShatlColor {
         /// onboarding, while the accent comes from the system.
         static let dataCollectionCross = Color(light: ShatlPalette.gray11, dark: ShatlPalette.grayDark10)
 
-        /// The main window's ground in light, under the white cards. In dark the
-        /// window keeps the system's background, tinted by the wallpaper, and
-        /// this value only names it.
+        /// The main window's ground in light, under the list's white cards;
+        /// the empty list keeps the system's background. In dark the window
+        /// keeps the system's background, tinted by the wallpaper, and this
+        /// value only names it.
         static let macosWindowBackground = Color(light: ShatlPalette.gray2, dark: ShatlPalette.windowBackgroundDark)
 
         /// The empty part of a performance mode's speedometer.
