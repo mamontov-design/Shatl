@@ -303,6 +303,13 @@
 "settings.downloads.network.port_status.closed" = "El puerto está cerrado";
 
 "settings.appearance.theme.section" = "Tema";
+"settings.appearance.monochrome.toggle" = "Apariencia monocromática";
+"settings.appearance.monochrome.info.help" = "Más información sobre la apariencia en blanco y negro";
+"settings.appearance.monochrome.popover.title" = "Apariencia en blanco y negro";
+"settings.appearance.monochrome.popover.scope" = "La lista de descargas, Ajustes y el logotipo pasan a blanco y negro, y el color de realce, a negro, sea cual sea el elegido en macOS. Solo los errores conservan su color.";
+"settings.appearance.monochrome.popover.speed_colors" = "La indicación de la velocidad con colores se desactivará. Puedes volver a activarla: entonces solo el icono de la velocidad tendrá color.";
+"settings.appearance.monochrome.popover.graphite" = "Para que los botones de las ventanas también se vuelvan grises, elige el color de realce «Grafito» en Ajustes del Sistema.";
+"settings.appearance.monochrome.popover.link" = "Apariencia en macOS";
 "settings.appearance.theme.system" = "Como el sistema";
 "settings.appearance.theme.light" = "Claro";
 "settings.appearance.theme.dark" = "Oscuro";

@@ -5,6 +5,7 @@ import AppKit
 import SwiftUI
 
 struct ShatlSettingsView: View {
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @EnvironmentObject private var store: AppStore
     @State private var selectedTab: SettingsTab = .downloads
     @State private var animatesPortStatusDot = false
@@ -252,17 +253,19 @@ struct ShatlSettingsView: View {
             return nil
         case .checking:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusChecking,
+                color: ShatlColor.Extra.indicatorStatusChecking,
+                outline: usesMonochrome ? ShatlColor.accentMonochrome : nil,
                 description: L10n.string("settings.downloads.network.port_status.checking", localeOverride: localeOverride)
             )
         case .open:
+            // Monochrome: an open port in the accent; a closed one stays red.
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusOpen,
+                color: usesMonochrome ? ShatlColor.accentMonochrome : ShatlColor.Extra.indicatorStatusSuccess,
                 description: L10n.string("settings.downloads.network.port_status.open", localeOverride: localeOverride)
             )
         case .closed:
             return ShatlSettingsStatusDot(
-                color: ShatlColor.Extra.portStatusClosed,
+                color: ShatlColor.Extra.indicatorStatusFailure,
                 description: L10n.string("settings.downloads.network.port_status.closed", localeOverride: localeOverride)
             )
         }
@@ -577,6 +580,7 @@ enum DataCollectionInfoStyle {
 }
 
 struct DataCollectionInfo: View {
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     let style: DataCollectionInfoStyle
 
     @EnvironmentObject private var accentState: ShatlAccentState
@@ -600,14 +604,17 @@ struct DataCollectionInfo: View {
         .frame(maxWidth: style == .onboarding ? .infinity : nil)
     }
 
+    /// Monochrome: both lists in its accent, whatever accent macOS has.
     private var collectsIconColor: Color {
-        accentState.isUsingAppAccent
+        if usesMonochrome { return ShatlColor.accentMonochrome }
+        return accentState.isUsingAppAccent
             ? ShatlColor.accentColored
             : accentState.systemAccentColor
     }
 
     private var doesNotCollectIconColor: Color {
-        accentState.isUsingAppAccent
+        if usesMonochrome { return ShatlColor.accentMonochrome }
+        return accentState.isUsingAppAccent
             ? ShatlColor.accentColored
             : ShatlColor.Extra.dataCollectionCross
     }
@@ -939,6 +946,7 @@ struct ShatlPerformanceProfileSpeedometer: View {
     let profile: AppPerformanceProfile
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @EnvironmentObject private var accentState: ShatlAccentState
     @State private var isWiggling = false
 
@@ -950,11 +958,9 @@ struct ShatlPerformanceProfileSpeedometer: View {
 
             progressLayer
 
-            ShatlPerformanceSpeedometerArrowShape(level: profile.speedometerLevel)
-                .fill(ShatlColor.typographyPrimary, style: FillStyle(eoFill: true))
+            arrow
                 .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
                 .rotationEffect(.degrees(arrowRotation), anchor: .center)
-                .shatlShadow(ShatlShadow.speedometerArrow)
                 .animation(arrowAnimation, value: isWiggling)
         }
         .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
@@ -966,8 +972,23 @@ struct ShatlPerformanceProfileSpeedometer: View {
         }
     }
 
+    /// In the monochrome appearance the arrow is a short one with no
+    /// shadow, which stops short of the black scale; the long one lay on it
+    /// black on black.
+    @ViewBuilder
+    private var arrow: some View {
+        if usesMonochrome {
+            ShatlPerformanceSpeedometerCompactArrowShape(level: profile.speedometerLevel)
+                .fill(ShatlColor.accentMonochrome, style: FillStyle(eoFill: true))
+        } else {
+            ShatlPerformanceSpeedometerArrowShape(level: profile.speedometerLevel)
+                .fill(ShatlColor.typographyPrimary, style: FillStyle(eoFill: true))
+                .shatlShadow(ShatlShadow.speedometerArrow)
+        }
+    }
+
     private var trackColor: Color {
-        ShatlColor.Extra.speedometerTrack
+        usesMonochrome ? ShatlColor.Extra.speedometerMonochromeTrack : ShatlColor.Extra.speedometerTrack
     }
 
     private var progressLayer: some View {
@@ -982,6 +1003,10 @@ struct ShatlPerformanceProfileSpeedometer: View {
     }
 
     private var progressFillStyle: AnyShapeStyle {
+        // Monochrome: a plain scale in its accent, whatever macOS has.
+        if usesMonochrome {
+            return AnyShapeStyle(ShatlColor.accentMonochrome)
+        }
         guard accentState.isUsingAppAccent else {
             return AnyShapeStyle(accentState.systemAccentColor)
         }
@@ -1016,6 +1041,7 @@ struct ShatlPerformanceProfileSpeedometer: View {
 }
 
 private struct AppearanceSettingsTab: View {
+    @Environment(\.shatlAccent) private var shatlAccent
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
@@ -1049,6 +1075,7 @@ private struct AppearanceSettingsTab: View {
                 localeOverride: store.preferences.localeOverride,
                 metricsMode: store.preferences.metricsMode,
                 colorizesDownloadSpeed: store.preferences.colorizesDownloadSpeed,
+                usesMonochromeAppearance: store.preferences.usesMonochromeAppearance,
                 downloadSpeedOutlineFlashTrigger: downloadSpeedPreviewPulseTrigger,
                 initiallyExpanded: true,
                 centersExpandedCard: true,
@@ -1057,7 +1084,7 @@ private struct AppearanceSettingsTab: View {
                 pulsesMetricSetOutlines: false,
                 metricSetOutlineFlashTrigger: metricPreviewPulseTrigger,
                 // The app's accent, or the one chosen in macOS.
-                metricSetOutlineFlashColor: ShatlColor.accent,
+                metricSetOutlineFlashColor: shatlAccent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 usesProductionProgressColors: true,
                 shadowStyle: .settings,
@@ -1108,6 +1135,23 @@ private struct AppearanceSettingsTab: View {
     private var themeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             ShatlSettingsParameterHeader(localizedTitle: "settings.appearance.theme.section")
+
+            // Turned on, it takes the speed colours off; they may be turned on
+            // again and then colour the speed icon alone.
+            ShatlSettingsParameter {
+                ShatlSettingsInfoToggleRow(
+                    localizedTitle: "settings.appearance.monochrome.toggle",
+                    localizedHelp: "settings.appearance.monochrome.info.help",
+                    isOn: Binding(
+                        get: { store.preferences.usesMonochromeAppearance },
+                        // A setting for the whole app: the demo card takes
+                        // it without a focus of its own.
+                        set: { store.preferences.setUsesMonochromeAppearance($0) }
+                    )
+                ) {
+                    MonochromeAppearanceInfoPopover(localeOverride: store.preferences.localeOverride)
+                }
+            }
 
             HStack(alignment: .top, spacing: 8) {
                 ForEach(AppTheme.allCases) { theme in
@@ -1321,6 +1365,42 @@ private struct SpeedColorsInfoPopover: View {
     }
 }
 
+/// What the monochrome appearance changes, what it does to the speed
+/// colours, and how to grey the window buttons too: macOS keeps them in
+/// colour unless Graphite is its accent, so the link opens Appearance in
+/// System Settings.
+private struct MonochromeAppearanceInfoPopover: View {
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("settings.appearance.monochrome.popover.title")
+                .shatlTypography(ShatlTypography.subheadlineBold)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            popoverText("settings.appearance.monochrome.popover.scope")
+            popoverText("settings.appearance.monochrome.popover.speed_colors")
+            popoverText("settings.appearance.monochrome.popover.graphite")
+
+            ShatlLinkButton(
+                title: L10n.string("settings.appearance.monochrome.popover.link", localeOverride: localeOverride),
+                url: ShatlLinks.appearanceSettings
+            )
+        }
+        .padding(16)
+        .frame(width: 340, alignment: .leading)
+    }
+
+    private func popoverText(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .shatlTypography(ShatlTypography.bodyRegular)
+            .foregroundStyle(ShatlColor.typographySecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private struct MetricsPresentationInfoPopover: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1351,6 +1431,7 @@ private struct ThemeAppearanceDemo: View {
 
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     var body: some View {
         ZStack {
@@ -1363,19 +1444,13 @@ private struct ThemeAppearanceDemo: View {
                     .frame(width: 76, height: 76)
 
                 ShatlWindowButtonCloseShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonClose
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonClose))
 
                 ShatlWindowButtonMinimizeShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonMinimize
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonMinimize))
 
                 ShatlWindowButtonExpandShape()
-                    .fill(accentState.isUsingAppAccent
-                        ? ShatlColor.Extra.windowButtonZoom
-                        : buttonColor)
+                    .fill(windowButtonColor(ShatlColor.Extra.windowButtonZoom))
             }
             .frame(width: 76, height: 76)
         }
@@ -1398,6 +1473,15 @@ private struct ThemeAppearanceDemo: View {
                 .frame(width: 74, height: 74)
                 .shatlShadow(ShatlShadow.themePreview)
         }
+    }
+
+    /// The window buttons are coloured with our accent and grey with an
+    /// accent picked in System Settings; with Graphite in the monochrome
+    /// appearance they take the hovered card outline.
+    private func windowButtonColor(_ colored: Color) -> Color {
+        if accentState.isUsingAppAccent { return colored }
+        if usesMonochrome, accentState.isGraphite { return ShatlColor.cardOutlineHover }
+        return buttonColor
     }
 
     private var buttonColor: Color {

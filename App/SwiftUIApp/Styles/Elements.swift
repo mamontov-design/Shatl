@@ -83,6 +83,7 @@ enum ShatlTextContent {
 /// container animates the same change, e.g. `.geometryGroup()` plus
 /// `.animation(ShatlMotion.metricResize, value:)`.
 struct ShatlButton: View {
+    @Environment(\.shatlAccent) private var accent
     let title: ShatlTextContent?
     var busyTitle: ShatlTextContent?
     var isBusy = false
@@ -209,7 +210,7 @@ struct ShatlButton: View {
         case .borderedNeutral:
             ShatlColor.buttonNeutral
         case .borderedColored:
-            ShatlColor.accent
+            accent
         case .lineMessage:
             ShatlColor.lineMessageButtonBackground
         }
@@ -240,12 +241,15 @@ struct ShatlButton: View {
 }
 
 /// A small capsule that opens a page in the browser: its name is the
-/// button, and the arrow says that the page opens outside the app.
+/// button, and the arrow says that the page opens outside the app. Under
+/// the pointer it wears the "Скачивается" badge's colours, or, in the
+/// monochrome appearance, the monochrome accent with inverted text.
 struct ShatlLinkButton: View {
     let title: ShatlTextContent
     let url: URL
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @State private var isHovered = false
 
     init(title: String, url: URL) {
@@ -267,11 +271,11 @@ struct ShatlLinkButton: View {
             }
             .shatlTypography(ShatlTypography.captionRegular)
             .frame(height: ShatlTypography.captionRegular.variant(for: typographyProfile).lineHeight)
-            .foregroundStyle(isHovered ? ShatlColor.linkButtonHoverLabel : ShatlColor.typographyPrimary)
+            .foregroundStyle(isHovered ? hoverLabel : ShatlColor.typographyPrimary)
             .padding(.leading, 8)
             .padding(.trailing, 4)
             .padding(.vertical, 4)
-            .background(isHovered ? ShatlColor.linkButtonHoverBackground : ShatlColor.backgroundSecondary)
+            .background(isHovered ? hoverBackground : ShatlColor.backgroundSecondary)
             .clipShape(Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
         }
@@ -282,9 +286,18 @@ struct ShatlLinkButton: View {
         .accessibilityAddTraits(.isLink)
         .accessibilityRemoveTraits(.isButton)
     }
+
+    private var hoverBackground: Color {
+        usesMonochrome ? ShatlColor.accentMonochrome : ShatlColor.linkButtonHoverBackground
+    }
+
+    private var hoverLabel: Color {
+        usesMonochrome ? ShatlColor.typographyPrimaryInverted : ShatlColor.linkButtonHoverLabel
+    }
 }
 
 struct ShatlMessageBlock: View {
+    @Environment(\.shatlAccent) private var accent
     let title: String
     let message: String
     var buttonTitle: String?
@@ -312,7 +325,7 @@ struct ShatlMessageBlock: View {
         .clipShape(messageBlockShape)
         .overlay {
             messageBlockShape
-                .strokeBorder(ShatlColor.accent, lineWidth: 1)
+                .strokeBorder(accent, lineWidth: 1)
         }
         .shatlShadow(ShatlShadow.messageBlock)
     }
@@ -688,6 +701,9 @@ struct ShatlSettingsParameterDivider: View {
 /// switch achieved, such as whether the router opened a port.
 struct ShatlSettingsStatusDot: Equatable {
     var color: Color
+    /// A ring inside the dot's edge, 1 pt: the monochrome appearance keeps
+    /// a check in progress apart from an open port this way.
+    var outline: Color? = nil
     /// What the dot means, for VoiceOver and the tooltip: colour alone does
     /// not tell red from green for everyone.
     var description: String
@@ -730,8 +746,12 @@ struct ShatlSettingsToggleRow: View {
                 if let statusDot {
                     Circle()
                         .fill(statusDot.color)
-                        .animation(animatesStatusDot ? ShatlMotion.speedMetricColor : nil, value: statusDot.color)
-                        .frame(width: 6, height: 6)
+                        .overlay {
+                            Circle()
+                                .strokeBorder(statusDot.outline ?? .clear, lineWidth: 1)
+                        }
+                        .animation(animatesStatusDot ? ShatlMotion.speedMetricColor : nil, value: statusDot)
+                        .frame(width: 8, height: 8)
                         .transition(reduceMotion ? .opacity : ShatlMotion.appearFromTop)
                         .accessibilityElement()
                         .accessibilityLabel(statusDot.description)
@@ -760,6 +780,7 @@ struct ShatlSettingsToggleRow: View {
 }
 
 struct ShatlSettingsInputCard<Content: View>: View {
+    @Environment(\.shatlAccent) private var accent
     let title: ShatlTextContent
     let isSelected: Bool
     var isEnabled = true
@@ -866,7 +887,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         .overlay {
             if isSelected {
                 RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous)
-                    .strokeBorder(ShatlColor.accent.opacity(0.75), lineWidth: 1)
+                    .strokeBorder(accent.opacity(0.75), lineWidth: 1)
             }
         }
         .animation(ShatlMotion.cardState, value: isSelected)
@@ -896,7 +917,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         Image(systemName: "checkmark.circle.fill")
             .resizable()
             .scaledToFit()
-            .foregroundStyle(ShatlColor.accent)
+            .foregroundStyle(accent)
             .frame(width: 15, height: 15)
             .scaleEffect(isSelected ? 1 : 0.65, anchor: .center)
             .opacity(isSelected ? 1 : 0)
@@ -916,7 +937,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
 
             labelText(
                 typography: ShatlTypography.bodySemibold,
-                color: ShatlColor.accent
+                color: accent
             )
             .opacity(isSelected ? 1 : 0)
         }
@@ -1022,6 +1043,7 @@ struct TorrentCardPreviewView: View {
     var localeOverride: AppLocaleOverride = .russian
     var metricsMode: MetricsPresentationMode = .simplified
     var colorizesDownloadSpeed = false
+    var usesMonochromeAppearance = false
     var downloadSpeedOutlineFlashTrigger = 0
     var initiallyExpanded = false
     var centersExpandedCard = false
@@ -1052,6 +1074,7 @@ struct TorrentCardPreviewView: View {
         localeOverride: AppLocaleOverride = .russian,
         metricsMode: MetricsPresentationMode = .simplified,
         colorizesDownloadSpeed: Bool = false,
+        usesMonochromeAppearance: Bool = false,
         downloadSpeedOutlineFlashTrigger: Int = 0,
         initiallyExpanded: Bool = false,
         centersExpandedCard: Bool = false,
@@ -1074,6 +1097,7 @@ struct TorrentCardPreviewView: View {
         self.localeOverride = localeOverride
         self.metricsMode = metricsMode
         self.colorizesDownloadSpeed = colorizesDownloadSpeed
+        self.usesMonochromeAppearance = usesMonochromeAppearance
         self.downloadSpeedOutlineFlashTrigger = downloadSpeedOutlineFlashTrigger
         self.initiallyExpanded = initiallyExpanded
         self.centersExpandedCard = centersExpandedCard
@@ -1163,6 +1187,7 @@ struct TorrentCardPreviewView: View {
                 isExpanded: isExpanded,
                 metricsMode: metricsMode,
                 colorizesDownloadSpeed: colorizesDownloadSpeed,
+                usesMonochromeAppearance: usesMonochromeAppearance,
                 localeOverride: localeOverride
             ),
             resolvePrimaryLocation: { nil },
@@ -1254,6 +1279,7 @@ private extension TorrentRowState {
         isExpanded: Bool,
         metricsMode: MetricsPresentationMode,
         colorizesDownloadSpeed: Bool = false,
+        usesMonochromeAppearance: Bool = false,
         localeOverride: AppLocaleOverride
     ) -> TorrentRowState {
         let record = TorrentRecord.previewDemo(progress: progress, tick: tick)
@@ -1287,6 +1313,7 @@ private extension TorrentRowState {
             expandedMetricGroups: isExpanded ? expandedMetricGroups : nil,
             metricsMode: metricsMode,
             colorizesDownloadSpeed: colorizesDownloadSpeed,
+            usesMonochromeAppearance: usesMonochromeAppearance,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,
@@ -1351,6 +1378,7 @@ private struct TorrentCardPreviewHeightPreferenceKey: PreferenceKey {
 }
 
 struct ShatlMetricItem: View {
+    @Environment(\.shatlAccent) private var accent
     let item: MetricItemPresentation
     var iconColorOverride: Color? = nil
     var speedPalette: ShatlSpeedMetricPalette? = nil
@@ -1468,7 +1496,7 @@ struct ShatlMetricItem: View {
             return iconColorOverride
         }
 
-        return item.usesAccentIcon ? ShatlColor.accent : ShatlColor.typographySecondary
+        return item.usesAccentIcon ? accent : ShatlColor.typographySecondary
     }
 
     @ViewBuilder
@@ -1561,6 +1589,9 @@ struct ShatlMetricSet: View {
     /// no shadow; `Muted` in Figma.
     var isMuted = false
     var colorizesDownloadSpeed = false
+    /// The monochrome appearance: the set is the plain one, and with
+    /// `colorizesDownloadSpeed` on only the speed icon takes its colour.
+    var usesMonochromeAppearance = false
     /// The shadow under the set's plate.
     var showsShadows = true
     /// The download speed shows its level icon alone; its number comes back
@@ -1596,7 +1627,9 @@ struct ShatlMetricSet: View {
 
                 ShatlMetricItem(
                     item: item,
-                    iconColorOverride: metricIconColorOverride,
+                    iconColorOverride: item.id == "download-speed"
+                        ? monochromeSpeedIconColor ?? metricIconColorOverride
+                        : metricIconColorOverride,
                     speedPalette: item.id == "download-speed" ? speedPalette : nil,
                     showsSpeedBadge: item.id == "download-speed" && items.contains { $0.id == "eta" },
                     isFolded: item.id == "download-speed" && foldsDownloadSpeed && !isDownloadSpeedUnfolded,
@@ -1654,9 +1687,20 @@ struct ShatlMetricSet: View {
     }
 
     private var speedPalette: ShatlSpeedMetricPalette? {
+        guard !usesMonochromeAppearance else { return nil }
+        return levelPalette
+    }
+
+    /// The colours of the speed's level while the speed is coloured.
+    private var levelPalette: ShatlSpeedMetricPalette? {
         guard colorizesDownloadSpeed,
               let speed = items.first(where: { $0.id == "download-speed" }) else { return nil }
         return ShatlSpeedMetricPalette.downloadSymbol(speed.iconName)
+    }
+
+    /// Monochrome with the speed coloured: the icon alone keeps its colour.
+    private var monochromeSpeedIconColor: Color? {
+        usesMonochromeAppearance ? levelPalette?.icon : nil
     }
 
     private var usesColoredDownloadSpeed: Bool { speedPalette != nil }

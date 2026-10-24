@@ -303,6 +303,13 @@
 "settings.downloads.network.port_status.closed" = "Port is closed";
 
 "settings.appearance.theme.section" = "Theme";
+"settings.appearance.monochrome.toggle" = "Monochrome appearance";
+"settings.appearance.monochrome.info.help" = "Learn about black-and-white appearance";
+"settings.appearance.monochrome.popover.title" = "Black-and-white appearance";
+"settings.appearance.monochrome.popover.scope" = "The download list, Settings, and the logo turn black and white, and the accent turns black, whichever accent color is chosen in macOS. Only errors keep their color.";
+"settings.appearance.monochrome.popover.speed_colors" = "Speed color-coding turns off at the same time. You can turn it back on, and then only the speed icon is colored.";
+"settings.appearance.monochrome.popover.graphite" = "To turn the window buttons gray too, choose the “Graphite” accent color in System Settings.";
+"settings.appearance.monochrome.popover.link" = "Appearance in macOS";
 "settings.appearance.theme.system" = "System";
 "settings.appearance.theme.light" = "Light";
 "settings.appearance.theme.dark" = "Dark";

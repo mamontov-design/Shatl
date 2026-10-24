@@ -303,6 +303,13 @@
 "settings.downloads.network.port_status.closed" = "Port ist geschlossen";
 
 "settings.appearance.theme.section" = "Design";
+"settings.appearance.monochrome.toggle" = "Monochromes Erscheinungsbild";
+"settings.appearance.monochrome.info.help" = "Mehr über das schwarz-weiße Erscheinungsbild";
+"settings.appearance.monochrome.popover.title" = "Schwarz-weißes Erscheinungsbild";
+"settings.appearance.monochrome.popover.scope" = "Die Downloadliste, die Einstellungen und das Logo werden schwarz-weiß, die Akzentfarbe wird schwarz, egal welche in macOS ausgewählt ist. Farbig bleiben nur Fehler.";
+"settings.appearance.monochrome.popover.speed_colors" = "Die farbliche Kennzeichnung der Geschwindigkeit wird dabei ausgeschaltet. Sie können sie wieder einschalten, dann ist nur das Geschwindigkeitssymbol farbig.";
+"settings.appearance.monochrome.popover.graphite" = "Damit auch die Fenstertasten grau werden, wählen Sie in den Systemeinstellungen die Akzentfarbe „Graphit“.";
+"settings.appearance.monochrome.popover.link" = "Erscheinungsbild in macOS";
 "settings.appearance.theme.system" = "Wie im System";
 "settings.appearance.theme.light" = "Hell";
 "settings.appearance.theme.dark" = "Dunkel";

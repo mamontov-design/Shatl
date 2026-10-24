@@ -124,6 +124,8 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var theme: AppTheme
     var metricsMode: MetricsPresentationMode
     var colorizesDownloadSpeed: Bool = false
+    /// Statuses and the speed set in greys. See `setUsesMonochromeAppearance`.
+    var usesMonochromeAppearance: Bool = false
     var localeOverride: AppLocaleOverride
     var sendsAnonymousUsageStatistics: Bool
     var hasAnsweredUsageStatisticsOnboarding: Bool
@@ -164,6 +166,7 @@ extension AppPreferences {
         case theme
         case metricsMode
         case colorizesDownloadSpeed
+        case usesMonochromeAppearance
         case localeOverride
         case sendsAnonymousUsageStatistics
         case hasAnsweredUsageStatisticsOnboarding
@@ -216,6 +219,7 @@ extension AppPreferences {
         theme = try container.decode(AppTheme.self, forKey: .theme)
         metricsMode = try container.decode(MetricsPresentationMode.self, forKey: .metricsMode)
         colorizesDownloadSpeed = try container.decodeIfPresent(Bool.self, forKey: .colorizesDownloadSpeed) ?? false
+        usesMonochromeAppearance = try container.decodeIfPresent(Bool.self, forKey: .usesMonochromeAppearance) ?? false
         localeOverride = try container.decodeIfPresent(
             AppLocaleOverride.self,
             forKey: .localeOverride
@@ -320,6 +324,16 @@ extension AppPreferences {
 }
 
 extension AppPreferences {
+    /// Turning the monochrome appearance on takes the speed colours off, and
+    /// their toggle shows it. They can be turned on again, and then colour
+    /// the speed icon alone. Turning it off gives nothing back.
+    nonisolated mutating func setUsesMonochromeAppearance(_ isOn: Bool) {
+        usesMonochromeAppearance = isOn
+        if isOn {
+            colorizesDownloadSpeed = false
+        }
+    }
+
     nonisolated var canSendAnonymousUsageStatistics: Bool {
         sendsAnonymousUsageStatistics && hasAnsweredUsageStatisticsOnboarding
     }

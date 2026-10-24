@@ -202,8 +202,23 @@ struct ShatlWordmark: View {
     }
 }
 
+/// The star of both marks in the monochrome appearance: no glass and no
+/// fill, a 1 pt outline inside its edge in the monochrome accent, as Figma
+/// draws it. The star morphs and cannot be inset, so the outline is a 2 pt
+/// one cut to the star.
+private struct ShatlMonochromeStar<StarShape: Shape>: View {
+    let shape: StarShape
+
+    var body: some View {
+        shape
+            .stroke(ShatlColor.accentMonochrome, style: StrokeStyle(lineWidth: 2, lineJoin: .miter))
+            .clipShape(shape)
+    }
+}
+
 private struct ShatlWordmarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     let animationPhase: CGFloat
     let renderingMode: ShatlBrandRenderingMode
@@ -236,7 +251,9 @@ private struct ShatlWordmarkArtwork: View {
     }
 
     private var strokeColor: Color {
-        if accentState.isUsingAppAccent {
+        if usesMonochrome {
+            ShatlColor.accentMonochrome.opacity(strokeOpacity)
+        } else if accentState.isUsingAppAccent {
             ShatlColor.accentColored.opacity(strokeOpacity)
         } else {
             accentState.systemAccentColor.opacity(strokeOpacity)
@@ -283,16 +300,20 @@ private struct ShatlWordmarkArtwork: View {
 
     @ViewBuilder
     private var starLayer: some View {
-        switch renderingMode {
-        case .glass:
-            ShatlWordmarkStarMorphShape(progress: animationPhase)
-                .glassEffect(
-                    .clear.tint(starColor),
-                    in: ShatlWordmarkStarMorphShape(progress: animationPhase)
-                )
-        case .flat:
-            ShatlWordmarkStarMorphShape(progress: animationPhase)
-                .fill(starColor)
+        if usesMonochrome {
+            ShatlMonochromeStar(shape: ShatlWordmarkStarMorphShape(progress: animationPhase))
+        } else {
+            switch renderingMode {
+            case .glass:
+                ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    .glassEffect(
+                        .clear.tint(starColor),
+                        in: ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    )
+            case .flat:
+                ShatlWordmarkStarMorphShape(progress: animationPhase)
+                    .fill(starColor)
+            }
         }
     }
 }
@@ -615,6 +636,7 @@ private nonisolated struct ShatlWordmarkStarMorphShape: Shape {
 
 private struct ShatlLogomarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
 
     let animationPhase: CGFloat
     let renderingMode: ShatlBrandRenderingMode
@@ -647,7 +669,9 @@ private struct ShatlLogomarkArtwork: View {
     }
 
     private var aColor: Color {
-        if accentState.isUsingAppAccent {
+        if usesMonochrome {
+            ShatlColor.accentMonochrome.opacity(strokeOpacity)
+        } else if accentState.isUsingAppAccent {
             ShatlColor.accent.opacity(strokeOpacity)
         } else {
             Color("AccentColor").opacity(strokeOpacity)
@@ -717,16 +741,20 @@ private struct ShatlLogomarkArtwork: View {
 
     @ViewBuilder
     private var starLayer: some View {
-        switch renderingMode {
-        case .glass:
-            ShatlLogomarkStarMorphShape(progress: animationPhase)
-                .glassEffect(
-                    .clear.tint(starColor),
-                    in: ShatlLogomarkStarMorphShape(progress: animationPhase)
-                )
-        case .flat:
-            ShatlLogomarkStarMorphShape(progress: animationPhase)
-                .fill(starColor)
+        if usesMonochrome {
+            ShatlMonochromeStar(shape: ShatlLogomarkStarMorphShape(progress: animationPhase))
+        } else {
+            switch renderingMode {
+            case .glass:
+                ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    .glassEffect(
+                        .clear.tint(starColor),
+                        in: ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    )
+            case .flat:
+                ShatlLogomarkStarMorphShape(progress: animationPhase)
+                    .fill(starColor)
+            }
         }
     }
 }
@@ -938,6 +966,105 @@ nonisolated struct ShatlPerformanceSpeedometerArrowShape: Shape {
         path.addCurve(to: p.point(25.414, 22.5861), control1: p.point(26.195, 24.6332), control2: p.point(26.195, 23.3671))
         path.closeSubpath()
 
+        return path
+    }
+}
+
+/// The short arrows of the monochrome appearance, after the owner's SVGs one
+/// to one, on the same 48 × 48 grid. They stop short of the scale: a long
+/// arrow lay black on the black filled scale and was lost in it.
+nonisolated struct ShatlPerformanceSpeedometerCompactArrowShape: Shape {
+    let level: ShatlPerformanceSpeedometerLevel
+
+    func path(in rect: CGRect) -> Path {
+        switch level {
+        case .oneOfThree:
+            return oneOfThreePath(in: rect)
+        case .twoOfThree:
+            return twoOfThreePath(in: rect)
+        case .threeOfThree:
+            return threeOfThreePath(in: rect)
+        }
+    }
+
+    private func oneOfThreePath(in rect: CGRect) -> Path {
+        var path = Path()
+        let p = PerformanceSpeedometerPointMapper(rect: rect)
+
+        path.move(to: p.point(14.1015, 14.1007))
+        path.addCurve(to: p.point(15.5155, 14.1007), control1: p.point(14.492, 13.7102), control2: p.point(15.125, 13.7102))
+        path.addLine(to: p.point(22.7089, 21.2941))
+        path.addCurve(to: p.point(26.122, 21.8791), control1: p.point(23.8238, 20.7621), control2: p.point(25.1987, 20.9557))
+        path.addCurve(to: p.point(26.704, 25.2912), control1: p.point(27.0452, 22.8026), control2: p.point(27.2364, 24.1763))
+        path.addLine(to: p.point(27.1816, 25.7687))
+        path.addCurve(to: p.point(27.1816, 27.1828), control1: p.point(27.5721, 26.1592), control2: p.point(27.572, 26.7922))
+        path.addCurve(to: p.point(25.7675, 27.1828), control1: p.point(26.791, 27.5733), control2: p.point(26.158, 27.5733))
+        path.addLine(to: p.point(25.29, 26.7052))
+        path.addCurve(to: p.point(21.8788, 26.1213), control1: p.point(24.1752, 27.2367), control2: p.point(22.8019, 27.0443))
+        path.addCurve(to: p.point(21.2948, 22.7082), control1: p.point(20.9554, 25.1977), control2: p.point(20.7624, 23.8232))
+        path.addLine(to: p.point(14.1015, 15.5148))
+        path.addCurve(to: p.point(14.1015, 14.1007), control1: p.point(13.711, 15.1243), control2: p.point(13.711, 14.4913))
+        path.closeSubpath()
+        path.move(to: p.point(24.707, 23.2931))
+        path.addCurve(to: p.point(23.2929, 23.2931), control1: p.point(24.3164, 22.9028), control2: p.point(23.6834, 22.9027))
+        path.addCurve(to: p.point(23.2929, 24.7072), control1: p.point(22.9026, 23.6836), control2: p.point(22.9026, 24.3167))
+        path.addCurve(to: p.point(24.707, 24.7072), control1: p.point(23.6834, 25.0977), control2: p.point(24.3164, 25.0976))
+        path.addCurve(to: p.point(24.707, 23.2931), control1: p.point(25.0975, 24.3167), control2: p.point(25.0975, 23.6837))
+        path.closeSubpath()
+        return path
+    }
+
+    private func twoOfThreePath(in rect: CGRect) -> Path {
+        var path = Path()
+        let p = PerformanceSpeedometerPointMapper(rect: rect)
+
+        path.move(to: p.point(32.4862, 14.1007))
+        path.addCurve(to: p.point(33.9003, 14.1007), control1: p.point(32.8768, 13.7103), control2: p.point(33.5098, 13.7102))
+        path.addCurve(to: p.point(33.9003, 15.5148), control1: p.point(34.2907, 14.4912), control2: p.point(34.2908, 15.1243))
+        path.addLine(to: p.point(26.705, 22.7091))
+        path.addCurve(to: p.point(26.122, 26.1212), control1: p.point(27.2373, 23.8241), control2: p.point(27.0454, 25.1978))
+        path.addCurve(to: p.point(22.7079, 26.7042), control1: p.point(25.1981, 27.0451), control2: p.point(23.8232, 27.2374))
+        path.addLine(to: p.point(22.2323, 27.1808))
+        path.addCurve(to: p.point(20.8183, 27.1808), control1: p.point(21.8418, 27.5713), control2: p.point(21.2088, 27.5713))
+        path.addCurve(to: p.point(20.8183, 25.7667), control1: p.point(20.4278, 26.7903), control2: p.point(20.4278, 26.1573))
+        path.addLine(to: p.point(21.2948, 25.2892))
+        path.addCurve(to: p.point(21.8798, 21.879), control1: p.point(20.7639, 24.1746), control2: p.point(20.957, 22.8019))
+        path.addCurve(to: p.point(25.2919, 21.2941), control1: p.point(22.8031, 20.9558), control2: p.point(24.177, 20.7621))
+        path.addLine(to: p.point(32.4862, 14.1007))
+        path.closeSubpath()
+        path.move(to: p.point(24.7079, 23.2931))
+        path.addCurve(to: p.point(23.2939, 23.2931), control1: p.point(24.3174, 22.9026), control2: p.point(23.6844, 22.9026))
+        path.addCurve(to: p.point(23.2939, 24.7072), control1: p.point(22.9033, 23.6836), control2: p.point(22.9033, 24.3166))
+        path.addCurve(to: p.point(24.7079, 24.7072), control1: p.point(23.6844, 25.0976), control2: p.point(24.3174, 25.0977))
+        path.addCurve(to: p.point(24.7079, 23.2931), control1: p.point(25.0984, 24.3167), control2: p.point(25.0983, 23.6836))
+        path.closeSubpath()
+        return path
+    }
+
+    private func threeOfThreePath(in rect: CGRect) -> Path {
+        var path = Path()
+        let p = PerformanceSpeedometerPointMapper(rect: rect)
+
+        path.move(to: p.point(20.8183, 20.8187))
+        path.addCurve(to: p.point(22.2323, 20.8187), control1: p.point(21.2088, 20.4284), control2: p.point(21.8419, 20.4283))
+        path.addLine(to: p.point(22.7089, 21.2953))
+        path.addCurve(to: p.point(26.122, 21.8792), control1: p.point(23.8239, 20.763), control2: p.point(25.1986, 20.9558))
+        path.addCurve(to: p.point(26.705, 25.2923), control1: p.point(27.0455, 22.8028), control2: p.point(27.2375, 24.1773))
+        path.addLine(to: p.point(33.8993, 32.4857))
+        path.addCurve(to: p.point(33.8993, 33.9007), control1: p.point(34.2899, 32.8762), control2: p.point(34.2899, 33.5102))
+        path.addCurve(to: p.point(32.4853, 33.9007), control1: p.point(33.5089, 34.291), control2: p.point(32.8758, 34.2909))
+        path.addLine(to: p.point(25.29, 26.7054))
+        path.addCurve(to: p.point(21.8788, 26.1224), control1: p.point(24.1752, 27.2369), control2: p.point(22.8019, 27.0455))
+        path.addCurve(to: p.point(21.2948, 22.7093), control1: p.point(20.9554, 25.199), control2: p.point(20.7626, 23.8243))
+        path.addLine(to: p.point(20.8183, 22.2328))
+        path.addCurve(to: p.point(20.8183, 20.8187), control1: p.point(20.4278, 21.8422), control2: p.point(20.4278, 21.2092))
+        path.closeSubpath()
+        path.move(to: p.point(24.7079, 23.2933))
+        path.addCurve(to: p.point(23.2929, 23.2933), control1: p.point(24.3174, 22.9028), control2: p.point(23.6834, 22.9028))
+        path.addCurve(to: p.point(23.2929, 24.7083), control1: p.point(22.9024, 23.6838), control2: p.point(22.9024, 24.3178))
+        path.addCurve(to: p.point(24.7079, 24.7083), control1: p.point(23.6834, 25.0988), control2: p.point(24.3174, 25.0989))
+        path.addCurve(to: p.point(24.7079, 23.2933), control1: p.point(25.0984, 24.3178), control2: p.point(25.0984, 23.6838))
+        path.closeSubpath()
         return path
     }
 }

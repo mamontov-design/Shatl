@@ -488,6 +488,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetricGroups: nil,
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
+            usesMonochromeAppearance: preferences.usesMonochromeAppearance,
             errorState: nil,
             isSelected: selection.contains(addition.id),
             isExpanded: false,
@@ -524,6 +525,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         struct Shared: Equatable {
             var metricsMode: MetricsPresentationMode
             var colorizesDownloadSpeed: Bool
+            var usesMonochromeAppearance: Bool
             var localeOverride: AppLocaleOverride
             var isRestoringSession: Bool
             var simplification: CardSimplificationLevel
@@ -548,6 +550,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         var shared = TorrentRowInputs.Shared(
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
+            usesMonochromeAppearance: preferences.usesMonochromeAppearance,
             localeOverride: preferences.localeOverride,
             isRestoringSession: isRestoringSession,
             simplification: cardSimplification
@@ -664,6 +667,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             expandedMetricGroups: expandedMetricGroups,
             metricsMode: shared.metricsMode,
             colorizesDownloadSpeed: shared.colorizesDownloadSpeed,
+            usesMonochromeAppearance: shared.usesMonochromeAppearance,
             errorState: errorState,
             isSelected: inputs.isSelected,
             isSelectedWithOthers: inputs.isSelectedWithOthers,

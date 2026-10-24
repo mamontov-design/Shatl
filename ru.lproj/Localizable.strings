@@ -315,6 +315,13 @@
 "settings.downloads.network.port_status.closed" = "Порт закрыт";
 
 "settings.appearance.theme.section" = "Тема";
+"settings.appearance.monochrome.toggle" = "Монохромное оформление";
+"settings.appearance.monochrome.info.help" = "Подробнее о чёрно-белом оформлении";
+"settings.appearance.monochrome.popover.title" = "Чёрно-белое оформление";
+"settings.appearance.monochrome.popover.scope" = "Список загрузок, Настройки и логотип становятся чёрно-белыми, а акцент — чёрным, какой бы ни был выбран в macOS. Цвет остаётся только у ошибок.";
+"settings.appearance.monochrome.popover.speed_colors" = "Цветовая индикация скорости при этом выключится. Её можно включить снова — тогда цветом будет отмечен только значок скорости.";
+"settings.appearance.monochrome.popover.graphite" = "Чтобы кнопки окон тоже стали серыми, выберите в настройках macOS цвет акцента «Графит».";
+"settings.appearance.monochrome.popover.link" = "Оформление в macOS";
 "settings.appearance.theme.system" = "Как в системе";
 "settings.appearance.theme.light" = "Светлая";
 "settings.appearance.theme.dark" = "Тёмная";
