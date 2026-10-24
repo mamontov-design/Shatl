@@ -109,11 +109,16 @@ final class TorrentListScrollDriver {
         /// The top of what the scroll view shows.
         var origin: CGFloat
         var lowestOrigin: CGFloat
+        var highestOrigin: CGFloat
         var contentHeight: CGFloat
         var viewportHeight: CGFloat
 
         /// Away from its top: content that shrinks can push it.
         var isScrolled: Bool { origin > lowestOrigin + 0.5 }
+        /// Scrolled down as far as it goes. A list at its top is not, even
+        /// when its top is also its end: content that grows under it leaves
+        /// it at its top.
+        var isAtItsEnd: Bool { isScrolled && origin >= highestOrigin - 0.5 }
     }
 
     fileprivate struct Reach {
@@ -168,6 +173,7 @@ final class TorrentListScrollDriver {
         return Position(
             origin: sight.origin,
             lowestOrigin: sight.lowestOrigin,
+            highestOrigin: sight.highestOrigin,
             contentHeight: sight.contentHeight,
             viewportHeight: sight.viewportHeight
         )
@@ -197,6 +203,11 @@ final class TorrentListScrollDriver {
         /// The goal: the end the list will have once this much room under
         /// its content is gone.
         var room: CGFloat
+        /// The goal is the end itself, wherever it now lies: content grew
+        /// under a list that stood at its end, and the list goes down with
+        /// it. Otherwise the list only gives back what it stands past its
+        /// end.
+        var keepsToTheEnd = false
         /// How long the move takes when nothing changes on the way; 0 for a
         /// move made at once.
         var duration: TimeInterval
@@ -242,11 +253,18 @@ final class TorrentListScrollDriver {
     /// Sets the list on its way to the end it will have without `room`. A
     /// move in progress goes on to the new goal from where it is and at the
     /// speed it has, and what waited for it to end waits for the new one.
-    private func steer(toTheEndWithout room: CGFloat, duration: TimeInterval, in reach: Reach, onEnd: (() -> Void)? = nil) {
+    private func steer(
+        toTheEndWithout room: CGFloat,
+        keepingToTheEnd: Bool = false,
+        duration: TimeInterval,
+        in reach: Reach,
+        onEnd: (() -> Void)? = nil
+    ) {
         let now = CACurrentMediaTime()
         let sight = sight(of: reach)
         var next = Steering(
             room: room,
+            keepsToTheEnd: keepingToTheEnd,
             duration: duration,
             position: sight.origin,
             lastFrame: now,
@@ -301,6 +319,9 @@ final class TorrentListScrollDriver {
         }
         // Laid out without the room for a pass: wait for it.
         guard sight.contentHeight >= steering.room - 0.5 else { return nil }
+        if steering.keepsToTheEnd {
+            return sight.highestOrigin
+        }
         return sight.stand(afterTakingAway: steering.room)
     }
 
@@ -598,6 +619,18 @@ final class TorrentListScrollDriver {
         // have left on the way.
         let isSettlingAlready = steering != nil
         steer(toTheEndWithout: room, duration: duration, in: reach, onEnd: isSettlingAlready ? nil : onSettled)
+    }
+
+    /// Content grows under a list that stands at its end: the speed chips
+    /// come, and the room under the last card grows with them. The list
+    /// goes down to its new end over `duration`, so the last card stays
+    /// clear of the chips.
+    ///
+    /// Called before the content has grown; the list sets off once it has.
+    func keepToTheEnd(duration: TimeInterval) {
+        guard let reach else { return }
+        stopFollowing()
+        steer(toTheEndWithout: 0, keepingToTheEnd: true, duration: duration, in: reach)
     }
 }
 

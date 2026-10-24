@@ -118,8 +118,10 @@ persistence, deletion, restore, or shared UI state.
   A card that expands partly out of sight is brought into sight along the
   curve it grows by, from the frame it begins to grow in, never in one step
   before it. Content that shrinks under a list scrolled down pushes it there
-  in one frame, so room is kept under the content while cards leave, until
-  the driver says the list stands at its new end.
+  in one frame, so room is kept under the content while cards leave or the
+  room under the speed chips goes with them, until the driver says the list
+  stands at its new end. When the chips come under a list at its end, the
+  driver takes it down to the new end, so the last card stays clear of them.
 - Arrow keys do not select cards. Every step drew the whole list anew, and
   with 15 active downloads a held arrow gave one frame of 60-70 ms per step
   (measured in October 2026; the figures are in the owner's chronicle). ⌘A,
