@@ -35,13 +35,14 @@ enum ShatlErrorCatalog {
     /// to press. The card's own text would point at buttons it cannot show.
     nonisolated static func persistentIssueNotification(
         for kind: TorrentPersistentIssue.Kind,
+        hasOneFile: Bool = false,
         localeOverride: AppLocaleOverride = .system
     ) -> (title: String, body: String) {
         switch kind {
         case .missingContent:
             (
-                L10n.string("torrent.error.missing_content.title", localeOverride: localeOverride),
-                L10n.string("torrent.error.missing_content.notification", localeOverride: localeOverride)
+                L10n.string("\(missingContentKey(hasOneFile: hasOneFile)).title", localeOverride: localeOverride),
+                L10n.string("\(missingContentKey(hasOneFile: hasOneFile)).notification", localeOverride: localeOverride)
             )
         case .savePathUnavailable:
             (
@@ -257,12 +258,27 @@ enum ShatlErrorCatalog {
     /// event, then where to fix it, no buttons.
     nonisolated static func runtimeErrorNotification(
         for cause: TorrentErrorState.Cause?,
+        hasOneFile: Bool = false,
         localeOverride: AppLocaleOverride = .system
     ) -> (title: String, body: String) {
-        (
+        let key = cause.map { runtimeErrorKey($0, hasOneFile: hasOneFile) } ?? "torrent.error.runtime.other"
+        return (
             L10n.string("torrent.error.runtime.title", localeOverride: localeOverride),
-            L10n.string("torrent.error.runtime.\(cause.map(causeKey) ?? "other").notification", localeOverride: localeOverride)
+            L10n.string("\(key).notification", localeOverride: localeOverride)
         )
+    }
+
+    /// Files are missing when one of them is: a download of several is told
+    /// that "one or more" are gone, a download of one about that file.
+    nonisolated static func missingContentKey(hasOneFile: Bool) -> String {
+        hasOneFile ? "torrent.error.missing_content.single" : "torrent.error.missing_content"
+    }
+
+    /// The strings-file prefix of an error the engine stopped a download
+    /// with; files that went missing are told apart for a single file.
+    nonisolated static func runtimeErrorKey(_ cause: TorrentErrorState.Cause, hasOneFile: Bool) -> String {
+        let key = "torrent.error.runtime.\(causeKey(cause))"
+        return cause == .filesMissing && hasOneFile ? "\(key).single" : key
     }
 
     /// The strings-file name of a cause.

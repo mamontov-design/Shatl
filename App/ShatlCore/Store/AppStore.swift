@@ -608,6 +608,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let errorState = TorrentRowErrorState(
             record.errorState,
             saveFolderPath: record.canonicalSavePath,
+            hasOneFile: record.selectedFileCount == 1,
             metricsMode: shared.metricsMode,
             localeOverride: shared.localeOverride
         )
@@ -4276,6 +4277,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
         let notification = ShatlErrorCatalog.runtimeErrorNotification(
             for: error.cause,
+            hasOneFile: torrent.selectedFileCount == 1,
             localeOverride: preferences.localeOverride
         )
         userEventNotifier?.notify(
@@ -4307,6 +4309,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         let notification = ShatlErrorCatalog.persistentIssueNotification(
             for: issue.kind,
+            hasOneFile: torrent.selectedFileCount == 1,
             localeOverride: preferences.localeOverride
         )
 

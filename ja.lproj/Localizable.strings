@@ -122,10 +122,14 @@
 "torrent.metric.uploaded" = "アップロード済み";
 "torrent.metric.size" = "サイズ";
 
-"torrent.error.missing_content.title" = "ダウンロードファイルが見つかりません";
-"torrent.error.missing_content.message" = "ダウンロードフォルダにファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
-"torrent.error.missing_content.named_message" = "「%@」フォルダにこのダウンロードのファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.title" = "ダウンロードのファイルが不足しています";
+"torrent.error.missing_content.message" = "ダウンロードフォルダに、このダウンロードのファイルが1つ以上ありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.named_message" = "「%@」フォルダに、このダウンロードのファイルが1つ以上ありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
 "torrent.error.missing_content.notification" = "移動、名前の変更、または削除された可能性があります。ダウンロードリストから再ダウンロードできます。";
+"torrent.error.missing_content.single.title" = "ダウンロードファイルが見つかりません";
+"torrent.error.missing_content.single.message" = "ダウンロードフォルダにファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.single.named_message" = "「%@」フォルダにこのダウンロードのファイルがありません。移動、名前の変更、または削除された可能性があります。再ダウンロードするか、リストから削除してください。";
+"torrent.error.missing_content.single.notification" = "移動、名前の変更、または削除された可能性があります。ダウンロードリストから再ダウンロードできます。";
 "torrent.error.save_path_unavailable.title" = "ダウンロードフォルダを利用できません";
 "torrent.error.save_path_unavailable.message" = "ダウンロードフォルダを利用できません。フォルダのあるディスクが取り外されたか、フォルダが削除された可能性があります。ディスクを接続して再確認するか、別のフォルダにダウンロードしてください。";
 "torrent.error.save_path_unavailable.named_message" = "「%@」フォルダを利用できません。フォルダのあるディスクが取り外されたか、フォルダが削除された可能性があります。ディスクを接続して再確認するか、別のフォルダにダウンロードしてください。";
@@ -142,9 +146,12 @@
 "torrent.error.runtime.disk_error.message" = "ダウンロードフォルダのあるディスクで読み書きエラーが発生したため、ダウンロードが停止しました。ディスクユーティリティでディスクを確認してから、再試行してください。";
 "torrent.error.runtime.disk_error.named_message" = "「%@」フォルダのあるディスクで読み書きエラーが発生したため、ダウンロードが停止しました。ディスクユーティリティでディスクを確認してから、再試行してください。";
 "torrent.error.runtime.disk_error.notification" = "ディスクで読み書きエラーが発生しました。ダウンロードリストで再試行できます。";
-"torrent.error.runtime.files_missing.message" = "フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
-"torrent.error.runtime.files_missing.named_message" = "「%@」フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
-"torrent.error.runtime.files_missing.notification" = "フォルダからダウンロードのファイルがなくなりました。ダウンロードリストで再試行できます。";
+"torrent.error.runtime.files_missing.message" = "フォルダからダウンロードのファイルが1つ以上なくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.named_message" = "「%@」フォルダからダウンロードのファイルが1つ以上なくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.notification" = "フォルダからダウンロードのファイルが1つ以上なくなりました。ダウンロードリストで再試行できます。";
+"torrent.error.runtime.files_missing.single.message" = "フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.single.named_message" = "「%@」フォルダからダウンロードのファイルがなくなったため、ダウンロードが停止しました。再試行してください。ファイルがない場合は、再ダウンロードできます。";
+"torrent.error.runtime.files_missing.single.notification" = "フォルダからダウンロードのファイルがなくなりました。ダウンロードリストで再試行できます。";
 "torrent.error.runtime.other.message" = "内部エラーのため、ダウンロードが停止しました。再試行してください。エラーが続く場合は、ダウンロードをリストから削除し、.torrentファイルまたはmagnetリンクをもう一度追加してください。";
 "torrent.error.runtime.other.notification" = "内部エラーが発生しました。ダウンロードリストで再試行できます。";
 "torrent.error.not_enough_space.title" = "空き容量が不足しています";

@@ -123,10 +123,14 @@
 "torrent.metric.uploaded" = "Hochgeladen";
 "torrent.metric.size" = "Größe";
 
-"torrent.error.missing_content.title" = "Download-Dateien nicht gefunden";
-"torrent.error.missing_content.message" = "Die Dateien sind nicht im Download-Ordner – vielleicht wurden sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
-"torrent.error.missing_content.named_message" = "Im Ordner „%@“ fehlen die Dateien dieses Downloads – vielleicht wurden sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
+"torrent.error.missing_content.title" = "Dem Download fehlen Dateien";
+"torrent.error.missing_content.message" = "Im Download-Ordner fehlen eine oder mehrere Dateien dieses Downloads – vielleicht wurden sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
+"torrent.error.missing_content.named_message" = "Im Ordner „%@“ fehlen eine oder mehrere Dateien dieses Downloads – vielleicht wurden sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
 "torrent.error.missing_content.notification" = "Vielleicht wurden sie verschoben, umbenannt oder gelöscht. In der Downloadliste können Sie sie erneut laden.";
+"torrent.error.missing_content.single.title" = "Download-Datei nicht gefunden";
+"torrent.error.missing_content.single.message" = "Die Datei ist nicht im Download-Ordner – vielleicht wurde sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
+"torrent.error.missing_content.single.named_message" = "Im Ordner „%@“ fehlt die Datei dieses Downloads – vielleicht wurde sie verschoben, umbenannt oder gelöscht. Laden Sie sie erneut oder entfernen Sie den Download aus der Liste.";
+"torrent.error.missing_content.single.notification" = "Vielleicht wurde sie verschoben, umbenannt oder gelöscht. In der Downloadliste können Sie sie erneut laden.";
 "torrent.error.save_path_unavailable.title" = "Download-Ordner nicht verfügbar";
 "torrent.error.save_path_unavailable.message" = "Der Download-Ordner ist nicht verfügbar – vielleicht ist der Datenträger getrennt, auf dem er liegt, oder der Ordner wurde gelöscht. Schließen Sie den Datenträger an und prüfen Sie erneut, oder laden Sie den Download in einen anderen Ordner.";
 "torrent.error.save_path_unavailable.named_message" = "Der Ordner „%@“ ist nicht verfügbar – vielleicht ist der Datenträger getrennt, auf dem er liegt, oder der Ordner wurde gelöscht. Schließen Sie den Datenträger an und prüfen Sie erneut, oder laden Sie den Download in einen anderen Ordner.";
@@ -143,9 +147,12 @@
 "torrent.error.runtime.disk_error.message" = "Der Datenträger mit dem Download-Ordner hat einen Lese- oder Schreibfehler gemeldet, und der Download wurde gestoppt. Prüfen Sie den Datenträger im Festplattendienstprogramm und starten Sie den Download erneut.";
 "torrent.error.runtime.disk_error.named_message" = "Der Datenträger mit dem Ordner „%@“ hat einen Lese- oder Schreibfehler gemeldet, und der Download wurde gestoppt. Prüfen Sie den Datenträger im Festplattendienstprogramm und starten Sie den Download erneut.";
 "torrent.error.runtime.disk_error.notification" = "Der Datenträger hat einen Lese- oder Schreibfehler gemeldet. In der Downloadliste können Sie den Download erneut starten.";
-"torrent.error.runtime.files_missing.message" = "Die Dateien des Downloads sind aus seinem Ordner verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
-"torrent.error.runtime.files_missing.named_message" = "Die Dateien des Downloads sind aus dem Ordner „%@“ verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
-"torrent.error.runtime.files_missing.notification" = "Die Dateien des Downloads sind aus seinem Ordner verschwunden. In der Downloadliste können Sie ihn erneut starten.";
+"torrent.error.runtime.files_missing.message" = "Eine oder mehrere Dateien des Downloads sind aus seinem Ordner verschwunden, und der Download wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.named_message" = "Eine oder mehrere Dateien des Downloads sind aus dem Ordner „%@“ verschwunden, und der Download wurde gestoppt. Starten Sie ihn erneut: Fehlen die Dateien, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.notification" = "Eine oder mehrere Dateien des Downloads sind aus seinem Ordner verschwunden. In der Downloadliste können Sie ihn erneut starten.";
+"torrent.error.runtime.files_missing.single.message" = "Die Datei des Downloads ist aus seinem Ordner verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlt die Datei, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.single.named_message" = "Die Datei des Downloads ist aus dem Ordner „%@“ verschwunden, und er wurde gestoppt. Starten Sie ihn erneut: Fehlt die Datei, können Sie sie dann erneut laden.";
+"torrent.error.runtime.files_missing.single.notification" = "Die Datei des Downloads ist aus seinem Ordner verschwunden. In der Downloadliste können Sie ihn erneut starten.";
 "torrent.error.runtime.other.message" = "Der Download wurde wegen eines internen Fehlers gestoppt. Starten Sie ihn erneut. Tritt der Fehler wieder auf, entfernen Sie den Download aus der Liste und fügen Sie die .torrent-Datei oder den Magnet-Link erneut hinzu.";
 "torrent.error.runtime.other.notification" = "Ein interner Fehler ist aufgetreten. In der Downloadliste können Sie den Download erneut starten.";
 "torrent.error.not_enough_space.title" = "Nicht genug Platz";
