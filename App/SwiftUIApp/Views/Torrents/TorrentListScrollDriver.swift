@@ -3,9 +3,6 @@
 
 import AppKit
 import SwiftUI
-#if DEBUG
-import os
-#endif
 
 /// What of the list is in sight, and where the list has to stand to keep
 /// a growing card in sight or to rest at its end. Plain arithmetic, apart
@@ -278,9 +275,6 @@ final class TorrentListScrollDriver {
                 queue: nil
             ) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    #if DEBUG
-                    self?.trace("gave way: the list is scrolled by hand")
-                    #endif
                     self?.endSteering(takingTheListToItsGoal: false)
                 }
             }
@@ -289,9 +283,6 @@ final class TorrentListScrollDriver {
         // arrives all the same.
         steeringDeadline?.cancel()
         let deadline = DispatchWorkItem { [weak self] in
-            #if DEBUG
-            self?.trace("out of patience: the list is put on its goal")
-            #endif
             self?.endSteering(takingTheListToItsGoal: true)
         }
         steeringDeadline = deadline
@@ -331,9 +322,6 @@ final class TorrentListScrollDriver {
             steering.position += moved
             steering.lastChange = now
         } else if abs(moved) > 1 {
-            #if DEBUG
-            trace("gave way: the list was moved by \(Int(moved)) with nothing around it changed")
-            #endif
             endSteering(takingTheListToItsGoal: false)
             return
         }
@@ -500,9 +488,6 @@ final class TorrentListScrollDriver {
         let frame = scrolled(frame, in: reach)
         following?.frame = frame
         if follow.frame == nil {
-            #if DEBUG
-            trace("expansion: card at \(Int(frame.minY))…\(Int(frame.maxY)), \(describe(reach))")
-            #endif
             startFollowingFromHere()
         } else if follow.frame != frame, follow.start == nil {
             // The card moves: the cards have begun to change on screen.
@@ -609,9 +594,6 @@ final class TorrentListScrollDriver {
             return
         }
         stopFollowing()
-        #if DEBUG
-        trace("removal: room \(Int(room)), \(describe(reach))")
-        #endif
         // One call when the list has settled is enough, however many cards
         // have left on the way.
         let isSettlingAlready = steering != nil
@@ -645,27 +627,6 @@ private final class TorrentListScrollTicker: NSObject {
         }
     }
 }
-
-#if DEBUG
-/// Debug builds only: what the driver decided, in the system log (category
-/// `ListScroll`). The owner's window showed twice what no hosted window
-/// did, and this is how it is read from there.
-extension TorrentListScrollDriver {
-    private static let logger = Logger(subsystem: "mamontov.design.shatl", category: "ListScroll")
-
-    func trace(_ message: String) {
-        Self.logger.notice("\(message, privacy: .public)")
-    }
-
-    fileprivate func describe(_ reach: Reach) -> String {
-        let sight = sight(of: reach)
-        let insets = reach.scroll.contentInsets
-        return "origin \(Int(sight.origin)) of \(Int(sight.lowestOrigin))…\(Int(sight.highestOrigin)),"
-            + " content \(Int(sight.contentHeight)), viewport \(Int(sight.viewportHeight)),"
-            + " insets \(Int(insets.top))/\(Int(insets.bottom))"
-    }
-}
-#endif
 
 /// The view through which `TorrentListScrollDriver` finds the list's scroll
 /// view. It sits in the scrolled content, at its top left corner, takes no
