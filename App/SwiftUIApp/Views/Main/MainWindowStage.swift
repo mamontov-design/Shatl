@@ -29,6 +29,12 @@ enum MainWindowStage: Equatable {
     var allowsListActions: Bool {
         self == .list
     }
+
+    /// In light the list stands on a grey ground under its white cards; the
+    /// empty list and the session stages keep the window's own background.
+    var standsOnListGround: Bool {
+        self == .list
+    }
 }
 
 /// How the window goes from the stage it shows to the one the store asks for.
