@@ -11,6 +11,9 @@
 		4F997C002FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */; };
 		4FF6C5BE2F72FAAA0008033E /* Localizable.strings in Sources */ = {isa = PBXBuildFile; fileRef = 4FF6C5BD2F72FAAA0008033E /* Localizable.strings */; };
 		50B000012FF0000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 50B000032FF0000000000003 /* Sparkle */; };
+		50C000112FF1000000000011 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 50C000012FF1000000000001 /* LICENSE */; };
+		50C000122FF1000000000012 /* THIRD-PARTY-NOTICES.md in Resources */ = {isa = PBXBuildFile; fileRef = 50C000022FF1000000000002 /* THIRD-PARTY-NOTICES.md */; };
+		50C000132FF1000000000013 /* Licenses in Resources */ = {isa = PBXBuildFile; fileRef = 50C000032FF1000000000003 /* Licenses */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +38,9 @@
 		4FF6C5C32F72FAB80008033E /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		4FF6C5C42F72FABA0008033E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		50A0A001B4B3130000AAA002 /* ShatlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShatlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		50C000012FF1000000000001 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		50C000022FF1000000000002 /* THIRD-PARTY-NOTICES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "THIRD-PARTY-NOTICES.md"; sourceTree = "<group>"; };
+		50C000032FF1000000000003 /* Licenses */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Licenses; path = Vendor/Licenses; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +81,9 @@
 				4F997BFE2FE68EF400C0ED96 /* ShatlAppIcon.icon */,
 				4F1F71AB2F79837E00EB7B05 /* Shatl-Info.plist */,
 				4FF6C5BD2F72FAAA0008033E /* Localizable.strings */,
+				50C000012FF1000000000001 /* LICENSE */,
+				50C000022FF1000000000002 /* THIRD-PARTY-NOTICES.md */,
+				50C000032FF1000000000003 /* Licenses */,
 				4FBD3B822F5EA94B000486BA /* App */,
 				50A0A001B4B3130000AAA003 /* Tests */,
 				4FBD3BD12F5ECF32000486BA /* Frameworks */,
@@ -201,6 +210,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				4F997C002FE68EF400C0ED96 /* ShatlAppIcon.icon in Resources */,
+				50C000112FF1000000000011 /* LICENSE in Resources */,
+				50C000122FF1000000000012 /* THIRD-PARTY-NOTICES.md in Resources */,
+				50C000132FF1000000000013 /* Licenses in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
