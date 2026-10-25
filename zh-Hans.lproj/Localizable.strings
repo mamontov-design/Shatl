@@ -338,6 +338,12 @@
 "settings.about.links.website" = "网站";
 "settings.about.links.privacy" = "隐私";
 "settings.about.links.terms" = "使用条款";
+"settings.about.licenses.button" = "许可证";
+"settings.about.licenses.popover.title" = "许可证";
+"settings.about.licenses.popover.gpl" = "Shatl 是基于 GNU GPL 3.0 许可证的自由软件。";
+"settings.about.licenses.popover.source" = "源代码 — GitHub";
+"settings.about.licenses.popover.components" = "第三方组件：";
+"settings.about.licenses.popover.footnote" = "完整的许可证文本位于应用内和 GitHub 上。";
 "settings.about.footer" = "2026, Mamontov Design. 用心打造，第二次才成功。";
 
 "settings.localization.section" = "界面语言";

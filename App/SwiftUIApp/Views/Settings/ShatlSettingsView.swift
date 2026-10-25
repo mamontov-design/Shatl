@@ -739,6 +739,7 @@ enum DataCollectionItem: CaseIterable, Identifiable {
 private struct AboutSettingsTab: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var updaterController: ShatlUpdaterController
+    @State private var isLicensesPopoverPresented = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -818,13 +819,27 @@ private struct AboutSettingsTab: View {
         )
     }
 
+    /// The mark, and under it the licences: the GPL of Shatl and what it is
+    /// built with, in a popover like the ones in Appearance.
     private var aboutWordmarkContainer: some View {
-        ShatlWordmark(
-            selection: Binding(
-                get: { store.preferences.preferredBrandMark },
-                set: { store.setPreferredBrandMark($0) }
+        VStack(spacing: 12) {
+            ShatlWordmark(
+                selection: Binding(
+                    get: { store.preferences.preferredBrandMark },
+                    set: { store.setPreferredBrandMark($0) }
+                )
             )
-        )
+
+            ShatlLinkButton(
+                title: L10n.string("settings.about.licenses.button", localeOverride: store.preferences.localeOverride),
+                systemImage: "info.circle.fill"
+            ) {
+                isLicensesPopoverPresented = true
+            }
+            .popover(isPresented: $isLicensesPopoverPresented) {
+                LicensesInfoPopover(localeOverride: store.preferences.localeOverride)
+            }
+        }
         .padding(.horizontal, 12)
         .padding(.top, 24)
         .padding(.bottom, 8)
@@ -1365,6 +1380,17 @@ private struct SpeedColorsInfoPopover: View {
     }
 }
 
+/// The layout of a popover with link buttons in it: the popover keeps 8 pt
+/// to its sides and the texts 8 pt more, so a text and a button's label
+/// begin on one line. Without buttons, 16 pt all round, as the other
+/// popovers in Settings have.
+private enum ShatlInfoPopoverLayout {
+    static let width: CGFloat = 340
+    static let verticalPadding: CGFloat = 16
+    static let sidePadding: CGFloat = 8
+    static let textInset: CGFloat = 8
+}
+
 /// What the monochrome appearance changes, what it does to the speed
 /// colours, and how to grey the window buttons too: macOS keeps them in
 /// colour unless Graphite is its accent, so the link opens Appearance in
@@ -1374,22 +1400,26 @@ private struct MonochromeAppearanceInfoPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("settings.appearance.monochrome.popover.title")
-                .shatlTypography(ShatlTypography.subheadlineBold)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("settings.appearance.monochrome.popover.title")
+                    .shatlTypography(ShatlTypography.subheadlineBold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            popoverText("settings.appearance.monochrome.popover.scope")
-            popoverText("settings.appearance.monochrome.popover.speed_colors")
-            popoverText("settings.appearance.monochrome.popover.graphite")
+                popoverText("settings.appearance.monochrome.popover.scope")
+                popoverText("settings.appearance.monochrome.popover.speed_colors")
+                popoverText("settings.appearance.monochrome.popover.graphite")
+            }
+            .padding(.horizontal, ShatlInfoPopoverLayout.textInset)
 
             ShatlLinkButton(
                 title: L10n.string("settings.appearance.monochrome.popover.link", localeOverride: localeOverride),
                 url: ShatlLinks.appearanceSettings
             )
         }
-        .padding(16)
-        .frame(width: 340, alignment: .leading)
+        .padding(.vertical, ShatlInfoPopoverLayout.verticalPadding)
+        .padding(.horizontal, ShatlInfoPopoverLayout.sidePadding)
+        .frame(width: ShatlInfoPopoverLayout.width, alignment: .leading)
     }
 
     private func popoverText(_ key: LocalizedStringKey) -> some View {
@@ -1398,6 +1428,57 @@ private struct MonochromeAppearanceInfoPopover: View {
             .foregroundStyle(ShatlColor.typographySecondary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The licences, as the mockup's license-popover has them: Shatl's GPL and
+/// its source, then each component with its licence, linked to that licence
+/// on the component's own site. The full texts are inside the app.
+private struct LicensesInfoPopover: View {
+    let localeOverride: AppLocaleOverride
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("settings.about.licenses.popover.title")
+                    .shatlTypography(ShatlTypography.subheadlineBold)
+                    .foregroundStyle(ShatlColor.typographyPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("settings.about.licenses.popover.gpl")
+                    .shatlTypography(ShatlTypography.captionRegular)
+                    .foregroundStyle(ShatlColor.typographySecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, ShatlInfoPopoverLayout.textInset)
+
+            ShatlLinkButton(
+                title: L10n.string("settings.about.licenses.popover.source", localeOverride: localeOverride),
+                url: ShatlLinks.sourceCode
+            )
+
+            Text("settings.about.licenses.popover.components")
+                .shatlTypography(ShatlTypography.bodyMedium)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 8)
+                .padding(.horizontal, ShatlInfoPopoverLayout.textInset)
+
+            ForEach(ShatlThirdPartyComponent.allCases) { component in
+                ShatlLinkButton(title: component.title, url: component.licenseURL)
+            }
+
+            Text("settings.about.licenses.popover.footnote")
+                .shatlTypography(ShatlTypography.captionRegular)
+                .foregroundStyle(ShatlColor.typographyTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, ShatlInfoPopoverLayout.textInset)
+        }
+        .padding(.vertical, ShatlInfoPopoverLayout.verticalPadding)
+        .padding(.horizontal, ShatlInfoPopoverLayout.sidePadding)
+        .frame(width: ShatlInfoPopoverLayout.width, alignment: .leading)
     }
 }
 

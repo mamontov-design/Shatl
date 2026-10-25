@@ -344,6 +344,12 @@
 "settings.about.links.website" = "Website";
 "settings.about.links.privacy" = "Privacy";
 "settings.about.links.terms" = "Terms of Use";
+"settings.about.licenses.button" = "Licenses";
+"settings.about.licenses.popover.title" = "Licenses";
+"settings.about.licenses.popover.gpl" = "Shatl is free software under the GNU GPL 3.0.";
+"settings.about.licenses.popover.source" = "Source code — GitHub";
+"settings.about.licenses.popover.components" = "Third-party components:";
+"settings.about.licenses.popover.footnote" = "The full license texts are inside the app and on GitHub.";
 "settings.about.footer" = "2026, Mamontov Design. Made with love, on the second try.";
 
 "settings.localization.section" = "Interface language";

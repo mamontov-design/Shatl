@@ -8,6 +8,9 @@ enum ShatlLinks {
     /// language.
     static let website = URL(string: "https://mamontov-design.github.io/Shatl/")!
 
+    /// The source code, which the GPL promises to whoever has the app.
+    static let sourceCode = URL(string: "https://github.com/mamontov-design/Shatl")!
+
     /// System Settings at Appearance, where the accent colour is picked.
     static let appearanceSettings = URL(string: "x-apple.systempreferences:com.apple.Appearance-Settings.extension")!
 
