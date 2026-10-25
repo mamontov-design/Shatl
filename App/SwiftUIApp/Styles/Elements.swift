@@ -1045,18 +1045,41 @@ enum TorrentCardPreviewShadowStyle {
     case settings
 }
 
+/// The demo card's shadow, cast by the card's shape and seen only outside
+/// it, as Figma draws a frame's shadow. Laid on the card itself, the shadow
+/// came from whatever is opaque inside it: in dark the card's fill is the
+/// list's nearly clear one, and every plate of the expanded metrics cast a
+/// shadow of its own (the owner's check on macOS 26).
 private struct TorrentCardPreviewShadowModifier: ViewModifier {
     let style: TorrentCardPreviewShadowStyle
 
-    @ViewBuilder
-    func body(content: Content) -> some View {
+    private var token: ShatlShadowToken {
         switch style {
-        case .onboarding:
-            content.shatlShadow(ShatlShadow.onboardingCard)
-        case .settings:
-            content.shatlShadow(ShatlShadow.settingsTorrentPreview)
+        case .onboarding: ShatlShadow.onboardingCard
+        case .settings: ShatlShadow.settingsTorrentPreview
         }
     }
+
+    func body(content: Content) -> some View {
+        content.background {
+            let shape = RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
+            // The fill only casts the shadow; the mask takes the card's
+            // own area away, so nothing of it shows through a clear card.
+            shape
+                .fill(ShatlColor.shadowKeyColor)
+                .shatlShadow(token)
+                .mask {
+                    ZStack {
+                        Rectangle().padding(-Self.shadowReach)
+                        shape.blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                }
+        }
+    }
+
+    /// Room around the card for the widest shadow layer to fade out.
+    private static let shadowReach: CGFloat = 48
 }
 
 struct TorrentCardPreviewView: View {

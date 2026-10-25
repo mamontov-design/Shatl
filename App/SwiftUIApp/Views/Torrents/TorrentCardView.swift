@@ -4,6 +4,8 @@
 import SwiftUI
 
 nonisolated enum TorrentCardLayout {
+    /// The card's corners, which its shape and the demo cards' shadow follow.
+    static let cornerRadius: CGFloat = 18
     static let compactExpandedMetricsWidth: CGFloat = 480
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
 }
