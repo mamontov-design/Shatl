@@ -174,12 +174,9 @@ struct TorrentCardView: View, Equatable {
     var progressBarFillColorOverride: Color? = nil
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
-    var usesProductionProgressColors = false
-    var usesProductionCardColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
     var usesCompactExpandedMetricsLayout = false
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
@@ -709,8 +706,6 @@ struct TorrentCardView: View, Equatable {
     private func transferMetricSetView(_ metricSet: CompactTransferMetricSet) -> some View {
         ShatlMetricSet(
             items: metricSet.items,
-            backgroundColorOverride: metricSetBackgroundColorOverride,
-            outlineColorOverride: metricSetOutlineColorOverride,
             colorizesDownloadSpeed: row.colorizesDownloadSpeed,
             usesMonochromeAppearance: row.usesMonochromeAppearance,
             showsShadows: showsMetricShadows,
@@ -1017,18 +1012,13 @@ struct TorrentCardView: View, Equatable {
             return progressGroupBackgroundColorOverride
         }
 
-        if presentationMode == .onboardingDemo, !usesProductionProgressColors {
-            return ShatlColor.backgroundPrimary
-        }
-
         let palette = badgePalette
         return usesHoverStatusPalette ? palette.fill.hover : palette.fill.rest
     }
 
-    /// Nil for a filled badge, and on the onboarding's plain cards.
+    /// Nil for a filled badge.
     private var progressGroupOutlineColor: Color? {
-        if progressGroupBackgroundColorOverride != nil
-            || (presentationMode == .onboardingDemo && !usesProductionProgressColors) {
+        if progressGroupBackgroundColorOverride != nil {
             return nil
         }
         guard let outline = badgePalette.outline else { return nil }
@@ -1040,24 +1030,8 @@ struct TorrentCardView: View, Equatable {
             return progressGroupForegroundColorOverride
         }
 
-        if presentationMode == .onboardingDemo, !usesProductionProgressColors {
-            return ShatlColor.typographyPrimary
-        }
-
         let palette = badgePalette
         return usesHoverStatusPalette ? palette.text.hover : palette.text.rest
-    }
-
-    private var metricSetBackgroundColorOverride: Color? {
-        presentationMode == .onboardingDemo && !usesProductionCardColors && colorScheme == .dark
-            ? ShatlColor.backgroundPrimary
-            : nil
-    }
-
-    private var metricSetOutlineColorOverride: Color? {
-        presentationMode == .onboardingDemo && !usesProductionCardColors && colorScheme == .dark
-            ? ShatlColor.backgroundPrimary
-            : nil
     }
 
     private var cardOutlineState: TorrentCardOutlineState {
@@ -1367,10 +1341,6 @@ struct TorrentCardView: View, Equatable {
     private var backgroundColor: Color {
         if let cardBackgroundColorOverride {
             return cardBackgroundColorOverride
-        }
-
-        if presentationMode == .onboardingDemo, !usesProductionCardColors {
-            return ShatlColor.onboardingForeground
         }
 
         return ShatlColor.cardBackgroundDefault

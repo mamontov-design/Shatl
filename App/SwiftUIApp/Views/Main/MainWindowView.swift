@@ -411,8 +411,12 @@ struct MainWindowView: View {
         #endif
     }
 
+    /// A drop leaves the app it came from in front, Finder or a browser:
+    /// the window comes forward first, as it does for a file opened from
+    /// Finder, or the add window would open behind that app.
     private func takeDrop(_ download: DraggedDownload) {
         showDropOffer(nil, afterDelay: false)
+        NSApp.activate()
         store.addDraggedDownload(download)
     }
 
