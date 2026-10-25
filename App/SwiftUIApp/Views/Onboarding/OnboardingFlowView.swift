@@ -269,6 +269,7 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
     let presentation: () -> Presentation
     let description: () -> Description
     let actions: () -> Actions
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         stepID: Int,
@@ -303,7 +304,12 @@ private struct OnboardingStepShell<Presentation: View, Description: View, Action
                 presentation()
             } else {
                 ZStack {
-                    presentationBackground
+                    // Light only: in dark the gradient is gone and the
+                    // demonstration stands on the onboarding's own ground
+                    // (the owner's check on macOS 26).
+                    if colorScheme == .light {
+                        presentationBackground
+                    }
 
                     presentation()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
