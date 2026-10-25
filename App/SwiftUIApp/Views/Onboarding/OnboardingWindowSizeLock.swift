@@ -179,6 +179,8 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
         /// subsequent layout passes so every onboarding step stays locked.
         func enforceWindowLock() {
             guard let window else { return }
+            let top = window.frame.maxY
+            defer { keepTop(top, of: window) }
 
             if window.styleMask.contains(.fullSizeContentView) {
                 window.styleMask.remove(.fullSizeContentView)
@@ -236,6 +238,8 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
             styleMaskObservation = nil
 
             guard let window else { return }
+            let top = window.frame.maxY
+            defer { keepTop(top, of: window) }
             if let originalContentMinSize {
                 window.contentMinSize = originalContentMinSize
             }
@@ -263,6 +267,16 @@ struct OnboardingWindowSizeLock: NSViewRepresentable {
             originalStyleMask = nil
             originalTitleVisibility = nil
             originalTitlebarAppearsTransparent = nil
+        }
+
+        /// AppKit keeps the content where it is when the title bar stops or
+        /// starts lying over it, and the window grew or shrank at its top:
+        /// the whole window jumped by the title bar's height as the
+        /// onboarding came and went. The top edge stays where it was; a
+        /// window of another height grows or shrinks at its bottom.
+        private func keepTop(_ top: CGFloat, of window: NSWindow) {
+            guard abs(window.frame.maxY - top) > 0.5 else { return }
+            window.setFrameTopLeftPoint(NSPoint(x: window.frame.minX, y: top))
         }
 
         private func handleWindowClose() {

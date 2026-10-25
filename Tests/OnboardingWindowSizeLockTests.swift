@@ -66,6 +66,32 @@ final class OnboardingWindowSizeLockTests: XCTestCase {
 
     /// A window as SwiftUI makes it has no size limit yet: CGFloat's largest
     /// value, far past Int. The lock must take such a window as it is.
+    /// The main window lets its content lie under the title bar, and the
+    /// onboarding does not. AppKit kept the content where it was as the lock
+    /// took that away and gave it back, and the window jumped at its top by
+    /// the title bar's height as the onboarding came and went (measured in
+    /// October 2026). The top edge stays; a window of another height grows
+    /// or shrinks at its bottom.
+    func testWindowKeepsItsTopAsTheOnboardingComesAndGoes() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 200, y: 200, width: 440, height: 492),
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        let top = window.frame.maxY
+        let coordinator = OnboardingWindowSizeLock(onWindowClose: {}).makeCoordinator()
+
+        coordinator.lock(window: window)
+        XCTAssertFalse(window.styleMask.contains(.fullSizeContentView))
+        XCTAssertEqual(window.frame.size, OnboardingWindowLayout.windowSize)
+        XCTAssertEqual(window.frame.maxY, top, accuracy: 0.5, "The window rose as the onboarding came")
+
+        coordinator.restoreWindow()
+        XCTAssertTrue(window.styleMask.contains(.fullSizeContentView))
+        XCTAssertEqual(window.frame.maxY, top, accuracy: 0.5, "The window dropped as the onboarding went")
+    }
+
     func testLockTakesAWindowWithNoSizeLimit() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 700),
