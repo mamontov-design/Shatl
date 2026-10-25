@@ -1087,6 +1087,9 @@ private struct AppearanceSettingsTab: View {
                 metricSetOutlineFlashColor: shatlAccent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 usesProductionProgressColors: true,
+                // A card of the list, as the mockup draws it: in dark the
+                // onboarding's colours put a plate under the speed set.
+                usesProductionCardColors: true,
                 shadowStyle: .settings,
                 cardWidth: nil,
                 focus: previewFocus
