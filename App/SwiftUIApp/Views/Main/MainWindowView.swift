@@ -237,8 +237,10 @@ struct MainWindowView: View {
         )
         // The window's smallest size. Here and not on the whole window: the
         // onboarding has a fixed size, and a lower minimum around it left
-        // the window resizable between the two.
-        .frame(minWidth: 440, minHeight: 440)
+        // the window resizable between the two. 448 under the toolbar's
+        // 52 pt is the onboarding's 500: the smallest window keeps its
+        // height as the onboarding comes and goes.
+        .frame(minWidth: 440, minHeight: 448)
         .background(WindowChromeConfigurator(isSearchEnabled: stage.allowsListActions))
         // The same buttons and search in every stage, so the top of the window
         // never changes under a stage transition; what a stage does not allow
