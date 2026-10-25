@@ -240,41 +240,69 @@ struct ShatlButton: View {
     }
 }
 
-/// A small capsule that opens a page in the browser: its name is the
-/// button, and the arrow says that the page opens outside the app. Under
-/// the pointer it wears the "Скачивается" badge's colours, or, in the
+/// A small capsule with a name and a symbol after it. As a link it opens a
+/// page in the browser, and its arrow says that the page opens outside the
+/// app; with an "i" it is a button that tells more in a popover. Under the
+/// pointer it wears the "Скачивается" badge's colours, or, in the
 /// monochrome appearance, the monochrome accent with inverted text.
 struct ShatlLinkButton: View {
+    private enum Action {
+        case open(URL)
+        case perform(() -> Void)
+    }
+
     let title: ShatlTextContent
-    let url: URL
+    private let systemImage: String
+    private let action: Action
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     @State private var isHovered = false
 
+    /// The symbol's box: Figma's 13 pt icon in a 16 pt square.
+    static let iconSize: CGFloat = 16
+    static let iconSpacing: CGFloat = 4
+
     init(title: String, url: URL) {
         self.title = .verbatim(title)
-        self.url = url
+        self.systemImage = "arrow.up.right.circle.fill"
+        self.action = .open(url)
+    }
+
+    init(title: String, systemImage: String, action: @escaping () -> Void) {
+        self.title = .verbatim(title)
+        self.systemImage = systemImage
+        self.action = .perform(action)
+    }
+
+    private var isLink: Bool {
+        if case .open = action { true } else { false }
     }
 
     var body: some View {
         Button {
-            NSWorkspace.shared.open(url)
+            switch action {
+            case .open(let url):
+                NSWorkspace.shared.open(url)
+            case .perform(let perform):
+                perform()
+            }
         } label: {
-            HStack(spacing: 2) {
+            HStack(spacing: Self.iconSpacing) {
                 title.text
+                    .shatlTypography(ShatlTypography.captionRegular)
                     .lineLimit(1)
                     .fixedSize()
 
-                Image(systemName: "arrow.up.right.circle.fill")
+                Image(systemName: systemImage)
+                    .font(ShatlTypography.bodyRegular.variant(for: typographyProfile).font)
+                    .frame(width: Self.iconSize, height: Self.iconSize)
                     .accessibilityHidden(true)
             }
-            .shatlTypography(ShatlTypography.captionRegular)
-            .frame(height: ShatlTypography.captionRegular.variant(for: typographyProfile).lineHeight)
             .foregroundStyle(isHovered ? hoverLabel : ShatlColor.typographyPrimary)
             .padding(.leading, 8)
-            .padding(.trailing, 4)
-            .padding(.vertical, 4)
+            .padding(.trailing, 3)
+            .padding(.vertical, 3)
             .background(isHovered ? hoverBackground : ShatlColor.backgroundSecondary)
             .clipShape(Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
@@ -283,8 +311,8 @@ struct ShatlLinkButton: View {
         .onHover { isHovered = $0 }
         .animation(ShatlMotion.cardState, value: isHovered)
         .pointerStyle(.link)
-        .accessibilityAddTraits(.isLink)
-        .accessibilityRemoveTraits(.isButton)
+        .accessibilityAddTraits(isLink ? .isLink : [])
+        .accessibilityRemoveTraits(isLink ? .isButton : [])
     }
 
     private var hoverBackground: Color {
