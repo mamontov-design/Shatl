@@ -68,6 +68,7 @@ final class CopyTypographyTests: XCTestCase {
             "single_instance.already_running.message",
             "onboarding.data.description",            // supporting the project
             "settings.data.caption",
+            "settings.about.licenses.popover.gpl",    // the licence names the program
         ]
         // Keys still naming Shatl as the actor, until their copy is rewritten.
         let pending: Set<String> = []

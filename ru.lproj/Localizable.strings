@@ -356,6 +356,12 @@
 "settings.about.links.website" = "Сайт";
 "settings.about.links.privacy" = "Конфиденциальность";
 "settings.about.links.terms" = "Условия использования";
+"settings.about.licenses.button" = "Лицензии";
+"settings.about.licenses.popover.title" = "Лицензии";
+"settings.about.licenses.popover.gpl" = "Shatl — свободная программа под лицензией GNU GPL 3.0.";
+"settings.about.licenses.popover.source" = "Исходный код — GitHub";
+"settings.about.licenses.popover.components" = "Сторонние компоненты:";
+"settings.about.licenses.popover.footnote" = "Полные тексты лицензий лежат внутри приложения и на GitHub.";
 "settings.about.footer" = "2026, Mamontov Design. Сделано с любовью, со второй попытки.";
 
 "settings.localization.section" = "Язык интерфейса";
