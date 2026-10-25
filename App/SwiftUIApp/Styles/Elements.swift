@@ -1055,8 +1055,6 @@ struct TorrentCardPreviewView: View {
     var progressBarFillColorOverride: Color? = nil
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
-    var usesProductionProgressColors = false
-    var usesProductionCardColors = false
     var cardBackgroundColorOverride: Color? = nil
     var cardOutlineColorOverride: Color? = nil
     var shadowStyle: TorrentCardPreviewShadowStyle = .onboarding
@@ -1086,8 +1084,6 @@ struct TorrentCardPreviewView: View {
         progressBarFillColorOverride: Color? = nil,
         progressGroupBackgroundColorOverride: Color? = nil,
         progressGroupForegroundColorOverride: Color? = nil,
-        usesProductionProgressColors: Bool = false,
-        usesProductionCardColors: Bool = false,
         cardBackgroundColorOverride: Color? = nil,
         cardOutlineColorOverride: Color? = nil,
         shadowStyle: TorrentCardPreviewShadowStyle = .onboarding,
@@ -1109,8 +1105,6 @@ struct TorrentCardPreviewView: View {
         self.progressBarFillColorOverride = progressBarFillColorOverride
         self.progressGroupBackgroundColorOverride = progressGroupBackgroundColorOverride
         self.progressGroupForegroundColorOverride = progressGroupForegroundColorOverride
-        self.usesProductionProgressColors = usesProductionProgressColors
-        self.usesProductionCardColors = usesProductionCardColors
         self.cardBackgroundColorOverride = cardBackgroundColorOverride
         self.cardOutlineColorOverride = cardOutlineColorOverride
         self.shadowStyle = shadowStyle
@@ -1206,8 +1200,6 @@ struct TorrentCardPreviewView: View {
             progressBarFillColorOverride: progressBarFillColorOverride,
             progressGroupBackgroundColorOverride: progressGroupBackgroundColorOverride,
             progressGroupForegroundColorOverride: progressGroupForegroundColorOverride,
-            usesProductionProgressColors: usesProductionProgressColors,
-            usesProductionCardColors: usesProductionCardColors,
             cardBackgroundColorOverride: cardBackgroundColorOverride,
             cardOutlineColorOverride: cardOutlineColorOverride,
             usesCompactExpandedMetricsLayout: (cardWidth ?? .infinity)

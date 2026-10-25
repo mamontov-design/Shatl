@@ -1086,10 +1086,6 @@ private struct AppearanceSettingsTab: View {
                 // The app's accent, or the one chosen in macOS.
                 metricSetOutlineFlashColor: shatlAccent,
                 progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
-                usesProductionProgressColors: true,
-                // A card of the list, as the mockup draws it: in dark the
-                // onboarding's colours put a plate under the speed set.
-                usesProductionCardColors: true,
                 shadowStyle: .settings,
                 cardWidth: nil,
                 focus: previewFocus
