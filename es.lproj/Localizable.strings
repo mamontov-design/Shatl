@@ -193,6 +193,7 @@
 "add_torrent.entry.choose_file" = "Elegir archivo .torrent…";
 "add_torrent.entry.continue" = "Continuar";
 "add_torrent.review.search_files" = "Buscar archivos…";
+"add_torrent.review.search.empty.description" = "La búsqueda se hace en los nombres de archivos y carpetas. Prueba con otra palabra o con una parte de ella.";
 "add_torrent.review.invalid_placeholder" = "No se pudo preparar la descarga.";
 "add_torrent.review.loading.title" = "Obteniendo la lista de archivos.";
 "add_torrent.review.loading.message" = "La envían los peers, normalmente en unos segundos. Si nadie responde, aquí aparecerá una indicación.";

@@ -189,6 +189,7 @@
 "add_torrent.entry.choose_file" = ".torrentファイルを選択…";
 "add_torrent.entry.continue" = "続ける";
 "add_torrent.review.search_files" = "ファイルを検索…";
+"add_torrent.review.search.empty.description" = "ファイル名とフォルダ名を検索します。別の語句、または語句の一部でお試しください。";
 "add_torrent.review.invalid_placeholder" = "ダウンロードを準備できませんでした。";
 "add_torrent.review.loading.title" = "ファイルリストを取得しています。";
 "add_torrent.review.loading.message" = "ファイルリストはピアから送られてきます。通常は数秒で届きます。応答がない場合は、ここにヒントが表示されます。";
