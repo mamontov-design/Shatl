@@ -1058,7 +1058,6 @@ struct ShatlPerformanceProfileSpeedometer: View {
 private struct AppearanceSettingsTab: View {
     @Environment(\.shatlAccent) private var shatlAccent
     @EnvironmentObject private var store: AppStore
-    @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var metricPreviewPulseTrigger = 0
@@ -1100,7 +1099,6 @@ private struct AppearanceSettingsTab: View {
                 metricSetOutlineFlashTrigger: metricPreviewPulseTrigger,
                 // The app's accent, or the one chosen in macOS.
                 metricSetOutlineFlashColor: shatlAccent,
-                progressBarFillColorOverride: accentState.isUsingAppAccent ? nil : ShatlColor.typographyTertiary,
                 shadowStyle: .settings,
                 cardWidth: nil,
                 focus: previewFocus

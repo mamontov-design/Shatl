@@ -12,6 +12,13 @@ final class ShatlAccentState: ObservableObject {
     /// The user picked Graphite, the grey accent, in System Settings.
     @Published private(set) var isGraphite: Bool
 
+    /// A colour of the user's own: neither ours (Multicolor) nor Graphite.
+    /// Our coloured highlights turn neutral then, as the theme previews'
+    /// window buttons go grey; Graphite keeps them as they are.
+    var usesUsersColourAccent: Bool {
+        !isUsingAppAccent && !isGraphite
+    }
+
     private let notificationCenter: NotificationCenter
     private let defaults: UserDefaults
     private var systemColorsObserver: NSObjectProtocol?
@@ -94,11 +101,23 @@ private struct ShatlMonochromeAppearanceKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct ShatlUsersColourAccentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     /// The monochrome appearance, as every window's root passes it down.
     var shatlUsesMonochromeAppearance: Bool {
         get { self[ShatlMonochromeAppearanceKey.self] }
         set { self[ShatlMonochromeAppearanceKey.self] = newValue }
+    }
+
+    /// A colour accent of the user's own, see
+    /// `ShatlAccentState.usesUsersColourAccent`, as every window's root
+    /// passes it down.
+    var shatlUsesUsersColourAccent: Bool {
+        get { self[ShatlUsersColourAccentKey.self] }
+        set { self[ShatlUsersColourAccentKey.self] = newValue }
     }
 
     /// The accent our views draw with. The asset's, which macOS replaces
