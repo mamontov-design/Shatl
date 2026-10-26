@@ -243,10 +243,10 @@ struct ShatlButton: View {
 /// A small capsule with a name and a symbol after it. As a link it opens a
 /// page in the browser, and its arrow says that the page opens outside the
 /// app; with an "i" it is a button that tells more in a popover. Under the
-/// pointer it wears the "Скачивается" badge's colours; in the monochrome
-/// appearance the monochrome accent with inverted text, and with a colour
-/// accent of the user's own the primary text colour, inverted text on it:
-/// a violet one sat ill with a yellow accent.
+/// pointer it wears the "Скачивается" badge's colours with our accent; in
+/// the monochrome appearance the monochrome accent with inverted text, and
+/// with an accent picked in macOS, Graphite too, the primary text colour,
+/// inverted text on it: a violet one sat ill with a yellow accent.
 struct ShatlLinkButton: View {
     private enum Action {
         case open(URL)
@@ -259,7 +259,7 @@ struct ShatlLinkButton: View {
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
-    @Environment(\.shatlUsesUsersColourAccent) private var usesUsersColourAccent
+    @Environment(\.shatlUsesSystemAccent) private var usesSystemAccent
     @State private var isHovered = false
 
     /// The symbol's box: Figma's 13 pt icon in a 16 pt square.
@@ -320,12 +320,12 @@ struct ShatlLinkButton: View {
 
     private var hoverBackground: Color {
         if usesMonochrome { return ShatlColor.accentMonochrome }
-        if usesUsersColourAccent { return ShatlColor.typographyPrimary }
+        if usesSystemAccent { return ShatlColor.typographyPrimary }
         return ShatlColor.linkButtonHoverBackground
     }
 
     private var hoverLabel: Color {
-        usesMonochrome || usesUsersColourAccent
+        usesMonochrome || usesSystemAccent
             ? ShatlColor.typographyPrimaryInverted
             : ShatlColor.linkButtonHoverLabel
     }
