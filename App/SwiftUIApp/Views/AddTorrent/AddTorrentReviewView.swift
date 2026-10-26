@@ -62,11 +62,17 @@ private struct AddTorrentReviewHeldStage: ViewModifier, Animatable {
     }
 }
 
+/// The search over the files, in the window's toolbar. The window stays
+/// between downloads, so a new one (`resetKey`) clears the field and takes
+/// the focus off it: the last query, still focused, filtered the next
+/// download's files to nothing.
 private struct AddTorrentReviewSearchModifier: ViewModifier {
     let prompt: String
+    let resetKey: UUID?
     let onDebouncedChange: (String) -> Void
 
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
 
     func body(content: Content) -> some View {
         content
@@ -75,7 +81,12 @@ private struct AddTorrentReviewSearchModifier: ViewModifier {
                 placement: .toolbar,
                 prompt: Text(prompt)
             )
+            .searchFocused($isSearchFocused)
             .searchToolbarBehavior(.automatic)
+            .onChange(of: resetKey) { _, _ in
+                searchText = ""
+                isSearchFocused = false
+            }
             .task(id: searchText) {
                 let pendingSearchText = searchText
                 if !pendingSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -1100,6 +1111,7 @@ struct AddTorrentReviewView: View {
                     localeOverride: store.preferences.localeOverride,
                     defaultValue: "Искать файлы…"
                 ),
+                resetKey: draftPresentationToken?.id,
                 onDebouncedChange: applySearchText
             )
         )
@@ -1170,6 +1182,10 @@ struct AddTorrentReviewView: View {
             let isNewDraft = oldToken?.id != newToken.id
             let becameReady = oldToken?.reviewState != .ready && newToken.reviewState == .ready
             if isNewDraft {
+                // The search of the last download goes with it, before its
+                // query can filter these files; the window takes the focus.
+                appliedSearchText = ""
+                isWindowFocused = true
                 expandedFolderIDs.removeAll()
                 searchCollapsedFolderIDs.removeAll()
                 searchExpandedFolderIDs.removeAll()
@@ -1579,6 +1595,29 @@ struct AddTorrentReviewView: View {
         store.dismissModal()
     }
 
+    /// The main list's block for a search with no results, about files.
+    private var fileSearchEmptyState: some View {
+        ShatlMessageBlockPrimary(
+            systemImage: "exclamationmark.magnifyingglass",
+            title: L10n.format(
+                "search.empty.title",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Нет результатов для «%@».",
+                ShatlSearchQueryDisplay.quoted(appliedSearchText)
+            ),
+            message: L10n.string(
+                "add_torrent.review.search.empty.description",
+                localeOverride: store.preferences.localeOverride
+            )
+        )
+        .padding(.horizontal, 24)
+        .padding(
+            .bottom,
+            AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile) + lowSpaceExtraHeight
+        )
+        .allowsHitTesting(false)
+    }
+
     private func filesContainer() -> some View {
         let rows = filePresentation.rows
 
@@ -1599,6 +1638,14 @@ struct AddTorrentReviewView: View {
                 )
             }
             .scrollIndicators(.hidden)
+            // Nothing found: a tree with no rows looked like a torrent with
+            // no files. The message stands on the tree's ground, above the
+            // summary, not over the whole window.
+            .overlay {
+                if filePresentation.searchProjection != nil, rows.isEmpty {
+                    fileSearchEmptyState
+                }
+            }
             .id(filesScrollGeneration)
             .task(id: filesScrollGeneration) {
                 guard let targetID = pendingCollapsedFolderID else { return }

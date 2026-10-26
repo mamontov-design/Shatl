@@ -11,7 +11,6 @@ struct TorrentListView: View {
     /// Delete in the list: the same choice as the toolbar's trash button.
     let onRemoveSelected: () -> Void
 
-    private static let maximumDisplayedSearchQueryLength = 32
     private nonisolated static let horizontalContentPadding: CGFloat = 8
     @State private var usesCompactExpandedMetricsLayout = false
     @FocusState private var isListFocused: Bool
@@ -34,7 +33,7 @@ struct TorrentListView: View {
     }
 
     private var normalizedSearchText: String {
-        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        ShatlSearchQueryDisplay.trimmed(searchText)
     }
 
     private var showsSearchEmptyState: Bool {
@@ -42,15 +41,7 @@ struct TorrentListView: View {
     }
 
     private var displayedSearchText: String {
-        guard normalizedSearchText.count > Self.maximumDisplayedSearchQueryLength else {
-            return normalizedSearchText
-        }
-
-        let prefixLength = Self.maximumDisplayedSearchQueryLength - 1
-        let prefix = normalizedSearchText
-            .prefix(prefixLength)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return prefix + "…"
+        ShatlSearchQueryDisplay.quoted(searchText)
     }
 
     var body: some View {

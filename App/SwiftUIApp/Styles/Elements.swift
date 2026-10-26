@@ -243,8 +243,10 @@ struct ShatlButton: View {
 /// A small capsule with a name and a symbol after it. As a link it opens a
 /// page in the browser, and its arrow says that the page opens outside the
 /// app; with an "i" it is a button that tells more in a popover. Under the
-/// pointer it wears the "Скачивается" badge's colours, or, in the
-/// monochrome appearance, the monochrome accent with inverted text.
+/// pointer it wears the "Скачивается" badge's colours with our accent; in
+/// the monochrome appearance the monochrome accent with inverted text, and
+/// with an accent picked in macOS, Graphite too, the primary text colour,
+/// inverted text on it: a violet one sat ill with a yellow accent.
 struct ShatlLinkButton: View {
     private enum Action {
         case open(URL)
@@ -257,6 +259,7 @@ struct ShatlLinkButton: View {
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
+    @Environment(\.shatlUsesSystemAccent) private var usesSystemAccent
     @State private var isHovered = false
 
     /// The symbol's box: Figma's 13 pt icon in a 16 pt square.
@@ -316,11 +319,15 @@ struct ShatlLinkButton: View {
     }
 
     private var hoverBackground: Color {
-        usesMonochrome ? ShatlColor.accentMonochrome : ShatlColor.linkButtonHoverBackground
+        if usesMonochrome { return ShatlColor.accentMonochrome }
+        if usesSystemAccent { return ShatlColor.typographyPrimary }
+        return ShatlColor.linkButtonHoverBackground
     }
 
     private var hoverLabel: Color {
-        usesMonochrome ? ShatlColor.typographyPrimaryInverted : ShatlColor.linkButtonHoverLabel
+        usesMonochrome || usesSystemAccent
+            ? ShatlColor.typographyPrimaryInverted
+            : ShatlColor.linkButtonHoverLabel
     }
 }
 
@@ -1103,7 +1110,6 @@ struct TorrentCardPreviewView: View {
     var pulsesMetricSetOutlines = false
     var metricSetOutlineFlashTrigger = 0
     var metricSetOutlineFlashColor = ShatlColor.accentColored
-    var progressBarFillColorOverride: Color? = nil
     var progressGroupBackgroundColorOverride: Color? = nil
     var progressGroupForegroundColorOverride: Color? = nil
     var cardBackgroundColorOverride: Color? = nil
@@ -1132,7 +1138,6 @@ struct TorrentCardPreviewView: View {
         pulsesMetricSetOutlines: Bool = false,
         metricSetOutlineFlashTrigger: Int = 0,
         metricSetOutlineFlashColor: Color = ShatlColor.accentColored,
-        progressBarFillColorOverride: Color? = nil,
         progressGroupBackgroundColorOverride: Color? = nil,
         progressGroupForegroundColorOverride: Color? = nil,
         cardBackgroundColorOverride: Color? = nil,
@@ -1153,7 +1158,6 @@ struct TorrentCardPreviewView: View {
         self.pulsesMetricSetOutlines = pulsesMetricSetOutlines
         self.metricSetOutlineFlashTrigger = metricSetOutlineFlashTrigger
         self.metricSetOutlineFlashColor = metricSetOutlineFlashColor
-        self.progressBarFillColorOverride = progressBarFillColorOverride
         self.progressGroupBackgroundColorOverride = progressGroupBackgroundColorOverride
         self.progressGroupForegroundColorOverride = progressGroupForegroundColorOverride
         self.cardBackgroundColorOverride = cardBackgroundColorOverride
@@ -1248,7 +1252,6 @@ struct TorrentCardPreviewView: View {
             presentationMode: .onboardingDemo,
             isExpansionToggleEnabled: allowsExpansionToggle,
             showsExpansionToggle: showsExpansionToggle,
-            progressBarFillColorOverride: progressBarFillColorOverride,
             progressGroupBackgroundColorOverride: progressGroupBackgroundColorOverride,
             progressGroupForegroundColorOverride: progressGroupForegroundColorOverride,
             cardBackgroundColorOverride: cardBackgroundColorOverride,

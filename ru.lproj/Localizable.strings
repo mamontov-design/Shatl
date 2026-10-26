@@ -201,6 +201,7 @@
 "add_torrent.entry.choose_file" = "Выбрать .torrent‑файл…";
 "add_torrent.entry.continue" = "Продолжить";
 "add_torrent.review.search_files" = "Искать файлы…";
+"add_torrent.review.search.empty.description" = "Поиск идёт по названиям файлов и папок. Попробуйте другое слово или его часть.";
 "add_torrent.review.invalid_placeholder" = "Не удалось подготовить загрузку.";
 "add_torrent.review.loading.title" = "Получение списка файлов.";
 "add_torrent.review.loading.message" = "Его передают участники раздачи — обычно за несколько секунд. Если никто не ответит, здесь появится подсказка.";

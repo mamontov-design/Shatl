@@ -189,6 +189,7 @@
 "add_torrent.entry.choose_file" = "选择 .torrent 文件…";
 "add_torrent.entry.continue" = "继续";
 "add_torrent.review.search_files" = "搜索文件…";
+"add_torrent.review.search.empty.description" = "搜索范围为文件和文件夹的名称。请尝试其他词语或词语的一部分。";
 "add_torrent.review.invalid_placeholder" = "无法准备下载。";
 "add_torrent.review.loading.title" = "正在获取文件列表。";
 "add_torrent.review.loading.message" = "文件列表由节点发送，通常几秒内即可收到。如果没有节点响应，这里会显示提示。";

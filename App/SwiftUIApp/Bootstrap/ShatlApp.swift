@@ -80,6 +80,7 @@ struct ShatlApp: App {
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
                 .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
+                .environment(\.shatlUsesSystemAccent, accentState.usesSystemAccent)
                 .frame(
                     minWidth: AddTorrentReviewLayout.minimumWindowWidth,
                     minHeight: AddTorrentReviewLayout.minimumWindowHeight
@@ -105,6 +106,7 @@ struct ShatlApp: App {
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
                 .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
+                .environment(\.shatlUsesSystemAccent, accentState.usesSystemAccent)
                 // Release width: 440.
                 .frame(width: 440)
                 .windowFullScreenBehavior(.disabled)
@@ -127,6 +129,7 @@ struct ShatlApp: App {
                 .shatlTypographyProfile(localeOverride: store.preferences.localeOverride)
                 .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
                 .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
+                .environment(\.shatlUsesSystemAccent, accentState.usesSystemAccent)
                 .onAppear {
                     appDelegate.terminationHandler = store
                     appDelegate.userAttentionHandler = store
