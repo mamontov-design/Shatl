@@ -226,7 +226,9 @@ extension ShatlColor {
         /// The window buttons on the theme previews in Settings while the
         /// app's own accent is on.
         static let windowButtonClose = Color(light: ShatlPalette.red9, dark: ShatlPalette.redDark9)
-        static let windowButtonMinimize = Color(light: ShatlPalette.amber8, dark: ShatlPalette.amberDark9)
+        /// amber/8 in both themes, as Figma has it: the dark scale's step 8 is
+        /// a brown, and the yellow should read the same on either preview.
+        static let windowButtonMinimize = Color(light: ShatlPalette.amber8, dark: ShatlPalette.amber8)
         static let windowButtonZoom = Color(light: ShatlPalette.grass9, dark: ShatlPalette.grassDark9)
 
         /// The same buttons, grey, on a light and on a dark preview while the
