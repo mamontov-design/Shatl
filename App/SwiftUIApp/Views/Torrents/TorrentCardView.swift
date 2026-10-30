@@ -6,6 +6,14 @@ import SwiftUI
 nonisolated enum TorrentCardLayout {
     /// The card's corners, which its shape and the demo cards' shadow follow.
     static let cornerRadius: CGFloat = 18
+    /// Between the card's edge and what it shows. The metric plates are
+    /// rounded by 8 pt, so their corners follow the card's.
+    static let contentInset: CGFloat = 10
+    /// The circle a selected card wears, as drawn. It stands as far from the
+    /// top as from the side, so it follows the card's corner as the plates do.
+    static let selectionMarkDiameter: CGFloat = (cornerRadius - contentInset) * 2
+    /// The expand button's box, which makes the title row as tall.
+    static let expandButtonSize: CGFloat = 18
     static let compactExpandedMetricsWidth: CGFloat = 480
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
 }
@@ -235,7 +243,7 @@ struct TorrentCardView: View, Equatable {
         }
         .animation(ShatlMotion.cardLayout, value: row.isExpanded)
         .animation(ShatlMotion.cardLayout, value: row.errorState != nil)
-        .padding(10)
+        .padding(TorrentCardLayout.contentInset)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             cardBackground
@@ -251,7 +259,7 @@ struct TorrentCardView: View, Equatable {
             }
         }
         #endif
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous))
         .animation(ShatlMotion.cardState, value: isHovered)
         .animation(ShatlMotion.cardState, value: row.isSelected)
         .animation(ShatlMotion.cardState, value: row.errorState != nil)
@@ -259,10 +267,10 @@ struct TorrentCardView: View, Equatable {
             // A saved download is outlined with dashes. The two outlines
             // cross-fade, as a stroke cannot turn into dashes by itself.
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
                     .strokeBorder(cardOutlineColor, lineWidth: cardOutlineLineWidth)
                     .opacity(row.isSavedForLater ? 0 : 1)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
                     .strokeBorder(
                         cardOutlineColor,
                         style: StrokeStyle(lineWidth: cardOutlineLineWidth, dash: [4, 2])
@@ -275,7 +283,7 @@ struct TorrentCardView: View, Equatable {
             .animation(ShatlMotion.cardState, value: row.isSavedForLater)
         }
         .shatlSelectionRefusalShake(trigger: selectionRefusalCount)
-        .contentShape(RoundedRectangle(cornerRadius: 18))
+        .contentShape(RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius))
         .contextMenu {
             if presentationMode.allowsContextMenu {
                 contextMenuContent
@@ -467,12 +475,15 @@ struct TorrentCardView: View, Equatable {
                             .transition(ShatlMotion.appearFromTop)
                     }
                 }
-                .frame(width: 18, height: 18)
+                .frame(width: TorrentCardLayout.expandButtonSize, height: TorrentCardLayout.expandButtonSize)
                 .animation(ShatlMotion.metricResize, value: showsExpandButton)
             }
 
             if row.isSelected {
                 selectedIndicator
+                    .alignmentGuide(VerticalAlignment.center) { [lift = selectedIndicatorLift] mark in
+                        mark[VerticalAlignment.center] + lift
+                    }
                     .transition(ShatlMotion.selectedIndicator)
             }
         }
@@ -499,7 +510,7 @@ struct TorrentCardView: View, Equatable {
                 .shatlTypography(ShatlTypography.bodyRegular)
                 .foregroundStyle(expandButtonForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
-                .frame(width: 18, height: 18)
+                .frame(width: TorrentCardLayout.expandButtonSize, height: TorrentCardLayout.expandButtonSize)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -540,13 +551,30 @@ struct TorrentCardView: View, Equatable {
         return isExpandButtonHovered ? accent : ShatlColor.typographyTertiary
     }
 
-    /// A check mark, or the card's number among the selected ones.
+    /// A check mark, or the card's number among the selected ones. The
+    /// symbol stretches to its box: drawn by a font, its circle would stand
+    /// in a margin of its own and change size with the language.
     private var selectedIndicator: some View {
         Image(systemName: row.selectionNumber.map { "\($0).circle.fill" } ?? "checkmark.circle.fill")
-            .shatlTypography(ShatlTypography.bodyRegular)
+            .resizable()
+            .scaledToFit()
+            .fontWeight(.regular)
+            .frame(
+                width: TorrentCardLayout.selectionMarkDiameter,
+                height: TorrentCardLayout.selectionMarkDiameter
+            )
             .foregroundStyle(accent)
             .contentTransition(.symbolEffect(.replace))
             .animation(ShatlMotion.cardControlSlide, value: row.selectionNumber)
+    }
+
+    /// In a card of several lines the circle stands at the top of the title
+    /// row, as far from the card's top as from its side, so it follows the
+    /// card's corner. On one line it stays in the middle, with the title and
+    /// the status badge.
+    private var selectedIndicatorLift: CGFloat {
+        guard layoutStage < .merged, row.errorState == nil, showsExpansionToggle else { return 0 }
+        return (TorrentCardLayout.expandButtonSize - TorrentCardLayout.selectionMarkDiameter) / 2
     }
 
     private func titleLine(_ title: String) -> some View {
@@ -1344,7 +1372,7 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
             .fill(backgroundColor)
     }
 
