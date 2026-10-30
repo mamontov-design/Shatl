@@ -7,13 +7,17 @@ nonisolated enum TorrentCardLayout {
     /// The card's corners, which its shape and the demo cards' shadow follow.
     static let cornerRadius: CGFloat = 18
     /// Between the card's edge and what it shows. The metric plates are
-    /// rounded by 8 pt, so their corners follow the card's.
+    /// rounded by 8 pt and the selection mark is 16 pt, so both follow the
+    /// card's corner.
     static let contentInset: CGFloat = 10
-    /// The circle a selected card wears, as drawn. It stands as far from the
-    /// top as from the side, so it follows the card's corner as the plates do.
-    static let selectionMarkDiameter: CGFloat = (cornerRadius - contentInset) * 2
     /// The expand button's box, which makes the title row as tall.
     static let expandButtonSize: CGFloat = 18
+    /// The font sets the expand symbol half a point low in its box; lifted
+    /// by as much, it is drawn in the middle of the title row, nearer the
+    /// selection mark at the top of the row. The box and the button stay;
+    /// the symbol moves by layout, so a screen without Retina rounds it to
+    /// a whole pixel rather than blur it.
+    static let expandSymbolLift: CGFloat = 0.5
     static let compactExpandedMetricsWidth: CGFloat = 480
     static let compactExpandedMetricsHiddenIconGroupIDs: Set<String> = ["upload-speed", "uploaded", "size"]
 }
@@ -510,6 +514,9 @@ struct TorrentCardView: View, Equatable {
                 .shatlTypography(ShatlTypography.bodyRegular)
                 .foregroundStyle(expandButtonForegroundColor)
                 .contentTransition(.symbolEffect(.replace))
+                .alignmentGuide(VerticalAlignment.center) { symbol in
+                    symbol[VerticalAlignment.center] + TorrentCardLayout.expandSymbolLift
+                }
                 .frame(width: TorrentCardLayout.expandButtonSize, height: TorrentCardLayout.expandButtonSize)
                 .contentShape(Rectangle())
         }
@@ -551,17 +558,16 @@ struct TorrentCardView: View, Equatable {
         return isExpandButtonHovered ? accent : ShatlColor.typographyTertiary
     }
 
-    /// A check mark, or the card's number among the selected ones. The
-    /// symbol stretches to its box: drawn by a font, its circle would stand
-    /// in a margin of its own and change size with the language.
+    /// A check mark, or the card's number among the selected ones; see
+    /// `ShatlSelectionMark`.
     private var selectedIndicator: some View {
         Image(systemName: row.selectionNumber.map { "\($0).circle.fill" } ?? "checkmark.circle.fill")
             .resizable()
             .scaledToFit()
             .fontWeight(.regular)
             .frame(
-                width: TorrentCardLayout.selectionMarkDiameter,
-                height: TorrentCardLayout.selectionMarkDiameter
+                width: ShatlSelectionMark.diameter,
+                height: ShatlSelectionMark.diameter
             )
             .foregroundStyle(accent)
             .contentTransition(.symbolEffect(.replace))
@@ -574,7 +580,7 @@ struct TorrentCardView: View, Equatable {
     /// the status badge.
     private var selectedIndicatorLift: CGFloat {
         guard layoutStage < .merged, row.errorState == nil, showsExpansionToggle else { return 0 }
-        return (TorrentCardLayout.expandButtonSize - TorrentCardLayout.selectionMarkDiameter) / 2
+        return (TorrentCardLayout.expandButtonSize - ShatlSelectionMark.diameter) / 2
     }
 
     private func titleLine(_ title: String) -> some View {
