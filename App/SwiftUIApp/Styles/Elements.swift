@@ -902,10 +902,13 @@ struct ShatlSettingsInputCard<Content: View>: View {
                 content
                     .frame(maxWidth: .infinity, alignment: .center)
             } else if usesCompactImageContainer {
+                // The theme preview's window stands low enough that the
+                // mark keeps about as far from its corner as from the
+                // container's edge.
                 Color.clear
                     .overlay(alignment: .top) {
                         content
-                            .padding(.top, 25)
+                            .padding(.top, 32)
                     }
             } else {
                 // The content starts under the mark, which stands in the

@@ -1167,10 +1167,12 @@ private struct AppearanceSettingsTab: View {
 
             HStack(alignment: .top, spacing: 8) {
                 ForEach(AppTheme.allCases) { theme in
+                    // As tall as the preview's window shows down to 4 pt
+                    // under its first panel.
                     ShatlSettingsInputCard(
                         localizedTitle: theme.settingsTitleKey,
                         isSelected: store.preferences.theme == theme,
-                        imageContainerHeight: 74
+                        imageContainerHeight: 81
                     ) {
                         store.preferences.theme = theme
                     } content: {

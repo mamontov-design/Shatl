@@ -86,7 +86,7 @@ final class SelectionMarkTests: XCTestCase {
         let theme = ShatlSettingsInputCard(
             title: "Auto",
             isSelected: true,
-            imageContainerHeight: 74,
+            imageContainerHeight: 81,
             action: {}
         ) {
             Color.clear.frame(width: 110, height: 76)
@@ -101,6 +101,41 @@ final class SelectionMarkTests: XCTestCase {
             XCTAssertEqual(bitmap.width - mark.maxX, 12, accuracy: Self.accuracy, name)
             XCTAssertEqual(mark.minY, 12, accuracy: Self.accuracy, name)
         }
+    }
+
+    /// A theme card's preview window stands low enough that the mark keeps
+    /// about as far from the window's corner as from the container's edge.
+    func testTheMarkKeepsClearOfTheThemePreview() throws {
+        func themeCard(isSelected: Bool) -> some View {
+            ShatlSettingsInputCard(
+                title: "Light",
+                isSelected: isSelected,
+                imageContainerHeight: 81,
+                action: {}
+            ) {
+                // The preview's picture, placed as `ThemeAppearanceDemo` does.
+                Image("settingsCardImageThemeLight")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 76, height: 76)
+                    .frame(width: 110, height: 76, alignment: .top)
+            }
+            .frame(width: 130)
+        }
+
+        let selected = try draw(themeCard(isSelected: true))
+        let mark = try XCTUnwrap(selected.mark(in: selected.cornerArea(bottom: 30)))
+        XCTAssertEqual(mark.width, 16, accuracy: Self.accuracy)
+
+        // The window's outline, drawn without the mark.
+        let plain = try draw(themeCard(isSelected: false))
+        let window = plain.inkedPoints(in: CGRect(x: plain.width - 64, y: 8, width: 56, height: 60), threshold: 24)
+        XCTAssertFalse(window.isEmpty)
+
+        let centre = CGPoint(x: mark.midX, y: mark.midY)
+        let gap = window.map { hypot($0.x - centre.x, $0.y - centre.y) }.min()! - mark.width / 2
+        let edge = ShatlSelectionMark.inset(in: ShatlCornerRadius.container)
+        XCTAssertEqual(gap, edge, accuracy: 0.75, "the mark stands \(gap) pt from the preview")
     }
 
     // MARK: - Drawing
@@ -257,6 +292,21 @@ final class SelectionMarkTests: XCTestCase {
                 width: covered.width / scale,
                 height: covered.height / scale
             )
+        }
+
+        /// The centres of the pixels in the area that differ from the card's
+        /// ground by more than `threshold`, in points.
+        func inkedPoints(in area: CGRect, threshold: Int) -> [CGPoint] {
+            let ground = color(atX: pixelsWide / 2, y: Int(5 * scale))
+            let xs = Int(area.minX * scale)..<Int(area.maxX * scale)
+            let ys = Int(area.minY * scale)..<Int(area.maxY * scale)
+            return ys.flatMap { y in
+                xs.compactMap { x in
+                    let distance = zip(color(atX: x, y: y), ground).map { abs($0 - $1) }.max() ?? 0
+                    guard distance > threshold else { return nil }
+                    return CGPoint(x: (CGFloat(x) + 0.5) / scale, y: (CGFloat(y) + 0.5) / scale)
+                }
+            }
         }
 
         /// The first row is the top of the image.
