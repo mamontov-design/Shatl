@@ -253,6 +253,9 @@ enum ShatlCornerRadius {
     static let button: CGFloat = 8
     static let tab: CGFloat = 6
     static let container: CGFloat = 20
+    /// The corner of a container where its selection mark stands: rounded
+    /// as a download card is, so the mark stands 10 pt in, as there.
+    static let containerSelectionCorner: CGFloat = 18
 
     /// A window's corner as macOS rounds it: 16 pt, and 26 pt on macOS 26.
     static var window: CGFloat {

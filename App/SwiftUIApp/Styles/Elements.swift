@@ -21,6 +21,19 @@ enum ShatlMetricLayout {
     static let setPadding: CGFloat = 3
 }
 
+/// The circle a selected download card or option card wears, 16 pt as
+/// drawn: the symbol stretches to its box, as one drawn by a font stands in
+/// a margin of its own. It stands as far from the top as from the side of
+/// its card, so its centre is the centre of the card's corner.
+nonisolated enum ShatlSelectionMark {
+    static let diameter: CGFloat = 16
+
+    /// From the top and the side of a card rounded by `cornerRadius`.
+    static func inset(in cornerRadius: CGFloat) -> CGFloat {
+        cornerRadius - diameter / 2
+    }
+}
+
 enum ShatlBottomChipLayout {
     static let legacyEdgePadding: CGFloat = 12
     static let modernEdgePadding: CGFloat = 6
@@ -889,17 +902,19 @@ struct ShatlSettingsInputCard<Content: View>: View {
                 content
                     .frame(maxWidth: .infinity, alignment: .center)
             } else if usesCompactImageContainer {
+                // The theme preview's window stands low enough that the
+                // mark keeps farther from its corner than from the
+                // container's edge.
                 Color.clear
                     .overlay(alignment: .top) {
                         content
-                            .padding(.top, 25)
+                            .padding(.top, 32)
                     }
             } else {
-                HStack {
-                    Spacer(minLength: 0)
-
-                    selectMark
-                }
+                // The content starts under the mark, which stands in the
+                // corner as in the other layouts.
+                Color.clear
+                    .frame(height: selectMarkInset + ShatlSelectionMark.diameter - imageContainerTopPadding)
 
                 content
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -911,17 +926,15 @@ struct ShatlSettingsInputCard<Content: View>: View {
         .frame(maxWidth: .infinity)
         .frame(height: imageContainerHeight)
         .background(imageBackground)
-        .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous))
+        .clipShape(imageContainerShape)
         .overlay(alignment: .topTrailing) {
-            if usesCompactImageContainer || overlaysSelectionMark {
-                selectMark
-                    .padding(.top, 10)
-                    .padding(.trailing, 10)
-            }
+            selectMark
+                .padding(.top, selectMarkInset)
+                .padding(.trailing, selectMarkInset)
         }
         .overlay {
             if isSelected {
-                RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous)
+                imageContainerShape
                     .strokeBorder(accent.opacity(0.75), lineWidth: 1)
             }
         }
@@ -948,12 +961,28 @@ struct ShatlSettingsInputCard<Content: View>: View {
         return 26
     }
 
+    /// Rounded by 20 pt, and by 18 pt at the top right, where the mark
+    /// stands 10 pt in and follows that corner, as on a download card.
+    private var imageContainerShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: ShatlCornerRadius.container,
+            bottomLeadingRadius: ShatlCornerRadius.container,
+            bottomTrailingRadius: ShatlCornerRadius.container,
+            topTrailingRadius: ShatlCornerRadius.containerSelectionCorner,
+            style: .continuous
+        )
+    }
+
+    private var selectMarkInset: CGFloat {
+        ShatlSelectionMark.inset(in: ShatlCornerRadius.containerSelectionCorner)
+    }
+
     private var selectMark: some View {
         Image(systemName: "checkmark.circle.fill")
             .resizable()
             .scaledToFit()
             .foregroundStyle(accent)
-            .frame(width: 15, height: 15)
+            .frame(width: ShatlSelectionMark.diameter, height: ShatlSelectionMark.diameter)
             .scaleEffect(isSelected ? 1 : 0.65, anchor: .center)
             .opacity(isSelected ? 1 : 0)
             .animation(
