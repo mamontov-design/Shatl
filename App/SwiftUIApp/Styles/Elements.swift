@@ -903,7 +903,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             } else if usesCompactImageContainer {
                 // The theme preview's window stands low enough that the
-                // mark keeps about as far from its corner as from the
+                // mark keeps farther from its corner than from the
                 // container's edge.
                 Color.clear
                     .overlay(alignment: .top) {
@@ -926,7 +926,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         .frame(maxWidth: .infinity)
         .frame(height: imageContainerHeight)
         .background(imageBackground)
-        .clipShape(RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous))
+        .clipShape(imageContainerShape)
         .overlay(alignment: .topTrailing) {
             selectMark
                 .padding(.top, selectMarkInset)
@@ -934,7 +934,7 @@ struct ShatlSettingsInputCard<Content: View>: View {
         }
         .overlay {
             if isSelected {
-                RoundedRectangle(cornerRadius: ShatlCornerRadius.container, style: .continuous)
+                imageContainerShape
                     .strokeBorder(accent.opacity(0.75), lineWidth: 1)
             }
         }
@@ -961,10 +961,20 @@ struct ShatlSettingsInputCard<Content: View>: View {
         return 26
     }
 
-    /// The mark follows the corner of the image container, rounded by 20 pt:
-    /// 12 pt from its top and side, as the label below stands 12 pt in.
+    /// Rounded by 20 pt, and by 18 pt at the top right, where the mark
+    /// stands 10 pt in and follows that corner, as on a download card.
+    private var imageContainerShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: ShatlCornerRadius.container,
+            bottomLeadingRadius: ShatlCornerRadius.container,
+            bottomTrailingRadius: ShatlCornerRadius.container,
+            topTrailingRadius: ShatlCornerRadius.containerSelectionCorner,
+            style: .continuous
+        )
+    }
+
     private var selectMarkInset: CGFloat {
-        ShatlSelectionMark.inset(in: ShatlCornerRadius.container)
+        ShatlSelectionMark.inset(in: ShatlCornerRadius.containerSelectionCorner)
     }
 
     private var selectMark: some View {

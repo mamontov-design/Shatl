@@ -16,7 +16,7 @@ final class SelectionMarkTests: XCTestCase {
     func testTheMarkFollowsTheCornersOfBothCards() {
         XCTAssertEqual(ShatlSelectionMark.diameter, 16)
         XCTAssertEqual(ShatlSelectionMark.inset(in: TorrentCardLayout.cornerRadius), TorrentCardLayout.contentInset)
-        XCTAssertEqual(ShatlSelectionMark.inset(in: ShatlCornerRadius.container), 12)
+        XCTAssertEqual(ShatlSelectionMark.inset(in: ShatlCornerRadius.containerSelectionCorner), 10)
     }
 
     /// In a card of several lines the circle stands as far from the top as
@@ -71,7 +71,8 @@ final class SelectionMarkTests: XCTestCase {
     }
 
     /// The performance modes and the themes: the image container is rounded
-    /// by 20 pt, so the mark stands 12 pt from its top and side.
+    /// by 18 pt at the top right, so the mark stands 10 pt from its top and
+    /// side, as on a download card.
     func testTheMarkStandsInTheCornerOfAnOptionCard() throws {
         let performance = ShatlSettingsInputCard(
             title: "Orbit",
@@ -98,13 +99,39 @@ final class SelectionMarkTests: XCTestCase {
 
             XCTAssertEqual(mark.width, 16, accuracy: Self.accuracy, name)
             XCTAssertEqual(mark.height, 16, accuracy: Self.accuracy, name)
-            XCTAssertEqual(bitmap.width - mark.maxX, 12, accuracy: Self.accuracy, name)
-            XCTAssertEqual(mark.minY, 12, accuracy: Self.accuracy, name)
+            XCTAssertEqual(bitmap.width - mark.maxX, 10, accuracy: Self.accuracy, name)
+            XCTAssertEqual(mark.minY, 10, accuracy: Self.accuracy, name)
         }
     }
 
+    /// The option card's image container is rounded by 20 pt, and by 18 pt
+    /// only at the top right, where the mark stands: what a corner cuts away
+    /// grows as the square of its radius.
+    func testAnOptionCardRoundsTheMarksCornerLess() throws {
+        let card = ShatlSettingsInputCard(
+            title: "Orbit",
+            isSelected: false,
+            imageContainerHeight: 100,
+            imageContentVerticalPadding: 26,
+            overlaysSelectionMark: true,
+            action: {}
+        ) {
+            Color.clear.frame(width: 48, height: 48)
+        }
+        let bitmap = try draw(card.frame(width: 130))
+        let topLeft = bitmap.clearPixelCount(in: CGRect(x: 0, y: 0, width: 24, height: 24))
+        let topRight = bitmap.clearPixelCount(in: CGRect(x: bitmap.width - 24, y: 0, width: 24, height: 24))
+        let bottomRight = bitmap.clearPixelCount(in: CGRect(x: bitmap.width - 24, y: 100 - 24, width: 24, height: 24))
+
+        XCTAssertGreaterThan(topLeft, 0)
+        XCTAssertEqual(Double(bottomRight) / Double(topLeft), 1, accuracy: 0.03)
+        let container = Double(ShatlCornerRadius.container)
+        let markCorner = Double(ShatlCornerRadius.containerSelectionCorner)
+        XCTAssertEqual(Double(topRight) / Double(topLeft), pow(markCorner / container, 2), accuracy: 0.03)
+    }
+
     /// A theme card's preview window stands low enough that the mark keeps
-    /// about as far from the window's corner as from the container's edge.
+    /// farther from the window's corner than from the container's edge.
     func testTheMarkKeepsClearOfTheThemePreview() throws {
         func themeCard(isSelected: Bool) -> some View {
             ShatlSettingsInputCard(
@@ -134,8 +161,8 @@ final class SelectionMarkTests: XCTestCase {
 
         let centre = CGPoint(x: mark.midX, y: mark.midY)
         let gap = window.map { hypot($0.x - centre.x, $0.y - centre.y) }.min()! - mark.width / 2
-        let edge = ShatlSelectionMark.inset(in: ShatlCornerRadius.container)
-        XCTAssertEqual(gap, edge, accuracy: 0.75, "the mark stands \(gap) pt from the preview")
+        let edge = ShatlSelectionMark.inset(in: ShatlCornerRadius.containerSelectionCorner)
+        XCTAssertGreaterThan(gap, edge, "the mark stands \(gap) pt from the preview")
     }
 
     // MARK: - Drawing
@@ -306,6 +333,16 @@ final class SelectionMarkTests: XCTestCase {
                     guard distance > threshold else { return nil }
                     return CGPoint(x: (CGFloat(x) + 0.5) / scale, y: (CGFloat(y) + 0.5) / scale)
                 }
+            }
+        }
+
+        /// The pixels in the area that are mostly see-through: outside the
+        /// card's shape.
+        func clearPixelCount(in area: CGRect) -> Int {
+            let xs = Int(area.minX * scale)..<Int(area.maxX * scale)
+            let ys = Int(area.minY * scale)..<Int(area.maxY * scale)
+            return ys.reduce(0) { count, y in
+                count + xs.filter { x in color(atX: x, y: y)[3] < 128 }.count
             }
         }
 
