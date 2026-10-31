@@ -336,9 +336,9 @@
 "settings.appearance.metrics.caption" = "Masque les détails peu importants, arrondit les valeurs et rend les données plus faciles à comprendre.";
 "settings.appearance.metrics.info.help" = "En savoir plus sur la précision des valeurs";
 "settings.appearance.metrics.popover.title" = "Précision des valeurs";
-"settings.appearance.metrics.popover.precision" = "Sans le mode simplifié, la vitesse et la taille sont affichées plus précisément : par exemple, 10,5 Mo/s au lieu de 10 Mo/s et 7,7 Go au lieu de 7 Go.";
-"settings.appearance.metrics.popover.eta" = "Le temps restant inférieur à une heure est affiché exactement, sans arrondi à 5 secondes ou 5 minutes : par exemple, 38 min au lieu de 35 min. À partir d’une heure, le temps s’affiche de la même façon dans les deux modes.";
-"settings.appearance.metrics.popover.unchanged" = "La progression, les seeds et peers ainsi que le téléchargement lui-même ne dépendent pas du mode.";
+"settings.appearance.metrics.popover.precision" = "En mode simplifié, la vitesse, la taille, l’envoyé, les seeds et les peers sont arrondis à des nombres ronds : par exemple, 10 Mo/s au lieu de 10,5 Mo/s, 8 Go au lieu de 7,7 Go et 150 peers au lieu de 143.";
+"settings.appearance.metrics.popover.eta" = "Le temps restant entre 10 minutes et une heure est arrondi à 5 minutes : par exemple, 35 min au lieu de 38 min. À partir d’une heure, le temps s’affiche de la même façon dans les deux modes.";
+"settings.appearance.metrics.popover.unchanged" = "Mode simplifié désactivé, toutes les valeurs sont affichées exactement. La progression et le téléchargement lui-même ne dépendent pas du mode.";
 
 "settings.about.application_version" = "Version de l’app";
 "settings.about.check_updates" = "Rechercher les mises à jour…";

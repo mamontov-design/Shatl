@@ -330,9 +330,9 @@
 "settings.appearance.metrics.caption" = "重要度の低い細部を隠し、値を丸めて、データをより分かりやすくします。";
 "settings.appearance.metrics.info.help" = "値の精度について";
 "settings.appearance.metrics.popover.title" = "値の精度";
-"settings.appearance.metrics.popover.precision" = "簡易モードをオフにすると、速度とサイズがより正確に表示されます。例：10 MB/秒ではなく10.5 MB/秒、7 GBではなく7.7 GB。";
-"settings.appearance.metrics.popover.eta" = "残り時間が1時間未満の場合は、5秒や5分単位に丸めずに正確に表示されます。例：35分ではなく38分。1時間以上はどちらのモードでも同じ表示です。";
-"settings.appearance.metrics.popover.unchanged" = "進行状況、シードとピア、ダウンロード自体はモードによって変わりません。";
+"settings.appearance.metrics.popover.precision" = "簡易モードでは、速度、サイズ、アップロード量、シードとピアがきりのよい数に丸められます。例：10.5 MB/秒ではなく10 MB/秒、7.7 GBではなく8 GB、143ではなく150ピア。";
+"settings.appearance.metrics.popover.eta" = "残り時間が10分から1時間の場合は5分単位に丸められます。例：38分ではなく35分。1時間以上はどちらのモードでも同じ表示です。";
+"settings.appearance.metrics.popover.unchanged" = "簡易モードをオフにすると、すべての値が正確に表示されます。進行状況とダウンロード自体はモードによって変わりません。";
 
 "settings.about.application_version" = "アプリのバージョン";
 "settings.about.check_updates" = "アップデートを確認…";

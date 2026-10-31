@@ -330,9 +330,9 @@
 "settings.appearance.metrics.caption" = "隐藏次要细节、对数值取整，让数据更直观、更易理解。";
 "settings.appearance.metrics.info.help" = "了解数值精度";
 "settings.appearance.metrics.popover.title" = "数值精度";
-"settings.appearance.metrics.popover.precision" = "关闭简化模式后，速度和大小会显示得更精确：例如显示 10.5 MB/秒而不是 10 MB/秒，显示 7.7 GB 而不是 7 GB。";
-"settings.appearance.metrics.popover.eta" = "剩余时间不到一小时时会精确显示，不会取整到 5 秒或 5 分钟：例如显示 38 分钟而不是 35 分钟。一小时及以上的时间在两种模式下显示相同。";
-"settings.appearance.metrics.popover.unchanged" = "进度、种子和节点，以及下载本身都不受模式影响。";
+"settings.appearance.metrics.popover.precision" = "在简化模式下，速度、大小、已上传量、种子和节点会取整为整数：例如显示 10 MB/秒而不是 10.5 MB/秒，显示 8 GB 而不是 7.7 GB，显示 150 个节点而不是 143 个。";
+"settings.appearance.metrics.popover.eta" = "剩余时间在 10 分钟到一小时之间时会取整到 5 分钟：例如显示 35 分钟而不是 38 分钟。一小时及以上的时间在两种模式下显示相同。";
+"settings.appearance.metrics.popover.unchanged" = "关闭简化模式后，所有数值都会精确显示。进度和下载本身都不受模式影响。";
 
 "settings.about.application_version" = "App 版本";
 "settings.about.check_updates" = "检查更新…";

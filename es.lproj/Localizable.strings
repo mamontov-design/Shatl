@@ -336,9 +336,9 @@
 "settings.appearance.metrics.caption" = "Oculta detalles poco relevantes, redondea los valores y facilita la lectura de los datos.";
 "settings.appearance.metrics.info.help" = "Más información sobre la precisión de los valores";
 "settings.appearance.metrics.popover.title" = "Precisión de los valores";
-"settings.appearance.metrics.popover.precision" = "Sin el modo simplificado, la velocidad y el tamaño se muestran con más precisión: por ejemplo, 10,5 MB/s en lugar de 10 MB/s y 7,7 GB en lugar de 7 GB.";
-"settings.appearance.metrics.popover.eta" = "El tiempo restante inferior a una hora se muestra con exactitud, sin redondear a 5 segundos o 5 minutos: por ejemplo, 38 min en lugar de 35 min. A partir de una hora, el tiempo se ve igual en ambos modos.";
-"settings.appearance.metrics.popover.unchanged" = "El progreso, los seeds y peers y la propia descarga no dependen del modo.";
+"settings.appearance.metrics.popover.precision" = "En el modo simplificado, la velocidad, el tamaño, lo subido, los seeds y los peers se redondean a cifras redondas: por ejemplo, 10 MB/s en lugar de 10,5 MB/s, 8 GB en lugar de 7,7 GB y 150 peers en lugar de 143.";
+"settings.appearance.metrics.popover.eta" = "El tiempo restante de entre 10 minutos y una hora se redondea a 5 minutos: por ejemplo, 35 min en lugar de 38 min. A partir de una hora, el tiempo se ve igual en ambos modos.";
+"settings.appearance.metrics.popover.unchanged" = "Con el modo simplificado desactivado, todos los valores se muestran con exactitud. El progreso y la propia descarga no dependen del modo.";
 
 "settings.about.application_version" = "Versión de la app";
 "settings.about.check_updates" = "Buscar actualizaciones…";
