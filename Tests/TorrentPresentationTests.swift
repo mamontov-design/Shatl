@@ -108,14 +108,18 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(Metrics.formatPeerCount(15_000, mode: .detailed), ">999")
     }
 
-    func testSimplifiedPeerCountsRoundDownByProductBuckets() {
+    /// Whole numbers under 10, fives under 100, twenty-fives above, to the
+    /// nearest step; the ladder stops at 975 under the ">999" cap.
+    func testSimplifiedPeerCountsUseTheRoundNumberLadder() {
         XCTAssertEqual(Metrics.formatPeerCount(9, mode: .simplified), "9")
-        XCTAssertEqual(Metrics.formatPeerCount(14, mode: .simplified), "10")
-        XCTAssertEqual(Metrics.formatPeerCount(99, mode: .simplified), "95")
+        XCTAssertEqual(Metrics.formatPeerCount(12, mode: .simplified), "10")
+        XCTAssertEqual(Metrics.formatPeerCount(13, mode: .simplified), "15")
+        XCTAssertEqual(Metrics.formatPeerCount(99, mode: .simplified), "100")
         XCTAssertEqual(Metrics.formatPeerCount(109, mode: .simplified), "100")
-        XCTAssertEqual(Metrics.formatPeerCount(499, mode: .simplified), "490")
-        XCTAssertEqual(Metrics.formatPeerCount(549, mode: .simplified), "500")
-        XCTAssertEqual(Metrics.formatPeerCount(999, mode: .simplified), "950")
+        XCTAssertEqual(Metrics.formatPeerCount(123, mode: .simplified), "125")
+        XCTAssertEqual(Metrics.formatPeerCount(140, mode: .simplified), "150")
+        XCTAssertEqual(Metrics.formatPeerCount(988, mode: .simplified), "975")
+        XCTAssertEqual(Metrics.formatPeerCount(999, mode: .simplified), "975")
         XCTAssertEqual(Metrics.formatPeerCount(1_000, mode: .simplified), ">999")
     }
 
@@ -450,31 +454,28 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(Metrics.formatSpeed(bytes(forMegabytes: 13.1), mode: .simplified), "12 МБ/с")
     }
 
-    func testSimplifiedBytesUsePurposeSpecificPrecision() {
-        XCTAssertEqual(
-            Metrics.formatBytes(512, purpose: .uploaded, mode: .simplified),
-            "<1 КБ"
-        )
-        XCTAssertEqual(
-            Metrics.formatBytes(1_234_567_890, purpose: .size, mode: .simplified),
-            "1 ГБ"
-        )
-        XCTAssertEqual(
-            Metrics.formatBytes(391_900_000, purpose: .size, mode: .simplified),
-            "390 МБ"
-        )
-        XCTAssertEqual(
-            Metrics.formatBytes(192_400_000, purpose: .size, mode: .simplified),
-            "190 МБ"
-        )
-        XCTAssertEqual(
-            Metrics.formatBytes(192_400_000, purpose: .size, mode: .detailed),
-            "192,4 МБ"
-        )
-        XCTAssertEqual(
-            Metrics.formatBytes(1_234_567_890, purpose: .uploaded, mode: .simplified),
-            "1 ГБ"
-        )
+    /// Size and uploaded share the ladder of round numbers, to the nearest
+    /// step: halves under 10, fives under 100, twenty-fives above.
+    func testSimplifiedSizeAndUploadedUseTheRoundNumberLadder() {
+        XCTAssertEqual(Metrics.formatBytes(512, purpose: .uploaded, mode: .simplified), "<1 КБ")
+        let cases: [(Int64, String)] = [
+            (1_234_567_890, "1 ГБ"),
+            (1_400_000_000, "1,5 ГБ"),
+            (1_900_000_000, "2 ГБ"),
+            (7_300_000_000, "7,5 ГБ"),
+            (23_000_000_000, "25 ГБ"),
+            (67_000_000_000, "65 ГБ"),
+            (123_000_000_000, "125 ГБ"),
+            (434_000_000, "425 МБ"),
+            (192_400_000, "200 МБ"),
+            (999_000_000, "1 ГБ"),
+            (1_500_000_000_000, "1,5 ТБ"),
+        ]
+        for (bytes, text) in cases {
+            XCTAssertEqual(Metrics.formatBytes(bytes, purpose: .size, mode: .simplified), text, "size \(bytes)")
+            XCTAssertEqual(Metrics.formatBytes(bytes, purpose: .uploaded, mode: .simplified), text, "uploaded \(bytes)")
+        }
+        XCTAssertEqual(Metrics.formatBytes(192_400_000, purpose: .size, mode: .detailed), "192,4 МБ")
     }
 
     private func bytes(forKilobytes kilobytes: Double) -> Int64 {

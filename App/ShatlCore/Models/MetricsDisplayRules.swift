@@ -120,25 +120,31 @@ nonisolated struct MetricsDisplayRules: Sendable {
                 return "<1 \(L10n.string("unit.kilobyte", localeOverride: localeOverride, defaultValue: "КБ"))"
             }
 
-            return formatDecimalByteCount(bytes, maximumFractionDigits: 0)
+            return formatSimplifiedAmount(bytes)
         case .size:
-            return formatSimplifiedSize(bytes)
+            return formatSimplifiedAmount(bytes)
         case .general:
             return formatDecimalByteCount(bytes, maximumFractionDigits: 1)
         }
     }
 
-    private nonisolated func formatSimplifiedSize(_ bytes: Int64) -> String {
+    /// Size and uploaded on the card's ladder of round numbers; a value that
+    /// rounds up to 1 000 of its unit becomes 1 of the next one.
+    private nonisolated func formatSimplifiedAmount(_ bytes: Int64) -> String {
         let value = Double(max(bytes, 0))
         let units = byteUnits(allowedUnits: [.useKB, .useMB, .useGB, .useTB])
 
-        guard let unit = units.first(where: { value >= $0.threshold }) else {
+        guard let index = units.firstIndex(where: { value >= $0.threshold }) else {
             return metricValue(max(bytes, 0), unitKey: "unit.byte", fallback: "Б")
         }
 
-        let wholeUnits = Int((value / unit.threshold).rounded(.down))
-        let visibleUnits = Self.roundedDownSimplifiedValue(wholeUnits)
-        return "\(visibleUnits) \(unit.unit)"
+        var unit = units[index]
+        var visible = Self.roundedSimplifiedValue(value / unit.threshold, allowsHalves: true)
+        if visible >= 1_000, index > 0 {
+            unit = units[index - 1]
+            visible = Self.roundedSimplifiedValue(value / unit.threshold, allowsHalves: true)
+        }
+        return "\(formatDecimal(visible, maximumFractionDigits: 1)) \(unit.unit)"
     }
 
     private nonisolated func formatSimplifiedETA(_ seconds: Int) -> String {
@@ -239,22 +245,24 @@ nonisolated struct MetricsDisplayRules: Sendable {
         (Int(value.rounded(.down)) / step) * step
     }
 
-    nonisolated static func roundedDownSimplifiedValue(_ value: Int) -> Int {
+    /// The simplified mode's ladder of round numbers for size, uploaded and
+    /// peers, to the nearest step: halves under 10 (whole numbers where a
+    /// half makes no sense), fives under 100, twenty-fives above. Speeds
+    /// keep their own steps.
+    nonisolated static func roundedSimplifiedValue(_ value: Double, allowsHalves: Bool) -> Double {
         let normalizedValue = max(0, value)
-        let step: Int
+        let step: Double
 
         switch normalizedValue {
         case ..<10:
-            step = 1
+            step = allowsHalves ? 0.5 : 1
         case ..<100:
             step = 5
-        case ..<500:
-            step = 10
         default:
-            step = 50
+            step = 25
         }
 
-        return (normalizedValue / step) * step
+        return (normalizedValue / step).rounded() * step
     }
 
     private nonisolated func metricValue<T>(_ value: T, unitKey: String, fallback: String) -> String {
