@@ -106,8 +106,8 @@ private enum TorrentCardOutlineState: Equatable {
 }
 
 /// What a status badge wears. A fill means the download is doing
-/// something; an outline means it stands. "Скачана" and "Ошибка" are filled
-/// all the same.
+/// something; an outline means it stands, has finished ("Скачана") or
+/// failed ("Ошибка").
 private enum TorrentStatusBadgeLook: Equatable {
     case downloading
     case downloadingIdle
@@ -124,9 +124,9 @@ private enum TorrentStatusBadgeLook: Equatable {
     func palette(monochrome: Bool) -> ShatlStatusBadgePalette {
         if monochrome {
             return switch self {
-            case .downloading, .seeding, .completed: .monochromaticFilled
+            case .downloading, .seeding: .monochromaticFilled
             case .error: .monochromaticError
-            case .downloadingIdle, .seedingIdle, .adding, .paused: .monochromaticStalled
+            case .downloadingIdle, .seedingIdle, .adding, .paused, .completed: .monochromaticStalled
             case .saved: .monochromaticSaved
             }
         }

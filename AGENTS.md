@@ -89,6 +89,10 @@ persistence, deletion, restore, or shared UI state.
   loses its fill for "Простаивает" only after a spell without speed and
   takes it back on held speed (`TransferActivity`), never second by second,
   and metric shadows sit under the plate so changing digits leave the blur alone.
+  A status badge is filled only while the download works ("Скачивается",
+  "Проверяется", "Раздаётся"); one that stands, has finished ("Скачана") or
+  failed ("Ошибка") wears an outline without a fill, and the error's
+  outline stays red in the monochrome appearance (`StatusBadgePaletteTests`).
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
