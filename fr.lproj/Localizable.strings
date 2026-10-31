@@ -280,6 +280,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "Dernier rapport envoyé avant-hier. L’envoi est désactivé.";
 "settings.data.status.sent_earlier.enabled" = "Dernier rapport envoyé %@ (%@).";
 "settings.data.status.sent_earlier.disabled" = "Dernier rapport envoyé %@ (%@). L’envoi est désactivé.";
+"settings.data.status.age.week" = "il y a une semaine";
+"settings.data.status.age.month" = "il y a un mois";
+"settings.data.status.age.half_year" = "il y a six mois";
+"settings.data.status.age.year" = "il y a un an";
+"settings.data.status.age.year_and_half" = "il y a un an et demi";
 "settings.data.collects.title" = "Envoyé :";
 "settings.data.collects.launch_count" = "Nombre de lancements";
 "settings.data.collects.app_version" = "Version de l’app";

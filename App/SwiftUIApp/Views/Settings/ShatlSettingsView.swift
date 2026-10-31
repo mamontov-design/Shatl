@@ -530,9 +530,9 @@ private struct DataSettingsTab: View {
                 enabledKey: "settings.data.status.sent_two_days_ago.enabled",
                 disabledKey: "settings.data.status.sent_two_days_ago.disabled"
             )
-        case .sentEarlier(let daysAgo, let date, let isEnabled):
-            let relativeDate = relativeDateText(daysAgo: daysAgo)
-            let dayAndMonth = dayAndMonthText(for: date)
+        case .sentEarlier(let age, let date, let showsYear, let isEnabled):
+            let relativeDate = reportAgeText(age)
+            let dayAndMonth = reportDateText(for: date, showsYear: showsYear)
             let key = isEnabled
                 ? "settings.data.status.sent_earlier.enabled"
                 : "settings.data.status.sent_earlier.disabled"
@@ -554,17 +554,44 @@ private struct DataSettingsTab: View {
         )
     }
 
-    private func relativeDateText(daysAgo: Int) -> String {
+    /// A single week, month or year, half a year and a year and a half are
+    /// named in words; counts from two on come from the system, in the
+    /// language's own plural.
+    private func reportAgeText(_ age: UsageTelemetryReportAge) -> String {
+        let localeOverride = store.preferences.localeOverride
+        let components: DateComponents
+        switch age {
+        case .weeks(1):
+            return L10n.string("settings.data.status.age.week", localeOverride: localeOverride)
+        case .months(1):
+            return L10n.string("settings.data.status.age.month", localeOverride: localeOverride)
+        case .halfYear:
+            return L10n.string("settings.data.status.age.half_year", localeOverride: localeOverride)
+        case .years(1):
+            return L10n.string("settings.data.status.age.year", localeOverride: localeOverride)
+        case .yearAndHalf:
+            return L10n.string("settings.data.status.age.year_and_half", localeOverride: localeOverride)
+        case .days(let days):
+            components = DateComponents(day: -days)
+        case .weeks(let weeks):
+            components = DateComponents(weekOfMonth: -weeks)
+        case .months(let months):
+            components = DateComponents(month: -months)
+        case .years(let years):
+            components = DateComponents(year: -years)
+        }
+
         let formatter = RelativeDateTimeFormatter()
-        formatter.locale = L10n.locale(for: store.preferences.localeOverride)
+        formatter.locale = L10n.locale(for: localeOverride)
         formatter.unitsStyle = .full
-        return formatter.localizedString(from: DateComponents(day: -daysAgo))
+        return formatter.localizedString(from: components)
     }
 
-    private func dayAndMonthText(for date: Date) -> String {
+    /// The day and the month, and the year too when it is not this one.
+    private func reportDateText(for date: Date, showsYear: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = L10n.locale(for: store.preferences.localeOverride)
-        formatter.setLocalizedDateFormatFromTemplate("d MMMM")
+        formatter.setLocalizedDateFormatFromTemplate(showsYear ? "d MMMM y" : "d MMMM")
         return formatter.string(from: date)
     }
 

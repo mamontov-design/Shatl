@@ -274,6 +274,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "最後のレポートは一昨日送信されました。 送信はオフです。";
 "settings.data.status.sent_earlier.enabled" = "最後のレポートは%@（%@）に送信されました。";
 "settings.data.status.sent_earlier.disabled" = "最後のレポートは%@（%@）に送信されました。 送信はオフです。";
+"settings.data.status.age.week" = "1週間前";
+"settings.data.status.age.month" = "1か月前";
+"settings.data.status.age.half_year" = "半年前";
+"settings.data.status.age.year" = "1年前";
+"settings.data.status.age.year_and_half" = "1年半前";
 "settings.data.collects.title" = "送信されるもの：";
 "settings.data.collects.launch_count" = "起動回数";
 "settings.data.collects.app_version" = "アプリのバージョン";

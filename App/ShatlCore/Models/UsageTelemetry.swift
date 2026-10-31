@@ -76,7 +76,47 @@ nonisolated enum UsageTelemetrySendStatus: Equatable {
     case sentToday(isEnabled: Bool)
     case sentYesterday(isEnabled: Bool)
     case sentTwoDaysAgo(isEnabled: Bool)
-    case sentEarlier(daysAgo: Int, date: Date, isEnabled: Bool)
+    /// `showsYear` when the report went in another calendar year, so the
+    /// date in brackets names it.
+    case sentEarlier(age: UsageTelemetryReportAge, date: Date, showsYear: Bool, isEnabled: Bool)
+}
+
+/// How long ago the last report went, from three days on, in the largest
+/// whole unit, always rounded down: days up to a week, then weeks up to a
+/// month, months (with half a year as its own step) up to a year, years
+/// (with a year and a half as its own step). Months count by the calendar.
+nonisolated enum UsageTelemetryReportAge: Equatable {
+    /// 3 to 6.
+    case days(Int)
+    /// 1 to 3.
+    case weeks(Int)
+    /// 1 to 5 and 7 to 11.
+    case months(Int)
+    case halfYear
+    /// 1, then 2 and on.
+    case years(Int)
+    case yearAndHalf
+
+    static func age(sentAt: Date, now: Date, calendar: Calendar) -> UsageTelemetryReportAge {
+        let start = calendar.startOfDay(for: sentAt)
+        let end = calendar.startOfDay(for: now)
+        let parts = calendar.dateComponents([.year, .month], from: start, to: end)
+        let months = max(0, (parts.year ?? 0) * 12 + (parts.month ?? 0))
+
+        switch months {
+        case 0:
+            let days = max(0, calendar.dateComponents([.day], from: start, to: end).day ?? 0)
+            return days < 7 ? .days(days) : .weeks(min(3, days / 7))
+        case 6:
+            return .halfYear
+        case 1..<12:
+            return .months(months)
+        case 18..<24:
+            return .yearAndHalf
+        default:
+            return .years(months / 12)
+        }
+    }
 }
 
 nonisolated enum UsageTelemetrySendStatusFormatter {
@@ -103,7 +143,12 @@ nonisolated enum UsageTelemetrySendStatusFormatter {
         case 2:
             return .sentTwoDaysAgo(isEnabled: isEnabled)
         default:
-            return .sentEarlier(daysAgo: daysAgo, date: lastSentAt, isEnabled: isEnabled)
+            return .sentEarlier(
+                age: UsageTelemetryReportAge.age(sentAt: lastSentAt, now: now, calendar: calendar),
+                date: lastSentAt,
+                showsYear: calendar.component(.year, from: lastSentAt) != calendar.component(.year, from: now),
+                isEnabled: isEnabled
+            )
         }
     }
 }

@@ -292,6 +292,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "Последний отчёт отправлен позавчера. Отправка выключена.";
 "settings.data.status.sent_earlier.enabled" = "Последний отчёт отправлен %@ (%@).";
 "settings.data.status.sent_earlier.disabled" = "Последний отчёт отправлен %@ (%@). Отправка выключена.";
+"settings.data.status.age.week" = "неделю назад";
+"settings.data.status.age.month" = "месяц назад";
+"settings.data.status.age.half_year" = "полгода назад";
+"settings.data.status.age.year" = "год назад";
+"settings.data.status.age.year_and_half" = "полтора года назад";
 "settings.data.collects.title" = "Отправляется:";
 "settings.data.collects.launch_count" = "Количество запусков";
 "settings.data.collects.app_version" = "Версия приложения";

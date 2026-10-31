@@ -201,7 +201,57 @@ final class UsageTelemetryTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(status, .sentEarlier(daysAgo: 3, date: lastSentAt, isEnabled: false))
+        XCTAssertEqual(status, .sentEarlier(age: .days(3), date: lastSentAt, showsYear: false, isEnabled: false))
+    }
+
+    /// Days up to a week, then weeks, months (half a year on its own), a
+    /// year, a year and a half, years; always rounded down, months by the
+    /// calendar.
+    func testReportAgeTakesTheLargestWholeUnit() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = try date(year: 2026, month: 11, day: 1)
+        let cases: [((Int, Int, Int), UsageTelemetryReportAge)] = [
+            ((2026, 10, 29), .days(3)),
+            ((2026, 10, 26), .days(6)),
+            ((2026, 10, 25), .weeks(1)),
+            ((2026, 10, 18), .weeks(2)),
+            ((2026, 10, 2), .weeks(3)),
+            ((2026, 10, 1), .months(1)),
+            ((2026, 9, 28), .months(1)),
+            ((2026, 6, 1), .months(5)),
+            ((2026, 5, 1), .halfYear),
+            ((2026, 4, 1), .months(7)),
+            ((2025, 11, 2), .months(11)),
+            ((2025, 11, 1), .years(1)),
+            ((2025, 5, 2), .years(1)),
+            ((2025, 5, 1), .yearAndHalf),
+            ((2024, 11, 2), .yearAndHalf),
+            ((2024, 11, 1), .years(2)),
+            ((2022, 1, 1), .years(4)),
+        ]
+        for ((year, month, day), age) in cases {
+            let sentAt = try date(year: year, month: month, day: day)
+            XCTAssertEqual(UsageTelemetryReportAge.age(sentAt: sentAt, now: now, calendar: calendar), age, "\(year)-\(month)-\(day)")
+        }
+    }
+
+    /// The date in brackets names the year only when it is not this one.
+    func testSendStatusNamesTheYearOfAnOlderReport() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = try date(year: 2026, month: 1, day: 10)
+        let lastYear = try date(year: 2025, month: 12, day: 20)
+        let thisYear = try date(year: 2026, month: 1, day: 2)
+
+        XCTAssertEqual(
+            UsageTelemetrySendStatusFormatter.status(lastSentAt: lastYear, isEnabled: true, now: now, calendar: calendar),
+            .sentEarlier(age: .weeks(3), date: lastYear, showsYear: true, isEnabled: true)
+        )
+        XCTAssertEqual(
+            UsageTelemetrySendStatusFormatter.status(lastSentAt: thisYear, isEnabled: true, now: now, calendar: calendar),
+            .sentEarlier(age: .weeks(1), date: thisYear, showsYear: false, isEnabled: true)
+        )
     }
 
     func testRequestBuilderCreatesPostJSONRequest() throws {

@@ -274,6 +274,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "最近一次报告于前天发送。 发送已关闭。";
 "settings.data.status.sent_earlier.enabled" = "最近一次报告于 %@（%@）发送。";
 "settings.data.status.sent_earlier.disabled" = "最近一次报告于 %@（%@）发送。 发送已关闭。";
+"settings.data.status.age.week" = "一周前";
+"settings.data.status.age.month" = "一个月前";
+"settings.data.status.age.half_year" = "半年前";
+"settings.data.status.age.year" = "一年前";
+"settings.data.status.age.year_and_half" = "一年半前";
 "settings.data.collects.title" = "会发送：";
 "settings.data.collects.launch_count" = "启动次数";
 "settings.data.collects.app_version" = "App 版本";

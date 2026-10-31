@@ -280,6 +280,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "Último informe enviado anteayer. El envío está desactivado.";
 "settings.data.status.sent_earlier.enabled" = "Último informe enviado %@ (%@).";
 "settings.data.status.sent_earlier.disabled" = "Último informe enviado %@ (%@). El envío está desactivado.";
+"settings.data.status.age.week" = "hace una semana";
+"settings.data.status.age.month" = "hace un mes";
+"settings.data.status.age.half_year" = "hace medio año";
+"settings.data.status.age.year" = "hace un año";
+"settings.data.status.age.year_and_half" = "hace un año y medio";
 "settings.data.collects.title" = "Se envía:";
 "settings.data.collects.launch_count" = "Número de inicios";
 "settings.data.collects.app_version" = "Versión de la app";

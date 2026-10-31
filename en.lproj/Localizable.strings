@@ -280,6 +280,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "Last report sent the day before yesterday. Sending is off.";
 "settings.data.status.sent_earlier.enabled" = "Last report sent %@ (%@).";
 "settings.data.status.sent_earlier.disabled" = "Last report sent %@ (%@). Sending is off.";
+"settings.data.status.age.week" = "a week ago";
+"settings.data.status.age.month" = "a month ago";
+"settings.data.status.age.half_year" = "half a year ago";
+"settings.data.status.age.year" = "a year ago";
+"settings.data.status.age.year_and_half" = "a year and a half ago";
 "settings.data.collects.title" = "Sent:";
 "settings.data.collects.launch_count" = "Launch count";
 "settings.data.collects.app_version" = "App version";

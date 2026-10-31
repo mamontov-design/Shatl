@@ -280,6 +280,11 @@
 "settings.data.status.sent_two_days_ago.disabled" = "Letzter Bericht vorgestern gesendet. Das Senden ist ausgeschaltet.";
 "settings.data.status.sent_earlier.enabled" = "Letzter Bericht %@ (%@) gesendet.";
 "settings.data.status.sent_earlier.disabled" = "Letzter Bericht %@ (%@) gesendet. Das Senden ist ausgeschaltet.";
+"settings.data.status.age.week" = "vor einer Woche";
+"settings.data.status.age.month" = "vor einem Monat";
+"settings.data.status.age.half_year" = "vor einem halben Jahr";
+"settings.data.status.age.year" = "vor einem Jahr";
+"settings.data.status.age.year_and_half" = "vor anderthalb Jahren";
 "settings.data.collects.title" = "Gesendet:";
 "settings.data.collects.launch_count" = "Anzahl der Starts";
 "settings.data.collects.app_version" = "App-Version";
