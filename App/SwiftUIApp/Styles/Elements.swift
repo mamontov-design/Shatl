@@ -2187,22 +2187,10 @@ struct ShatlMetricGroup: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // A box that stays as the title changes ("Сиды и пиры" to
-            // "Сиды"): the old title blurs into the new one in place, while
-            // the group's width follows on the card's metric resize. The box
-            // clips, so a longer title on its way out does not run over the
-            // next group's as the group narrows.
-            ZStack(alignment: .leading) {
-                Text(group.title)
-                    .shatlTypography(ShatlTypography.groupSemibold)
-                    .foregroundStyle(ShatlColor.typographySecondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .id(group.title)
-                    .transition(titleReplace)
-            }
-            .clipped()
-            .shatlCardPreviewBlur(.metricGroupTitles)
+            // The title keeps its room in the layout unseen; the one you see
+            // is drawn over the whole group (see `titleOverlay`).
+            titleText
+                .hidden()
 
             ShatlMetricSet(
                 items: group.items,
@@ -2217,7 +2205,36 @@ struct ShatlMetricGroup: View {
             #endif
             .shatlCardPreviewBlur(.expandedMetrics)
         }
+        .overlay(alignment: .topLeading) {
+            titleOverlay
+        }
         .layoutPriority(1)
+    }
+
+    /// A box as wide as the whole group, which stays as the title changes
+    /// ("Сиды и пиры" to "Сиды"): the old title blurs into the new one in
+    /// place while the group's width follows on the card's metric resize.
+    /// The box clips at the group's edge, so a longer title on its way out
+    /// does not run over the next group as the group narrows; and as wide
+    /// as the group, not the title, it shows a longer title whole at once
+    /// wherever the cells under it already make room for it.
+    private var titleOverlay: some View {
+        ZStack(alignment: .topLeading) {
+            titleText
+                .id(group.title)
+                .transition(titleReplace)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
+        .shatlCardPreviewBlur(.metricGroupTitles)
+    }
+
+    private var titleText: some View {
+        Text(group.title)
+            .shatlTypography(ShatlTypography.groupSemibold)
+            .foregroundStyle(ShatlColor.typographySecondary)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// As the status beside the badge is replaced.
