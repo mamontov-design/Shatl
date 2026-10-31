@@ -119,6 +119,8 @@
 "torrent.saved.info.unknown" = "Der freie Platz ließ sich nicht ermitteln: Der Ordner „%@“ ist gerade nicht verfügbar – vielleicht ist der Datenträger getrennt.";
 
 "torrent.metric.seeds_and_peers" = "Seeds und Peers";
+"torrent.metric.seeds" = "Seeds";
+"torrent.metric.peers" = "Peers";
 "torrent.metric.upload_speed" = "Upload-Geschwindigkeit";
 "torrent.metric.uploaded" = "Hochgeladen";
 "torrent.metric.size" = "Größe";

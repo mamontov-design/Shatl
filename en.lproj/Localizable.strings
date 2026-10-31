@@ -119,6 +119,8 @@
 "torrent.saved.info.unknown" = "Couldn’t check the available space: the “%@” folder is unavailable right now—the disk may be disconnected.";
 
 "torrent.metric.seeds_and_peers" = "Seeds and peers";
+"torrent.metric.seeds" = "Seeds";
+"torrent.metric.peers" = "Peers";
 "torrent.metric.upload_speed" = "Upload speed";
 "torrent.metric.uploaded" = "Uploaded";
 "torrent.metric.size" = "Size";

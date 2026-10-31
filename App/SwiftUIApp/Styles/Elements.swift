@@ -2174,6 +2174,7 @@ private struct ShatlInfoBottomMetricItem: View {
 }
 
 struct ShatlMetricGroup: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let group: MetricGroupPresentation
     var metricIconColorOverride: Color? = nil
     var metricSetBackgroundColorOverride: Color? = nil
@@ -2186,12 +2187,22 @@ struct ShatlMetricGroup: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(group.title)
-                .shatlTypography(ShatlTypography.groupSemibold)
-                .foregroundStyle(ShatlColor.typographySecondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .shatlCardPreviewBlur(.metricGroupTitles)
+            // A box that stays as the title changes ("Сиды и пиры" to
+            // "Сиды"): the old title blurs into the new one in place, while
+            // the group's width follows on the card's metric resize. The box
+            // clips, so a longer title on its way out does not run over the
+            // next group's as the group narrows.
+            ZStack(alignment: .leading) {
+                Text(group.title)
+                    .shatlTypography(ShatlTypography.groupSemibold)
+                    .foregroundStyle(ShatlColor.typographySecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .id(group.title)
+                    .transition(titleReplace)
+            }
+            .clipped()
+            .shatlCardPreviewBlur(.metricGroupTitles)
 
             ShatlMetricSet(
                 items: group.items,
@@ -2207,6 +2218,12 @@ struct ShatlMetricGroup: View {
             .shatlCardPreviewBlur(.expandedMetrics)
         }
         .layoutPriority(1)
+    }
+
+    /// As the status beside the badge is replaced.
+    private var titleReplace: AnyTransition {
+        (reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+            .animation(ShatlMotion.progressStatusReplace)
     }
 }
 

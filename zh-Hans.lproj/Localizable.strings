@@ -118,6 +118,8 @@
 "torrent.saved.info.unknown" = "无法查看可用空间：“%@”文件夹目前不可用，磁盘可能已断开连接。";
 
 "torrent.metric.seeds_and_peers" = "种子和节点";
+"torrent.metric.seeds" = "种子";
+"torrent.metric.peers" = "节点";
 "torrent.metric.upload_speed" = "上传速度";
 "torrent.metric.uploaded" = "已上传";
 "torrent.metric.size" = "大小";

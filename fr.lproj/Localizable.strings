@@ -119,6 +119,8 @@
 "torrent.saved.info.unknown" = "Impossible de vérifier l’espace disponible : le dossier « %@ » est indisponible pour le moment, le disque est peut-être déconnecté.";
 
 "torrent.metric.seeds_and_peers" = "Seeds et peers";
+"torrent.metric.seeds" = "Seeds";
+"torrent.metric.peers" = "Peers";
 "torrent.metric.upload_speed" = "Vitesse d’envoi";
 "torrent.metric.uploaded" = "Envoyé";
 "torrent.metric.size" = "Taille";

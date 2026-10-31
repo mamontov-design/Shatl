@@ -121,6 +121,8 @@
 "torrent.saved.info.unknown" = "Узнать, сколько места свободно, не удалось: папка «%@» сейчас недоступна — возможно, диск отключён.";
 
 "torrent.metric.seeds_and_peers" = "Сиды и пиры";
+"torrent.metric.seeds" = "Сиды";
+"torrent.metric.peers" = "Пиры";
 "torrent.metric.upload_speed" = "Скорость раздачи";
 "torrent.metric.uploaded" = "Отдано";
 "torrent.metric.size" = "Размер";

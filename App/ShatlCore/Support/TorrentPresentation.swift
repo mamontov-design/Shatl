@@ -234,13 +234,72 @@ nonisolated struct TransferActivity: Equatable, Sendable {
     }
 }
 
-/// The speed levels a torrent's icons show, and whether each way stands,
-/// kept from one update to the next.
+/// Whom the title over seeds and peers names: "Сиды и пиры", "Сиды" or
+/// "Пиры". The cells follow the numbers at once; the title waits for a
+/// change to hold, as "Простаивает" does — a side comes into it after 3 s
+/// and leaves it after 5 s — so a seed that blinks in and out does not make
+/// it jump. A group that comes back after both were gone takes its title at
+/// once, as it has none to keep.
+nonisolated struct PeerGroupTitle: Equatable, Sendable {
+    static let arrivalDelay = TransferActivity.wakeDelay
+    static let departureDelay = TransferActivity.patience
+
+    private(set) var namesSeeds = false
+    private(set) var namesPeers = false
+    /// When the seeds, and the peers, first differed from the title.
+    private var seedsChangeSince: ContinuousClock.Instant?
+    private var peersChangeSince: ContinuousClock.Instant?
+
+    func following(seeds: Int, peers: Int, at now: ContinuousClock.Instant) -> PeerGroupTitle {
+        let hasSeeds = seeds > 0
+        let hasPeers = peers > 0
+        guard hasSeeds || hasPeers else { return PeerGroupTitle() }
+        guard namesSeeds || namesPeers else {
+            return PeerGroupTitle(namesSeeds: hasSeeds, namesPeers: hasPeers)
+        }
+
+        var next = self
+        next.namesSeeds = Self.settled(namesSeeds, toward: hasSeeds, since: &next.seedsChangeSince, at: now)
+        next.namesPeers = Self.settled(namesPeers, toward: hasPeers, since: &next.peersChangeSince, at: now)
+        return next
+    }
+
+    private init(namesSeeds: Bool = false, namesPeers: Bool = false) {
+        self.namesSeeds = namesSeeds
+        self.namesPeers = namesPeers
+    }
+
+    init() {}
+
+    private static func settled(
+        _ named: Bool,
+        toward present: Bool,
+        since: inout ContinuousClock.Instant?,
+        at now: ContinuousClock.Instant
+    ) -> Bool {
+        guard named != present else {
+            since = nil
+            return named
+        }
+        let start = since ?? now
+        if start.duration(to: now) >= (present ? arrivalDelay : departureDelay) {
+            since = nil
+            return present
+        }
+        since = start
+        return named
+    }
+}
+
+/// The speed levels a torrent's icons show, whether each way stands, and
+/// whom the title over seeds and peers names, kept from one update to the
+/// next.
 nonisolated struct TransferSpeedLevels: Equatable, Sendable {
     var download: TransferSpeedLevel?
     var upload: TransferSpeedLevel?
     var downloadActivity = TransferActivity()
     var uploadActivity = TransferActivity()
+    var peerGroupTitle = PeerGroupTitle()
 
     /// The levels for new metrics that follow these. A speed of zero shows no
     /// icon, and the next speed starts afresh.
@@ -249,7 +308,8 @@ nonisolated struct TransferSpeedLevels: Equatable, Sendable {
             download: Self.level(metrics.downloadSpeedBytesPerSecond, after: download),
             upload: Self.level(metrics.uploadSpeedBytesPerSecond, after: upload),
             downloadActivity: downloadActivity.following(bytesPerSecond: metrics.downloadSpeedBytesPerSecond, at: now),
-            uploadActivity: uploadActivity.following(bytesPerSecond: metrics.uploadSpeedBytesPerSecond, at: now)
+            uploadActivity: uploadActivity.following(bytesPerSecond: metrics.uploadSpeedBytesPerSecond, at: now),
+            peerGroupTitle: peerGroupTitle.following(seeds: metrics.seeds ?? 0, peers: metrics.peers ?? 0, at: now)
         )
     }
 
@@ -313,7 +373,11 @@ nonisolated enum TorrentPresentation {
             dynamicGroups.append(
                 MetricGroupPresentation(
                     id: "peers",
-                    title: L10n.string("torrent.metric.seeds_and_peers", localeOverride: localeOverride, defaultValue: "Сиды и Пиры"),
+                    title: peerGroupTitle(
+                        speedLevels?.peerGroupTitle,
+                        items: peerItems,
+                        localeOverride: localeOverride
+                    ),
                     items: peerItems
                 )
             )
@@ -441,6 +505,29 @@ nonisolated enum TorrentPresentation {
                 usesAccentIcon: true
             )
         )
+    }
+
+    /// The settled title when the store keeps one, else the cells shown.
+    private nonisolated static func peerGroupTitle(
+        _ settled: PeerGroupTitle?,
+        items: [MetricItemPresentation],
+        localeOverride: AppLocaleOverride
+    ) -> String {
+        var namesSeeds = settled?.namesSeeds ?? false
+        var namesPeers = settled?.namesPeers ?? false
+        if !namesSeeds && !namesPeers {
+            namesSeeds = items.contains { $0.id == "seeds" }
+            namesPeers = items.contains { $0.id == "peers" }
+        }
+
+        switch (namesSeeds, namesPeers) {
+        case (true, false):
+            return L10n.string("torrent.metric.seeds", localeOverride: localeOverride, defaultValue: "Сиды")
+        case (false, true):
+            return L10n.string("torrent.metric.peers", localeOverride: localeOverride, defaultValue: "Пиры")
+        default:
+            return L10n.string("torrent.metric.seeds_and_peers", localeOverride: localeOverride, defaultValue: "Сиды и пиры")
+        }
     }
 
     private nonisolated static func peerMetricItems(

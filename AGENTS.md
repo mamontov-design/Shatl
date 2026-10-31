@@ -93,6 +93,11 @@ persistence, deletion, restore, or shared UI state.
   "Проверяется", "Раздаётся"); one that stands, has finished ("Скачана") or
   failed ("Ошибка") wears an outline without a fill, and the error's
   outline stays red in the monochrome appearance (`StatusBadgePaletteTests`).
+  A card never shows a zero (the owner's product decision): a metric with
+  nothing to count is hidden, not shown as "0" seeds or peers or "0 КБ/с".
+  The cells follow the numbers at once; only the title over seeds and peers
+  waits for a change to hold before it names "Сиды" or "Пиры" alone
+  (`PeerGroupTitle`: 3 s to come, 5 s to go, as "Простаивает").
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
