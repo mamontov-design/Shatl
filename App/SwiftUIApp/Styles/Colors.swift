@@ -73,7 +73,7 @@ enum ShatlColor {
     static let cardBackgroundDefault = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDarkA3)
 
     static let cardOutlineDefault = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA6)
-    static let cardOutlineHover = Color(light: ShatlPalette.gray8, dark: ShatlPalette.grayDarkA8)
+    static let cardOutlineHover = Color(light: ShatlPalette.gray9, dark: ShatlPalette.grayDarkA9)
     /// Three quarters of the accent, which follows the one the user picked.
     static let cardOutlineSelected = accent.opacity(0.75)
     /// The same in the monochrome appearance.
