@@ -139,12 +139,12 @@ nonisolated struct MetricsDisplayRules: Sendable {
         }
 
         var unit = units[index]
-        var visible = Self.roundedSimplifiedValue(value / unit.threshold, allowsHalves: true)
+        var visible = Self.roundedSimplifiedValue(value / unit.threshold)
         if visible >= 1_000, index > 0 {
             unit = units[index - 1]
-            visible = Self.roundedSimplifiedValue(value / unit.threshold, allowsHalves: true)
+            visible = Self.roundedSimplifiedValue(value / unit.threshold)
         }
-        return "\(formatDecimal(visible, maximumFractionDigits: 1)) \(unit.unit)"
+        return "\(Int(visible)) \(unit.unit)"
     }
 
     private nonisolated func formatSimplifiedETA(_ seconds: Int) -> String {
@@ -246,16 +246,16 @@ nonisolated struct MetricsDisplayRules: Sendable {
     }
 
     /// The simplified mode's ladder of round numbers for size, uploaded and
-    /// peers, to the nearest step: halves under 10 (whole numbers where a
-    /// half makes no sense), fives under 100, twenty-fives above. Speeds
-    /// keep their own steps.
-    nonisolated static func roundedSimplifiedValue(_ value: Double, allowsHalves: Bool) -> Double {
+    /// peers, to the nearest step: whole numbers under 10, fives under 100,
+    /// twenty-fives above. Never a fraction: that is what the mode is for.
+    /// Speeds keep their own steps.
+    nonisolated static func roundedSimplifiedValue(_ value: Double) -> Double {
         let normalizedValue = max(0, value)
         let step: Double
 
         switch normalizedValue {
         case ..<10:
-            step = allowsHalves ? 0.5 : 1
+            step = 1
         case ..<100:
             step = 5
         default:

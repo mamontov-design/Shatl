@@ -455,21 +455,22 @@ final class TorrentPresentationTests: XCTestCase {
     }
 
     /// Size and uploaded share the ladder of round numbers, to the nearest
-    /// step: halves under 10, fives under 100, twenty-fives above.
+    /// step: whole numbers under 10, fives under 100, twenty-fives above;
+    /// never a fraction.
     func testSimplifiedSizeAndUploadedUseTheRoundNumberLadder() {
         XCTAssertEqual(Metrics.formatBytes(512, purpose: .uploaded, mode: .simplified), "<1 КБ")
         let cases: [(Int64, String)] = [
             (1_234_567_890, "1 ГБ"),
-            (1_400_000_000, "1,5 ГБ"),
+            (1_400_000_000, "1 ГБ"),
             (1_900_000_000, "2 ГБ"),
-            (7_300_000_000, "7,5 ГБ"),
+            (7_700_000_000, "8 ГБ"),
             (23_000_000_000, "25 ГБ"),
             (67_000_000_000, "65 ГБ"),
             (123_000_000_000, "125 ГБ"),
             (434_000_000, "425 МБ"),
             (192_400_000, "200 МБ"),
             (999_000_000, "1 ГБ"),
-            (1_500_000_000_000, "1,5 ТБ"),
+            (1_200_000_000_000, "1 ТБ"),
         ]
         for (bytes, text) in cases {
             XCTAssertEqual(Metrics.formatBytes(bytes, purpose: .size, mode: .simplified), text, "size \(bytes)")

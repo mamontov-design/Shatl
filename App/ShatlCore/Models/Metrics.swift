@@ -70,7 +70,7 @@ nonisolated enum Metrics {
         switch mode {
         case .simplified:
             // The ladder stops at 975 under the ">999" cap.
-            let rounded = MetricsDisplayRules.roundedSimplifiedValue(Double(normalizedCount), allowsHalves: false)
+            let rounded = MetricsDisplayRules.roundedSimplifiedValue(Double(normalizedCount))
             return "\(min(975, Int(rounded)))"
         case .detailed:
             return "\(normalizedCount)"
