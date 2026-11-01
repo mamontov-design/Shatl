@@ -118,6 +118,11 @@ enum ShatlMotion {
 
     /// Local animation for trailing control icons in a card.
     static let cardControlSlide = Animation.smooth(duration: 0.24)
+    /// A one-line card's trailing controls go to its top as it opens, and
+    /// back to the middle as it closes, only after this pause: by then the
+    /// expand symbol has been replaced, and a symbol replaced while it moves
+    /// draws artefacts (the owner's choice of pause).
+    static let cardControlsSettleDelay = Duration.seconds(1)
 
     /// Local animation for the selected-card indicator.
     static let selectedIndicatorAppear = Animation.spring(response: 0.48, dampingFraction: 0.62, blendDuration: 0.04)

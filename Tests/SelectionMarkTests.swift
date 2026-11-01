@@ -70,6 +70,29 @@ final class SelectionMarkTests: XCTestCase {
         }
     }
 
+    /// An open one-line card keeps its controls at the top, as a card of
+    /// several lines does: the circle 10 pt from the top and the side, the
+    /// expand symbol in the top 18 pt of the row. A card that appears open
+    /// places them at once; one opened in view moves them after a pause.
+    func testAnOpenOneLineCardKeepsItsControlsAtTheTop() throws {
+        let drawn = try drawCard(
+            makeTestRecord(status: .seeding, progress: 1),
+            number: nil,
+            isExpanded: true,
+            inWindow: true
+        )
+        let mark = try XCTUnwrap(drawn.mark)
+        let expandSymbol = try XCTUnwrap(drawn.expandSymbol)
+
+        XCTAssertEqual(mark.minY, 10, accuracy: 0.3)
+        XCTAssertEqual(drawn.width - mark.maxX, 10, accuracy: 0.3)
+        XCTAssertEqual(
+            expandSymbol.midY,
+            TorrentCardLayout.contentInset + TorrentCardLayout.expandButtonSize / 2,
+            accuracy: 0.5
+        )
+    }
+
     /// The performance modes and the themes: the image container is rounded
     /// by 18 pt at the top right, so the mark stands 10 pt from its top and
     /// side, as on a download card.
@@ -216,7 +239,9 @@ final class SelectionMarkTests: XCTestCase {
 
         // The title row ends at 28 pt in a full card, and the progress bar
         // starts at 36 pt; a one-line card has nothing below its row.
-        let bottom = row.usesFinishedLayout ? bitmap.height - 8 : 32
+        // In a window the picture runs past the card, so a one-line card is
+        // searched only down to its title row's top part.
+        let bottom = row.usesFinishedLayout && !inWindow ? bitmap.height - 8 : 32
         // The expand button's box stands 8 pt to the left of the mark.
         let expandRight = bitmap.width - TorrentCardLayout.contentInset - ShatlSelectionMark.diameter - 8
         let expandArea = CGRect(

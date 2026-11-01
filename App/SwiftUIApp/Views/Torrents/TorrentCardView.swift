@@ -213,6 +213,10 @@ struct TorrentCardView: View, Equatable {
     /// Counts the refusals; each one shakes the card.
     @State private var selectionRefusalCount = 0
     @State private var selectionRefusalTask: Task<Void, Never>?
+    /// A one-line card's trailing controls stand at its top (see
+    /// `followControlsPlace`).
+    @State private var areControlsRaised = false
+    @State private var hasPlacedControls = false
 
     static func == (lhs: TorrentCardView, rhs: TorrentCardView) -> Bool {
         lhs.row == rhs.row
@@ -298,6 +302,9 @@ struct TorrentCardView: View, Equatable {
         }
         .task(id: row.usesFinishedLayout) {
             await followFinishedLayout()
+        }
+        .task(id: controlsBelongAtTop) {
+            await followControlsPlace()
         }
         .onHover { isInside in
             guard presentationMode.allowsHoverEffects else { return }
@@ -481,6 +488,9 @@ struct TorrentCardView: View, Equatable {
                 }
                 .frame(width: TorrentCardLayout.expandButtonSize, height: TorrentCardLayout.expandButtonSize)
                 .animation(ShatlMotion.metricResize, value: showsExpandButton)
+                .alignmentGuide(VerticalAlignment.center) { [lift = controlLift(height: TorrentCardLayout.expandButtonSize)] slot in
+                    slot[VerticalAlignment.center] + lift
+                }
             }
 
             if row.isSelected {
@@ -579,8 +589,47 @@ struct TorrentCardView: View, Equatable {
     /// card's corner. On one line it stays in the middle, with the title and
     /// the status badge.
     private var selectedIndicatorLift: CGFloat {
-        guard layoutStage < .merged, row.errorState == nil, showsExpansionToggle else { return 0 }
-        return (TorrentCardLayout.expandButtonSize - ShatlSelectionMark.diameter) / 2
+        controlLift(height: ShatlSelectionMark.diameter)
+    }
+
+    /// How far a trailing control rises from the middle of the title row to
+    /// its top: always in a card of several lines, where the row is the
+    /// expand button's height; in a one-line card, where the row is the
+    /// status badge's, only once the card is open (`areControlsRaised`).
+    private func controlLift(height: CGFloat) -> CGFloat {
+        guard row.errorState == nil, showsExpansionToggle else { return 0 }
+        if layoutStage < .merged {
+            return (TorrentCardLayout.expandButtonSize - height) / 2
+        }
+        guard areControlsRaised else { return 0 }
+        return (ShatlMetricLayout.containerHeight - height) / 2
+    }
+
+    /// An open one-line card keeps its controls at the top, as a card of
+    /// several lines does; a closed one keeps them in the middle of the row,
+    /// with the title and the badge.
+    private var controlsBelongAtTop: Bool {
+        layoutStage >= .merged && row.isExpanded
+    }
+
+    /// The controls go to their new place only after a pause, once the
+    /// expand symbol has been replaced in place; a click back before then
+    /// cancels the move. A card that appears places them at once.
+    @MainActor
+    private func followControlsPlace() async {
+        let target = controlsBelongAtTop
+        guard hasPlacedControls else {
+            areControlsRaised = target
+            hasPlacedControls = true
+            return
+        }
+        guard areControlsRaised != target else { return }
+
+        try? await Task.sleep(for: ShatlMotion.cardControlsSettleDelay)
+        guard !Task.isCancelled else { return }
+        withAnimation(reduceMotion ? nil : ShatlMotion.cardControlSlide) {
+            areControlsRaised = target
+        }
     }
 
     private func titleLine(_ title: String) -> some View {

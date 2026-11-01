@@ -153,7 +153,12 @@ something new shows a part listed here, add the place to its line.
   status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
   built for finished downloads, at launch too, start on one line without
   animation; a card that finishes in view takes `TorrentCardFinishStage`
-  steps one after another, and goes back in one move. If a hang returns,
+  steps one after another, and goes back in one move. Its expand button and
+  selection mark stand in the middle of its row, and at the top once the
+  card is open, as on a card of several lines; they move only a second
+  after the click (`ShatlMotion.cardControlsSettleDelay`), once the expand
+  symbol has been replaced in place: a symbol replaced while it moves draws
+  artefacts. If a hang returns,
   sample it first. The large add-review file tree may use its separate
   cached/flattened `LazyVStack` path.
 - The list is moved with a card that expands, and to its new end after
