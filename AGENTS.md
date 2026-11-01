@@ -54,6 +54,51 @@ persistence, deletion, restore, or shared UI state.
   `Tests/Typography/ShatlTypograph.swift`; the tests fail on an untypeset
   string. Counts take plural keys through `L10n.pluralKey`, never "file(s)".
 
+## What shows what
+
+Before changing one of these, check every place it shows up; a text that
+promises behaviour is checked against the code in `CopyPromiseTests`. When
+something new shows a part listed here, add the place to its line.
+
+- Download card (`TorrentCardView`): the list (`TorrentListView`), and the
+  demo card (`TorrentCardPreviewView`) in Settings → Appearance and in the
+  onboarding's expanded-card step; Figma `components / torrent-card`. Its
+  corner radius also shapes the demo cards' shadow.
+- Metric formats (`MetricsDisplayRules`, `Metrics`): the card's speed set,
+  expanded groups and speed chips; the add window's file sizes, summary and
+  low-space text (`AddTorrentSummaryByteFormatter`, `DiskSpaceCheck`); the
+  "Точность значений" popover, whose examples must be what the formatter
+  shows; README ("simplified metrics").
+- Speed levels (`TransferSpeedLevel` thresholds): the card's speed icons and
+  colours, the speed-colour legend in Settings (derived from the code), and
+  the descriptions of Figma's `speed/badge/*` tokens, which name the
+  thresholds.
+- Status badges (`ShatlStatusBadgePalette`): the card's badge, on one line
+  too, the demo cards, the monochrome appearance; Figma
+  `components / torrent-card / statusBadge` and the `status/*` token
+  descriptions.
+- Selection mark (`ShatlSelectionMark`): the download card and the option
+  cards (`ShatlSettingsInputCard`: performance modes, themes).
+- Performance profiles (`LTMakePerformanceSettingsPack`): Halo's limits are
+  named in `settings.downloads.performance.caption.economical` and
+  `halo_notice.message`; the speedometers; README.
+- Usage statistics (`UsageTelemetryPayload`): `DataCollectionInfo` in
+  Settings → Data and in the onboarding's statistics step, the inspectable
+  payload, README "Privacy", the privacy policy on the site, the Privacy
+  Manifest. Any change to what is sent goes into all of them.
+- Message in the middle of a window (`ShatlMessageBlockPrimary`): session
+  load and its errors, the empty search, the drop screen, the add window's
+  messages.
+- Link button (`ShatlLinkButton`): the About footer, the licences popover,
+  the monochrome popover.
+- Third-party code: `THIRD-PARTY-NOTICES.md`, `Vendor/Licenses` and
+  `ShatlThirdPartyComponent` (`ThirdPartyLicensesTests`).
+- Setting names reused elsewhere: the onboarding's last step names Settings
+  sections by the same keys (`settings.appearance.metrics.section`,
+  `settings.downloads.performance.section`).
+- Any visible string: all seven languages, and §8 of the owner's Copy Guide
+  when the wording is approved.
+
 ## Invariants
 
 - `session.json`, archived torrents, bookmarks, and fastresume data are durable
