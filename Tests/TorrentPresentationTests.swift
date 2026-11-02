@@ -68,7 +68,7 @@ final class TorrentPresentationTests: XCTestCase {
         let sizeItem = groups.sizeGroup.items.first
 
         XCTAssertEqual(groups.sizeGroup.id, "size")
-        XCTAssertEqual(sizeItem?.iconName, "scalemass")
+        XCTAssertEqual(sizeItem?.iconName, "internaldrive")
         XCTAssertEqual(
             [sizeItem?.number, sizeItem?.unit].compactMap { $0 }.joined(separator: " "),
             Metrics.formatBytes(3_000, mode: .detailed)
@@ -157,7 +157,7 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(TransferSpeedLevel(iconName: "figure.run"), .run)
         XCTAssertEqual(TransferSpeedLevel(iconName: "hare"), .hare)
         XCTAssertEqual(TransferSpeedLevel(iconName: "bolt.fill"), .bolt)
-        XCTAssertNil(TransferSpeedLevel(iconName: "scalemass"))
+        XCTAssertNil(TransferSpeedLevel(iconName: "internaldrive"))
     }
 
     func testSpeedLevelsStartAfreshAfterAStop() {

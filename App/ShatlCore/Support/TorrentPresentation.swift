@@ -408,7 +408,7 @@ nonisolated enum TorrentPresentation {
                     items: [
                         bytesMetricItem(
                             id: "uploaded",
-                            iconName: "shippingbox.and.arrow.backward",
+                            iconName: "tray.and.arrow.up",
                             bytes: record.metrics.uploadedBytes,
                             purpose: .uploaded,
                             mode: mode,
@@ -427,7 +427,7 @@ nonisolated enum TorrentPresentation {
                 items: [
                     bytesMetricItem(
                         id: "size",
-                        iconName: "scalemass",
+                        iconName: "internaldrive",
                         bytes: selectedSizeBytes(for: record),
                         purpose: .size,
                         mode: mode,
@@ -554,7 +554,7 @@ nonisolated enum TorrentPresentation {
             items.append(
                 MetricItemPresentation(
                     id: "peers",
-                    iconName: "arrow.up.arrow.down",
+                    iconName: "arrow.up.and.down",
                     number: Metrics.formatPeerCount(peers, mode: mode),
                     unit: nil,
                     usesAccentIcon: false
