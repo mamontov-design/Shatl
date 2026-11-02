@@ -106,7 +106,9 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 @property (nonatomic, readonly) long long downloadSpeedBytesPerSecond;
 @property (nonatomic, readonly) long long uploadSpeedBytesPerSecond;
 @property (nonatomic, readonly, nullable) NSNumber *etaSeconds;
+/// Connected peers that have the whole torrent; nil when none.
 @property (nonatomic, readonly, nullable) NSNumber *seeds;
+/// Connected peers still downloading, seeds left out; nil when none.
 @property (nonatomic, readonly, nullable) NSNumber *peers;
 @property (nonatomic, readonly) long long uploadedBytes;
 @property (nonatomic, readonly) long long totalBytes;
@@ -257,6 +259,11 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 /// NAT-PMP as the preference says.
 + (BOOL)sessionSettingsForwardPortForProfile:(LTPerformanceProfile)profile
                               portForwarding:(BOOL)portForwarding;
+
+/// The peers a snapshot reports for libtorrent's connected peers and seeds:
+/// the same count the snapshot takes, seeds left out.
++ (NSInteger)downloadingPeerCountForConnectedPeers:(NSInteger)connectedPeers
+                                             seeds:(NSInteger)seeds;
 
 /// What the router answered since port forwarding was switched on.
 - (LTPortMappingStatus *)currentPortMappingStatus;

@@ -443,6 +443,13 @@ static NSNumber * _Nullable LTBoxedIntIfPositive(int value) {
     return value > 0 ? @(value) : nil;
 }
 
+/// The connected peers that are still downloading. libtorrent's `num_peers`
+/// counts every connection, seeds too, so a card that showed it beside the
+/// seeds named the same seeds twice whenever only seeds were connected.
+static int LTDownloadingPeerCount(lt::torrent_status const& status) {
+    return std::max(0, status.num_peers - status.num_seeds);
+}
+
 static NSNumber * _Nullable LTBoxedETA(lt::torrent_status const& status) {
     if (status.download_rate <= 0 || status.total_wanted <= status.total_wanted_done) {
         return nil;
@@ -1387,6 +1394,14 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                               portForwarding:(BOOL)portForwarding {
     lt::settings_pack const pack = LTMakeSessionSettingsPack(profile, OPEN_MAX, portForwarding, NO);
     return pack.get_bool(lt::settings_pack::enable_upnp) && pack.get_bool(lt::settings_pack::enable_natpmp);
+}
+
++ (NSInteger)downloadingPeerCountForConnectedPeers:(NSInteger)connectedPeers
+                                             seeds:(NSInteger)seeds {
+    lt::torrent_status status;
+    status.num_peers = static_cast<int>(connectedPeers);
+    status.num_seeds = static_cast<int>(seeds);
+    return LTDownloadingPeerCount(status);
 }
 
 - (LTPortMappingStatus *)currentPortMappingStatus {
@@ -2967,7 +2982,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
                                       uploadSpeedBytesPerSecond:status.upload_payload_rate
                                                      etaSeconds:LTBoxedETA(status)
                                                           seeds:LTBoxedIntIfPositive(status.num_seeds)
-                                                          peers:LTBoxedIntIfPositive(status.num_peers)
+                                                          peers:LTBoxedIntIfPositive(LTDownloadingPeerCount(status))
                                                   uploadedBytes:status.all_time_upload
                                                      totalBytes:status.total
                                                   selectedBytes:status.total_wanted > 0 ? status.total_wanted : status.total
