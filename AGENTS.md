@@ -200,8 +200,10 @@ something new shows a part listed here, add the place to its line.
   wallpaper. `AddTorrentReviewAppearanceTests` watches where the labels sit.
 - Colours follow Figma. `ShatlPalette` (`Palette.swift`) holds the Radix
   values of Figma's Palette collection, `ShatlColor` (`Colors.swift`) the
-  tokens of its Tokens collection under their iOS code syntax names, each a
-  light and dark pair. Views use only `ShatlColor`; the one colour asset is
+  tokens of its UI collection under their iOS code syntax names, each a
+  light and dark pair. Figma's macOS, Graphics and System collections paint
+  what Shatl does not draw itself (system chrome, artwork, the file) and have
+  no counterpart here. Views use only `ShatlColor`; the one colour asset is
   `AccentColor`, which the system needs. Change a colour in Figma first, then
   point the token at the same step here; `ColorTokenTests` rejects colours
   written into views.

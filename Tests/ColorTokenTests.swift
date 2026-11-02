@@ -39,7 +39,7 @@ final class ColorTokenTests: XCTestCase {
     }
 
     /// Colours are written in Palette.swift and named in Colors.swift, after
-    /// Figma's Palette and Tokens. A colour written into a view by hand
+    /// Figma's Palette and UI collections. A colour written into a view by hand
     /// follows neither the mockup nor, often, the theme.
     func testNoViewWritesAColourByHand() throws {
         let appURL = URL(fileURLWithPath: #filePath)

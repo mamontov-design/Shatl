@@ -42,7 +42,7 @@ private nonisolated extension NSColor {
 }
 
 /// Tokens: what a colour is for. Each names its light and dark colour in
-/// `ShatlPalette`, and Figma has the same token in its Tokens collection:
+/// `ShatlPalette`, and Figma has the same token in its UI collection:
 /// `line-message/background` there is `lineMessageBackground` here. Views
 /// use only these.
 enum ShatlColor {
