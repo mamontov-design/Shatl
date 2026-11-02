@@ -153,11 +153,6 @@ final class TorrentPresentationTests: XCTestCase {
         // Holding 10 % below the level it holds, not below the one under it.
         XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 23 * megabyte, after: .bolt), .bolt)
         XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 22 * megabyte, after: .bolt), .hare)
-
-        XCTAssertEqual(TransferSpeedLevel(iconName: "figure.run"), .run)
-        XCTAssertEqual(TransferSpeedLevel(iconName: "hare"), .hare)
-        XCTAssertEqual(TransferSpeedLevel(iconName: "bolt.fill"), .bolt)
-        XCTAssertNil(TransferSpeedLevel(iconName: "internaldrive"))
     }
 
     func testSpeedLevelsStartAfreshAfterAStop() {
@@ -167,12 +162,10 @@ final class TorrentPresentationTests: XCTestCase {
         metrics.uploadSpeedBytesPerSecond = 100 * 1_024
         let levels = TransferSpeedLevels().following(metrics, at: now)
         XCTAssertEqual(levels.download, .run)
-        XCTAssertEqual(levels.upload, .tortoise)
 
         metrics.downloadSpeedBytesPerSecond = 0
         let next = levels.following(metrics, at: now + .seconds(1))
         XCTAssertNil(next.download)
-        XCTAssertEqual(next.upload, .tortoise)
     }
 
     /// The legend of speed colours in Settings names each level, fastest
@@ -390,13 +383,14 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(oldGroup.widthAnimationSignature, newGroup.widthAnimationSignature)
     }
 
-    func testDownloadAndUploadSpeedMetricsUseDistinctSymbolStylesAtEveryThreshold() {
+    /// The download speed names its level; the upload speed keeps one icon.
+    func testDownloadSpeedShowsItsLevelAndUploadSpeedOneIcon() {
         let cases: [(speed: Int64, downloadIcon: String, uploadIcon: String)] = [
-            (1, "tortoise.fill", "tortoise"),
-            (250 * 1_024, "figure.walk", "figure.walk"),
-            (2 * 1_024 * 1_024, "figure.run", "figure.run"),
-            (8 * 1_024 * 1_024, "hare.fill", "hare"),
-            (25 * 1_024 * 1_024, "bolt.fill", "bolt"),
+            (1, "tortoise.fill", "gauge.with.needle"),
+            (250 * 1_024, "figure.walk", "gauge.with.needle"),
+            (2 * 1_024 * 1_024, "figure.run", "gauge.with.needle"),
+            (8 * 1_024 * 1_024, "hare.fill", "gauge.with.needle"),
+            (25 * 1_024 * 1_024, "bolt.fill", "gauge.with.needle"),
         ]
 
         for testCase in cases {

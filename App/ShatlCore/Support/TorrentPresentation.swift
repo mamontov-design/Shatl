@@ -147,14 +147,6 @@ nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
         self = level
     }
 
-    /// The level an icon stands for, whether a download or an upload icon.
-    init?(iconName: String) {
-        guard let level = Self.allCases.first(where: {
-            $0.downloadIconName == iconName || $0.uploadIconName == iconName
-        }) else { return nil }
-        self = level
-    }
-
     var downloadIconName: String {
         switch self {
         case .tortoise: "tortoise.fill"
@@ -162,16 +154,6 @@ nonisolated enum TransferSpeedLevel: Int, CaseIterable, Comparable, Sendable {
         case .run: "figure.run"
         case .hare: "hare.fill"
         case .bolt: "bolt.fill"
-        }
-    }
-
-    var uploadIconName: String {
-        switch self {
-        case .tortoise: "tortoise"
-        case .walk: "figure.walk"
-        case .run: "figure.run"
-        case .hare: "hare"
-        case .bolt: "bolt"
         }
     }
 
@@ -291,12 +273,11 @@ nonisolated struct PeerGroupTitle: Equatable, Sendable {
     }
 }
 
-/// The speed levels a torrent's icons show, whether each way stands, and
+/// The download speed level its icon shows, whether each way stands, and
 /// whom the title over seeds and peers names, kept from one update to the
 /// next.
 nonisolated struct TransferSpeedLevels: Equatable, Sendable {
     var download: TransferSpeedLevel?
-    var upload: TransferSpeedLevel?
     var downloadActivity = TransferActivity()
     var uploadActivity = TransferActivity()
     var peerGroupTitle = PeerGroupTitle()
@@ -306,7 +287,6 @@ nonisolated struct TransferSpeedLevels: Equatable, Sendable {
     func following(_ metrics: TorrentMetrics, at now: ContinuousClock.Instant) -> TransferSpeedLevels {
         TransferSpeedLevels(
             download: Self.level(metrics.downloadSpeedBytesPerSecond, after: download),
-            upload: Self.level(metrics.uploadSpeedBytesPerSecond, after: upload),
             downloadActivity: downloadActivity.following(bytesPerSecond: metrics.downloadSpeedBytesPerSecond, at: now),
             uploadActivity: uploadActivity.following(bytesPerSecond: metrics.uploadSpeedBytesPerSecond, at: now),
             peerGroupTitle: peerGroupTitle.following(seeds: metrics.seeds ?? 0, peers: metrics.peers ?? 0, at: now)
@@ -392,8 +372,7 @@ nonisolated enum TorrentPresentation {
                         uploadSpeedMetricItem(
                             for: record,
                             mode: mode,
-                            localeOverride: localeOverride,
-                            level: speedLevels?.upload
+                            localeOverride: localeOverride
                         ),
                     ]
                 )
@@ -568,14 +547,14 @@ nonisolated enum TorrentPresentation {
     private nonisolated static func uploadSpeedMetricItem(
         for record: TorrentRecord,
         mode: MetricsPresentationMode,
-        localeOverride: AppLocaleOverride,
-        level: TransferSpeedLevel?
+        localeOverride: AppLocaleOverride
     ) -> MetricItemPresentation {
         let speed = record.metrics.uploadSpeedBytesPerSecond
         let components = splitMetricValue(Metrics.formatSpeed(speed, mode: mode, localeOverride: localeOverride))
         return MetricItemPresentation(
             id: "upload-speed",
-            iconName: (level ?? TransferSpeedLevel(bytesPerSecond: speed)).uploadIconName,
+            // One icon at any speed: levels belong to the download speed.
+            iconName: "gauge.with.needle",
             number: components.number,
             unit: components.unit,
             usesAccentIcon: false
