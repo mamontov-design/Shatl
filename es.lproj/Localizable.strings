@@ -259,6 +259,7 @@
 "menu.debug.preview_restore_status" = "Mostrar «Preparando descargas»";
 "menu.debug.preview_unsupported_session" = "Mostrar «No se pudo abrir la lista de descargas»";
 "menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
+"menu.debug.show_empty_list" = "Mostrar la lista vacía";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";

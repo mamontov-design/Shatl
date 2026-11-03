@@ -46,8 +46,17 @@ struct MainWindowView: View {
         MainWindowStage.current(
             hasLoadedInitialSession: store.hasLoadedInitialSession,
             sessionLoadIssue: displayedSessionLoadIssue,
-            hasRows: !store.torrentRowIDs.isEmpty
+            hasRows: showsRows
         )
+    }
+
+    /// In Debug the list may stand aside for the empty state, see
+    /// `AppStore.debugShowsEmptyList`.
+    private var showsRows: Bool {
+        #if DEBUG
+        if store.debugShowsEmptyList { return false }
+        #endif
+        return !store.torrentRowIDs.isEmpty
     }
 
     private var displayedSessionLoadIssue: SessionLoadIssue? {
@@ -241,7 +250,12 @@ struct MainWindowView: View {
         // 52 pt is the onboarding's 500: the smallest window keeps its
         // height as the onboarding comes and goes.
         .frame(minWidth: 440, minHeight: 448)
-        .background(WindowChromeConfigurator(isSearchEnabled: stage.allowsListActions))
+        .background(
+            WindowChromeConfigurator(
+                isSearchEnabled: stage.allowsListActions,
+                hidesTitle: stage == .empty && store.preferences.preferredBrandMark == .wordmark
+            )
+        )
         // The same buttons and search in every stage, so the top of the window
         // never changes under a stage transition; what a stage does not allow
         // is only disabled.
@@ -1162,24 +1176,38 @@ private enum MainWindowAlert: Identifiable {
 
 private struct WindowChromeConfigurator: NSViewRepresentable {
     let isSearchEnabled: Bool
+    let hidesTitle: Bool
+
+    final class Coordinator {
+        /// The window opens with its title as the stage wants it; later
+        /// changes fade with the marks.
+        var hasSetTitle = false
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        configureChrome(from: view)
+        configureChrome(from: view, coordinator: context.coordinator)
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        configureChrome(from: nsView)
+        configureChrome(from: nsView, coordinator: context.coordinator)
     }
 
-    private func configureChrome(from view: NSView) {
+    private func configureChrome(from view: NSView, coordinator: Coordinator) {
         DispatchQueue.main.async {
             guard let window = view.window else { return }
 
             ShatlAppDelegate.configureWindowChrome(window)
             window.titleVisibility = .visible
             MainWindowSearchToolbarItem.setEnabled(isSearchEnabled, in: window)
+            if MainWindowTitle.setTransparent(hidesTitle, in: window, animated: coordinator.hasSetTitle) {
+                coordinator.hasSetTitle = true
+            }
         }
     }
 }

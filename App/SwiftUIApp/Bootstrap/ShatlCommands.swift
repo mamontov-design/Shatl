@@ -31,6 +31,10 @@ struct ShatlCommands: Commands {
             Button("menu.debug.cycle_drop_screen") {
                 store.cycleDropScreenPreviewForDebug()
             }
+            Toggle("menu.debug.show_empty_list", isOn: Binding(
+                get: { store.debugShowsEmptyList },
+                set: { _ in store.toggleEmptyListForDebug() }
+            ))
             Toggle("menu.debug.simulate_low_space", isOn: Binding(
                 get: { store.debugSimulatesLowDiskSpace },
                 set: { _ in store.toggleLowDiskSpaceForDebug() }
