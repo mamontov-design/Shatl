@@ -1335,7 +1335,7 @@ private struct SpeedColorsInfoPopover: View {
 
             Text("settings.appearance.speed_colors.popover.caption")
                 .shatlTypography(ShatlTypography.captionRegular)
-                .foregroundStyle(ShatlColor.typographySecondary)
+                .foregroundStyle(ShatlColor.typographyPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1457,7 +1457,7 @@ private struct MonochromeAppearanceInfoPopover: View {
     private func popoverText(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(ShatlColor.typographySecondary)
+            .foregroundStyle(ShatlColor.typographyPrimary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -1468,14 +1468,6 @@ private struct MonochromeAppearanceInfoPopover: View {
 /// on the component's own site. The full texts are inside the app.
 private struct LicensesInfoPopover: View {
     let localeOverride: AppLocaleOverride
-    @Environment(\.colorScheme) private var colorScheme
-
-    /// The two small lines, the GPL and the note: in dark the secondary and
-    /// tertiary greys were hard to read on the popover, so both are primary
-    /// there (the owner's check).
-    private func smallTextColor(inLight color: Color) -> Color {
-        colorScheme == .dark ? ShatlColor.typographyPrimary : color
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1487,7 +1479,7 @@ private struct LicensesInfoPopover: View {
 
                 Text("settings.about.licenses.popover.gpl")
                     .shatlTypography(ShatlTypography.captionRegular)
-                    .foregroundStyle(smallTextColor(inLight: ShatlColor.typographySecondary))
+                    .foregroundStyle(ShatlColor.typographyPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -1513,7 +1505,7 @@ private struct LicensesInfoPopover: View {
 
             Text("settings.about.licenses.popover.footnote")
                 .shatlTypography(ShatlTypography.captionRegular)
-                .foregroundStyle(smallTextColor(inLight: ShatlColor.typographyTertiary))
+                .foregroundStyle(ShatlColor.typographyPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, ShatlInfoPopoverLayout.textInset)
@@ -1543,7 +1535,7 @@ private struct MetricsPresentationInfoPopover: View {
     private func popoverText(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(ShatlColor.typographySecondary)
+            .foregroundStyle(ShatlColor.typographyPrimary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

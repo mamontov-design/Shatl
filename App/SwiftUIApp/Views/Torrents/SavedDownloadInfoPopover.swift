@@ -44,7 +44,7 @@ struct SavedDownloadInfoPopover: View {
     private func paragraph(_ text: String) -> some View {
         Text(text)
             .shatlTypography(ShatlTypography.bodyRegular)
-            .foregroundStyle(ShatlColor.typographySecondary)
+            .foregroundStyle(ShatlColor.typographyPrimary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
