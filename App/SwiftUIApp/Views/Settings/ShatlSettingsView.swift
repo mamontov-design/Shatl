@@ -858,8 +858,7 @@ private struct AboutSettingsTab: View {
             )
 
             ShatlLinkButton(
-                title: L10n.string("settings.about.licenses.button", localeOverride: store.preferences.localeOverride),
-                systemImage: "info.circle.fill"
+                title: L10n.string("settings.about.licenses.button", localeOverride: store.preferences.localeOverride)
             ) {
                 isLicensesPopoverPresented = true
             }
@@ -1310,7 +1309,8 @@ private struct ShatlSettingsInfoToggleRow<Popover: View>: View {
 /// What the speed colours mean: the five levels, fastest first, each named
 /// by the speed it begins at. The badges stand on a plate of their own, as
 /// they stand on a card: on the popover's grey glass the light ones lost
-/// their edges.
+/// their edges. The plate's 1 pt outline, outside it, and the lines between
+/// the rows are the popover's outline colour, and the lines run up to it.
 private struct SpeedColorsInfoPopover: View {
     let localeOverride: AppLocaleOverride
     @Environment(\.shatlTypographyProfile) private var typographyProfile
@@ -1351,7 +1351,7 @@ private struct SpeedColorsInfoPopover: View {
                 ForEach(Array(levels.enumerated()), id: \.element) { index, level in
                     if index > 0 {
                         Rectangle()
-                            .fill(ShatlColor.cardOutlineDefault)
+                            .fill(ShatlColor.outlineOnPopover)
                             .frame(height: 1)
                             .frame(height: Self.rowSpacing)
                     }
@@ -1372,6 +1372,11 @@ private struct SpeedColorsInfoPopover: View {
                 ShatlColor.backgroundTertiary,
                 in: RoundedRectangle(cornerRadius: 9, style: .continuous)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(ShatlColor.outlineOnPopover, lineWidth: 1)
+                    .padding(-1)
+            }
         }
     }
 
@@ -1442,6 +1447,7 @@ private struct MonochromeAppearanceInfoPopover: View {
                 title: L10n.string("settings.appearance.monochrome.popover.link", localeOverride: localeOverride),
                 url: ShatlLinks.appearanceSettings
             )
+            .onPopover()
         }
         .padding(.vertical, ShatlInfoPopoverLayout.verticalPadding)
         .padding(.horizontal, ShatlInfoPopoverLayout.sidePadding)
@@ -1491,6 +1497,7 @@ private struct LicensesInfoPopover: View {
                 title: L10n.string("settings.about.licenses.popover.source", localeOverride: localeOverride),
                 url: ShatlLinks.sourceCode
             )
+            .onPopover()
 
             Text("settings.about.licenses.popover.components")
                 .shatlTypography(ShatlTypography.bodyMedium)
@@ -1501,6 +1508,7 @@ private struct LicensesInfoPopover: View {
 
             ForEach(ShatlThirdPartyComponent.allCases) { component in
                 ShatlLinkButton(title: component.title, url: component.licenseURL)
+                    .onPopover()
             }
 
             Text("settings.about.licenses.popover.footnote")

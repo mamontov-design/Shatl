@@ -253,13 +253,15 @@ struct ShatlButton: View {
     }
 }
 
-/// A small capsule with a name and a symbol after it. As a link it opens a
-/// page in the browser, and its arrow says that the page opens outside the
-/// app; with an "i" it is a button that tells more in a popover. Under the
-/// pointer it wears the "Скачивается" badge's colours with our accent; in
-/// the monochrome appearance the monochrome accent with inverted text, and
-/// with an accent picked in macOS, Graphite too, the primary text colour,
-/// inverted text on it: a violet one sat ill with a yellow accent.
+/// A small capsule with a name and, on a link, an arrow after it that says
+/// the page opens outside the app; a button that opens a popover has its
+/// name alone. Under the pointer it wears the "Скачивается" badge's colours
+/// with our accent; in the monochrome appearance the monochrome accent with
+/// inverted text, and with an accent picked in macOS, Graphite too, the
+/// primary text colour, inverted text on it: a violet one sat ill with a
+/// yellow accent. On a popover (`onPopover()`) it is filled with a
+/// see-through grey at rest too, its label inverted, as Figma's "Contrast on
+/// Transparent" variants are.
 struct ShatlLinkButton: View {
     private enum Action {
         case open(URL)
@@ -267,8 +269,9 @@ struct ShatlLinkButton: View {
     }
 
     let title: ShatlTextContent
-    private let systemImage: String
+    private let systemImage: String?
     private let action: Action
+    private var isOnPopover = false
 
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
@@ -285,10 +288,17 @@ struct ShatlLinkButton: View {
         self.action = .open(url)
     }
 
-    init(title: String, systemImage: String, action: @escaping () -> Void) {
+    init(title: String, action: @escaping () -> Void) {
         self.title = .verbatim(title)
-        self.systemImage = systemImage
+        self.systemImage = nil
         self.action = .perform(action)
+    }
+
+    /// The variant for a popover's glass.
+    func onPopover() -> Self {
+        var button = self
+        button.isOnPopover = true
+        return button
     }
 
     private var isLink: Bool {
@@ -310,16 +320,20 @@ struct ShatlLinkButton: View {
                     .lineLimit(1)
                     .fixedSize()
 
-                Image(systemName: systemImage)
-                    .font(ShatlTypography.bodyRegular.variant(for: typographyProfile).font)
-                    .frame(width: Self.iconSize, height: Self.iconSize)
-                    .accessibilityHidden(true)
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(ShatlTypography.bodyRegular.variant(for: typographyProfile).font)
+                        .frame(width: Self.iconSize, height: Self.iconSize)
+                        .accessibilityHidden(true)
+                }
             }
-            .foregroundStyle(isHovered ? hoverLabel : ShatlColor.typographyPrimary)
+            // As tall without the symbol as with it.
+            .frame(height: Self.iconSize)
+            .foregroundStyle(label)
             .padding(.leading, 8)
-            .padding(.trailing, 3)
+            .padding(.trailing, systemImage == nil ? 8 : 3)
             .padding(.vertical, 3)
-            .background(isHovered ? hoverBackground : ShatlColor.backgroundSecondary)
+            .background(background)
             .clipShape(Capsule(style: .continuous))
             .contentShape(Capsule(style: .continuous))
         }
@@ -329,6 +343,23 @@ struct ShatlLinkButton: View {
         .pointerStyle(.link)
         .accessibilityAddTraits(isLink ? .isLink : [])
         .accessibilityRemoveTraits(isLink ? .isButton : [])
+    }
+
+    private var background: Color {
+        if isOnPopover {
+            switch (usesMonochrome, isHovered) {
+            case (false, false): return ShatlColor.linkButtonOnPopoverDefault
+            case (false, true): return ShatlColor.linkButtonOnPopoverHover
+            case (true, false): return ShatlColor.linkButtonOnPopoverMonochromeDefault
+            case (true, true): return ShatlColor.linkButtonOnPopoverMonochromeHover
+            }
+        }
+        return isHovered ? hoverBackground : ShatlColor.backgroundSecondary
+    }
+
+    private var label: Color {
+        if isOnPopover { return ShatlColor.typographyPrimaryInverted }
+        return isHovered ? hoverLabel : ShatlColor.typographyPrimary
     }
 
     private var hoverBackground: Color {

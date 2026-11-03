@@ -106,6 +106,9 @@ enum ShatlColor {
     static let outlinePrimary = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA8)
     static let outlineSecondary = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA3)
     static let outlineTertiary = Color(light: ShatlPalette.gray4, dark: ShatlPalette.grayDarkA3)
+    /// See-through, as the popover's glass is: a plate's edge and the lines
+    /// on a popover.
+    static let outlineOnPopover = Color(light: ShatlPalette.grayA8, dark: ShatlPalette.grayDarkA8)
 
     /// `backgroundTertiary` in light; 20% black in dark, so the empty part of
     /// the bar does not read as a hole in the card.
@@ -199,6 +202,13 @@ enum ShatlColor {
     /// "Скачивается" badge, as the mockup binds them.
     static let linkButtonHoverBackground = statusBadgeDownloadingDefault
     static let linkButtonHoverLabel = statusTextDownloadingDefault
+    /// A link button on a popover's glass is filled at rest too, its label
+    /// inverted. The monochrome pair holds the same steps for now, so that
+    /// either can be repainted alone.
+    static let linkButtonOnPopoverDefault = Color(light: ShatlPalette.grayA11, dark: ShatlPalette.grayDarkA11)
+    static let linkButtonOnPopoverHover = Color(light: ShatlPalette.grayA12, dark: ShatlPalette.grayDarkA12)
+    static let linkButtonOnPopoverMonochromeDefault = Color(light: ShatlPalette.grayA11, dark: ShatlPalette.grayDarkA11)
+    static let linkButtonOnPopoverMonochromeHover = Color(light: ShatlPalette.grayA12, dark: ShatlPalette.grayDarkA12)
 
     static let typographyPrimary = Color(light: ShatlPalette.gray12, dark: ShatlPalette.grayDark12)
     static let typographyPrimaryInverted = Color(light: ShatlPalette.white, dark: ShatlPalette.gray12)

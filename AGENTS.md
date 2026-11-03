@@ -89,8 +89,10 @@ something new shows a part listed here, add the place to its line.
 - Message in the middle of a window (`ShatlMessageBlockPrimary`): session
   load and its errors, the empty search, the drop screen, the add window's
   messages.
-- Link button (`ShatlLinkButton`): the About footer, the licences popover,
-  the monochrome popover.
+- Link button (`ShatlLinkButton`): the About footer and the "Лицензии"
+  button (name alone, no symbol); on a popover, `onPopover()`, Figma's
+  "Contrast on Transparent" variants: the licences popover, the monochrome
+  popover.
 - Third-party code: `THIRD-PARTY-NOTICES.md`, `Vendor/Licenses` and
   `ShatlThirdPartyComponent` (`ThirdPartyLicensesTests`).
 - Setting names reused elsewhere: the onboarding's last step names Settings
