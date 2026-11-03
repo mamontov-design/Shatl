@@ -89,6 +89,14 @@ something new shows a part listed here, add the place to its line.
 - Message in the middle of a window (`ShatlMessageBlockPrimary`): session
   load and its errors, the empty search, the drop screen, the add window's
   messages.
+- Brand marks (`ShatlWordmark`: the type wordmark `ShatlTypeWordmark` and
+  the logomark): the empty list, where the box follows the mark shown
+  (`heightFollowsMark`) and the window's title fades with the wordmark
+  (`MainWindowTitle`); Settings → About, one box for both marks; the
+  onboarding, the logomark alone. The wordmark's colours
+  (`ShatlColor.Wordmark`: five hues, grey in monochrome, the macOS accent
+  mixed by weight) and timings (`ShatlMotion.wordmark*`,
+  `brandMarkChangeDuration`); under Reduce Motion both marks stand still.
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"
   button (name alone, no symbol); on a popover, `onPopover()`, Figma's
   "Contrast on Transparent" variants: the licences popover, the monochrome
