@@ -406,7 +406,7 @@ nonisolated enum TorrentPresentation {
                 items: [
                     bytesMetricItem(
                         id: "size",
-                        iconName: "internaldrive",
+                        iconName: "externaldrive",
                         bytes: selectedSizeBytes(for: record),
                         purpose: .size,
                         mode: mode,

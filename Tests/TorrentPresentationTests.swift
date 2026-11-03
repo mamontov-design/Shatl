@@ -68,7 +68,7 @@ final class TorrentPresentationTests: XCTestCase {
         let sizeItem = groups.sizeGroup.items.first
 
         XCTAssertEqual(groups.sizeGroup.id, "size")
-        XCTAssertEqual(sizeItem?.iconName, "internaldrive")
+        XCTAssertEqual(sizeItem?.iconName, "externaldrive")
         XCTAssertEqual(
             [sizeItem?.number, sizeItem?.unit].compactMap { $0 }.joined(separator: " "),
             Metrics.formatBytes(3_000, mode: .detailed)
