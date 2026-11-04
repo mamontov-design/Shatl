@@ -94,9 +94,11 @@ something new shows a part listed here, add the place to its line.
   (`heightFollowsMark`) and the window's title fades with the wordmark
   (`MainWindowTitle`); Settings → About, one box for both marks; the
   onboarding, the logomark alone. The wordmark's colours
-  (`ShatlColor.Wordmark`: five hues, grey in monochrome, the macOS accent
+  (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
   mixed by weight) and timings (`ShatlMotion.wordmark*`,
   `brandMarkChangeDuration`); under Reduce Motion both marks stand still.
+  Its four hues also tint the Settings option cards' wink
+  (`ShatlColor.InputCardActivationPulse`).
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"
   button (name alone, no symbol); on a popover, `onPopover()`, Figma's
   "Contrast on Transparent" variants: the licences popover, the monochrome
@@ -152,7 +154,10 @@ something new shows a part listed here, add the place to its line.
   nothing to count is hidden, not shown as "0" seeds or peers or "0 КБ/с".
   The cells follow the numbers at once; only the title over seeds and peers
   waits for a change to hold before it names "Сиды" or "Пиры" alone
-  (`PeerGroupTitle`: 3 s to come, 5 s to go, as "Простаивает").
+  (`PeerGroupTitle`: 3 s to come, 5 s to go, as "Простаивает"). Over one
+  lone cell of 1 it says "Сид" or "Пир" once the 1 has held 3 s, and goes
+  back to the plural the moment the number changes; over 21 it stays plural,
+  whatever a language's plural rules say.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,

@@ -172,7 +172,7 @@ final class ShatlTypeWordmarkTests: XCTestCase {
             let style = player.style(at: start.addingTimeInterval(Double(frame) / Double(framesPerSecond)))
             if !ShatlTypeWordmark.weights.contains(style.weight)
                 || !ShatlTypeWordmark.widths.contains(style.width)
-                || !(0...4).contains(style.hue) {
+                || !(0...3).contains(style.hue) {
                 problems.append("out of range at frame \(frame): \(style)")
             }
             // A rebuild across the whole weight peaks near 850 a second,
@@ -201,7 +201,6 @@ final class ShatlTypeWordmarkTests: XCTestCase {
     /// up at the thin end, as `accentColored` does.
     func testTheColourFollowsTheWeight() throws {
         let palette: [(thin: Color, standard: Color, bold: Color, thinDark: Color, standardDark: Color, boldDark: Color)] = [
-            (ShatlPalette.indigo9, ShatlPalette.indigo8, ShatlPalette.indigo6, ShatlPalette.indigoDark10, ShatlPalette.indigoDark8, ShatlPalette.indigoDark7),
             (ShatlPalette.iris9, ShatlPalette.iris8, ShatlPalette.iris6, ShatlPalette.irisDark10, ShatlPalette.irisDark8, ShatlPalette.irisDark7),
             (ShatlPalette.violet9, ShatlPalette.violet8, ShatlPalette.violet6, ShatlPalette.violetDark10, ShatlPalette.violetDark8, ShatlPalette.violetDark7),
             (ShatlPalette.purple9, ShatlPalette.purple8, ShatlPalette.purple6, ShatlPalette.purpleDark10, ShatlPalette.purpleDark8, ShatlPalette.purpleDark7),
@@ -234,7 +233,7 @@ final class ShatlTypeWordmarkTests: XCTestCase {
         // Between two hues, a colour between them too.
         let violet = try components(ShatlPalette.violet8, in: .light)
         let purple = try components(ShatlPalette.purple8, in: .light)
-        let halfway = try components(ShatlColor.Wordmark.color(hue: 2.5, weight: 540), in: .light)
+        let halfway = try components(ShatlColor.Wordmark.color(hue: 1.5, weight: 540), in: .light)
         XCTAssertNotEqual(halfway, violet)
         XCTAssertNotEqual(halfway, purple)
     }
@@ -285,7 +284,7 @@ final class ShatlTypeWordmarkTests: XCTestCase {
             if style.axes != standard {
                 problems.append("the letters moved at frame \(frame): \(style)")
             }
-            if !(0...4).contains(style.hue) || abs(style.hue - previous.hue) > 0.05 {
+            if !(0...3).contains(style.hue) || abs(style.hue - previous.hue) > 0.05 {
                 problems.append("hue out of range or jumped at frame \(frame): \(previous.hue) → \(style.hue)")
             }
             lastSecond.append(style.hue)

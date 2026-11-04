@@ -39,7 +39,7 @@ nonisolated enum ShatlTypeWordmark {
     static let widths: ClosedRange<Double> = 100...150
 
     /// What the wordmark draws at a moment: its axes and its hue, a place
-    /// on `ShatlColor.Wordmark.hues` from 0 (indigo) to 4 (plum).
+    /// on `ShatlColor.Wordmark.hues` from 0 (iris) to 3 (plum).
     struct Style: Equatable {
         var weight: Double
         var width: Double
@@ -158,7 +158,7 @@ enum ShatlTypeWordmarkMotion {
     static let glideWidths: ClosedRange<Double> = 6...12
     /// A rebuild moves the hue one or two places along the colour wheel.
     static let maximumHueStep = 2
-    static let hueCount = 5
+    static let hueCount = 4
     /// The standard set comes about once in three rebuilds, never twice in
     /// a row, and after three other sets for sure.
     static let standardShare = 1.0 / 3
@@ -611,7 +611,7 @@ private struct ShatlAnyRandom: RandomNumberGenerator {
 
 /// The wordmark in the system font, filled without glass. Its colour
 /// follows the weight, the bolder the paler (`ShatlColor.Wordmark`): in the
-/// app's own accent through five hues, in the monochrome appearance in grey,
+/// app's own accent through four hues, in the monochrome appearance in grey,
 /// with the accent of macOS in that colour. It moves only while it is the
 /// mark shown, and under Reduce Motion it stands at the standard set and
 /// changes only its hue.

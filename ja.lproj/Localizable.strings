@@ -120,6 +120,8 @@
 "torrent.metric.seeds_and_peers" = "シードとピア";
 "torrent.metric.seeds" = "シード";
 "torrent.metric.peers" = "ピア";
+"torrent.metric.seed" = "シード";
+"torrent.metric.peer" = "ピア";
 "torrent.metric.upload_speed" = "アップロード速度";
 "torrent.metric.uploaded" = "アップロード済み";
 "torrent.metric.size" = "サイズ";

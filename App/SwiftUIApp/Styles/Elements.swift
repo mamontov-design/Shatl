@@ -860,6 +860,8 @@ struct ShatlSettingsToggleRow: View {
 
 struct ShatlSettingsInputCard<Content: View>: View {
     @Environment(\.shatlAccent) private var accent
+    @Environment(\.shatlUsesSystemAccent) private var usesSystemAccent
+    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
     let title: ShatlTextContent
     let isSelected: Bool
     var isEnabled = true
@@ -869,6 +871,8 @@ struct ShatlSettingsInputCard<Content: View>: View {
     let action: () -> Void
     @ViewBuilder var content: Content
     @State private var isActivationPulseActive = false
+    /// The hue of the last wink, kept while it fades.
+    @State private var activationPulseHue = 0
     @State private var activationPulseTask: Task<Void, Never>?
 
     init(
@@ -1060,9 +1064,9 @@ struct ShatlSettingsInputCard<Content: View>: View {
     }
 
     private var imageBackground: Color {
-        isActivationPulseActive
-            ? ShatlColor.backgroundPrimary
-            : ShatlColor.backgroundSecondary
+        guard isActivationPulseActive else { return ShatlColor.backgroundSecondary }
+        let pulse = ShatlColor.InputCardActivationPulse.self
+        return usesSystemAccent || usesMonochrome ? pulse.gray : pulse.hues[activationPulseHue]
     }
 
     private func activate() {
@@ -1072,8 +1076,11 @@ struct ShatlSettingsInputCard<Content: View>: View {
 
     private func startActivationPulse() {
         activationPulseTask?.cancel()
+        let hue = ShatlInputCardPulseHue.next()
 
+        // A click during a wink carries the colour over to the new hue.
         withAnimation(ShatlMotion.inputCardActivationPulseIn) {
+            activationPulseHue = hue
             isActivationPulseActive = true
         }
 
@@ -1098,6 +1105,25 @@ struct ShatlSettingsInputCard<Content: View>: View {
         activationPulseTask?.cancel()
         activationPulseTask = nil
         isActivationPulseActive = false
+    }
+}
+
+/// The hue an option card winks in: a random one, never the hue of the
+/// wink before it, whichever card that was.
+@MainActor
+enum ShatlInputCardPulseHue {
+    private static var last: Int?
+
+    static func next() -> Int {
+        var random = SystemRandomNumberGenerator()
+        let hue = next(after: last, of: ShatlColor.InputCardActivationPulse.hues.count, using: &random)
+        last = hue
+        return hue
+    }
+
+    nonisolated static func next<R: RandomNumberGenerator>(after last: Int?, of count: Int, using random: inout R) -> Int {
+        let choices = (0..<count).filter { $0 != last }
+        return choices.randomElement(using: &random) ?? 0
     }
 }
 

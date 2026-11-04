@@ -121,6 +121,8 @@
 "torrent.metric.seeds_and_peers" = "Seeds et peers";
 "torrent.metric.seeds" = "Seeds";
 "torrent.metric.peers" = "Peers";
+"torrent.metric.seed" = "Seed";
+"torrent.metric.peer" = "Peer";
 "torrent.metric.upload_speed" = "Vitesse d’envoi";
 "torrent.metric.uploaded" = "Envoyé";
 "torrent.metric.size" = "Taille";

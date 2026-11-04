@@ -123,6 +123,8 @@
 "torrent.metric.seeds_and_peers" = "Сиды и пиры";
 "torrent.metric.seeds" = "Сиды";
 "torrent.metric.peers" = "Пиры";
+"torrent.metric.seed" = "Сид";
+"torrent.metric.peer" = "Пир";
 "torrent.metric.upload_speed" = "Скорость раздачи";
 "torrent.metric.uploaded" = "Отдано";
 "torrent.metric.size" = "Размер";

@@ -266,17 +266,12 @@ extension ShatlColor {
 }
 
 extension ShatlColor {
-    /// The type wordmark in the app's own accent. Its hue is one of five
+    /// The type wordmark in the app's own accent. Its hue is one of four
     /// neighbours on the colour wheel, kept in their order so that a change
     /// of hue passes through the ones between; its step follows only the
     /// weight of its letters, thin letters solid and bold ones pale. The
     /// standard set stands on the pastel step, behind the title under it.
     enum Wordmark {
-        static let indigo = ShatlWordmarkHue(
-            thin: Color(light: ShatlPalette.indigo9, dark: ShatlPalette.indigoDark10),
-            standard: Color(light: ShatlPalette.indigo8, dark: ShatlPalette.indigoDark8),
-            bold: Color(light: ShatlPalette.indigo6, dark: ShatlPalette.indigoDark7)
-        )
         static let iris = ShatlWordmarkHue(
             thin: Color(light: ShatlPalette.iris9, dark: ShatlPalette.irisDark10),
             standard: Color(light: ShatlPalette.iris8, dark: ShatlPalette.irisDark8),
@@ -299,7 +294,7 @@ extension ShatlColor {
         )
 
         /// In the order of the colour wheel, from blue to pink.
-        static let hues = [indigo, iris, violet, purple, plum]
+        static let hues = [iris, violet, purple, plum]
 
         /// The monochrome appearance: grey at the steps of the hues.
         static let gray = ShatlWordmarkHue(
@@ -310,8 +305,8 @@ extension ShatlColor {
 
         /// The accent chosen in macOS is one colour, so the weight takes it
         /// through the steps of the hues itself, adding as much white in
-        /// light and black in dark as the Radix scales add between them. All
-        /// five hues and grey add the same: 40 and 70 % white from step 9 to
+        /// light and black in dark as the Radix scales add between them. The
+        /// hues and grey all add the same: 40 and 70 % white from step 9 to
         /// 8 and 6, 12 and 25 % black from step 10 to 8 and 7. In light the
         /// letters get no lighter than step 6, where a light accent, yellow,
         /// would fade into the window.
@@ -359,6 +354,23 @@ extension ShatlColor {
             guard share > 0, upper != lower else { return lowerColor }
             return lowerColor.mix(with: hues[upper].color(weight: weight), by: share, in: .perceptual)
         }
+    }
+}
+
+extension ShatlColor {
+    /// A Settings option card's plate winks lighter after a click. In the
+    /// app's own accent it takes one of the wordmark's hues, step 2 in light
+    /// and A3 in dark: the dark plate is see-through white, and a solid
+    /// step 2 would darken it. With the macOS accent and in the monochrome
+    /// appearance it stays grey.
+    enum InputCardActivationPulse {
+        static let gray = ShatlColor.backgroundPrimary
+        static let hues = [
+            Color(light: ShatlPalette.iris2, dark: ShatlPalette.irisDarkA3),
+            Color(light: ShatlPalette.violet2, dark: ShatlPalette.violetDarkA3),
+            Color(light: ShatlPalette.purple2, dark: ShatlPalette.purpleDarkA3),
+            Color(light: ShatlPalette.plum2, dark: ShatlPalette.plumDarkA3),
+        ]
     }
 }
 
