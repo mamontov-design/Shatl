@@ -120,6 +120,8 @@
 "torrent.metric.seeds_and_peers" = "シードとピア";
 "torrent.metric.seeds" = "シード";
 "torrent.metric.peers" = "ピア";
+"torrent.metric.seed" = "シード";
+"torrent.metric.peer" = "ピア";
 "torrent.metric.upload_speed" = "アップロード速度";
 "torrent.metric.uploaded" = "アップロード済み";
 "torrent.metric.size" = "サイズ";
@@ -253,6 +255,7 @@
 "menu.debug.preview_restore_status" = "「ダウンロードを準備しています」を表示";
 "menu.debug.preview_unsupported_session" = "「ダウンロードリストを開けませんでした」を表示";
 "menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
+"menu.debug.show_empty_list" = "空のリストを表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";

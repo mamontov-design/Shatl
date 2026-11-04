@@ -957,6 +957,19 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private static let debugLowDiskSpaceBytes: Int64 = 1_000_000
 
+    /// Debug menu: the main window shows the empty list in place of the
+    /// real one, which goes on as it is. Nothing is saved, so a relaunch
+    /// shows the list again. The selection is cleared, or the Downloads
+    /// menu would act on downloads out of sight.
+    @Published private(set) var debugShowsEmptyList = false
+
+    func toggleEmptyListForDebug() {
+        debugShowsEmptyList.toggle()
+        if debugShowsEmptyList {
+            clearTorrentSelection()
+        }
+    }
+
     /// Debug menu: the selected download stops as the engine stops it with
     /// `cause` (nil: an internal error), notification included, so the card
     /// and "Повторить" can be tried without filling a disk. The engine lets

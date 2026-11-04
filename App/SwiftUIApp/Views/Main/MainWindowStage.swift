@@ -5,7 +5,9 @@ import AppKit
 import SwiftUI
 
 /// What the middle of the main window shows. The toolbar and the title stay
-/// the same in every stage; only what they allow follows it.
+/// the same in every stage; only what they allow follows it, and the title
+/// turns transparent over the empty list with the wordmark
+/// (`MainWindowTitle`).
 enum MainWindowStage: Equatable {
     case loadingSession
     case sessionLoadFailure(SessionLoadIssue)
@@ -88,5 +90,51 @@ enum MainWindowSearchToolbarItem {
         where item.isEnabled != isEnabled {
             item.isEnabled = isEnabled
         }
+    }
+}
+
+/// Over the empty list with the wordmark the window's name is already
+/// written large in its middle, so the title turns transparent. It keeps its
+/// place, so nothing in the toolbar moves, and the window keeps its title for
+/// VoiceOver and the Window menu. macOS has no setting for this: the title's
+/// own label is looked up in the title bar, and should a later macOS build
+/// the bar otherwise, the title simply stays.
+enum MainWindowTitle {
+    /// False while the title bar has no label yet.
+    @discardableResult
+    static func setTransparent(_ isTransparent: Bool, in window: NSWindow, animated: Bool) -> Bool {
+        guard let titleBar = window.standardWindowButton(.closeButton)?.superview,
+              let label = label(in: titleBar, title: window.title) else {
+            return false
+        }
+        // An animated change sets the value at once and moves only the
+        // layer, so a repeated call does not start the fade over.
+        let alpha: CGFloat = isTransparent ? 0 : 1
+        guard label.alphaValue != alpha else { return true }
+        guard animated else {
+            label.alphaValue = alpha
+            return true
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = ShatlMotion.brandMarkChangeDuration
+            context.timingFunction = CAMediaTimingFunction(name: .default)
+            label.animator().alphaValue = alpha
+        }
+        return true
+    }
+
+    private static func label(in view: NSView, title: String) -> NSTextField? {
+        if let field = view as? NSTextField,
+           !(field is NSSearchField),
+           !field.isEditable,
+           field.stringValue == title {
+            return field
+        }
+        for subview in view.subviews {
+            if let label = label(in: subview, title: title) {
+                return label
+            }
+        }
+        return nil
     }
 }

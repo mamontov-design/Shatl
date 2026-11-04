@@ -542,7 +542,8 @@ private struct AddTorrentHeader: View {
     var body: some View {
         VStack(spacing: 24) {
             ShatlWordmark(
-                selection: preferredBrandMark
+                selection: preferredBrandMark,
+                heightFollowsMark: true
             )
 
             VStack(spacing: 6) {

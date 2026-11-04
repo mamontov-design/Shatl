@@ -123,6 +123,8 @@
 "torrent.metric.seeds_and_peers" = "Сиды и пиры";
 "torrent.metric.seeds" = "Сиды";
 "torrent.metric.peers" = "Пиры";
+"torrent.metric.seed" = "Сид";
+"torrent.metric.peer" = "Пир";
 "torrent.metric.upload_speed" = "Скорость раздачи";
 "torrent.metric.uploaded" = "Отдано";
 "torrent.metric.size" = "Размер";
@@ -271,6 +273,7 @@
 "menu.debug.preview_restore_status" = "Показать «Подготовка загрузок»";
 "menu.debug.preview_unsupported_session" = "Показать «Не удалось открыть список загрузок»";
 "menu.debug.cycle_drop_screen" = "Показать экран перетаскивания";
+"menu.debug.show_empty_list" = "Показать пустой список";
 "menu.debug.simulate_low_space" = "Считать, что на диске нет места";
 "menu.debug.runtime_error" = "Остановить загрузку с ошибкой";
 "menu.debug.runtime_error.disk_full" = "Закончилось место";

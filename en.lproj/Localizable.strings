@@ -121,6 +121,8 @@
 "torrent.metric.seeds_and_peers" = "Seeds and peers";
 "torrent.metric.seeds" = "Seeds";
 "torrent.metric.peers" = "Peers";
+"torrent.metric.seed" = "Seed";
+"torrent.metric.peer" = "Peer";
 "torrent.metric.upload_speed" = "Upload speed";
 "torrent.metric.uploaded" = "Uploaded";
 "torrent.metric.size" = "Size";
@@ -259,6 +261,7 @@
 "menu.debug.preview_restore_status" = "Show “Preparing Downloads”";
 "menu.debug.preview_unsupported_session" = "Show “Couldn’t Open the Download List”";
 "menu.debug.cycle_drop_screen" = "Show the Drop Screen";
+"menu.debug.show_empty_list" = "Show the Empty List";
 "menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";

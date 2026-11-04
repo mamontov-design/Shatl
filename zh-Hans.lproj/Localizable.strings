@@ -120,6 +120,8 @@
 "torrent.metric.seeds_and_peers" = "种子和节点";
 "torrent.metric.seeds" = "种子";
 "torrent.metric.peers" = "节点";
+"torrent.metric.seed" = "种子";
+"torrent.metric.peer" = "节点";
 "torrent.metric.upload_speed" = "上传速度";
 "torrent.metric.uploaded" = "已上传";
 "torrent.metric.size" = "大小";
@@ -253,6 +255,7 @@
 "menu.debug.preview_restore_status" = "显示“正在准备下载”";
 "menu.debug.preview_unsupported_session" = "显示“无法打开下载列表”";
 "menu.debug.cycle_drop_screen" = "显示拖放界面";
+"menu.debug.show_empty_list" = "显示空列表";
 "menu.debug.simulate_low_space" = "模拟磁盘已满";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";

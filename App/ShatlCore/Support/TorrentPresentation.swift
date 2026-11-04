@@ -222,27 +222,53 @@ nonisolated struct TransferActivity: Equatable, Sendable {
 /// and leaves it after 5 s — so a seed that blinks in and out does not make
 /// it jump. A group that comes back after both were gone takes its title at
 /// once, as it has none to keep.
+///
+/// A side named alone, with no cell of the other, is named in the
+/// singular, "Сид" or "Пир", over exactly one: over 21 the title reads
+/// "Сиды", whatever the plural rules of a language say about 21. The singular comes once the one has held for
+/// 3 s, a new group's too, and goes the moment the number changes: "Сид"
+/// over 2 would be wrong, "Сиды" over 1 is only less exact.
 nonisolated struct PeerGroupTitle: Equatable, Sendable {
     static let arrivalDelay = TransferActivity.wakeDelay
     static let departureDelay = TransferActivity.patience
 
     private(set) var namesSeeds = false
     private(set) var namesPeers = false
+    private(set) var namesOne = false
     /// When the seeds, and the peers, first differed from the title.
     private var seedsChangeSince: ContinuousClock.Instant?
     private var peersChangeSince: ContinuousClock.Instant?
+    /// Since when the side named alone has had exactly one.
+    private var oneSince: ContinuousClock.Instant?
 
     func following(seeds: Int, peers: Int, at now: ContinuousClock.Instant) -> PeerGroupTitle {
         let hasSeeds = seeds > 0
         let hasPeers = peers > 0
         guard hasSeeds || hasPeers else { return PeerGroupTitle() }
-        guard namesSeeds || namesPeers else {
-            return PeerGroupTitle(namesSeeds: hasSeeds, namesPeers: hasPeers)
-        }
 
         var next = self
-        next.namesSeeds = Self.settled(namesSeeds, toward: hasSeeds, since: &next.seedsChangeSince, at: now)
-        next.namesPeers = Self.settled(namesPeers, toward: hasPeers, since: &next.peersChangeSince, at: now)
+        if namesSeeds || namesPeers {
+            next.namesSeeds = Self.settled(namesSeeds, toward: hasSeeds, since: &next.seedsChangeSince, at: now)
+            next.namesPeers = Self.settled(namesPeers, toward: hasPeers, since: &next.peersChangeSince, at: now)
+        } else {
+            next = PeerGroupTitle(namesSeeds: hasSeeds, namesPeers: hasPeers)
+        }
+
+        // One cell left, and it shows 1.
+        let isOneAlone = next.namesSeeds != next.namesPeers
+            && (next.namesSeeds ? seeds == 1 && !hasPeers : peers == 1 && !hasSeeds)
+        if isOneAlone {
+            let start = next.oneSince ?? now
+            if next.namesOne || start.duration(to: now) >= Self.arrivalDelay {
+                next.namesOne = true
+                next.oneSince = nil
+            } else {
+                next.oneSince = start
+            }
+        } else {
+            next.namesOne = false
+            next.oneSince = nil
+        }
         return next
     }
 
@@ -499,9 +525,14 @@ nonisolated enum TorrentPresentation {
             namesPeers = items.contains { $0.id == "peers" }
         }
 
+        let namesOne = settled?.namesOne ?? false
         switch (namesSeeds, namesPeers) {
+        case (true, false) where namesOne:
+            return L10n.string("torrent.metric.seed", localeOverride: localeOverride, defaultValue: "Сид")
         case (true, false):
             return L10n.string("torrent.metric.seeds", localeOverride: localeOverride, defaultValue: "Сиды")
+        case (false, true) where namesOne:
+            return L10n.string("torrent.metric.peer", localeOverride: localeOverride, defaultValue: "Пир")
         case (false, true):
             return L10n.string("torrent.metric.peers", localeOverride: localeOverride, defaultValue: "Пиры")
         default:

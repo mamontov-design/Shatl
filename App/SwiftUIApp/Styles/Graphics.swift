@@ -13,13 +13,15 @@ enum ShatlBrandRenderingMode {
 struct ShatlWordmark: View {
     let artworkAlignment: Alignment
     let isInteractive: Bool
+    /// On the empty list the box takes the height of the mark shown, so the
+    /// letters of the wordmark, lower than the logomark, stand as close to
+    /// the title under them. Elsewhere one box fits both marks.
+    let heightFollowsMark: Bool
 
     private let selection: Binding<ShatlBrandMark>?
 
-    @StateObject private var wordmarkAnimationState = ShatlBrandAnimationState(
-        originalStrokeWidth: ShatlBrandAnimation.wordmarkOriginalStrokeWidth,
-        strokeWidths: ShatlBrandAnimation.wordmarkStrokeWidths
-    )
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @StateObject private var logomarkAnimationState = ShatlBrandAnimationState(
         originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth,
         strokeWidths: ShatlBrandAnimation.logomarkStrokeWidths
@@ -27,16 +29,22 @@ struct ShatlWordmark: View {
     @State private var interactionScale: CGFloat = 1
     @State private var localSelection: ShatlBrandMark
     @State private var logomarkProgress: CGFloat
+    /// The box follows the mark a step behind it, in its own animation, so
+    /// it moves whichever window changed the mark: the empty list or
+    /// Settings.
+    @State private var boxFitsWordmark: Bool
     @State private var isHovering = false
     @State private var bounceTask: Task<Void, Never>?
 
     init(
         selection: Binding<ShatlBrandMark>,
         artworkAlignment: Alignment = .center,
-        isInteractive: Bool = true
+        isInteractive: Bool = true,
+        heightFollowsMark: Bool = false
     ) {
         self.artworkAlignment = artworkAlignment
         self.isInteractive = isInteractive
+        self.heightFollowsMark = heightFollowsMark
         self.selection = selection
 
         let initialSelection = selection.wrappedValue
@@ -44,6 +52,7 @@ struct ShatlWordmark: View {
         _logomarkProgress = State(
             initialValue: initialSelection == .logomark ? 1 : 0
         )
+        _boxFitsWordmark = State(initialValue: initialSelection == .wordmark)
     }
 
     init(
@@ -53,11 +62,13 @@ struct ShatlWordmark: View {
     ) {
         self.artworkAlignment = artworkAlignment
         self.isInteractive = isInteractive
+        heightFollowsMark = false
         selection = nil
         _localSelection = State(initialValue: initialSelection)
         _logomarkProgress = State(
             initialValue: initialSelection == .logomark ? 1 : 0
         )
+        _boxFitsWordmark = State(initialValue: initialSelection == .wordmark)
     }
 
     private var selectedBrandMark: ShatlBrandMark {
@@ -75,10 +86,7 @@ struct ShatlWordmark: View {
 
     var body: some View {
         ZStack(alignment: artworkAlignment) {
-            ShatlWordmarkArtwork(
-                animationPhase: wordmarkAnimationState.phase,
-                renderingMode: renderingMode
-            )
+            ShatlTypeWordmarkArtwork(isAnimating: selectedBrandMark == .wordmark)
                 .compositingGroup()
                 .opacity(Double(1 - logomarkProgress))
                 .blur(radius: logomarkProgress * ShatlBrandTransition.blurRadius)
@@ -94,7 +102,8 @@ struct ShatlWordmark: View {
                 .blur(radius: (1 - logomarkProgress) * ShatlBrandTransition.blurRadius)
                 .zIndex(selectedBrandMark == .logomark ? 1 : 0)
         }
-        .frame(width: 214, height: 85, alignment: .top)
+        // A box lower than the marks leaves them centred on it.
+        .frame(width: ShatlTypeWordmark.frameSize.width, height: boxHeight)
         .scaleEffect(interactionScale)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -107,6 +116,13 @@ struct ShatlWordmark: View {
             withAnimation(ShatlBrandTransition.artworkChange) {
                 logomarkProgress = brandMark == .logomark ? 1 : 0
             }
+
+            // What stands around the box moves with it.
+            if heightFollowsMark {
+                withAnimation(ShatlMotion.interface) {
+                    boxFitsWordmark = brandMark == .wordmark
+                }
+            }
         }
         .onHover { hovering in
             guard isInteractive else {
@@ -118,10 +134,16 @@ struct ShatlWordmark: View {
         .onDisappear {
             resetInteractionState()
         }
-        .task(id: selectedBrandMark) {
+        .task(id: ShatlBrandMarkMotion(brandMark: selectedBrandMark, standsStill: reduceMotion)) {
             resetAnimation(for: selectedBrandMark)
             await runAnimation(for: selectedBrandMark)
         }
+    }
+
+    private var boxHeight: CGFloat {
+        heightFollowsMark && boxFitsWordmark
+            ? ShatlTypeWordmark.lettersHeight
+            : ShatlTypeWordmark.frameSize.height
     }
 
     private func toggleBrandMark() {
@@ -138,22 +160,17 @@ struct ShatlWordmark: View {
         bounceBrandMark()
     }
 
+    /// The type wordmark plays its own motion while it is shown. Under
+    /// Reduce Motion the logomark rests at its standard 8 pt, and its star
+    /// at the shape that goes with it.
     private func resetAnimation(for brandMark: ShatlBrandMark) {
-        switch brandMark {
-        case .wordmark:
-            wordmarkAnimationState.resetToOriginal()
-        case .logomark:
-            logomarkAnimationState.resetToOriginal()
-        }
+        guard brandMark == .logomark else { return }
+        logomarkAnimationState.resetToOriginal()
     }
 
     private func runAnimation(for brandMark: ShatlBrandMark) async {
-        switch brandMark {
-        case .wordmark:
-            await wordmarkAnimationState.run()
-        case .logomark:
-            await logomarkAnimationState.run()
-        }
+        guard brandMark == .logomark, !reduceMotion else { return }
+        await logomarkAnimationState.run()
     }
 
     private func bounceBrandMark() {
@@ -202,7 +219,13 @@ struct ShatlWordmark: View {
     }
 }
 
-/// The star of both marks in the monochrome appearance: no glass and no
+/// What the marks' motion starts over on.
+private struct ShatlBrandMarkMotion: Equatable {
+    let brandMark: ShatlBrandMark
+    let standsStill: Bool
+}
+
+/// The logomark's star in the monochrome appearance: no glass and no
 /// fill, a 1 pt outline inside its edge in the monochrome accent, as Figma
 /// draws it. The star morphs and cannot be inset, so the outline is a 2 pt
 /// one cut to the star.
@@ -213,108 +236,6 @@ private struct ShatlMonochromeStar<StarShape: Shape>: View {
         shape
             .stroke(ShatlColor.accentMonochrome, style: StrokeStyle(lineWidth: 2, lineJoin: .miter))
             .clipShape(shape)
-    }
-}
-
-private struct ShatlWordmarkArtwork: View {
-    @EnvironmentObject private var accentState: ShatlAccentState
-    @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
-
-    let animationPhase: CGFloat
-    let renderingMode: ShatlBrandRenderingMode
-
-    private var strokeWidth: CGFloat {
-        ShatlBrandAnimation.strokeWidth(
-            for: animationPhase,
-            in: ShatlBrandAnimation.wordmarkStrokeWidths
-        )
-    }
-
-    private var strokeOpacity: Double {
-        guard renderingMode == .glass else { return 1 }
-
-        return ShatlBrandAnimation.interpolatedOpacity(
-            phase: animationPhase,
-            from: ShatlWordmarkOpacity.strokeAtMinimumWidth,
-            to: ShatlWordmarkOpacity.strokeAtMaximumWidth
-        )
-    }
-
-    private var starOpacity: Double {
-        guard renderingMode == .glass else { return 1 }
-
-        return ShatlBrandAnimation.interpolatedOpacity(
-            phase: animationPhase,
-            from: ShatlWordmarkOpacity.starAtMinimumWidth,
-            to: ShatlWordmarkOpacity.starAtMaximumWidth
-        )
-    }
-
-    private var strokeColor: Color {
-        if usesMonochrome {
-            ShatlColor.accentMonochrome.opacity(strokeOpacity)
-        } else if accentState.isUsingAppAccent {
-            ShatlColor.accentColored.opacity(strokeOpacity)
-        } else {
-            accentState.systemAccentColor.opacity(strokeOpacity)
-        }
-    }
-
-    private var starColor: Color {
-        if accentState.isUsingAppAccent {
-            ShatlColor.accent.opacity(starOpacity)
-        } else {
-            ShatlColor.typographyPrimary.opacity(starOpacity)
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            strokeLayer
-            starLayer
-        }
-        .frame(width: 214, height: 85)
-    }
-
-    @ViewBuilder
-    private var strokeLayer: some View {
-        switch renderingMode {
-        case .glass:
-            ShatlWordmarkStrokeShape()
-                .stroke(
-                    strokeColor,
-                    style: StrokeStyle(lineWidth: strokeWidth)
-                )
-                .glassEffect(
-                    .clear.tint(strokeColor),
-                    in: ShatlWordmarkStrokeGlassShape(lineWidth: strokeWidth)
-                )
-        case .flat:
-            ShatlWordmarkStrokeShape()
-                .stroke(
-                    strokeColor,
-                    style: StrokeStyle(lineWidth: strokeWidth)
-                )
-        }
-    }
-
-    @ViewBuilder
-    private var starLayer: some View {
-        if usesMonochrome {
-            ShatlMonochromeStar(shape: ShatlWordmarkStarMorphShape(progress: animationPhase))
-        } else {
-            switch renderingMode {
-            case .glass:
-                ShatlWordmarkStarMorphShape(progress: animationPhase)
-                    .glassEffect(
-                        .clear.tint(starColor),
-                        in: ShatlWordmarkStarMorphShape(progress: animationPhase)
-                    )
-            case .flat:
-                ShatlWordmarkStarMorphShape(progress: animationPhase)
-                    .fill(starColor)
-            }
-        }
     }
 }
 
@@ -368,16 +289,13 @@ private final class ShatlBrandAnimationState: ObservableObject {
     }
 }
 
-/// Both marks breathe through one shared phase, which also morphs the star and
-/// fades the glass; each mark turns it into its own stroke widths. The
-/// compact letter of the logomark closes up above 8 pt, so it stays at 4–8
-/// and rests at its thickest.
+/// The logomark breathes through one phase, which also morphs its star and
+/// fades the glass. Its compact letter closes up above 8 pt, so it stays at
+/// 4–8 and rests at its thickest.
 enum ShatlBrandAnimation {
     static let fullDuration: TimeInterval = 2.2
     static let pauseDuration: TimeInterval = 2.0
-    static let wordmarkStrokeWidths: ClosedRange<CGFloat> = 4...12
     static let logomarkStrokeWidths: ClosedRange<CGFloat> = 4...8
-    static let wordmarkOriginalStrokeWidth: CGFloat = 8
     static let logomarkOriginalStrokeWidth: CGFloat = 8
 
     static let phases: [CGFloat] = [0, 0.25, 0.5, 0.75, 1.0]
@@ -437,14 +355,7 @@ enum ShatlBrandAnimation {
 
 private enum ShatlBrandTransition {
     static let blurRadius: CGFloat = 7
-    static let artworkChange = Animation.smooth(duration: 0.38)
-}
-
-private enum ShatlWordmarkOpacity {
-    static let strokeAtMinimumWidth = 1.0
-    static let strokeAtMaximumWidth = 0.85
-    static let starAtMinimumWidth = 0.75
-    static let starAtMaximumWidth = 0.55
+    static let artworkChange = Animation.smooth(duration: ShatlMotion.brandMarkChangeDuration)
 }
 
 private enum ShatlLogomarkOpacity {
@@ -454,184 +365,10 @@ private enum ShatlLogomarkOpacity {
     static let starAtMaximumWidth = 0.85
 }
 
-private nonisolated enum ShatlWordmarkMetrics {
-    static let viewport = CGSize(width: 214, height: 85)
-}
-
 private nonisolated struct ShatlMorphCubicSegment {
     let control1: CGPoint
     let control2: CGPoint
     let end: CGPoint
-}
-
-private nonisolated struct ShatlWordmarkStarMorphShape: Shape {
-    var progress: CGFloat
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: mapped(interpolated(thinStart, boldStart), in: rect))
-
-        for index in thinSegments.indices {
-            let thin = thinSegments[index]
-            let bold = boldSegments[index]
-            path.addCurve(
-                to: mapped(interpolated(thin.end, bold.end), in: rect),
-                control1: mapped(interpolated(thin.control1, bold.control1), in: rect),
-                control2: mapped(interpolated(thin.control2, bold.control2), in: rect)
-            )
-        }
-
-        path.closeSubpath()
-        return path
-    }
-
-    private func interpolated(_ thin: CGPoint, _ bold: CGPoint) -> CGPoint {
-        CGPoint(
-            x: thin.x + (bold.x - thin.x) * progress,
-            y: thin.y + (bold.y - thin.y) * progress
-        )
-    }
-
-    private func mapped(_ point: CGPoint, in rect: CGRect) -> CGPoint {
-        CGPoint(
-            x: rect.minX + point.x * rect.width / ShatlWordmarkMetrics.viewport.width,
-            y: rect.minY + point.y * rect.height / ShatlWordmarkMetrics.viewport.height
-        )
-    }
-
-    private let thinStart = CGPoint(x: 90, y: 37.0015)
-    private let boldStart = CGPoint(x: 90.9999, y: 30.0015)
-
-    private let thinSegments = [
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 90.2969, y: 37.0015),
-            control2: CGPoint(x: 90.412, y: 37.3224),
-            end: CGPoint(x: 90.5, y: 37.8726)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 91, y: 41),
-            control2: CGPoint(x: 92, y: 42),
-            end: CGPoint(x: 95.1282, y: 42.5)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 95.6788, y: 42.588),
-            control2: CGPoint(x: 96, y: 42.6972),
-            end: CGPoint(x: 96, y: 43.0009)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 96, y: 43.3047),
-            control2: CGPoint(x: 95.6788, y: 43.412),
-            end: CGPoint(x: 95.1282, y: 43.5)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 92, y: 44),
-            control2: CGPoint(x: 91, y: 45),
-            end: CGPoint(x: 90.5, y: 48.1304)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 90.4121, y: 48.6805),
-            control2: CGPoint(x: 90.3047, y: 49.0015),
-            end: CGPoint(x: 90, y: 49.0015)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 89.6953, y: 49.0015),
-            control2: CGPoint(x: 89.5879, y: 48.6805),
-            end: CGPoint(x: 89.5, y: 48.1304)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 89, y: 45),
-            control2: CGPoint(x: 88, y: 44),
-            end: CGPoint(x: 84.8718, y: 43.5)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 84.3212, y: 43.412),
-            control2: CGPoint(x: 84, y: 43.2969),
-            end: CGPoint(x: 84, y: 43.0009)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 84, y: 42.705),
-            control2: CGPoint(x: 84.3212, y: 42.588),
-            end: CGPoint(x: 84.8718, y: 42.5)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 88, y: 42),
-            control2: CGPoint(x: 89, y: 41),
-            end: CGPoint(x: 89.5, y: 37.8726)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 89.588, y: 37.3224),
-            control2: CGPoint(x: 89.7031, y: 37.0015),
-            end: CGPoint(x: 90, y: 37.0015)
-        ),
-    ]
-
-    private let boldSegments = [
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 91.9285, y: 30.0015),
-            control2: CGPoint(x: 92.7349, y: 30.6095),
-            end: CGPoint(x: 93.1225, y: 31.4533)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 94.4247, y: 34.2877),
-            control2: CGPoint(x: 96.7121, y: 36.5743),
-            end: CGPoint(x: 99.5468, y: 37.8765)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 100.391, y: 38.2644),
-            control2: CGPoint(x: 101, y: 39.0713),
-            end: CGPoint(x: 101, y: 40.0006)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 101, y: 40.9298),
-            control2: CGPoint(x: 100.391, y: 41.7367),
-            end: CGPoint(x: 99.5469, y: 42.1247)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 96.712, y: 43.4272),
-            control2: CGPoint(x: 94.4246, y: 45.7147),
-            end: CGPoint(x: 93.1224, y: 48.5496)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 92.7348, y: 49.3934),
-            control2: CGPoint(x: 91.9285, y: 50.0015),
-            end: CGPoint(x: 90.9999, y: 50.0015)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 90.0713, y: 50.0015),
-            control2: CGPoint(x: 89.2649, y: 49.3934),
-            end: CGPoint(x: 88.8773, y: 48.5496)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 87.5751, y: 45.7147),
-            control2: CGPoint(x: 85.2878, y: 43.4272),
-            end: CGPoint(x: 82.4529, y: 42.1247)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 81.6084, y: 41.7367),
-            control2: CGPoint(x: 80.9999, y: 40.9298),
-            end: CGPoint(x: 80.9999, y: 40.0006)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 80.9999, y: 39.0713),
-            control2: CGPoint(x: 81.6084, y: 38.2644),
-            end: CGPoint(x: 82.4529, y: 37.8765)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 85.2877, y: 36.5743),
-            control2: CGPoint(x: 87.575, y: 34.2877),
-            end: CGPoint(x: 88.8772, y: 31.4533)
-        ),
-        ShatlMorphCubicSegment(
-            control1: CGPoint(x: 89.2649, y: 30.6095),
-            control2: CGPoint(x: 90.0712, y: 30.0015),
-            end: CGPoint(x: 90.9999, y: 30.0015)
-        ),
-    ]
 }
 
 private struct ShatlLogomarkArtwork: View {
@@ -1377,31 +1114,6 @@ private nonisolated struct ShatlLogomarkStarMorphShape: Shape {
         ShatlMorphCubicSegment(control1: CGPoint(x: 13.7558, y: 62.611), control2: CGPoint(x: 15.4283, y: 60.392), end: CGPoint(x: 16.1972, y: 57.8248)),
         ShatlMorphCubicSegment(control1: CGPoint(x: 16.4261, y: 57.0606), control2: CGPoint(x: 17.0394, y: 56.4469), end: CGPoint(x: 17.8294, y: 56.3358)),
     ]
-}
-
-private nonisolated struct ShatlWordmarkStrokeShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        ShatlSVGPathShape(
-            paths: ["M140.398 42.7357C149.205 39.8762 158.761 38.7572 168.38 38.7572M209.435 74.3149C205.422 77.3299 201.608 78.3342 198.332 78.4149C180.011 78.8659 176.242 44.5554 180.761 23.7089C183.28 12.0891 187.546 6.37399 194.304 7.14705C197.021 7.45787 200.412 9.27972 201.643 14.4513C202.767 19.1758 202.33 23.5583 201.705 27.8165C198.31 50.9622 181.107 84.3489 165.666 77.2988C153.548 71.7662 148.801 45.1602 154.298 21.7866C149.364 43.5439 154 64.8486 147.144 74.4703C145.269 77.1011 142.176 78.648 139.273 78.542C132.435 78.2923 129.563 72.2014 127.565 66.9175C123.59 62.7672 118.758 61.9444 115.351 63.2809C112.157 64.534 109.852 67.6534 109.824 71.5797C109.826 77.4853 115.526 80.2689 121.006 77.4231C124.527 75.5952 128.254 71.2119 129.311 66.6066C131.966 55.0442 123.003 46.7142 113.571 46.7142C105.17 46.7142 96.4846 53.997 95.8349 68.2229C95.5226 75.0609 91.4627 78.2313 88.0274 78.5421C85.8144 78.7423 83.7583 78.1155 82.0312 76.5528C80.657 75.3096 79.2135 73.1534 79.5328 69.404C79.8451 65.7364 80.8132 63.2188 81.2816 60.266C82.2447 54.1953 78.7544 49.8947 74.411 48.9522C68.4399 47.6565 60.7923 52.4643 57.4692 63.6331C55.9921 68.5978 55.1209 74.3194 55.4517 82.0033C53.0132 63.5944 48.5524 22.2218 58.4211 10.2648C60.4723 7.77957 63.8881 6.34509 67.5404 7.30248C77.8801 10.0129 77.1593 31.2977 61.0733 55.4171C49.3708 72.964 34.4363 85.4112 19.0375 74.3771C28.5626 81.8678 37.0885 76.1798 38.2753 70.3986C39.462 64.6174 36.0892 60.6389 31.2172 57.7794C26.3453 54.9198 23.0349 50.6927 26.4703 42.7358C21.6275 54.1965 13.5448 66.1355 5.43481 75.0352"],
-            viewport: ShatlWordmarkMetrics.viewport
-        )
-        .path(in: rect)
-    }
-}
-
-private nonisolated struct ShatlWordmarkStrokeGlassShape: Shape {
-    var lineWidth: CGFloat
-
-    var animatableData: CGFloat {
-        get { lineWidth }
-        set { lineWidth = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        ShatlWordmarkStrokeShape()
-            .path(in: rect)
-            .strokedPath(StrokeStyle(lineWidth: lineWidth))
-    }
 }
 
 private nonisolated struct PerformanceSpeedometerPointMapper {

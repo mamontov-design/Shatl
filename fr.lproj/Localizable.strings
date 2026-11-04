@@ -121,6 +121,8 @@
 "torrent.metric.seeds_and_peers" = "Seeds et peers";
 "torrent.metric.seeds" = "Seeds";
 "torrent.metric.peers" = "Peers";
+"torrent.metric.seed" = "Seed";
+"torrent.metric.peer" = "Peer";
 "torrent.metric.upload_speed" = "Vitesse d’envoi";
 "torrent.metric.uploaded" = "Envoyé";
 "torrent.metric.size" = "Taille";
@@ -259,6 +261,7 @@
 "menu.debug.preview_restore_status" = "Afficher « Préparation des téléchargements »";
 "menu.debug.preview_unsupported_session" = "Afficher « Impossible d’ouvrir la liste des téléchargements »";
 "menu.debug.cycle_drop_screen" = "Afficher l’écran de dépôt";
+"menu.debug.show_empty_list" = "Afficher la liste vide";
 "menu.debug.simulate_low_space" = "Simuler un disque plein";
 "menu.debug.runtime_error" = "Arrêter le téléchargement avec une erreur";
 "menu.debug.runtime_error.disk_full" = "Disque plein";

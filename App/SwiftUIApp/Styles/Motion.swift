@@ -180,6 +180,20 @@ enum ShatlMotion {
     /// to rest.
     static let selectionRefusalShakeSwings: [CGFloat] = [-1, 1, -0.6, 0.6, -0.3, 0]
 
+    /// The type wordmark never stands still: it rebuilds its axes and its
+    /// hue all at once, then glides on slowly the way it went until the next
+    /// rebuild. The speed carries over from one to the other, so neither
+    /// begins from a stop.
+    static let wordmarkRebuildDuration: TimeInterval = 1.6
+    static let wordmarkGlideDuration: TimeInterval = 2.8
+    /// Under Reduce Motion the letters stand at the standard set and only
+    /// the hue moves: each move takes a whole cycle and flows into the next.
+    static let wordmarkStillHueMoveDuration = wordmarkRebuildDuration + wordmarkGlideDuration
+
+    /// The logomark and the wordmark give way to each other; the window's
+    /// title over the empty list fades with them.
+    static let brandMarkChangeDuration: TimeInterval = 0.38
+
     /// The selection indicator appears from its center with a slight overshoot and shrinks away.
     static let selectedIndicator = AnyTransition.asymmetric(
         insertion: .scale(scale: 1.5, anchor: .center)

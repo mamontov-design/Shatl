@@ -121,6 +121,8 @@
 "torrent.metric.seeds_and_peers" = "Seeds und Peers";
 "torrent.metric.seeds" = "Seeds";
 "torrent.metric.peers" = "Peers";
+"torrent.metric.seed" = "Seed";
+"torrent.metric.peer" = "Peer";
 "torrent.metric.upload_speed" = "Upload-Geschwindigkeit";
 "torrent.metric.uploaded" = "Hochgeladen";
 "torrent.metric.size" = "Größe";
@@ -259,6 +261,7 @@
 "menu.debug.preview_restore_status" = "„Downloads werden vorbereitet“ zeigen";
 "menu.debug.preview_unsupported_session" = "„Downloadliste konnte nicht geöffnet werden“ zeigen";
 "menu.debug.cycle_drop_screen" = "Drop-Bildschirm zeigen";
+"menu.debug.show_empty_list" = "Leere Liste zeigen";
 "menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";

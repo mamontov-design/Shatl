@@ -265,6 +265,166 @@ extension ShatlColor {
     }
 }
 
+extension ShatlColor {
+    /// The type wordmark in the app's own accent. Its hue is one of four
+    /// neighbours on the colour wheel, kept in their order so that a change
+    /// of hue passes through the ones between; its step follows only the
+    /// weight of its letters, thin letters solid and bold ones pale. The
+    /// standard set stands on the pastel step, behind the title under it.
+    enum Wordmark {
+        static let iris = ShatlWordmarkHue(
+            thin: Color(light: ShatlPalette.iris9, dark: ShatlPalette.irisDark10),
+            standard: Color(light: ShatlPalette.iris8, dark: ShatlPalette.irisDark8),
+            bold: Color(light: ShatlPalette.iris6, dark: ShatlPalette.irisDark7)
+        )
+        static let violet = ShatlWordmarkHue(
+            thin: Color(light: ShatlPalette.violet9, dark: ShatlPalette.violetDark10),
+            standard: Color(light: ShatlPalette.violet8, dark: ShatlPalette.violetDark8),
+            bold: Color(light: ShatlPalette.violet6, dark: ShatlPalette.violetDark7)
+        )
+        static let purple = ShatlWordmarkHue(
+            thin: Color(light: ShatlPalette.purple9, dark: ShatlPalette.purpleDark10),
+            standard: Color(light: ShatlPalette.purple8, dark: ShatlPalette.purpleDark8),
+            bold: Color(light: ShatlPalette.purple6, dark: ShatlPalette.purpleDark7)
+        )
+        static let plum = ShatlWordmarkHue(
+            thin: Color(light: ShatlPalette.plum9, dark: ShatlPalette.plumDark10),
+            standard: Color(light: ShatlPalette.plum8, dark: ShatlPalette.plumDark8),
+            bold: Color(light: ShatlPalette.plum6, dark: ShatlPalette.plumDark7)
+        )
+
+        /// In the order of the colour wheel, from blue to pink.
+        static let hues = [iris, violet, purple, plum]
+
+        /// The monochrome appearance: grey at the steps of the hues.
+        static let gray = ShatlWordmarkHue(
+            thin: Color(light: ShatlPalette.gray9, dark: ShatlPalette.grayDark10),
+            standard: Color(light: ShatlPalette.gray8, dark: ShatlPalette.grayDark8),
+            bold: Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDark7)
+        )
+
+        /// The accent chosen in macOS is one colour, so the weight takes it
+        /// through the steps of the hues itself, adding as much white in
+        /// light and black in dark as the Radix scales add between them. The
+        /// hues and grey all add the same: 40 and 70 % white from step 9 to
+        /// 8 and 6, 12 and 25 % black from step 10 to 8 and 7. In light the
+        /// letters get no lighter than step 6, where a light accent, yellow,
+        /// would fade into the window.
+        static func systemAccent(_ accent: Color, weight: Double, colorScheme: ColorScheme) -> Color {
+            let place = ShatlWordmarkHue.place(of: weight)
+            if colorScheme == .dark {
+                let share = systemAccentShare(at: place, standard: 0.12, bold: 0.25)
+                return ShatlWordmarkHue.mix(accent, ShatlPalette.black, by: share)
+            }
+            let share = min(
+                systemAccentShare(at: place, standard: 0.40, bold: 0.70),
+                whiteShareUpToLightestStep(of: accent)
+            )
+            return ShatlWordmarkHue.mix(accent, ShatlPalette.white, by: share)
+        }
+
+        /// The lightest the letters get in light: step 6 of the app's hue.
+        static let lightestStep = ShatlPalette.violet6
+
+        private static func systemAccentShare(at place: Double, standard: Double, bold: Double) -> Double {
+            place <= 1 ? standard * place : standard + (bold - standard) * (place - 1)
+        }
+
+        /// White mixed as the eye sees it raises the lightness in proportion
+        /// to the share, so the share that reaches `lightestStep` is known.
+        private static func whiteShareUpToLightestStep(of accent: Color) -> Double {
+            var environment = EnvironmentValues()
+            environment.colorScheme = .light
+            let accentLightness = ShatlOklab.lightness(of: accent.resolve(in: environment))
+            let limit = ShatlOklab.lightness(of: lightestStep.resolve(in: environment))
+            guard accentLightness < 1 else { return 0 }
+            return max(0, (limit - accentLightness) / (1 - accentLightness))
+        }
+
+        /// The colour of letters of `weight` at `hue`, a place on `hues`
+        /// that may lie between two of them. Between two steps or two hues
+        /// the colours are mixed as the eye sees them, so the middle does not
+        /// turn grey.
+        static func color(hue: Double, weight: Double) -> Color {
+            let place = min(max(hue, 0), Double(hues.count - 1))
+            let lower = Int(place.rounded(.down))
+            let upper = min(lower + 1, hues.count - 1)
+            let lowerColor = hues[lower].color(weight: weight)
+            let share = place - Double(lower)
+            guard share > 0, upper != lower else { return lowerColor }
+            return lowerColor.mix(with: hues[upper].color(weight: weight), by: share, in: .perceptual)
+        }
+    }
+}
+
+extension ShatlColor {
+    /// A Settings option card's plate winks lighter after a click. In the
+    /// app's own accent it takes one of the wordmark's hues, step 2 in light
+    /// and A3 in dark: the dark plate is see-through white, and a solid
+    /// step 2 would darken it. With the macOS accent and in the monochrome
+    /// appearance it stays grey.
+    enum InputCardActivationPulse {
+        static let gray = ShatlColor.backgroundPrimary
+        static let hues = [
+            Color(light: ShatlPalette.iris2, dark: ShatlPalette.irisDarkA3),
+            Color(light: ShatlPalette.violet2, dark: ShatlPalette.violetDarkA3),
+            Color(light: ShatlPalette.purple2, dark: ShatlPalette.purpleDarkA3),
+            Color(light: ShatlPalette.plum2, dark: ShatlPalette.plumDarkA3),
+        ]
+    }
+}
+
+/// Lightness as the eye sees it, in Oklab, the space `.perceptual` mixes
+/// in: 0 is black, 1 white.
+nonisolated enum ShatlOklab {
+    static func lightness(of color: Color.Resolved) -> Double {
+        let red = Double(color.linearRed)
+        let green = Double(color.linearGreen)
+        let blue = Double(color.linearBlue)
+        let long = cbrt(0.4122214708 * red + 0.5363325363 * green + 0.0514459929 * blue)
+        let medium = cbrt(0.2119034982 * red + 0.6806995451 * green + 0.1073969566 * blue)
+        let short = cbrt(0.0883024619 * red + 0.2817188376 * green + 0.6299787005 * blue)
+        return 0.2104542553 * long + 0.7936177850 * medium - 0.0040720468 * short
+    }
+}
+
+/// One hue of the type wordmark at the three weights it is pinned to.
+struct ShatlWordmarkHue {
+    /// Weight 100: step 9 in light, 10 in dark, as `accentColored`.
+    let thin: Color
+    /// Weight 540, the standard set: step 8 in both themes.
+    let standard: Color
+    /// Weight 1000: step 6 in light, 7 in dark, where step 6 turns murky.
+    let bold: Color
+
+    func color(weight: Double) -> Color {
+        let place = Self.place(of: weight)
+        return place <= 1
+            ? Self.mix(thin, standard, by: place)
+            : Self.mix(standard, bold, by: place - 1)
+    }
+
+    /// Where `weight` stands between the three weights: 0 at the thinnest,
+    /// 1 at the standard one, 2 at the boldest.
+    static func place(of weight: Double) -> Double {
+        let weights = ShatlTypeWordmark.weights
+        let standardWeight = ShatlTypeWordmark.standard.weight
+        if weight <= standardWeight {
+            let share = (weight - weights.lowerBound) / (standardWeight - weights.lowerBound)
+            return min(max(share, 0), 1)
+        }
+        let share = (weight - standardWeight) / (weights.upperBound - standardWeight)
+        return 1 + min(max(share, 0), 1)
+    }
+
+    static func mix(_ from: Color, _ to: Color, by share: Double) -> Color {
+        let share = min(max(share, 0), 1)
+        if share == 0 { return from }
+        if share == 1 { return to }
+        return from.mix(with: to, by: share, in: .perceptual)
+    }
+}
+
 enum ShatlCornerRadius {
     static let button: CGFloat = 8
     static let tab: CGFloat = 6
