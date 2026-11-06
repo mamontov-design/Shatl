@@ -39,6 +39,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let presentationStartedAt: ContinuousClock.Instant
         /// Goes to the list stopped and past the engine: see `saveDraftToList`.
         var savesToList = false
+        /// Saved by choice, not for lack of room; see `saveDraftToList`.
+        var savesByChoice = false
     }
 
     private struct DeferredAddTorrentFailure {
@@ -700,6 +702,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     || (record.persistentIssue == nil && record.runtimeErrorState != nil)
             ),
             isSavedForLater: isSavedForLater,
+            isSavedByChoice: isSavedForLater && record.isSavedByChoice,
             isIdle: isIdle
         )
         #if DEBUG
@@ -2509,6 +2512,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             candidateRecord.persistentIssue = nil
             candidateRecord.runtimeErrorState = nil
             candidateRecord.isSavedForLater = false
+            candidateRecord.isSavedByChoice = false
 
             let saveOutcome = await sessionStore.commitAttemptTransition(
                 candidateRecord,
@@ -2572,8 +2576,12 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// goes to the list stopped, to be started by hand once there is room.
     /// The engine never sees it, so no peer is asked and nothing is written
     /// to the full disk; Start later is the start of any stopped download.
-    func saveDraftToList() {
-        addCurrentDraft(savesToList: true)
+    ///
+    /// `byChoice` is "Сохранить в список" in the question "Не скачивать" asks
+    /// among several downloads: the disk may have room, and the "i" of the
+    /// saved download says it was put off rather than short of space.
+    func saveDraftToList(byChoice: Bool = false) {
+        addCurrentDraft(savesToList: true, byChoice: byChoice)
     }
 
     /// "Не скачивать" in a window of several downloads: the one on screen
@@ -2584,7 +2592,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    private func addCurrentDraft(savesToList: Bool) {
+    private func addCurrentDraft(savesToList: Bool, byChoice: Bool = false) {
         guard canAddTorrent else { return }
         guard let draft = currentAddTorrentDraft else { return }
         guard draft.canConfirmDownload else { return }
@@ -2600,7 +2608,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             draft: draft,
             shortDisplayName: Self.shortenedPendingDisplayName(for: draft),
             presentationStartedAt: ContinuousClock().now,
-            savesToList: savesToList
+            savesToList: savesToList,
+            savesByChoice: savesToList && byChoice
         )
         insertPendingTorrentAddition(addition)
         // The window shows the next download waiting, and closes after the last.
@@ -2782,7 +2791,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             resumeCheckpointedAt: nil,
             resumeCheckpointProgress: nil,
             stopAfterDownload: draft.stopAfterDownload,
-            isSavedForLater: true
+            isSavedForLater: true,
+            isSavedByChoice: addition.savesByChoice
         )
     }
 
@@ -3375,7 +3385,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 resumeCheckpointedAt: $0.resumeCheckpointedAt,
                 resumeCheckpointProgress: $0.resumeCheckpointProgress,
                 stopAfterDownload: $0.stopAfterDownload,
-                isSavedForLater: $0.savedForLater ?? false
+                isSavedForLater: $0.savedForLater ?? false,
+                isSavedByChoice: $0.savedByChoice ?? false
             )
         }
         lastPersistedProgressBucketByID = Dictionary(
@@ -4341,6 +4352,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     torrents[index].runtimeErrorState = nil
                     // Started once, a saved download is an ordinary one.
                     torrents[index].isSavedForLater = false
+                    torrents[index].isSavedByChoice = false
                 }
 
                 Self.logger.notice("Restore-start succeeded for torrent id=\(record.id.uuidString)")
@@ -4375,6 +4387,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                             torrents[index].status = record.progress >= 1.0 ? .seeding : .downloading
                             torrents[index].runtimeErrorState = nil
                             torrents[index].isSavedForLater = false
+                            torrents[index].isSavedByChoice = false
                         }
 
                         Self.logger.notice("Restore-start reused existing handle for torrent id=\(record.id.uuidString)")

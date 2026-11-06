@@ -53,9 +53,9 @@ final class SavedDownloadTests: XCTestCase {
     }
 
     /// Saves the draft to the list and waits for its card.
-    private func saveDraft(in fixture: Fixture) async throws -> UUID {
+    private func saveDraft(in fixture: Fixture, byChoice: Bool = false) async throws -> UUID {
         fixture.store.currentAddTorrentDraft = makeDraft(savePath: fixture.saveURL.path)
-        fixture.store.saveDraftToList()
+        fixture.store.saveDraftToList(byChoice: byChoice)
 
         let didSave = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
             fixture.store.torrents.count == 1
@@ -273,6 +273,80 @@ final class SavedDownloadTests: XCTestCase {
 
         XCTAssertFalse(fixture.store.isToolbarRemoveEnabled)
         XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
+    }
+
+    /// "Сохранить в список" in the question "Не скачивать" saves a download
+    /// that may well fit: its "i" says it was saved by choice, and the list
+    /// keeps that across a relaunch.
+    func testSavingByChoiceSaysSoAndSurvivesRelaunch() async throws {
+        let fixture = try makeFixture(availableBytes: 10 * Self.selectedBytes)
+        let id = try await saveDraft(in: fixture, byChoice: true)
+
+        let saved = try record(id, in: fixture)
+        XCTAssertTrue(saved.isSavedForLater)
+        XCTAssertTrue(saved.isSavedByChoice)
+        XCTAssertTrue(try XCTUnwrap(fixture.store.rowState(for: id)).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedByChoice) == .some(true)
+        }
+        XCTAssertTrue(didPersist)
+
+        let relaunched = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            router: ExternalOpenRouter(),
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: relaunched.rootURL)
+        }
+        let destination = relaunched.directories.applicationSupportURL
+        try? FileManager.default.removeItem(at: destination)
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try FileManager.default.copyItem(at: fixture.bundle.directories.applicationSupportURL, to: destination)
+
+        relaunched.store.bootstrapRuntimeState()
+        let didLoad = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            relaunched.store.torrents.count == 1 && !relaunched.store.isRestoringSession
+        }
+        XCTAssertTrue(didLoad)
+        let restored = try XCTUnwrap(relaunched.store.torrents.first)
+        XCTAssertTrue(restored.isSavedForLater)
+        XCTAssertTrue(restored.isSavedByChoice)
+    }
+
+    /// For lack of room, as before: no choice, and the list writes none.
+    func testSavingForLackOfRoomCarriesNoChoice() async throws {
+        let fixture = try makeFixture()
+        let id = try await saveDraft(in: fixture)
+
+        XCTAssertFalse(try record(id, in: fixture).isSavedByChoice)
+        XCTAssertFalse(try XCTUnwrap(fixture.store.rowState(for: id)).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedForLater) == .some(true)
+        }
+        XCTAssertTrue(didPersist)
+        XCTAssertNil(try savedSessionRecord(in: fixture).savedByChoice)
+    }
+
+    /// Started once, a download saved by choice is an ordinary one too.
+    func testStartEndsTheChoiceWithTheSavedState() async throws {
+        let fixture = try makeFixture(availableBytes: 10 * Self.selectedBytes)
+        let id = try await saveDraft(in: fixture, byChoice: true)
+
+        fixture.store.startTorrent(id: id)
+
+        let didStart = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            fixture.store.torrents.first?.isSavedForLater == false
+        }
+        XCTAssertTrue(didStart)
+        XCTAssertFalse(try record(id, in: fixture).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedByChoice) == .some(nil)
+        }
+        XCTAssertTrue(didPersist)
     }
 
     /// A saved download never wrote a file: it offers no removal with files,

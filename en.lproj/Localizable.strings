@@ -114,6 +114,7 @@
 "torrent.card.selection_refusal" = "Use the buttons below for this download";
 "torrent.saved.info.help" = "Learn about this saved download";
 "torrent.saved.info.reason" = "This download didn’t have enough space when it was added, so it was saved to the list and is waiting to be started. Start it manually once there’s enough space.";
+"torrent.saved.info.reason.chosen" = "When this download was added, it was decided not to download it right away, so it was saved to the list and is waiting to be started.";
 "torrent.saved.info.short" = "Right now the disk “%1$@” has %2$@ available and the download needs %3$@—it’s %4$@ short.";
 "torrent.saved.info.fits" = "There’s enough space now. You can start the download.";
 "torrent.saved.info.unknown" = "Couldn’t check the available space: the “%@” folder is unavailable right now—the disk may be disconnected.";
@@ -197,6 +198,11 @@
 "add_torrent.review.previous" = "Previous Download";
 "add_torrent.review.next" = "Next Download";
 "add_torrent.review.skip" = "Don’t Download";
+"add_torrent.skip.title" = "Don’t download “%@”?";
+"add_torrent.skip.message.file" = "The download won’t appear in the list. To download it later, you’ll need to open the file “%1$@” from the “%2$@” folder again.";
+"add_torrent.skip.message.link" = "The download won’t appear in the list. To download it later, you’ll need to open the link again.";
+"add_torrent.skip.message.save_hint" = "If you save it to the list, it will wait there until you start it.";
+"add_torrent.review.go_back" = "Go Back";
 "add_torrent.entry.empty_title" = "Download list is empty";
 "add_torrent.entry.subtitle" = "Paste a magnet link below or choose a .torrent file from your Mac.";
 "add_torrent.entry.empty_subtitle" = "Drag a .torrent file or magnet link here, or add one below.";

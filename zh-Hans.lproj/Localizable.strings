@@ -113,6 +113,7 @@
 "torrent.card.selection_refusal" = "此下载请使用下方按钮操作";
 "torrent.saved.info.help" = "了解已保存的下载";
 "torrent.saved.info.reason" = "添加时空间不足，因此该下载已保存到列表，等待开始。空间足够后，请手动开始。";
+"torrent.saved.info.reason.chosen" = "添加时选择了暂不下载，因此该下载已保存到列表，等待开始。";
 "torrent.saved.info.short" = "磁盘“%1$@”目前可用 %2$@，需要 %3$@，还差 %4$@。";
 "torrent.saved.info.fits" = "现在空间足够，可以开始下载了。";
 "torrent.saved.info.unknown" = "无法查看可用空间：“%@”文件夹目前不可用，磁盘可能已断开连接。";
@@ -193,6 +194,11 @@
 "add_torrent.review.previous" = "上一个下载";
 "add_torrent.review.next" = "下一个下载";
 "add_torrent.review.skip" = "不下载";
+"add_torrent.skip.title" = "不下载“%@”？";
+"add_torrent.skip.message.file" = "该下载不会出现在列表中。如需稍后下载，需要再次打开“%2$@”文件夹中的文件“%1$@”。";
+"add_torrent.skip.message.link" = "该下载不会出现在列表中。如需稍后下载，需要再次打开链接。";
+"add_torrent.skip.message.save_hint" = "如果保存到列表，它会在那里等待，直到你开始它。";
+"add_torrent.review.go_back" = "返回";
 "add_torrent.entry.empty_title" = "下载列表为空";
 "add_torrent.entry.subtitle" = "在下方粘贴 magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.empty_subtitle" = "将 .torrent 文件或 magnet 链接拖到此处，或在下方添加。";

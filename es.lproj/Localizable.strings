@@ -114,6 +114,7 @@
 "torrent.card.selection_refusal" = "Esta descarga se gestiona con los botones de abajo";
 "torrent.saved.info.help" = "Más información sobre la descarga guardada";
 "torrent.saved.info.reason" = "Esta descarga no tenía espacio suficiente al añadirla, así que se guardó en la lista y espera a que la inicies. Iníciala manualmente cuando haya espacio suficiente.";
+"torrent.saved.info.reason.chosen" = "Al añadir esta descarga se decidió no descargarla enseguida, así que se guardó en la lista y espera a que la inicies.";
 "torrent.saved.info.short" = "Ahora el disco «%1$@» tiene %2$@ libres y se necesitan %3$@: faltan %4$@.";
 "torrent.saved.info.fits" = "Ahora hay espacio suficiente. Ya puedes iniciar la descarga.";
 "torrent.saved.info.unknown" = "No se pudo comprobar el espacio libre: la carpeta «%@» no está disponible ahora; puede que el disco esté desconectado.";
@@ -197,6 +198,11 @@
 "add_torrent.review.previous" = "Descarga anterior";
 "add_torrent.review.next" = "Descarga siguiente";
 "add_torrent.review.skip" = "No descargar";
+"add_torrent.skip.title" = "¿No descargar «%@»?";
+"add_torrent.skip.message.file" = "La descarga no aparecerá en la lista. Para descargarla más tarde, tendrás que volver a abrir el archivo «%1$@» de la carpeta «%2$@».";
+"add_torrent.skip.message.link" = "La descarga no aparecerá en la lista. Para descargarla más tarde, tendrás que volver a abrir el enlace.";
+"add_torrent.skip.message.save_hint" = "Si la guardas en la lista, esperará allí hasta que la inicies.";
+"add_torrent.review.go_back" = "Volver";
 "add_torrent.entry.empty_title" = "La lista de descargas está vacía";
 "add_torrent.entry.subtitle" = "Pega un enlace magnet abajo o elige un archivo .torrent de tu Mac.";
 "add_torrent.entry.empty_subtitle" = "Arrastra aquí un archivo .torrent o un enlace magnet, o añádelos abajo.";

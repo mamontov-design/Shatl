@@ -368,6 +368,45 @@ enum ShatlErrorCatalog {
         )
     }
 
+    /// The question "Не скачивать" asks among several downloads: what goes,
+    /// and how to find it again — a `.torrent` file by its name and folder
+    /// as Finder shows them, since trackers name files like
+    /// "tor164677.torrent"; a link is opened again from wherever it came.
+    /// `canSave` adds the way to keep it: "Сохранить в список".
+    nonisolated static func skipDownloadQuestion(
+        for draft: AddTorrentDraft,
+        canSave: Bool,
+        localeOverride: AppLocaleOverride = .russian
+    ) -> (title: String, message: String) {
+        let title = L10n.format(
+            "add_torrent.skip.title",
+            localeOverride: localeOverride,
+            defaultValue: "",
+            shortenedTorrentName(draft.originalName)
+        )
+        var message: String
+        switch draft.source.kind {
+        case .magnet:
+            message = L10n.string("add_torrent.skip.message.link", localeOverride: localeOverride)
+        case .torrentFile, .externalOpen:
+            let file = URL(fileURLWithPath: draft.source.rawValue)
+            message = L10n.format(
+                "add_torrent.skip.message.file",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                file.lastPathComponent,
+                folderDisplayName(forPath: file.deletingLastPathComponent().path)
+            )
+        }
+        if canSave {
+            // Japanese and Chinese run their sentences on without a space.
+            let languageCode = L10n.locale(for: localeOverride).language.languageCode?.identifier ?? ""
+            let separator = ["ja", "zh"].contains(languageCode) ? "" : " "
+            message += separator + L10n.string("add_torrent.skip.message.save_hint", localeOverride: localeOverride)
+        }
+        return (title, message)
+    }
+
     /// What a message among several downloads names: the `.torrent` file as
     /// Finder shows it — a broken one cannot tell its torrent's name — or the
     /// name a magnet link carries; `nil` for a link without one.

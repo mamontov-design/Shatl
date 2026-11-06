@@ -113,6 +113,61 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertTrue(long.titleAmongSeveral?.contains("…") == true, "A long name is shortened in the middle")
     }
 
+    private func skipDraft(source: AddTorrentSource) -> AddTorrentDraft {
+        AddTorrentDraft(
+            source: source,
+            originalName: "Northstar.S01",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [AddTorrentFileOption(name: "Northstar.S01/E01.mkv", sizeBytes: 1_000, fileIndex: 0, isSelected: true)],
+            reviewState: .ready,
+            errorState: nil
+        )
+    }
+
+    private func plain(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{00A0}", with: " ").replacingOccurrences(of: "\u{202F}", with: " ")
+    }
+
+    /// "Не скачивать" names the download, and the file and folder to find it
+    /// in again: trackers name files like "tor164677.torrent".
+    func testSkipQuestionNamesTheFileAndItsFolder() {
+        let file = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/Probe Folder/tor164677.torrent"))
+        let question = ShatlErrorCatalog.skipDownloadQuestion(for: file, canSave: true, localeOverride: .russian)
+        XCTAssertEqual(plain(question.title), "Не скачивать «Northstar.S01»?")
+        XCTAssertTrue(question.message.contains("«tor164677.torrent»"), question.message)
+        XCTAssertTrue(question.message.contains("«Probe Folder»"), question.message)
+        XCTAssertTrue(plain(question.message).hasSuffix("Если сохранить её в список, она подождёт там, пока вы её не запустите."))
+
+        let unsavable = ShatlErrorCatalog.skipDownloadQuestion(for: file, canSave: false, localeOverride: .russian)
+        XCTAssertFalse(plain(unsavable.message).contains("сохранить"), unsavable.message)
+
+        let link = skipDraft(source: AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:abc"))
+        let linkQuestion = ShatlErrorCatalog.skipDownloadQuestion(for: link, canSave: true, localeOverride: .russian)
+        XCTAssertTrue(plain(linkQuestion.message).contains("снова открыть ссылку"), linkQuestion.message)
+
+        // Japanese runs its sentences on without a space.
+        let japanese = ShatlErrorCatalog.skipDownloadQuestion(for: link, canSave: true, localeOverride: .japanese)
+        XCTAssertFalse(japanese.message.contains("。 "), japanese.message)
+    }
+
+    /// Return goes back, and "Сохранить в список" is there only when there
+    /// is something to keep.
+    func testSkipQuestionGoesBackOnReturnAndOffersToKeepTheDownload() {
+        let draft = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/tor164677.torrent"))
+        let alert = AddTorrentSkipQuestion.makeAlert(about: draft, canSave: true, localeOverride: .russian)
+        XCTAssertEqual(alert.buttons.map { plain($0.title) }, ["Вернуться", "Сохранить в список", "Не скачивать"])
+        XCTAssertEqual(alert.buttons.first?.keyEquivalent, "\r")
+        XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertFirstButtonReturn, canSave: true), .goBack)
+        XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertSecondButtonReturn, canSave: true), .saveToList)
+        XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertThirdButtonReturn, canSave: true), .skip)
+
+        let unsavable = AddTorrentSkipQuestion.makeAlert(about: draft, canSave: false, localeOverride: .russian)
+        XCTAssertEqual(unsavable.buttons.map { plain($0.title) }, ["Вернуться", "Не скачивать"])
+        XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertSecondButtonReturn, canSave: false), .skip)
+    }
+
     private func reviewErrorTitle(afterTimeoutWhileOffline isOffline: Bool) async -> String? {
         let engine = FakeTorrentEngine()
         await engine.setPrepareError(TorrentEngineError(kind: .metadataTimeout))

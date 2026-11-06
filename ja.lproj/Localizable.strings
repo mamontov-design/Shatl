@@ -113,6 +113,7 @@
 "torrent.card.selection_refusal" = "このダウンロードは下のボタンで操作します";
 "torrent.saved.info.help" = "保存したダウンロードについて";
 "torrent.saved.info.reason" = "このダウンロードは追加時に空き容量が足りなかったため、リストに保存され、開始を待っています。空き容量が十分になったら、手動で開始してください。";
+"torrent.saved.info.reason.chosen" = "このダウンロードは追加時にすぐにはダウンロードしないことにしたため、リストに保存され、開始を待っています。";
 "torrent.saved.info.short" = "現在、ディスク「%1$@」の空き容量は%2$@、必要な容量は%3$@で、%4$@不足しています。";
 "torrent.saved.info.fits" = "空き容量は十分です。ダウンロードを開始できます。";
 "torrent.saved.info.unknown" = "空き容量を確認できませんでした。「%@」フォルダを現在利用できません。ディスクが取り外されている可能性があります。";
@@ -193,6 +194,11 @@
 "add_torrent.review.previous" = "前のダウンロード";
 "add_torrent.review.next" = "次のダウンロード";
 "add_torrent.review.skip" = "ダウンロードしない";
+"add_torrent.skip.title" = "「%@」をダウンロードしないことにしますか？";
+"add_torrent.skip.message.file" = "ダウンロードはリストに表示されません。あとでダウンロードするには、「%2$@」フォルダのファイル「%1$@」をもう一度開く必要があります。";
+"add_torrent.skip.message.link" = "ダウンロードはリストに表示されません。あとでダウンロードするには、リンクをもう一度開く必要があります。";
+"add_torrent.skip.message.save_hint" = "リストに保存すると、開始するまでそこで待機します。";
+"add_torrent.review.go_back" = "戻る";
 "add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下にmagnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.empty_subtitle" = "ここに.torrentファイルかmagnetリンクをドラッグするか、下で追加してください。";

@@ -2871,7 +2871,7 @@ private struct AddTorrentReviewContent: View {
 
     /// Closes the window and stops preparing the download, as the window's
     /// close button does. With several downloads waiting, only the one on
-    /// screen leaves: "Не скачивать".
+    /// screen leaves, once the question has been answered: "Не скачивать".
     private var cancelButton: some View {
         ShatlButton(
             title: review.isBatch
@@ -2884,12 +2884,41 @@ private struct AddTorrentReviewContent: View {
             role: .borderedNeutral
         ) {
             if review.isBatch {
-                skipCurrentDownload()
+                askToSkipCurrentDownload()
             } else {
                 closeWindow()
             }
         }
         .keyboardShortcut(.cancelAction)
+    }
+
+    /// "Не скачивать" among several downloads asks first; see
+    /// `AddTorrentSkipQuestion`. A download with no file ticked cannot be
+    /// kept in the list, so it is only asked whether to let it go.
+    private func askToSkipCurrentDownload() {
+        guard let draft = review.draft else { return }
+        let canSave = draft.canConfirmDownload
+        isAliasFocused = false
+        windowFocus.release()
+        Task { @MainActor in
+            let answer = await AddTorrentSkipQuestion.ask(
+                about: draft,
+                canSave: canSave,
+                localeOverride: store.preferences.localeOverride,
+                window: windowFocus.window
+            )
+            // Answered for the download it asked about: if the window has
+            // moved on meanwhile, nothing is done to another one.
+            guard review.draft?.id == draft.id else { return }
+            switch answer {
+            case .goBack:
+                break
+            case .saveToList:
+                store.saveDraftToList(byChoice: true)
+            case .skip:
+                store.skipCurrentDraft()
+            }
+        }
     }
 
     /// With no room for the download the button saves it to the list

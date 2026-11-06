@@ -114,6 +114,7 @@
 "torrent.card.selection_refusal" = "Diesen Download steuern die Tasten unten";
 "torrent.saved.info.help" = "Mehr über den gesicherten Download";
 "torrent.saved.info.reason" = "Für diesen Download war beim Hinzufügen nicht genug Platz, daher wurde er in der Liste gesichert und wartet auf den Start. Starten Sie ihn manuell, sobald genug Platz frei ist.";
+"torrent.saved.info.reason.chosen" = "Beim Hinzufügen wurde entschieden, diesen Download nicht sofort zu laden, daher wurde er in der Liste gesichert und wartet auf den Start.";
 "torrent.saved.info.short" = "Auf dem Datenträger „%1$@“ sind derzeit %2$@ frei, benötigt werden %3$@ – es fehlen %4$@.";
 "torrent.saved.info.fits" = "Jetzt ist genug Platz. Der Download kann gestartet werden.";
 "torrent.saved.info.unknown" = "Der freie Platz ließ sich nicht ermitteln: Der Ordner „%@“ ist gerade nicht verfügbar – vielleicht ist der Datenträger getrennt.";
@@ -197,6 +198,11 @@
 "add_torrent.review.previous" = "Vorheriger Download";
 "add_torrent.review.next" = "Nächster Download";
 "add_torrent.review.skip" = "Nicht laden";
+"add_torrent.skip.title" = "„%@“ nicht laden?";
+"add_torrent.skip.message.file" = "Der Download erscheint nicht in der Liste. Um ihn später zu laden, müssen Sie die Datei „%1$@“ aus dem Ordner „%2$@“ erneut öffnen.";
+"add_torrent.skip.message.link" = "Der Download erscheint nicht in der Liste. Um ihn später zu laden, müssen Sie den Link erneut öffnen.";
+"add_torrent.skip.message.save_hint" = "Wenn Sie ihn in der Liste sichern, wartet er dort, bis Sie ihn starten.";
+"add_torrent.review.go_back" = "Zurück";
 "add_torrent.entry.empty_title" = "Download-Liste ist leer";
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen Magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
 "add_torrent.entry.empty_subtitle" = ".torrent-Datei oder Magnet-Link hierher ziehen oder unten hinzufügen.";
