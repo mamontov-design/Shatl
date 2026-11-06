@@ -242,15 +242,35 @@ final class AddTorrentReviewModel: ObservableObject {
 
     private func removeCurrent() -> Bool {
         guard let item = currentItem else { return true }
+        removeItem(item.id)
+        return items.isEmpty
+    }
+
+    /// Takes a download out of the window. The one on screen gives way to
+    /// the next, or to the one before when it was the last; any other leaves
+    /// the one on screen where it is.
+    private func removeItem(_ itemID: UUID) {
+        guard let index = items.firstIndex(where: { $0.id == itemID }) else { return }
+        let item = items[index]
         preparationTasks.removeValue(forKey: item.id)?.cancel()
         publish {
-            items.remove(at: currentIndex)
-            if currentIndex >= items.count {
+            items.remove(at: index)
+            if index < currentIndex {
+                currentIndex -= 1
+            } else if currentIndex >= items.count {
                 currentIndex = max(items.count - 1, 0)
             }
         }
         releasePreparedDraftUnlessAdding(item.draft.id)
-        return items.isEmpty
+    }
+
+    /// Another download waiting here is this same torrent: two `.torrent`
+    /// files of one torrent, or a file and a link to it.
+    private func anotherItemHolds(infoHash: String?, besides itemID: UUID) -> Bool {
+        guard let infoHash = infoHash?.lowercased(), !infoHash.isEmpty else { return false }
+        return items.contains { item in
+            item.id != itemID && item.draft.infoHash?.lowercased() == infoHash
+        }
     }
 
     private func removeAll() {
@@ -304,6 +324,10 @@ final class AddTorrentReviewModel: ObservableObject {
                 if self.host?.addTorrentReviewRepeatsDownload(preparedDraft) == true {
                     self.releasePreparedDraft(preparedDraft.id)
                     self.presentDuplicate(of: preparedDraft, in: itemID)
+                } else if self.anotherItemHolds(infoHash: preparedDraft.infoHash, besides: itemID) {
+                    // The same torrent already waits here: one place for it.
+                    self.releasePreparedDraft(preparedDraft.id)
+                    self.removeItem(itemID)
                 } else {
                     self.setDraft(preparedDraft, forItem: itemID)
                 }
@@ -315,6 +339,13 @@ final class AddTorrentReviewModel: ObservableObject {
                     localeOverride: self.localeOverride
                 )
                 let engineError = TorrentEngineError.normalized(from: error)
+                // A link whose torrent a file read here meanwhile: the engine
+                // calls it a duplicate, though it is in no list. One place.
+                if engineError.kind == .duplicateTorrent,
+                   self.anotherItemHolds(infoHash: engineError.infoHash, besides: itemID) {
+                    self.removeItem(itemID)
+                    return
+                }
                 if engineError.kind == .duplicateTorrent,
                    let duplicate = self.host?.addTorrentReviewDuplicateError(
                        named: engineError.torrentName,

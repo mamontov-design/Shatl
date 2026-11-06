@@ -22,6 +22,8 @@ actor FakeTorrentEngine {
     private var createdPreparedDraftIDsValue: [UUID] = []
     private var requiresPreparedDrafts = false
     private var namesDraftsBySource = false
+    private var prepareErrorsBySource: [String: TorrentEngineError] = [:]
+    private var infoHashesBySource: [String: String] = [:]
     private var removeCallsValue: [RemovedTorrentCall] = []
     private var removeError: TorrentEngineError?
     private var removeDelayNanoseconds: UInt64 = 0
@@ -66,6 +68,9 @@ actor FakeTorrentEngine {
         if let prepareError {
             throw prepareError
         }
+        if let prepareError = prepareErrorsBySource[source.rawValue] {
+            throw prepareError
+        }
 
         let draftID = UUID()
         heldPreparedDraftIDsValue.insert(draftID)
@@ -75,7 +80,8 @@ actor FakeTorrentEngine {
             id: draftID,
             source: source,
             originalName: namesDraftsBySource ? fileName : "Test Torrent",
-            infoHash: namesDraftsBySource ? "hash-\(source.rawValue)" : "test-info-hash",
+            infoHash: infoHashesBySource[source.rawValue]
+                ?? (namesDraftsBySource ? "hash-\(source.rawValue)" : "test-info-hash"),
             suggestedSavePath: suggestedSavePath,
             alias: "",
             stopAfterDownload: stopAfterDownload,
@@ -289,6 +295,18 @@ actor FakeTorrentEngine {
     /// other. Off by default because many tests rely on "test-info-hash".
     func setNamesDraftsBySource(_ isEnabled: Bool) async {
         namesDraftsBySource = isEnabled
+    }
+
+    /// Fails the preparation of one file or link only: a broken file among
+    /// several opened at once.
+    func setPrepareError(_ error: TorrentEngineError, forSource rawValue: String) async {
+        prepareErrorsBySource[rawValue] = error
+    }
+
+    /// Gives one file or link the info hash of another: two `.torrent`
+    /// files of one torrent.
+    func setInfoHash(_ infoHash: String, forSource rawValue: String) async {
+        infoHashesBySource[rawValue] = infoHash
     }
 
     func setPrepareSuspended(_ isSuspended: Bool) async {

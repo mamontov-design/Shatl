@@ -111,6 +111,10 @@ enum ShatlErrorCatalog {
         localeOverride: AppLocaleOverride = .russian
     ) -> TorrentErrorState {
         let engineError = TorrentEngineError.normalized(from: error)
+        let subjectName = reviewSubjectName(for: source)
+        func titleAmongSeveral(_ key: String) -> String? {
+            namedTitle(key, naming: subjectName, localeOverride: localeOverride)
+        }
 
         switch engineError.kind {
         case .invalidMagnet:
@@ -124,7 +128,12 @@ enum ShatlErrorCatalog {
                     "add_torrent.error.invalid_magnet.message",
                     localeOverride: localeOverride
                 ),
-                recoveryOptions: [.retry, .dismiss]
+                recoveryOptions: [.retry, .dismiss],
+                messageAmongSeveral: L10n.string(
+                    "add_torrent.error.invalid_magnet.message.several",
+                    localeOverride: localeOverride
+                ),
+                titleAmongSeveral: titleAmongSeveral("add_torrent.error.invalid_magnet.title.several")
             )
 
         case .invalidTorrentFile:
@@ -138,7 +147,12 @@ enum ShatlErrorCatalog {
                     "add_torrent.error.invalid_torrent_file.message",
                     localeOverride: localeOverride
                 ),
-                recoveryOptions: [.retry, .dismiss]
+                recoveryOptions: [.retry, .dismiss],
+                messageAmongSeveral: L10n.string(
+                    "add_torrent.error.invalid_torrent_file.message.several",
+                    localeOverride: localeOverride
+                ),
+                titleAmongSeveral: titleAmongSeveral("add_torrent.error.invalid_torrent_file.title.several")
             )
 
         case .metadataTimeout:
@@ -152,7 +166,8 @@ enum ShatlErrorCatalog {
                     "add_torrent.error.metadata_timeout.message",
                     localeOverride: localeOverride
                 ),
-                recoveryOptions: [.retry, .dismiss]
+                recoveryOptions: [.retry, .dismiss],
+                titleAmongSeveral: titleAmongSeveral("add_torrent.error.metadata_timeout.title.several")
             )
 
         case .draftPreparationLost:
@@ -166,7 +181,12 @@ enum ShatlErrorCatalog {
                     "add_torrent.error.draft_lost.message",
                     localeOverride: localeOverride
                 ),
-                recoveryOptions: [.retry, .dismiss]
+                recoveryOptions: [.retry, .dismiss],
+                messageAmongSeveral: L10n.string(
+                    "add_torrent.error.draft_lost.message.several",
+                    localeOverride: localeOverride
+                ),
+                titleAmongSeveral: titleAmongSeveral("add_torrent.error.draft_lost.title.several")
             )
 
         case .duplicateTorrent:
@@ -185,11 +205,18 @@ enum ShatlErrorCatalog {
                     "add_torrent.error.not_found.message",
                     localeOverride: localeOverride
                 ),
-                recoveryOptions: [.dismiss]
+                recoveryOptions: [.dismiss],
+                messageAmongSeveral: L10n.string(
+                    "add_torrent.error.not_found.message.several",
+                    localeOverride: localeOverride
+                ),
+                titleAmongSeveral: titleAmongSeveral("add_torrent.error.not_found.title.several")
             )
 
         case .engineFailure, .notImplemented:
-            return genericAddFlowFailure(source: source, localeOverride: localeOverride)
+            var failure = genericAddFlowFailure(source: source, localeOverride: localeOverride)
+            failure.titleAmongSeveral = titleAmongSeveral("add_torrent.error.generic.title.several")
+            return failure
         }
     }
 
@@ -250,7 +277,8 @@ enum ShatlErrorCatalog {
             kind: .noConnection,
             title: L10n.string("add_torrent.error.offline.title", localeOverride: localeOverride),
             message: L10n.string("add_torrent.error.offline.message", localeOverride: localeOverride),
-            recoveryOptions: [.retry, .dismiss]
+            recoveryOptions: [.retry, .dismiss],
+            messageAmongSeveral: L10n.string("add_torrent.error.offline.message.several", localeOverride: localeOverride)
         )
     }
 
@@ -302,23 +330,72 @@ enum ShatlErrorCatalog {
     ) -> TorrentErrorState {
         let name = torrentName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let prefix = showsInList ? "add_torrent.error.duplicate.in_list" : "add_torrent.error.duplicate"
-        let message = name.isEmpty
-            ? L10n.string("\(prefix).message", localeOverride: localeOverride)
-            : L10n.format(
-                "\(prefix).named_message",
-                localeOverride: localeOverride,
-                defaultValue: "",
-                shortenedTorrentName(name)
-            )
+        func text(_ suffix: String) -> String {
+            name.isEmpty
+                ? L10n.string("\(prefix).message\(suffix)", localeOverride: localeOverride)
+                : L10n.format(
+                    "\(prefix).named_message\(suffix)",
+                    localeOverride: localeOverride,
+                    defaultValue: "",
+                    shortenedTorrentName(name)
+                )
+        }
+        // Among several, the name moves into the title, so the text does
+        // not repeat it. "Показать в списке" serves both; without it, the
+        // single text says to close the window.
+        let messageAmongSeveral: String?
+        if showsInList {
+            messageAmongSeveral = name.isEmpty
+                ? nil
+                : L10n.string("add_torrent.error.duplicate.in_list.message", localeOverride: localeOverride)
+        } else {
+            messageAmongSeveral = L10n.string("add_torrent.error.duplicate.message.several", localeOverride: localeOverride)
+        }
         return TorrentErrorState(
             kind: .duplicateTorrent,
             title: L10n.string(
                 "add_torrent.error.duplicate.title",
                 localeOverride: localeOverride
             ),
-            message: message,
-            recoveryOptions: [.dismiss]
+            message: text(""),
+            recoveryOptions: [.dismiss],
+            messageAmongSeveral: messageAmongSeveral,
+            titleAmongSeveral: namedTitle(
+                "add_torrent.error.duplicate.title.several",
+                naming: name.isEmpty ? nil : name,
+                localeOverride: localeOverride
+            )
         )
+    }
+
+    /// What a message among several downloads names: the `.torrent` file as
+    /// Finder shows it — a broken one cannot tell its torrent's name — or the
+    /// name a magnet link carries; `nil` for a link without one.
+    nonisolated static func reviewSubjectName(for source: AddTorrentSource) -> String? {
+        let name: String?
+        switch source.kind {
+        case .magnet:
+            name = URLComponents(string: source.rawValue)?
+                .queryItems?
+                .first { $0.name.lowercased() == "dn" }?
+                .value?
+                .replacingOccurrences(of: "+", with: " ")
+        case .torrentFile, .externalOpen:
+            name = URL(fileURLWithPath: source.rawValue).lastPathComponent
+        }
+        let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// A title naming the download, shortened as the duplicate's text is;
+    /// `nil` with no name, and the plain title stands.
+    nonisolated private static func namedTitle(
+        _ key: String,
+        naming name: String?,
+        localeOverride: AppLocaleOverride
+    ) -> String? {
+        guard let name else { return nil }
+        return L10n.format(key, localeOverride: localeOverride, defaultValue: "", shortenedTorrentName(name))
     }
 
     /// A torrent name short enough for a sentence: at most `limit` characters,
@@ -347,7 +424,11 @@ enum ShatlErrorCatalog {
                 "add_torrent.error.generic.message",
                 localeOverride: localeOverride
             ),
-            recoveryOptions: [.retry, .dismiss]
+            recoveryOptions: [.retry, .dismiss],
+            messageAmongSeveral: L10n.string(
+                "add_torrent.error.generic.message.several",
+                localeOverride: localeOverride
+            )
         )
     }
 }

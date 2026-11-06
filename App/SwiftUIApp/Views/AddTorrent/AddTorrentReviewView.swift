@@ -1360,8 +1360,8 @@ private struct AddTorrentReviewContent: View {
             systemImage: message.systemImage,
             title: message.title,
             message: message.message,
-            primaryButton: primaryMessageButton(for: message.actions),
-            secondaryButtons: secondaryMessageButtons(for: message.actions)
+            primaryButton: primaryMessageButton(for: message.actions, leadsForward: message.leadsForward),
+            secondaryButtons: secondaryMessageButtons(for: message.actions, leadsForward: message.leadsForward)
         )
         // The window is disabled outside the review, for its search; the
         // message's own actions stay pressable.
@@ -1530,6 +1530,10 @@ private struct AddTorrentReviewContent: View {
         var title: String
         var message: String?
         var actions: AddTorrentReviewMessageActions
+        /// Where "Следующая загрузка" / "Предыдущая загрузка" leads, taken
+        /// as the message is made: a message on its way out keeps the label
+        /// it was seen with, though the window has already moved on.
+        var leadsForward: Bool
     }
 
     private var reviewMessage: ReviewMessage? {
@@ -1539,7 +1543,8 @@ private struct AddTorrentReviewContent: View {
         let isKnownDuplicate = draft?.errorState?.kind == .duplicateTorrent && review.duplicateID != nil
         let actions = AddTorrentReviewMessageActions.current(
             reviewState: reviewState,
-            isKnownDuplicate: isKnownDuplicate
+            isKnownDuplicate: isKnownDuplicate,
+            othersWait: review.count > 1
         )
 
         switch reviewState {
@@ -1549,7 +1554,8 @@ private struct AddTorrentReviewContent: View {
                 systemImage: "tray",
                 title: L10n.string("add_torrent.review.no_files.title", localeOverride: locale),
                 message: L10n.string("add_torrent.review.no_files.message", localeOverride: locale),
-                actions: actions
+                actions: actions,
+                leadsForward: review.hasNext
             )
 
         case .loadingMetadata?:
@@ -1561,17 +1567,28 @@ private struct AddTorrentReviewContent: View {
                 message: waitsForPeers
                     ? L10n.string("add_torrent.review.loading.message", localeOverride: locale)
                     : nil,
-                actions: actions
+                actions: actions,
+                leadsForward: review.hasNext
             )
 
         case .invalid?:
             let errorState = draft?.errorState
-            let message = errorState?.message ?? ""
+            // Among several downloads, a text for the button there; it
+            // changes by itself if more downloads arrive while it is shown.
+            let isAmongSeveral = review.count > 1
+            let textAmongSeveral = isAmongSeveral ? errorState?.messageAmongSeveral : nil
+            // Among several, the title names the download: no file tree
+            // shows which one it is.
+            let titleAmongSeveral = isAmongSeveral ? errorState?.titleAmongSeveral : nil
+            let message = textAmongSeveral ?? errorState?.message ?? ""
             return ReviewMessage(
                 systemImage: errorState?.kind == .noConnection ? "wifi.slash" : "exclamationmark.circle",
-                title: errorState?.title ?? L10n.string("add_torrent.review.invalid_placeholder", localeOverride: locale),
+                title: titleAmongSeveral
+                    ?? errorState?.title
+                    ?? L10n.string("add_torrent.review.invalid_placeholder", localeOverride: locale),
                 message: message.isEmpty ? nil : message,
-                actions: actions
+                actions: actions,
+                leadsForward: review.hasNext
             )
 
         case .none:
@@ -1579,13 +1596,15 @@ private struct AddTorrentReviewContent: View {
                 systemImage: "hourglass",
                 title: L10n.string("add_torrent.review.preparing.title", localeOverride: locale),
                 message: L10n.string("add_torrent.review.preparing.message", localeOverride: locale),
-                actions: actions
+                actions: actions,
+                leadsForward: review.hasNext
             )
         }
     }
 
     private func primaryMessageButton(
-        for actions: AddTorrentReviewMessageActions
+        for actions: AddTorrentReviewMessageActions,
+        leadsForward: Bool
     ) -> ShatlMessageBlockPrimaryButton {
         switch actions {
         case .cancel:
@@ -1603,7 +1622,9 @@ private struct AddTorrentReviewContent: View {
             }
         case .close:
             closeWindowButton
-        case .showInListAndClose:
+        case .next:
+            nextDownloadButton(leadsForward: leadsForward)
+        case .showInListAndClose, .showInListAndNext:
             ShatlMessageBlockPrimaryButton(
                 title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride)
             ) {
@@ -1614,13 +1635,16 @@ private struct AddTorrentReviewContent: View {
     }
 
     private func secondaryMessageButtons(
-        for actions: AddTorrentReviewMessageActions
+        for actions: AddTorrentReviewMessageActions,
+        leadsForward: Bool
     ) -> [ShatlMessageBlockPrimaryButton] {
         switch actions {
-        case .cancel, .close:
+        case .cancel, .close, .next:
             []
         case .showInListAndClose:
             [closeWindowButton]
+        case .showInListAndNext:
+            [nextDownloadButton(leadsForward: leadsForward)]
         }
     }
 
@@ -1632,6 +1656,23 @@ private struct AddTorrentReviewContent: View {
             keyboardShortcut: .cancelAction
         ) {
             closeWindow()
+        }
+    }
+
+    /// Among several downloads, one that cannot be downloaded leaves the
+    /// window, and another is shown: "Закрыть окно" would take all the
+    /// others with it. Named for where it leads, as the arrows are: the next
+    /// download, or the one before when this was the last in line.
+    private func nextDownloadButton(leadsForward: Bool) -> ShatlMessageBlockPrimaryButton {
+        ShatlMessageBlockPrimaryButton(
+            title: L10n.string(
+                leadsForward ? "add_torrent.review.next" : "add_torrent.review.previous",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: leadsForward ? "Следующая загрузка" : "Предыдущая загрузка"
+            ),
+            keyboardShortcut: .cancelAction
+        ) {
+            skipCurrentDownload()
         }
     }
 

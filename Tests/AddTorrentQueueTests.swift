@@ -126,6 +126,50 @@ final class AddTorrentQueueTests: XCTestCase {
         XCTAssertEqual(bundle.store.currentAddTorrentDraft?.originalName, "Bravo")
     }
 
+    /// A broken file among several keeps its place with its message, and
+    /// the others stay; moving on from it lets it go.
+    func testABrokenFileAmongSeveralKeepsItsPlaceAndTheOthersStay() async throws {
+        let (engine, brokenBundle) = await makeBundle()
+        await engine.setPrepareError(
+            TorrentEngineError(kind: .invalidTorrentFile, debugReason: "broken"),
+            forSource: fileURL("Bravo").path
+        )
+        let queue = brokenBundle.store.addTorrentReview
+        open(["Alpha", "Bravo", "Charlie"], in: brokenBundle.store)
+
+        let isSettled = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            queue.count == 3 && !queue.items.contains { $0.draft.reviewState == .loadingMetadata }
+        }
+        XCTAssertTrue(isSettled)
+        XCTAssertEqual(queue.items.map { $0.draft.reviewState == .ready }, [true, false, true])
+        XCTAssertEqual(queue.items[1].draft.errorState?.kind, .invalidTorrentFile)
+
+        queue.showNext()
+        brokenBundle.store.skipCurrentDraft()
+
+        XCTAssertEqual(names(queue), ["Alpha", "Charlie"])
+        XCTAssertEqual(brokenBundle.store.currentAddTorrentDraft?.originalName, "Charlie")
+        XCTAssertEqual(brokenBundle.store.presentedModal, .addTorrentReview)
+    }
+
+    /// Two `.torrent` files of one torrent take one place: the one read
+    /// later leaves quietly, and its prepared metadata goes with it.
+    func testOneTorrentFromTwoFilesTakesOnePlace() async throws {
+        let (engine, bundle) = await makeBundle(requiresPreparedDrafts: true)
+        await engine.setInfoHash("shared-hash", forSource: fileURL("Alpha").path)
+        await engine.setInfoHash("shared-hash", forSource: fileURL("Alpha copy").path)
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo", "Alpha copy"], in: bundle.store)
+
+        let isReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(isReady)
+        XCTAssertEqual(names(review), ["Alpha", "Bravo"])
+        let didRelease = await waitForAsyncCondition {
+            await engine.heldPreparedDraftIDs().count == 2
+        }
+        XCTAssertTrue(didRelease, "The second file's metadata is let go")
+    }
+
     // MARK: - Moving between them
 
     func testArrowsMoveBetweenDownloadsAndStopAtTheEnds() async throws {

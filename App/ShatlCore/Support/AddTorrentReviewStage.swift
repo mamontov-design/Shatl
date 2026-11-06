@@ -44,18 +44,32 @@ nonisolated enum AddTorrentReviewMessageActions: Equatable, Sendable {
     case close
     /// A duplicate of a download in the list: show it, or close the window.
     case showInListAndClose
+    /// Nothing can be downloaded, and other downloads wait in the window:
+    /// move on to them. Closing would take them all.
+    case next
+    /// A duplicate of a download in the list, with others waiting: show it,
+    /// or move on to them.
+    case showInListAndNext
 
+    /// `othersWait` is true when the window holds other downloads besides
+    /// the one on screen.
     static func current(
         reviewState: AddTorrentReviewState?,
-        isKnownDuplicate: Bool
+        isKnownDuplicate: Bool,
+        othersWait: Bool = false
     ) -> AddTorrentReviewMessageActions {
         switch reviewState {
         case .loadingMetadata?, nil:
             .cancel
         case .invalid?:
-            isKnownDuplicate ? .showInListAndClose : .close
+            switch (isKnownDuplicate, othersWait) {
+            case (true, true): .showInListAndNext
+            case (true, false): .showInListAndClose
+            case (false, true): .next
+            case (false, false): .close
+            }
         case .ready?:
-            .close
+            othersWait ? .next : .close
         }
     }
 }
