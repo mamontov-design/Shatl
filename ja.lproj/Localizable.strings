@@ -187,6 +187,12 @@
 
 "add_torrent.loading_metadata" = "ファイルリストを取得中…";
 "add_torrent.title" = "ダウンロードを追加";
+"add_torrent.title.several" = "複数のダウンロードを追加";
+"add_torrent.review.position" = "ダウンロード %lld／%lld";
+"add_torrent.review.one_left" = "残りのダウンロードは1件";
+"add_torrent.review.previous" = "前のダウンロード";
+"add_torrent.review.next" = "次のダウンロード";
+"add_torrent.review.skip" = "ダウンロードしない";
 "add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下にmagnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.empty_subtitle" = "ここに.torrentファイルかmagnetリンクをドラッグするか、下で追加してください。";

@@ -199,6 +199,12 @@
 
 "add_torrent.loading_metadata" = "Получение списка файлов…";
 "add_torrent.title" = "Добавление загрузки";
+"add_torrent.title.several" = "Добавление нескольких загрузок";
+"add_torrent.review.position" = "Загрузка %lld из %lld";
+"add_torrent.review.one_left" = "Осталась одна загрузка";
+"add_torrent.review.previous" = "Предыдущая загрузка";
+"add_torrent.review.next" = "Следующая загрузка";
+"add_torrent.review.skip" = "Не скачивать";
 "add_torrent.entry.empty_title" = "Список загрузок пуст";
 "add_torrent.entry.subtitle" = "Вставьте magnet‑ссылку в поле ниже или выберите .torrent‑файл с вашего Mac.";
 "add_torrent.entry.empty_subtitle" = "Перетащите сюда .torrent‑файл или magnet‑ссылку либо добавьте их ниже.";

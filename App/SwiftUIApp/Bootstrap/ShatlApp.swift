@@ -164,6 +164,15 @@ private struct AddTorrentReviewWindowContent: View {
             // for it empty. Given here too, the torrent's name stays.
             .navigationTitle(reviewWindowTitle)
             .navigationSubtitle(reviewWindowSubtitle)
+            // Outside the review itself, which a message disables: the
+            // arrows lead away from a message too.
+            .toolbar {
+                if review.isBatch {
+                    ToolbarItem(placement: .navigation) {
+                        downloadNavigation
+                    }
+                }
+            }
             // The files are shown from under a cover of this colour; see
             // `AddTorrentReviewView`.
             .containerBackground(ShatlColor.backgroundAddWindow, for: .window)
@@ -186,35 +195,76 @@ private struct AddTorrentReviewWindowContent: View {
     }
 
     private var reviewWindowTitle: String {
-        L10n.string(
-            "add_torrent.title",
+        review.isBatch
+            ? L10n.string(
+                "add_torrent.title.several",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Добавление нескольких загрузок"
+            )
+            : L10n.string(
+                "add_torrent.title",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Добавление загрузки"
+            )
+    }
+
+    /// One download needs no subtitle: its name heads the file tree, and the
+    /// message in the window says when it is still read. Several say which
+    /// one is on screen (the owner's decision, November 2026). A subtitle
+    /// that came and went would move the title up and down.
+    private var reviewWindowSubtitle: String {
+        guard review.isBatch else { return "" }
+        // The last one waiting, not a bare "1 of 1": it says why the title
+        // still speaks of several while one is shown.
+        if review.count == 1 {
+            return L10n.string(
+                "add_torrent.review.one_left",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Осталась одна загрузка"
+            )
+        }
+        return L10n.format(
+            "add_torrent.review.position",
             localeOverride: store.preferences.localeOverride,
-            defaultValue: "Добавление загрузки"
+            defaultValue: "%lld / %lld",
+            review.position,
+            review.count
         )
     }
 
-    private var reviewWindowSubtitle: String {
-        guard let draft = review.draft else {
-            return L10n.string(
-                "add_torrent.loading_metadata",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Получение метаданных…"
-            )
-        }
+    /// Previous and next download, in one group as Finder's back and
+    /// forward, but with arrows rather than chevrons: they move through the
+    /// downloads waiting here, not back through what was seen.
+    private var downloadNavigation: some View {
+        let localeOverride = store.preferences.localeOverride
+        let previousTitle = L10n.string(
+            "add_torrent.review.previous",
+            localeOverride: localeOverride,
+            defaultValue: "Предыдущая загрузка"
+        )
+        let nextTitle = L10n.string(
+            "add_torrent.review.next",
+            localeOverride: localeOverride,
+            defaultValue: "Следующая загрузка"
+        )
+        return ControlGroup {
+            Button {
+                review.showPrevious()
+            } label: {
+                Label(previousTitle, systemImage: "arrow.backward")
+            }
+            .help(previousTitle)
+            .disabled(!review.hasPrevious)
 
-        if draft.reviewState == .loadingMetadata {
-            return L10n.string(
-                "add_torrent.loading_metadata",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Получение метаданных…"
-            )
+            Button {
+                review.showNext()
+            } label: {
+                Label(nextTitle, systemImage: "arrow.forward")
+            }
+            .help(nextTitle)
+            .disabled(!review.hasNext)
         }
-
-        if case .invalid = draft.reviewState {
-            return ""
-        }
-
-        return draft.originalName
+        .controlGroupStyle(.navigation)
     }
 
     private func finishReviewWindowClosure() {

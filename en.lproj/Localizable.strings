@@ -191,6 +191,12 @@
 
 "add_torrent.loading_metadata" = "Fetching the file list…";
 "add_torrent.title" = "Add Download";
+"add_torrent.title.several" = "Add Multiple Downloads";
+"add_torrent.review.position" = "Download %lld of %lld";
+"add_torrent.review.one_left" = "One download left";
+"add_torrent.review.previous" = "Previous Download";
+"add_torrent.review.next" = "Next Download";
+"add_torrent.review.skip" = "Don’t Download";
 "add_torrent.entry.empty_title" = "Download list is empty";
 "add_torrent.entry.subtitle" = "Paste a magnet link below or choose a .torrent file from your Mac.";
 "add_torrent.entry.empty_subtitle" = "Drag a .torrent file or magnet link here, or add one below.";

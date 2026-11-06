@@ -2576,6 +2576,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         addCurrentDraft(savesToList: true)
     }
 
+    /// "Не скачивать" in a window of several downloads: the one on screen
+    /// leaves unadded, and the window closes after the last.
+    func skipCurrentDraft() {
+        if addTorrentReview.skipCurrent() {
+            dismissModal()
+        }
+    }
+
     private func addCurrentDraft(savesToList: Bool) {
         guard canAddTorrent else { return }
         guard let draft = currentAddTorrentDraft else { return }
@@ -2595,7 +2603,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             savesToList: savesToList
         )
         insertPendingTorrentAddition(addition)
-        dismissModal()
+        // The window shows the next download waiting, and closes after the last.
+        if addTorrentReview.finishCurrent() {
+            dismissModal()
+        }
 
         let task = Task { [weak self] in
             guard let self else { return }
@@ -3506,7 +3517,17 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         savePathBookmarkData: Data? = nil
     ) {
         guard canAddTorrent else { return }
-        if isAddTorrentReviewWindowActive {
+        // Opened while the add window is open, or the second of several
+        // opened at once: it waits in the same window, never lost. A window
+        // already emptied is closing; the download opens it anew.
+        if isAddTorrentReviewWindowActive, addTorrentReview.count > 0 {
+            addTorrentReview.enqueue(
+                source,
+                suggestedSavePath: suggestedSavePath,
+                stopAfterDownload: stopAfterDownload,
+                alias: alias,
+                savePathBookmarkData: savePathBookmarkData
+            )
             requestAddTorrentReviewWindowActivation()
             return
         }

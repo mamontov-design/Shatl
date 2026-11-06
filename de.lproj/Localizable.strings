@@ -191,6 +191,12 @@
 
 "add_torrent.loading_metadata" = "Dateiliste wird abgerufen…";
 "add_torrent.title" = "Download hinzufügen";
+"add_torrent.title.several" = "Mehrere Downloads hinzufügen";
+"add_torrent.review.position" = "Download %lld von %lld";
+"add_torrent.review.one_left" = "Noch ein Download übrig";
+"add_torrent.review.previous" = "Vorheriger Download";
+"add_torrent.review.next" = "Nächster Download";
+"add_torrent.review.skip" = "Nicht laden";
 "add_torrent.entry.empty_title" = "Download-Liste ist leer";
 "add_torrent.entry.subtitle" = "Fügen Sie unten einen Magnet-Link ein oder wählen Sie eine .torrent-Datei von Ihrem Mac.";
 "add_torrent.entry.empty_subtitle" = ".torrent-Datei oder Magnet-Link hierher ziehen oder unten hinzufügen.";

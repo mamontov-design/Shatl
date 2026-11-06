@@ -23,6 +23,19 @@ private struct AddTorrentReviewDraftPresentationToken: Equatable {
     let fileSelectionRevision: UInt64
     let reviewState: AddTorrentReviewState
     let fileCount: Int
+
+    /// The window shows this download's files, and so its summary.
+    var showsFiles: Bool {
+        reviewState == .ready && fileCount > 0
+    }
+}
+
+/// The numbers the add window's summary shows, which follow the download on
+/// screen at once or once the arrows rest; see `followSummary`.
+private struct AddTorrentReviewSummaryCounts: Equatable {
+    var selectedFileCount = 0
+    var selectedBytes: Int64 = 0
+    var totalFileCount = 0
 }
 
 private struct AddTorrentReviewFilePresentation {
@@ -1052,6 +1065,10 @@ private struct AddTorrentReviewContent: View {
     @State private var renderedDraft: AddTorrentDraft?
     @State private var appliedSearchText = ""
     @State private var filePresentation = AddTorrentReviewFilePresentation.empty
+    /// What the summary shows, which may lag behind `filePresentation`
+    /// while the arrows run; see `followSummary`.
+    @State private var summaryCounts = AddTorrentReviewSummaryCounts()
+    @State private var summarySettleTask: Task<Void, Never>?
     /// Set once waiting has lasted long enough to be worth a message; see
     /// `AddTorrentReviewStage`.
     @State private var showsWaitingMessage = false
@@ -1165,6 +1182,7 @@ private struct AddTorrentReviewContent: View {
         .onDisappear {
             waitingMessageTask?.cancel()
             stageTask?.cancel()
+            summarySettleTask?.cancel()
         }
         #if DEBUG
         .onGeometryChange(for: CGSize.self) { geometry in
@@ -1194,6 +1212,7 @@ private struct AddTorrentReviewContent: View {
                     expandsTopLevelFolders: draft.reviewState == .ready
                 )
             }
+            followSummary(waitsForTheArrows: false)
         }
         .onChange(of: draftPresentationToken) { oldToken, newToken in
             guard let newToken, let newDraft = review.draft else { return }
@@ -1215,6 +1234,13 @@ private struct AddTorrentReviewContent: View {
             rebuildFilePresentation(
                 draft: newDraft,
                 expandsTopLevelFolders: isNewDraft || becameReady
+            )
+            // One download's files giving way to another's, by the arrows or
+            // after "Скачать": the summary waits for the arrows to rest.
+            followSummary(
+                waitsForTheArrows: isNewDraft
+                    && oldToken?.showsFiles == true
+                    && newToken.showsFiles
             )
         }
         .onChange(of: typographyProfile) { _, _ in
@@ -1564,12 +1590,16 @@ private struct AddTorrentReviewContent: View {
         switch actions {
         case .cancel:
             // Closes the window and stops preparing the download, as the
-            // window's close button does.
+            // window's close button does; among several, stops only this one.
             ShatlMessageBlockPrimaryButton(
                 title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
                 keyboardShortcut: .cancelAction
             ) {
-                closeWindow()
+                if review.isBatch {
+                    skipCurrentDownload()
+                } else {
+                    closeWindow()
+                }
             }
         case .close:
             closeWindowButton
@@ -1611,6 +1641,43 @@ private struct AddTorrentReviewContent: View {
         isAliasFocused = false
         windowFocus.release()
         store.dismissModal()
+    }
+
+    /// Brings the summary's numbers to the download on screen. A ticked file
+    /// moves them at once. Another download moves them only once the arrows
+    /// have rested (`ShatlMotion.reviewSummarySettleDelay`), and they roll
+    /// to it then: stepping quickly through many downloads, the summary keeps
+    /// the numbers it shows instead of blurring them and making its lines
+    /// jump between two and three digits; the eye is on the top of the files
+    /// meanwhile (the owner's decision, November 2026).
+    private func followSummary(waitsForTheArrows: Bool) {
+        summarySettleTask?.cancel()
+        summarySettleTask = nil
+        guard waitsForTheArrows else {
+            summaryCounts = currentSummaryCounts
+            return
+        }
+        summarySettleTask = Task { @MainActor in
+            try? await Task.sleep(for: ShatlMotion.reviewSummarySettleDelay)
+            guard !Task.isCancelled else { return }
+            summaryCounts = currentSummaryCounts
+        }
+    }
+
+    private var currentSummaryCounts: AddTorrentReviewSummaryCounts {
+        AddTorrentReviewSummaryCounts(
+            selectedFileCount: filePresentation.selectedFileCount,
+            selectedBytes: filePresentation.selectedBytes,
+            totalFileCount: filePresentation.totalFileCount
+        )
+    }
+
+    /// The download on screen leaves the window, which shows the next one or
+    /// closes after the last. The focus leaves first, as on closing.
+    private func skipCurrentDownload() {
+        isAliasFocused = false
+        windowFocus.release()
+        store.skipCurrentDraft()
     }
 
     /// The main list's block for a search with no results, about files.
@@ -1921,8 +1988,8 @@ private struct AddTorrentReviewContent: View {
 
     @ViewBuilder
     private var torrentSummary: some View {
-        let selectedFileCount = filePresentation.selectedFileCount
-        let selectedBytes = filePresentation.selectedBytes
+        let selectedFileCount = summaryCounts.selectedFileCount
+        let selectedBytes = summaryCounts.selectedBytes
         let showsSelectedMetrics = AddTorrentSummaryPresentation.showsSelectionMetrics(
             selectedFileCount: selectedFileCount
         )
@@ -1940,7 +2007,7 @@ private struct AddTorrentReviewContent: View {
                         localeOverride: store.preferences.localeOverride,
                         defaultValue: "%lld of %lld",
                         Int64(selectedFileCount),
-                        Int64(filePresentation.totalFileCount)
+                        Int64(summaryCounts.totalFileCount)
                     ),
                     expands: true
                 )
@@ -2055,22 +2122,30 @@ private struct AddTorrentReviewContent: View {
     }
 
     /// The selected files do not fit on the disk they are to be saved to.
+    /// The button decides by the download on screen, always.
     private var spaceShortfall: DiskSpaceCheck? {
+        spaceShortfall(neededBytes: filePresentation.selectedBytes)
+    }
+
+    /// The same for the numbers the summary shows: the message belongs to
+    /// the summary and waits with it while the arrows run.
+    private var shownSpaceShortfall: DiskSpaceCheck? {
+        spaceShortfall(neededBytes: summaryCounts.selectedBytes)
+    }
+
+    private func spaceShortfall(neededBytes: Int64) -> DiskSpaceCheck? {
         guard areSettingsControlsEnabled, case let .available(info) = availableCapacity else {
             return nil
         }
-        return DiskSpaceCheck.shortfall(
-            neededBytes: filePresentation.selectedBytes,
-            on: info
-        )
+        return DiskSpaceCheck.shortfall(neededBytes: neededBytes, on: info)
     }
 
     /// Names the disk and what it lacks, then every way out; unticking files
     /// is one of them only when more than one is ticked.
     private var lowSpaceMessage: String? {
-        guard let spaceShortfall else { return nil }
+        guard let spaceShortfall = shownSpaceShortfall else { return nil }
         return L10n.format(
-            filePresentation.selectedFileCount > 1
+            summaryCounts.selectedFileCount > 1
                 ? "add_torrent.review.low_space.message.many_files"
                 : "add_torrent.review.low_space.message.one_file",
             localeOverride: store.preferences.localeOverride,
@@ -2754,13 +2829,24 @@ private struct AddTorrentReviewContent: View {
     }
 
     /// Closes the window and stops preparing the download, as the window's
-    /// close button does.
+    /// close button does. With several downloads waiting, only the one on
+    /// screen leaves: "Не скачивать".
     private var cancelButton: some View {
         ShatlButton(
-            title: L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
+            title: review.isBatch
+                ? L10n.string(
+                    "add_torrent.review.skip",
+                    localeOverride: store.preferences.localeOverride,
+                    defaultValue: "Не скачивать"
+                )
+                : L10n.string("common.cancel", localeOverride: store.preferences.localeOverride),
             role: .borderedNeutral
         ) {
-            closeWindow()
+            if review.isBatch {
+                skipCurrentDownload()
+            } else {
+                closeWindow()
+            }
         }
         .keyboardShortcut(.cancelAction)
     }

@@ -21,6 +21,7 @@ actor FakeTorrentEngine {
     private var heldPreparedDraftIDsValue: Set<UUID> = []
     private var createdPreparedDraftIDsValue: [UUID] = []
     private var requiresPreparedDrafts = false
+    private var namesDraftsBySource = false
     private var removeCallsValue: [RemovedTorrentCall] = []
     private var removeError: TorrentEngineError?
     private var removeDelayNanoseconds: UInt64 = 0
@@ -69,11 +70,12 @@ actor FakeTorrentEngine {
         let draftID = UUID()
         heldPreparedDraftIDsValue.insert(draftID)
         createdPreparedDraftIDsValue.append(draftID)
+        let fileName = URL(fileURLWithPath: source.rawValue).deletingPathExtension().lastPathComponent
         return AddTorrentDraft(
             id: draftID,
             source: source,
-            originalName: "Test Torrent",
-            infoHash: "test-info-hash",
+            originalName: namesDraftsBySource ? fileName : "Test Torrent",
+            infoHash: namesDraftsBySource ? "hash-\(source.rawValue)" : "test-info-hash",
             suggestedSavePath: suggestedSavePath,
             alias: "",
             stopAfterDownload: stopAfterDownload,
@@ -280,6 +282,13 @@ actor FakeTorrentEngine {
     /// tests confirm hand-made drafts.
     func setRequiresPreparedDrafts(_ isRequired: Bool) async {
         requiresPreparedDrafts = isRequired
+    }
+
+    /// Gives each prepared draft its own name and info hash, from its file:
+    /// several downloads in one add window are then not duplicates of each
+    /// other. Off by default because many tests rely on "test-info-hash".
+    func setNamesDraftsBySource(_ isEnabled: Bool) async {
+        namesDraftsBySource = isEnabled
     }
 
     func setPrepareSuspended(_ isSuspended: Bool) async {
