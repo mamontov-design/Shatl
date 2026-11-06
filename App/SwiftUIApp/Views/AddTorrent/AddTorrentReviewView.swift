@@ -834,6 +834,9 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
                 folderSummarySegmentView(segment, mode: summary.mode)
             }
         }
+        // Digits of one width, as the card's metrics: a rolling count keeps
+        // the line's length.
+        .monospacedDigit()
         .animation(ShatlMotion.stickyContentReplace, value: summary)
         .accessibilityElement(children: .combine)
     }
@@ -858,11 +861,14 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
                 .id(folderSummarySegmentIdentity(segment, mode: mode))
                 .transition(.blurReplace)
         case .number:
+            // A changing number rolls in place; one that comes or goes with
+            // the wording, as "3 файла" giving way to "Файлы не выбраны",
+            // blurs like the words around it.
             Text(segment.value)
                 .foregroundStyle(foregroundColor)
                 .contentTransition(contentTransition)
                 .id(folderSummarySegmentIdentity(segment, mode: mode))
-                .transition(.identity)
+                .transition(.blurReplace)
                 .animation(
                     segment.animatesNumericChange ? ShatlMotion.metricResize : nil,
                     value: segment.value
@@ -2180,6 +2186,9 @@ private struct AddTorrentReviewContent: View {
                     )
             }
         }
+        // Digits of one width, as the card's metrics: "732" becoming "733"
+        // keeps the summary's length.
+        .monospacedDigit()
         .accessibilityElement(children: .combine)
     }
 
