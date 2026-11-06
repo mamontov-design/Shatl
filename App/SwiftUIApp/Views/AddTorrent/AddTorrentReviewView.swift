@@ -1014,8 +1014,20 @@ private struct AddTorrentReviewWindowFocusBridge: NSViewRepresentable {
     }
 }
 
+/// The add window. It watches the window's own model, so what changes while
+/// the window is in use reaches this window and not the main window's list;
+/// see `AddTorrentReviewModel`.
 struct AddTorrentReviewView: View {
     @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        AddTorrentReviewContent(review: store.addTorrentReview)
+    }
+}
+
+private struct AddTorrentReviewContent: View {
+    @EnvironmentObject private var store: AppStore
+    @ObservedObject var review: AddTorrentReviewModel
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedFolderIDs: Set<String> = []
@@ -1169,7 +1181,7 @@ struct AddTorrentReviewView: View {
             .frame(width: 0, height: 0)
         }
         .onAppear {
-            renderedDraft = store.currentAddTorrentDraft
+            renderedDraft = review.draft
             if let draft {
                 rebuildFilePresentation(
                     draft: draft,
@@ -1178,7 +1190,7 @@ struct AddTorrentReviewView: View {
             }
         }
         .onChange(of: draftPresentationToken) { oldToken, newToken in
-            guard let newToken, let newDraft = store.currentAddTorrentDraft else { return }
+            guard let newToken, let newDraft = review.draft else { return }
             let isNewDraft = oldToken?.id != newToken.id
             let becameReady = oldToken?.reviewState != .ready && newToken.reviewState == .ready
             if isNewDraft {
@@ -1367,11 +1379,11 @@ struct AddTorrentReviewView: View {
     }
 
     private var draft: AddTorrentDraft? {
-        store.currentAddTorrentDraft ?? renderedDraft
+        review.draft ?? renderedDraft
     }
 
     private var draftPresentationToken: AddTorrentReviewDraftPresentationToken? {
-        guard let draft = store.currentAddTorrentDraft else { return nil }
+        guard let draft = review.draft else { return nil }
 
         return AddTorrentReviewDraftPresentationToken(
             id: draft.id,
@@ -1492,7 +1504,7 @@ struct AddTorrentReviewView: View {
         let locale = store.preferences.localeOverride
         let reviewState = draft?.reviewState
         // A duplicate whose download is known offers to show it in the list.
-        let isKnownDuplicate = draft?.errorState?.kind == .duplicateTorrent && store.addTorrentDuplicateID != nil
+        let isKnownDuplicate = draft?.errorState?.kind == .duplicateTorrent && review.duplicateID != nil
         let actions = AddTorrentReviewMessageActions.current(
             reviewState: reviewState,
             isKnownDuplicate: isKnownDuplicate

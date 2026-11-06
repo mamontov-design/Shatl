@@ -144,6 +144,17 @@ struct ShatlApp: App {
 
 private struct AddTorrentReviewWindowRoot: View {
     @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        AddTorrentReviewWindowContent(review: store.addTorrentReview)
+    }
+}
+
+/// The subtitle names the draft, so the window watches the add window's
+/// model; see `AddTorrentReviewModel`.
+private struct AddTorrentReviewWindowContent: View {
+    @EnvironmentObject private var store: AppStore
+    @ObservedObject var review: AddTorrentReviewModel
     @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some View {
@@ -183,7 +194,7 @@ private struct AddTorrentReviewWindowRoot: View {
     }
 
     private var reviewWindowSubtitle: String {
-        guard let draft = store.currentAddTorrentDraft else {
+        guard let draft = review.draft else {
             return L10n.string(
                 "add_torrent.loading_metadata",
                 localeOverride: store.preferences.localeOverride,

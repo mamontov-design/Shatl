@@ -130,17 +130,20 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published var presentedModal: PresentedModal?
     @Published private(set) var addTorrentReviewWindowRequestID = 0
     @Published private(set) var isAddTorrentReviewWindowActive = false
+    /// The add window's draft, its preparation and its edits, published to
+    /// the add window alone; see `AddTorrentReviewModel`.
+    let addTorrentReview: AddTorrentReviewModel
     /// The download a duplicate in the add window already is, so the window
     /// can show it in the list rather than leave it to be found.
-    @Published private(set) var addTorrentDuplicateID: UUID?
+    var addTorrentDuplicateID: UUID? {
+        addTorrentReview.duplicateID
+    }
     /// Asks the main window to scroll the list to a download, clearing a
     /// search that would hide it.
     @Published private(set) var listRevealRequest: TorrentListRevealRequest?
-    @Published var currentAddTorrentDraft: AddTorrentDraft? {
-        didSet {
-            guard let oldValue, oldValue.id != currentAddTorrentDraft?.id else { return }
-            releasePreparedDraftUnlessAdding(oldValue.id)
-        }
+    var currentAddTorrentDraft: AddTorrentDraft? {
+        get { addTorrentReview.draft }
+        set { addTorrentReview.draft = newValue }
     }
     @Published var isRestoringSession = false {
         didSet {
@@ -194,7 +197,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     private var runtimeTask: Task<Void, Never>?
     private var initialSessionLoadTask: Task<SessionLoadResult, Never>?
     private var bootstrapTask: Task<Void, Never>?
-    private var draftPreparationTask: Task<Void, Never>?
     private var performanceApplyTask: Task<Void, Never>?
     private var usageTelemetrySendTask: Task<Void, Never>?
     private var usageTelemetryWeekMonitorTask: Task<Void, Never>?
@@ -283,6 +285,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     ) {
         self.preferencesStore = preferencesStore
         self.engine = engine
+        self.addTorrentReview = AddTorrentReviewModel(engine: engine)
         self.sessionStore = sessionStore
         self.torrentArchiveStore = torrentArchiveStore
         self.bookmarkStore = bookmarkStore
@@ -329,6 +332,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
         #endif
         refreshTorrentPresentations()
+        addTorrentReview.host = self
 
         externalOpenRouter.attach { [weak self] url in
             self?.handleIncomingURL(url)
@@ -342,7 +346,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         runtimeTask?.cancel()
         initialSessionLoadTask?.cancel()
         bootstrapTask?.cancel()
-        draftPreparationTask?.cancel()
         performanceApplyTask?.cancel()
         usageTelemetrySendTask?.cancel()
         usageTelemetryWeekMonitorTask?.cancel()
@@ -1188,7 +1191,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         torrents = candidateTorrents
-        draftPreparationTask?.cancel()
+        addTorrentReview.cancelPreparation()
         performanceApplyTask?.cancel()
         return true
     }
@@ -1415,8 +1418,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             requestAddTorrentReviewWindowActivation()
             return
         }
-        draftPreparationTask?.cancel()
-        currentAddTorrentDraft = nil
+        addTorrentReview.cancelPreparation()
+        addTorrentReview.draft = nil
         presentedModal = .addTorrentEntry
     }
 
@@ -1442,7 +1445,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     infoHash: deferredAddTorrentFailure.draft.infoHash
                 )
             }
-            presentInvalidDraft(
+            addTorrentReview.presentInvalid(
                 for: deferredAddTorrentFailure.draft.source,
                 errorState: errorState,
                 suggestedSavePath: deferredAddTorrentFailure.draft.suggestedSavePath,
@@ -1455,10 +1458,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func dismissModal() {
-        addTorrentDuplicateID = nil
-        draftPreparationTask?.cancel()
+        addTorrentReview.dismiss()
         presentedModal = nil
-        currentAddTorrentDraft = nil
     }
 
     /// Closes the add window and shows the download it duplicates: selected,
@@ -2569,7 +2570,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard draft.canConfirmDownload else { return }
 
         if isDuplicateDraft(draft) {
-            presentDuplicateDraft(for: draft)
+            addTorrentReview.presentDuplicate(of: draft)
             return
         }
 
@@ -2591,19 +2592,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             await self.engine.releasePreparedDraft(id: addition.draft.id)
         }
         pendingTorrentAdditionTasks[addition.id] = task
-    }
-
-    /// The Review draft owns its prepared metadata until it is replaced or
-    /// closed. A confirmed draft hands it over to its pending addition instead.
-    private func releasePreparedDraftUnlessAdding(_ draftID: UUID) {
-        guard !pendingTorrentAdditions.contains(where: { $0.draft.id == draftID }) else { return }
-        releasePreparedDraft(draftID)
-    }
-
-    private func releasePreparedDraft(_ draftID: UUID) {
-        Task { [engine] in
-            await engine.releasePreparedDraft(id: draftID)
-        }
     }
 
     private func performPendingTorrentAddition(_ addition: PendingTorrentAddition) async {
@@ -2819,7 +2807,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return
         }
 
-        presentInvalidDraft(
+        addTorrentReview.presentInvalid(
             for: addition.draft.source,
             errorState: errorState,
             suggestedSavePath: addition.draft.suggestedSavePath,
@@ -2831,61 +2819,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func updateDraftAlias(_ alias: String) {
-        guard var draft = currentAddTorrentDraft else { return }
-        draft.alias = alias
-        currentAddTorrentDraft = draft
+        addTorrentReview.updateAlias(alias)
     }
 
     func updateDraftSaveLocation(_ url: URL, bookmarkData: Data?) {
-        guard var draft = currentAddTorrentDraft else { return }
-        draft.suggestedSavePath = NSString(string: url.path).standardizingPath
-        draft.savePathBookmarkData = bookmarkData
-        currentAddTorrentDraft = draft
+        addTorrentReview.updateSaveLocation(url, bookmarkData: bookmarkData)
     }
 
     func updateDraftStopAfterDownload(_ isEnabled: Bool) {
-        guard var draft = currentAddTorrentDraft else { return }
-        draft.stopAfterDownload = isEnabled
-        currentAddTorrentDraft = draft
+        addTorrentReview.updateStopAfterDownload(isEnabled)
     }
 
     /// Explicit selection supports cascading changes across folder branches
     /// in the add-flow file tree.
     func setDraftFileSelection(id: UUID, isSelected: Bool) {
-        guard var draft = currentAddTorrentDraft,
-              let index = draft.files.firstIndex(where: { $0.id == id }),
-              draft.files[index].isSelected != isSelected else { return }
-
-        draft.files[index].isSelected = isSelected
-        draft.fileSelectionRevision &+= 1
-        currentAddTorrentDraft = draft
+        addTorrentReview.setFileSelection(id: id, isSelected: isSelected)
     }
 
     func setDraftFolderSelection(path: String, isSelected: Bool) {
-        guard var draft = currentAddTorrentDraft else { return }
-
-        let normalizedPath = path
-            .replacingOccurrences(of: "\\", with: "/")
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard !normalizedPath.isEmpty else { return }
-
-        let folderPrefix = normalizedPath + "/"
-        var didChangeSelection = false
-
-        for index in draft.files.indices {
-            let filePath = draft.files[index].name.replacingOccurrences(of: "\\", with: "/")
-            if filePath == normalizedPath || filePath.hasPrefix(folderPrefix) {
-                if draft.files[index].isSelected != isSelected {
-                    draft.files[index].isSelected = isSelected
-                    didChangeSelection = true
-                }
-            }
-        }
-
-        if didChangeSelection {
-            draft.fileSelectionRevision &+= 1
-            currentAddTorrentDraft = draft
-        }
+        addTorrentReview.setFolderSelection(path: path, isSelected: isSelected)
     }
 
     func bootstrapRuntimeState() {
@@ -3534,27 +3486,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    private func makeLoadingDraft(
-        for source: AddTorrentSource,
-        suggestedSavePath: String,
-        stopAfterDownload: Bool,
-        alias: String,
-        savePathBookmarkData: Data? = nil
-    ) -> AddTorrentDraft {
-        AddTorrentDraft(
-            source: source,
-            originalName: L10n.string("add_torrent.loading_metadata", localeOverride: preferences.localeOverride, defaultValue: "Получение метаданных..."),
-            infoHash: nil,
-            suggestedSavePath: suggestedSavePath,
-            savePathBookmarkData: savePathBookmarkData,
-            alias: alias,
-            stopAfterDownload: stopAfterDownload,
-            files: [],
-            reviewState: .loadingMetadata,
-            errorState: nil
-        )
-    }
-
     private func startDraftPreparation(
         for source: AddTorrentSource,
         suggestedSavePath: String,
@@ -3567,80 +3498,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             requestAddTorrentReviewWindowActivation()
             return
         }
-        draftPreparationTask?.cancel()
-        addTorrentDuplicateID = nil
-        currentAddTorrentDraft = makeLoadingDraft(
-            for: source,
+        addTorrentReview.prepare(
+            source,
             suggestedSavePath: suggestedSavePath,
             stopAfterDownload: stopAfterDownload,
             alias: alias,
             savePathBookmarkData: savePathBookmarkData
         )
-        presentAddTorrentReviewWindow()
-
-        draftPreparationTask = Task { [weak self] in
-            guard let self else { return }
-
-            do {
-                var draft = try await self.engine.prepareDraft(
-                    from: source,
-                    suggestedSavePath: suggestedSavePath,
-                    stopAfterDownload: stopAfterDownload
-                )
-
-                guard !Task.isCancelled,
-                      self.currentAddTorrentDraft?.source == source else {
-                    // Review was closed or moved on while the metadata loaded.
-                    self.releasePreparedDraft(draft.id)
-                    return
-                }
-
-                draft.alias = alias
-                draft.savePathBookmarkData = savePathBookmarkData
-                if self.isDuplicateDraft(draft) {
-                    self.releasePreparedDraft(draft.id)
-                    self.presentDuplicateDraft(for: draft)
-                } else {
-                    self.currentAddTorrentDraft = draft
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                var errorState = ShatlErrorCatalog.reviewError(
-                    for: error,
-                    source: source,
-                    localeOverride: self.preferences.localeOverride
-                )
-                let engineError = TorrentEngineError.normalized(from: error)
-                if engineError.kind == .duplicateTorrent {
-                    let duplicate = self.duplicateError(named: engineError.torrentName, infoHash: engineError.infoHash)
-                    self.presentInvalidDraft(
-                        for: source,
-                        errorState: duplicate.errorState,
-                        suggestedSavePath: suggestedSavePath,
-                        stopAfterDownload: stopAfterDownload,
-                        alias: alias,
-                        savePathBookmarkData: savePathBookmarkData,
-                        duplicateOfTorrentID: duplicate.duplicateID
-                    )
-                    return
-                }
-                // The wait ran out with no network at all: say so directly.
-                if errorState.kind == .metadataTimeout, await self.networkIsOffline() {
-                    guard !Task.isCancelled else { return }
-                    errorState = ShatlErrorCatalog.offlineMetadataError(
-                        localeOverride: self.preferences.localeOverride
-                    )
-                }
-                self.presentInvalidDraft(
-                    for: source,
-                    errorState: errorState,
-                    suggestedSavePath: suggestedSavePath,
-                    stopAfterDownload: stopAfterDownload,
-                    alias: alias,
-                    savePathBookmarkData: savePathBookmarkData
-                )
-            }
-        }
     }
 
     private func handleIncomingTorrentFileURL(_ url: URL) {
@@ -3654,31 +3518,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    private func presentInvalidDraft(
-        for source: AddTorrentSource,
-        errorState: TorrentErrorState,
-        suggestedSavePath: String,
-        stopAfterDownload: Bool,
-        alias: String,
-        savePathBookmarkData: Data? = nil,
-        duplicateOfTorrentID: UUID? = nil
-    ) {
-        addTorrentDuplicateID = duplicateOfTorrentID
-        currentAddTorrentDraft = AddTorrentDraft(
-            source: source,
-            originalName: errorState.title,
-            infoHash: nil,
-            suggestedSavePath: suggestedSavePath,
-            savePathBookmarkData: savePathBookmarkData,
-            alias: alias,
-            stopAfterDownload: stopAfterDownload,
-            files: [],
-            reviewState: .invalid(message: errorState.message),
-            errorState: errorState
-        )
-        presentAddTorrentReviewWindow()
-    }
-
     private func presentAddTorrentReviewWindow() {
         isAddTorrentReviewWindowActive = true
         presentedModal = .addTorrentReview
@@ -3689,19 +3528,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard let infoHash = draft.infoHash else { return false }
         return torrents.contains(where: { $0.infoHash == infoHash })
             || pendingTorrentAdditions.contains(where: { $0.draft.infoHash == infoHash })
-    }
-
-    private func presentDuplicateDraft(for draft: AddTorrentDraft) {
-        let duplicate = duplicateError(named: draft.originalName, infoHash: draft.infoHash)
-        presentInvalidDraft(
-            for: draft.source,
-            errorState: duplicate.errorState,
-            suggestedSavePath: draft.suggestedSavePath,
-            stopAfterDownload: draft.stopAfterDownload,
-            alias: draft.alias,
-            savePathBookmarkData: draft.savePathBookmarkData,
-            duplicateOfTorrentID: duplicate.duplicateID
-        )
     }
 
     private func flushPendingIncomingURLs() {
@@ -4691,5 +4517,36 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 canReveal: location != nil
             )
         }
+    }
+}
+
+// The add window's model asks the list through these; see
+// `AddTorrentReviewModel`.
+extension AppStore: AddTorrentReviewHost {
+    var addTorrentReviewLocaleOverride: AppLocaleOverride {
+        preferences.localeOverride
+    }
+
+    func addTorrentReviewNetworkIsOffline() async -> Bool {
+        await networkIsOffline()
+    }
+
+    func addTorrentReviewRepeatsDownload(_ draft: AddTorrentDraft) -> Bool {
+        isDuplicateDraft(draft)
+    }
+
+    func addTorrentReviewDuplicateError(
+        named name: String?,
+        infoHash: String?
+    ) -> (errorState: TorrentErrorState, duplicateID: UUID?) {
+        duplicateError(named: name, infoHash: infoHash)
+    }
+
+    func addTorrentReviewHasHandedOver(draftID: UUID) -> Bool {
+        pendingTorrentAdditions.contains(where: { $0.draft.id == draftID })
+    }
+
+    func addTorrentReviewPresentWindow() {
+        presentAddTorrentReviewWindow()
     }
 }
