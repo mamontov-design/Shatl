@@ -1290,6 +1290,13 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         selection.count
     }
 
+    /// Whether any selected download has files of its own. One saved to the
+    /// list has written none, so removing it asks nothing: there is no
+    /// choice about files to make.
+    var selectedTorrentsHaveOwnFiles: Bool {
+        selectedTorrents.contains { !$0.isSavedForLater }
+    }
+
     /// Whether the card is selected together with others: its menu then
     /// acts on all of them.
     func isSelectedWithOthers(_ id: UUID) -> Bool {
@@ -1404,12 +1411,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         isPendingAddition ? !isRestoringSession : !isRestoringSession && !isTransitioning
     }
 
+    /// A download saved to the list never wrote a file: what lies at its
+    /// paths belongs to someone else, so it is never offered for deletion.
     private static func canRemoveWithFiles(
         _ record: TorrentRecord,
         isRestoringSession: Bool,
         isTransitioning: Bool
     ) -> Bool {
-        record.errorState == nil && !isRestoringSession && !isTransitioning
+        record.errorState == nil && !record.isSavedForLater && !isRestoringSession && !isTransitioning
     }
 
     func presentAddTorrentEntry() {
@@ -2060,7 +2069,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
               !transitioningTorrentIDs.contains(id) else {
             return
         }
-        let resolvedPolicy: TorrentRemovalPolicy = record.errorState == nil
+        // A saved download leaves the list only, even among several removed
+        // with their files: it wrote nothing, and files at its paths are not
+        // its own.
+        let resolvedPolicy: TorrentRemovalPolicy = record.errorState == nil && !record.isSavedForLater
             ? policy
             : .removeFromListOnly
 

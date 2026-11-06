@@ -275,6 +275,61 @@ final class SavedDownloadTests: XCTestCase {
         XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
     }
 
+    /// A saved download never wrote a file: it offers no removal with files,
+    /// and the toolbar's trash removes it without asking.
+    func testSavedDownloadOffersNoRemovalWithFiles() async throws {
+        let fixture = try makeFixture()
+        let id = try await saveDraft(in: fixture)
+
+        XCTAssertFalse(fixture.store.canRemoveWithFiles(for: id))
+        XCTAssertFalse(try XCTUnwrap(fixture.store.rowState(for: id)).canRemoveWithFiles)
+        XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
+
+        fixture.store.selectTorrent(id: id)
+        XCTAssertTrue(fixture.store.isToolbarRemoveEnabled)
+        XCTAssertFalse(fixture.store.selectedTorrentsHaveOwnFiles)
+    }
+
+    /// What lies at a saved download's paths is someone else's — an earlier
+    /// download of the same torrent, say. Removed with its files, as among
+    /// several, the saved one leaves the list and those files stay.
+    func testRemovingASavedDownloadWithFilesKeepsWhatLiesAtItsPaths() async throws {
+        let fixture = try makeFixture()
+        let earlierFile = fixture.saveURL.appendingPathComponent("Northstar/A.bin")
+        try FileManager.default.createDirectory(
+            at: earlierFile.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("an earlier download".utf8).write(to: earlierFile)
+        let id = try await saveDraft(in: fixture)
+
+        await fixture.store.removeTorrent(id: id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertTrue(fixture.store.torrents.isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: earlierFile.path))
+        XCTAssertNil(fixture.store.payloadDeletionAlert)
+    }
+
+    /// Among several, one ordinary download keeps the question about files.
+    func testAnOrdinaryDownloadAmongSavedOnesKeepsTheQuestion() {
+        var saved = makeTestRecord(infoHash: "saved", originalName: "Saved", status: .stopped)
+        saved.isSavedForLater = true
+        let ordinary = makeTestRecord(infoHash: "ordinary", originalName: "Ordinary", status: .stopped)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [saved, ordinary])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.selectTorrent(id: saved.id)
+        XCTAssertFalse(bundle.store.selectedTorrentsHaveOwnFiles)
+
+        bundle.store.selectAllTorrents(visibleTorrentIDs: bundle.store.torrentRowIDs)
+        XCTAssertEqual(bundle.store.selectedTorrentCount, 2)
+        XCTAssertTrue(bundle.store.selectedTorrentsHaveOwnFiles)
+        XCTAssertTrue(bundle.store.canRemoveWithFiles(for: ordinary.id))
+        XCTAssertFalse(bundle.store.canRemoveWithFiles(for: saved.id))
+    }
+
     /// The same for a download the engine stopped while it ran.
     func testToolbarOffersNoRemovalForADownloadStoppedWithAnError() {
         let failed = makeTestRecord(

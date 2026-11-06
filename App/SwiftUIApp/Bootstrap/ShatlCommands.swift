@@ -174,7 +174,7 @@ struct ShatlCommands: Commands {
 
     private var isRemoveWithFilesEnabled: Bool {
         if hasSeveralSelected {
-            return store.isToolbarRemoveEnabled
+            return store.isToolbarRemoveEnabled && store.selectedTorrentsHaveOwnFiles
         }
         guard let selectedTorrentID else { return false }
         return store.canRemoveWithFiles(for: selectedTorrentID)
