@@ -29,6 +29,10 @@ nonisolated struct TorrentRecord: Identifiable, Equatable, Codable, Sendable {
     /// it, and not started since. The card shows it as "Сохранена" instead of
     /// "Остановлена"; the first start ends it.
     var isSavedForLater = false
+    /// Saved so not for lack of room but by choice: "Сохранить в список"
+    /// when "Не скачивать" asked among several downloads. Its "i" says so.
+    /// Ends with `isSavedForLater`.
+    var isSavedByChoice = false
 
     /// The UI prioritizes a persistent card issue over a transient runtime error.
     var errorState: TorrentErrorState? {

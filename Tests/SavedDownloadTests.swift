@@ -53,9 +53,9 @@ final class SavedDownloadTests: XCTestCase {
     }
 
     /// Saves the draft to the list and waits for its card.
-    private func saveDraft(in fixture: Fixture) async throws -> UUID {
+    private func saveDraft(in fixture: Fixture, byChoice: Bool = false) async throws -> UUID {
         fixture.store.currentAddTorrentDraft = makeDraft(savePath: fixture.saveURL.path)
-        fixture.store.saveDraftToList()
+        fixture.store.saveDraftToList(byChoice: byChoice)
 
         let didSave = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
             fixture.store.torrents.count == 1
@@ -273,6 +273,135 @@ final class SavedDownloadTests: XCTestCase {
 
         XCTAssertFalse(fixture.store.isToolbarRemoveEnabled)
         XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
+    }
+
+    /// "Сохранить в список" in the question "Не скачивать" saves a download
+    /// that may well fit: its "i" says it was saved by choice, and the list
+    /// keeps that across a relaunch.
+    func testSavingByChoiceSaysSoAndSurvivesRelaunch() async throws {
+        let fixture = try makeFixture(availableBytes: 10 * Self.selectedBytes)
+        let id = try await saveDraft(in: fixture, byChoice: true)
+
+        let saved = try record(id, in: fixture)
+        XCTAssertTrue(saved.isSavedForLater)
+        XCTAssertTrue(saved.isSavedByChoice)
+        XCTAssertTrue(try XCTUnwrap(fixture.store.rowState(for: id)).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedByChoice) == .some(true)
+        }
+        XCTAssertTrue(didPersist)
+
+        let relaunched = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            router: ExternalOpenRouter(),
+            sessionStoreStartupMode: .requiresInitialLoad
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: relaunched.rootURL)
+        }
+        let destination = relaunched.directories.applicationSupportURL
+        try? FileManager.default.removeItem(at: destination)
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try FileManager.default.copyItem(at: fixture.bundle.directories.applicationSupportURL, to: destination)
+
+        relaunched.store.bootstrapRuntimeState()
+        let didLoad = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            relaunched.store.torrents.count == 1 && !relaunched.store.isRestoringSession
+        }
+        XCTAssertTrue(didLoad)
+        let restored = try XCTUnwrap(relaunched.store.torrents.first)
+        XCTAssertTrue(restored.isSavedForLater)
+        XCTAssertTrue(restored.isSavedByChoice)
+    }
+
+    /// For lack of room, as before: no choice, and the list writes none.
+    func testSavingForLackOfRoomCarriesNoChoice() async throws {
+        let fixture = try makeFixture()
+        let id = try await saveDraft(in: fixture)
+
+        XCTAssertFalse(try record(id, in: fixture).isSavedByChoice)
+        XCTAssertFalse(try XCTUnwrap(fixture.store.rowState(for: id)).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedForLater) == .some(true)
+        }
+        XCTAssertTrue(didPersist)
+        XCTAssertNil(try savedSessionRecord(in: fixture).savedByChoice)
+    }
+
+    /// Started once, a download saved by choice is an ordinary one too.
+    func testStartEndsTheChoiceWithTheSavedState() async throws {
+        let fixture = try makeFixture(availableBytes: 10 * Self.selectedBytes)
+        let id = try await saveDraft(in: fixture, byChoice: true)
+
+        fixture.store.startTorrent(id: id)
+
+        let didStart = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            fixture.store.torrents.first?.isSavedForLater == false
+        }
+        XCTAssertTrue(didStart)
+        XCTAssertFalse(try record(id, in: fixture).isSavedByChoice)
+        let didPersist = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            (try? self.savedSessionRecord(in: fixture).savedByChoice) == .some(nil)
+        }
+        XCTAssertTrue(didPersist)
+    }
+
+    /// A saved download never wrote a file: it offers no removal with files,
+    /// and the toolbar's trash removes it without asking.
+    func testSavedDownloadOffersNoRemovalWithFiles() async throws {
+        let fixture = try makeFixture()
+        let id = try await saveDraft(in: fixture)
+
+        XCTAssertFalse(fixture.store.canRemoveWithFiles(for: id))
+        XCTAssertFalse(try XCTUnwrap(fixture.store.rowState(for: id)).canRemoveWithFiles)
+        XCTAssertTrue(fixture.store.canRemoveFromList(for: id))
+
+        fixture.store.selectTorrent(id: id)
+        XCTAssertTrue(fixture.store.isToolbarRemoveEnabled)
+        XCTAssertFalse(fixture.store.selectedTorrentsHaveOwnFiles)
+    }
+
+    /// What lies at a saved download's paths is someone else's — an earlier
+    /// download of the same torrent, say. Removed with its files, as among
+    /// several, the saved one leaves the list and those files stay.
+    func testRemovingASavedDownloadWithFilesKeepsWhatLiesAtItsPaths() async throws {
+        let fixture = try makeFixture()
+        let earlierFile = fixture.saveURL.appendingPathComponent("Northstar/A.bin")
+        try FileManager.default.createDirectory(
+            at: earlierFile.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("an earlier download".utf8).write(to: earlierFile)
+        let id = try await saveDraft(in: fixture)
+
+        await fixture.store.removeTorrent(id: id, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertTrue(fixture.store.torrents.isEmpty)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: earlierFile.path))
+        XCTAssertNil(fixture.store.payloadDeletionAlert)
+    }
+
+    /// Among several, one ordinary download keeps the question about files.
+    func testAnOrdinaryDownloadAmongSavedOnesKeepsTheQuestion() {
+        var saved = makeTestRecord(infoHash: "saved", originalName: "Saved", status: .stopped)
+        saved.isSavedForLater = true
+        let ordinary = makeTestRecord(infoHash: "ordinary", originalName: "Ordinary", status: .stopped)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [saved, ordinary])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+
+        bundle.store.selectTorrent(id: saved.id)
+        XCTAssertFalse(bundle.store.selectedTorrentsHaveOwnFiles)
+
+        bundle.store.selectAllTorrents(visibleTorrentIDs: bundle.store.torrentRowIDs)
+        XCTAssertEqual(bundle.store.selectedTorrentCount, 2)
+        XCTAssertTrue(bundle.store.selectedTorrentsHaveOwnFiles)
+        XCTAssertTrue(bundle.store.canRemoveWithFiles(for: ordinary.id))
+        XCTAssertFalse(bundle.store.canRemoveWithFiles(for: saved.id))
     }
 
     /// The same for a download the engine stopped while it ran.

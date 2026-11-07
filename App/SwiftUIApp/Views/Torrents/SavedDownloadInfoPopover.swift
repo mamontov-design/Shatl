@@ -9,6 +9,8 @@ import SwiftUI
 /// later answer replaces the old one in place.
 struct SavedDownloadInfoPopover: View {
     let status: SavedDownloadSpaceStatus?
+    /// Saved by choice among several downloads, not for lack of room.
+    var isSavedByChoice = false
     let metricsMode: MetricsPresentationMode
     let localeOverride: AppLocaleOverride
 
@@ -18,7 +20,10 @@ struct SavedDownloadInfoPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            paragraph(L10n.string("torrent.saved.info.reason", localeOverride: localeOverride))
+            paragraph(L10n.string(
+                isSavedByChoice ? "torrent.saved.info.reason.chosen" : "torrent.saved.info.reason",
+                localeOverride: localeOverride
+            ))
 
             // Old and new text overlap while one replaces the other, as in a
             // message block.

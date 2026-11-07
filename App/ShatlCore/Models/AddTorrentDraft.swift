@@ -102,6 +102,54 @@ nonisolated struct AddTorrentDraft: Identifiable, Equatable, Sendable {
         reviewState == .ready && hasSelectedFiles
     }
 
+    /// The same files ticked, the same folder, alias and "Остановить раздачу":
+    /// nothing a person chose here differs.
+    nonisolated func hasSameChoices(as other: AddTorrentDraft) -> Bool {
+        files.map(\.isSelected) == other.files.map(\.isSelected)
+            && suggestedSavePath == other.suggestedSavePath
+            && alias == other.alias
+            && stopAfterDownload == other.stopAfterDownload
+    }
+
+    /// Ticks or unticks one file; `false` when it already was so.
+    @discardableResult
+    nonisolated mutating func setFileSelection(id: UUID, isSelected: Bool) -> Bool {
+        guard let index = files.firstIndex(where: { $0.id == id }),
+              files[index].isSelected != isSelected else { return false }
+
+        files[index].isSelected = isSelected
+        fileSelectionRevision &+= 1
+        return true
+    }
+
+    /// Ticks or unticks a whole folder branch, such as "Season 3";
+    /// `false` when nothing in it changed.
+    @discardableResult
+    nonisolated mutating func setFolderSelection(path: String, isSelected: Bool) -> Bool {
+        let normalizedPath = path
+            .replacingOccurrences(of: "\\", with: "/")
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !normalizedPath.isEmpty else { return false }
+
+        let folderPrefix = normalizedPath + "/"
+        var didChangeSelection = false
+
+        for index in files.indices {
+            let filePath = files[index].name.replacingOccurrences(of: "\\", with: "/")
+            if filePath == normalizedPath || filePath.hasPrefix(folderPrefix) {
+                if files[index].isSelected != isSelected {
+                    files[index].isSelected = isSelected
+                    didChangeSelection = true
+                }
+            }
+        }
+
+        if didChangeSelection {
+            fileSelectionRevision &+= 1
+        }
+        return didChangeSelection
+    }
+
     nonisolated var fileTree: [AddTorrentFileTreeNode] {
         final class MutableTreeNode {
             let name: String

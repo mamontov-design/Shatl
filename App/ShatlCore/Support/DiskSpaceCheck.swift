@@ -9,21 +9,45 @@ nonisolated struct DiskSpaceCheck: Equatable, Codable, Sendable {
     var availableBytes: Int64
     /// The disk as macOS names it: "Macintosh HD".
     var volumeName: String
+    /// What downloads already writing to the same disk will still write
+    /// (`PromisedDiskSpace`). Only the add window counts it; a saved
+    /// download's "i" and its "Пуск" do not, so starting it by hand stays
+    /// the person's choice. `nil` when nothing is promised, and in checks
+    /// saved before it was counted.
+    var promisedBytes: Int64? = nil
 
     var fits: Bool {
-        neededBytes <= availableBytes
+        neededBytes + (promisedBytes ?? 0) <= availableBytes
     }
 
-    /// The check, when `neededBytes` do not fit on the disk; `nil` when
-    /// they do or nothing is to be saved.
-    static func shortfall(neededBytes: Int64, on disk: DiskSpaceInfo) -> DiskSpaceCheck? {
+    /// The check, when `neededBytes` do not fit on the disk beside what is
+    /// promised on it; `nil` when they do or nothing is to be saved.
+    static func shortfall(
+        neededBytes: Int64,
+        promisedBytes: Int64 = 0,
+        on disk: DiskSpaceInfo
+    ) -> DiskSpaceCheck? {
         guard neededBytes > 0 else { return nil }
         let check = DiskSpaceCheck(
             neededBytes: neededBytes,
             availableBytes: disk.availableBytes,
-            volumeName: disk.volumeName
+            volumeName: disk.volumeName,
+            promisedBytes: promisedBytes > 0 ? promisedBytes : nil
         )
         return check.fits ? nil : check
+    }
+
+    /// What the downloads writing to the disk will still take, rounded up
+    /// as a size is.
+    func promisedText(mode: MetricsPresentationMode, localeOverride: AppLocaleOverride) -> String {
+        Self.unbroken(
+            AddTorrentSummaryByteFormatter.format(
+                promisedBytes ?? 0,
+                mode: mode,
+                rounding: .up,
+                localeOverride: localeOverride
+            )
+        )
     }
 
     /// The size a text names, rounded up as the add window rounds it.
@@ -55,18 +79,21 @@ nonisolated struct DiskSpaceCheck: Equatable, Codable, Sendable {
         size.replacingOccurrences(of: " ", with: "\u{00A0}")
     }
 
-    /// What is missing. With rounded numbers it is the difference of the two
-    /// numbers shown, so "needs 172 GB, 16 GB free" lacks 156 GB and not the
-    /// 155 the exact bytes would round to.
+    /// What is missing. With rounded numbers it is what the numbers shown
+    /// add up to, so "needs 172 GB, 16 GB free" lacks 156 GB and not the 155
+    /// the exact bytes would round to, and "needs 60 GB, 100 GB free, 60 GB
+    /// promised" lacks 20 GB.
     func shortfallText(mode: MetricsPresentationMode, localeOverride: AppLocaleOverride) -> String {
+        let promised = promisedBytes ?? 0
         let shortfall: Int64
         switch mode {
         case .detailed:
-            shortfall = max(0, neededBytes - availableBytes)
+            shortfall = max(0, neededBytes + promised - availableBytes)
         case .simplified:
             shortfall = max(
                 0,
                 AddTorrentSummaryByteFormatter.roundedBytes(neededBytes, rounding: .up)
+                    + (promised > 0 ? AddTorrentSummaryByteFormatter.roundedBytes(promised, rounding: .up) : 0)
                     - AddTorrentSummaryByteFormatter.roundedBytes(availableBytes, rounding: .down)
             )
         }
@@ -79,6 +106,38 @@ nonisolated struct DiskSpaceCheck: Equatable, Codable, Sendable {
                 localeOverride: localeOverride
             )
         )
+    }
+}
+
+/// Space the downloads in the list will still take by themselves: what the
+/// add window counts beside the free space Finder shows.
+nonisolated enum PromisedDiskSpace {
+    /// Whether a download writes to its disk without anyone starting it:
+    /// it is downloading or checking. A stopped one waits for "Пуск", and a
+    /// saved one waits for room itself; counting it would keep every next
+    /// download out too.
+    static func isWriting(_ record: TorrentRecord) -> Bool {
+        guard !record.isSavedForLater else { return false }
+        switch record.status {
+        case .downloading, .checking:
+            return true
+        case .stopped, .seeding, .completed, .error:
+            return false
+        }
+    }
+
+    /// What a download still has to write: the files chosen, less what it
+    /// has. With sparse files, written bytes are already off the free space.
+    static func remainingBytes(of record: TorrentRecord) -> Int64 {
+        let selected = max(0, record.metrics.selectedBytes)
+        let progress = min(max(record.progress, 0), 1)
+        return max(0, selected - Int64((Double(selected) * progress).rounded(.down)))
+    }
+
+    /// One spelling for a folder, so a download's folder and the add
+    /// window's compare as the same.
+    static func folderKey(_ path: String) -> String {
+        NSString(string: path.trimmingCharacters(in: .whitespacesAndNewlines)).standardizingPath
     }
 }
 

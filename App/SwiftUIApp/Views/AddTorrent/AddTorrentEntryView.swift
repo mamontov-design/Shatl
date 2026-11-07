@@ -406,19 +406,21 @@ struct AddTorrentEntryView: View {
         .padding(.horizontal, 4)
     }
 
-    /// The first vertical slice must accept a real torrent file,
-    /// not just a preview placeholder.
+    /// One `.torrent` file or several: several wait in one add window, in
+    /// the order the panel gives them, as files opened from Finder do.
     private func presentTorrentFilePicker() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true
         panel.allowedContentTypes = [UTType(importedAs: "org.bittorrent.torrent")]
         panel.prompt = L10n.string("common.choose", localeOverride: store.preferences.localeOverride)
 
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
         blurMagnetField()
-        store.continueFromTorrentFile(at: url.path)
+        for url in panel.urls {
+            store.continueFromTorrentFile(at: url.path)
+        }
     }
 
     private func continueWithMagnet() {

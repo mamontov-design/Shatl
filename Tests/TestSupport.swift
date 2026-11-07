@@ -21,6 +21,9 @@ actor FakeTorrentEngine {
     private var heldPreparedDraftIDsValue: Set<UUID> = []
     private var createdPreparedDraftIDsValue: [UUID] = []
     private var requiresPreparedDrafts = false
+    private var namesDraftsBySource = false
+    private var prepareErrorsBySource: [String: TorrentEngineError] = [:]
+    private var infoHashesBySource: [String: String] = [:]
     private var removeCallsValue: [RemovedTorrentCall] = []
     private var removeError: TorrentEngineError?
     private var removeDelayNanoseconds: UInt64 = 0
@@ -65,15 +68,20 @@ actor FakeTorrentEngine {
         if let prepareError {
             throw prepareError
         }
+        if let prepareError = prepareErrorsBySource[source.rawValue] {
+            throw prepareError
+        }
 
         let draftID = UUID()
         heldPreparedDraftIDsValue.insert(draftID)
         createdPreparedDraftIDsValue.append(draftID)
+        let fileName = URL(fileURLWithPath: source.rawValue).deletingPathExtension().lastPathComponent
         return AddTorrentDraft(
             id: draftID,
             source: source,
-            originalName: "Test Torrent",
-            infoHash: "test-info-hash",
+            originalName: namesDraftsBySource ? fileName : "Test Torrent",
+            infoHash: infoHashesBySource[source.rawValue]
+                ?? (namesDraftsBySource ? "hash-\(source.rawValue)" : "test-info-hash"),
             suggestedSavePath: suggestedSavePath,
             alias: "",
             stopAfterDownload: stopAfterDownload,
@@ -280,6 +288,25 @@ actor FakeTorrentEngine {
     /// tests confirm hand-made drafts.
     func setRequiresPreparedDrafts(_ isRequired: Bool) async {
         requiresPreparedDrafts = isRequired
+    }
+
+    /// Gives each prepared draft its own name and info hash, from its file:
+    /// several downloads in one add window are then not duplicates of each
+    /// other. Off by default because many tests rely on "test-info-hash".
+    func setNamesDraftsBySource(_ isEnabled: Bool) async {
+        namesDraftsBySource = isEnabled
+    }
+
+    /// Fails the preparation of one file or link only: a broken file among
+    /// several opened at once.
+    func setPrepareError(_ error: TorrentEngineError, forSource rawValue: String) async {
+        prepareErrorsBySource[rawValue] = error
+    }
+
+    /// Gives one file or link the info hash of another: two `.torrent`
+    /// files of one torrent.
+    func setInfoHash(_ infoHash: String, forSource rawValue: String) async {
+        infoHashesBySource[rawValue] = infoHash
     }
 
     func setPrepareSuspended(_ isSuspended: Bool) async {
@@ -500,30 +527,39 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
 }
 
 /// A disk whose free space the test sets; `nil` is a folder out of reach.
+/// Disks of one name are one disk: they share a mount point.
 final class FakeDiskSpaceReader: DiskSpaceReading, @unchecked Sendable {
     private let lock = NSLock()
     private var infoValue: DiskSpaceInfo?
     private var infoByPath: [String: DiskSpaceInfo] = [:]
 
     init(availableBytes: Int64? = nil, volumeName: String = "Test Disk") {
-        infoValue = availableBytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+        infoValue = availableBytes.map { Self.info($0, volumeName: volumeName) }
     }
 
     func setAvailableBytes(_ bytes: Int64?, volumeName: String = "Test Disk") {
         lock.withLock {
-            infoValue = bytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+            infoValue = bytes.map { Self.info($0, volumeName: volumeName) }
         }
     }
 
     /// A folder on a disk of its own.
     func setAvailableBytes(_ bytes: Int64, volumeName: String, atPath path: String) {
         lock.withLock {
-            infoByPath[path] = DiskSpaceInfo(availableBytes: bytes, volumeName: volumeName)
+            infoByPath[path] = Self.info(bytes, volumeName: volumeName)
         }
     }
 
     func diskSpace(atPath path: String) async -> DiskSpaceInfo? {
         lock.withLock { infoByPath[path] ?? infoValue }
+    }
+
+    private static func info(_ bytes: Int64, volumeName: String) -> DiskSpaceInfo {
+        DiskSpaceInfo(
+            availableBytes: bytes,
+            volumeName: volumeName,
+            volumeURL: URL(fileURLWithPath: "/Volumes/\(volumeName)", isDirectory: true)
+        )
     }
 }
 

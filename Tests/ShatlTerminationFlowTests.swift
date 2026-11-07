@@ -120,6 +120,69 @@ final class ShatlTerminationFlowTests: XCTestCase {
         XCTAssertFalse(leftScreen)
     }
 
+    /// ⌘Q with work in the add window asks before anything is saved, and
+    /// going back from the question saves nothing and stops nothing.
+    func testTheQuitQuestionComesFirstAndGoingBackLeavesShatlAsItWas() async {
+        var leftScreen = false
+        let handler = ScriptedTerminationHandler(results: [true])
+        let presenter = ScriptedFailurePresenter(choices: [])
+        var savesBeforeTheAnswer: Int?
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: handler,
+            source: .user,
+            presenter: presenter,
+            confirmQuit: {
+                savesBeforeTheAnswer = handler.callCount
+                return false
+            },
+            willFinish: { leftScreen = true }
+        )
+
+        XCTAssertFalse(shouldTerminate)
+        XCTAssertEqual(savesBeforeTheAnswer, 0)
+        XCTAssertEqual(handler.callCount, 0, "Going back saves nothing")
+        XCTAssertEqual(handler.finishCount, 0, "Going back keeps the engine running")
+        XCTAssertFalse(leftScreen)
+    }
+
+    func testAnsweredQuitQuestionGoesOnToSaveAndQuit() async {
+        let handler = ScriptedTerminationHandler(results: [true])
+        let presenter = ScriptedFailurePresenter(choices: [])
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: handler,
+            source: .user,
+            presenter: presenter,
+            confirmQuit: { true }
+        )
+
+        XCTAssertTrue(shouldTerminate)
+        XCTAssertEqual(handler.callCount, 1)
+        XCTAssertEqual(handler.finishCount, 1)
+    }
+
+    /// Logout, restart and shutdown are never held up by a question.
+    func testSystemQuitDoesNotAskTheQuitQuestion() async {
+        let handler = ScriptedTerminationHandler(results: [true])
+        let presenter = ScriptedFailurePresenter(choices: [])
+        var asks = 0
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: handler,
+            source: .system,
+            presenter: presenter,
+            confirmQuit: {
+                asks += 1
+                return false
+            }
+        )
+
+        XCTAssertTrue(shouldTerminate)
+        XCTAssertEqual(asks, 0)
+        XCTAssertEqual(handler.finishCount, 1)
+    }
+
     /// macOS hands a launch to the quitting copy instead of starting a new
     /// one, so the quitting copy starts the next one only when asked to.
     func testQuitRelaunchesOnlyWhenShatlWasOpenedDuringIt() {

@@ -7,6 +7,9 @@ import Foundation
 nonisolated struct DiskSpaceInfo: Equatable, Sendable {
     var availableBytes: Int64
     var volumeName: String
+    /// Where the disk is mounted: two folders on one disk have the same.
+    /// Names are not enough, two disks can share one.
+    var volumeURL: URL? = nil
 }
 
 /// Reads the free space of the disk a folder is on. One call asks the system
@@ -30,6 +33,7 @@ nonisolated struct SystemDiskSpaceReader: DiskSpaceReading {
             .volumeAvailableCapacityForImportantUsageKey,
             .volumeAvailableCapacityKey,
             .volumeLocalizedNameKey,
+            .volumeURLKey,
         ]
         guard let values = try? url.resourceValues(forKeys: keys),
               let plainCapacity = values.volumeAvailableCapacity else {
@@ -42,7 +46,8 @@ nonisolated struct SystemDiskSpaceReader: DiskSpaceReading {
         let importantCapacity = values.volumeAvailableCapacityForImportantUsage ?? 0
         return DiskSpaceInfo(
             availableBytes: importantCapacity > 0 ? importantCapacity : Int64(plainCapacity),
-            volumeName: values.volumeLocalizedName ?? ""
+            volumeName: values.volumeLocalizedName ?? "",
+            volumeURL: values.volume
         )
     }
 }

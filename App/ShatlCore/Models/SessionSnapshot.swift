@@ -32,6 +32,11 @@ nonisolated struct SessionTorrentRecord: Codable, Equatable, Sendable {
     /// Optional and written only when true, as the sizes above: an older
     /// Shatl shows such a download as stopped.
     var savedForLater: Bool? = nil
+    /// Saved by choice rather than for lack of room, so its "i" says why.
+    /// Optional and written only when true, as `savedForLater`: a list
+    /// without it reads as before — lack of room, the only reason there
+    /// was — and an older Shatl skips it.
+    var savedByChoice: Bool? = nil
 }
 
 /// Versions the session format from the start to support future migrations.

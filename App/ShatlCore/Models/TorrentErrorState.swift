@@ -64,4 +64,15 @@ nonisolated struct TorrentErrorState: Identifiable, Equatable, Codable, Sendable
     var cause: Cause?
     /// For `notEnoughSpace`: the disk and what it lacks.
     var spaceCheck: DiskSpaceCheck?
+    /// For the add window: the message while other downloads wait in it.
+    /// The single one says "Закройте окно…" for its button "Закрыть окно";
+    /// among several that button gives way to "Следующая загрузка", and
+    /// closing the window would take the others. `nil` when one text
+    /// serves both.
+    var messageAmongSeveral: String?
+    /// For the add window: the title while other downloads wait in it,
+    /// naming the download, as no file tree shows which one this is. `nil`
+    /// when there is no name to give or the title is not about the download
+    /// ("Нет подключения к интернету.").
+    var titleAmongSeveral: String?
 }

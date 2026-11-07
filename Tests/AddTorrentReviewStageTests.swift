@@ -58,4 +58,30 @@ final class AddTorrentReviewStageTests: XCTestCase {
             .close
         )
     }
+
+    /// Among several downloads, one that cannot be downloaded moves on to
+    /// the others: "Закрыть окно" would take them all. The last one left
+    /// closes the window, as a single download does.
+    func testAMessageAmongSeveralMovesOnToTheOthers() {
+        XCTAssertEqual(
+            AddTorrentReviewMessageActions.current(reviewState: .invalid(message: ""), isKnownDuplicate: false, othersWait: true),
+            .next
+        )
+        XCTAssertEqual(
+            AddTorrentReviewMessageActions.current(reviewState: .invalid(message: ""), isKnownDuplicate: true, othersWait: true),
+            .showInListAndNext
+        )
+        XCTAssertEqual(
+            AddTorrentReviewMessageActions.current(reviewState: .ready, isKnownDuplicate: false, othersWait: true),
+            .next
+        )
+        XCTAssertEqual(
+            AddTorrentReviewMessageActions.current(reviewState: .loadingMetadata, isKnownDuplicate: false, othersWait: true),
+            .cancel
+        )
+        XCTAssertEqual(
+            AddTorrentReviewMessageActions.current(reviewState: .invalid(message: ""), isKnownDuplicate: false, othersWait: false),
+            .close
+        )
+    }
 }

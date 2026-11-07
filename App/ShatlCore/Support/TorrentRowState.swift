@@ -176,6 +176,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     /// Saved to the list for lack of room and not started yet: the card is
     /// outlined with dashes and its badge is a bookmark.
     var isSavedForLater = false
+    /// Saved by choice, not for lack of room: what its "i" says first.
+    var isSavedByChoice = false
     /// Downloading or seeding without speed for a while: "Простаивает". The
     /// badge loses its fill. See `TransferActivity`.
     var isIdle = false

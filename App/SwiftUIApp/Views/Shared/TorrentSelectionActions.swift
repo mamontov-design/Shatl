@@ -13,6 +13,14 @@ enum TorrentSelectionActions {
     static func presentRemovalChoice(in store: AppStore) {
         let localeOverride = store.preferences.localeOverride
 
+        // Downloads saved to the list have no files to choose about: they
+        // leave it at once, as "Удалить из списка" does. A download still
+        // being added is asked about there.
+        if !store.selectedTorrentsHaveOwnFiles {
+            removeFromList(in: store)
+            return
+        }
+
         if store.selectedTorrentCount > 1 {
             // Exactly the downloads the question counted, whatever happens
             // to the selection while it is on screen.

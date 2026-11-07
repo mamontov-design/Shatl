@@ -52,36 +52,59 @@ struct MainWindowDropScreen: View {
     /// The icon names what is carried: the window has recognised it.
     private var systemImage: String {
         switch offer {
-        case .accept(.torrentFile):
-            "document.badge.plus"
-        case .accept(.magnetLink):
-            "link.badge.plus"
-        case .tooMany, .unsupported:
+        case let .accept(downloads, _):
+            if case .magnetLink = downloads.first {
+                "link.badge.plus"
+            } else {
+                "document.badge.plus"
+            }
+        case .unsupported:
             "exclamationmark.circle"
         }
     }
 
+    /// The count, from two: the window says how many a release adds.
     private var title: String {
-        switch offer {
-        case .accept:
-            L10n.string("main.drop.accept.title", localeOverride: localeOverride)
-        case .tooMany, .unsupported:
-            L10n.string("main.drop.too_many.title", localeOverride: localeOverride)
+        guard case let .accept(downloads, _) = offer, downloads.count > 1 else {
+            return L10n.string("main.drop.accept.title", localeOverride: localeOverride)
         }
+        return L10n.format(
+            L10n.pluralKey("main.drop.accept.title.several", count: downloads.count, localeOverride: localeOverride),
+            localeOverride: localeOverride,
+            defaultValue: "%lld",
+            downloads.count
+        )
     }
 
     private var message: String? {
-        switch offer {
-        case .accept:
-            nil
-        case .tooMany, .unsupported:
-            L10n.string("main.drop.too_many.message", localeOverride: localeOverride)
+        Self.message(for: offer, localeOverride: localeOverride)
+    }
+
+    /// The longest name of a file left out, in characters.
+    static let leftOutNameLimit = 20
+
+    /// Files that are not `.torrent` stay out, and the window says so. One
+    /// is named, shortened in the middle as other names are, so the
+    /// extension that keeps it out stays in sight.
+    static func message(for offer: DraggedDownloadOffer, localeOverride: AppLocaleOverride) -> String? {
+        guard case let .accept(_, leftOut?) = offer else { return nil }
+        switch leftOut {
+        case let .one(name):
+            return L10n.format(
+                "main.drop.other_file.message",
+                localeOverride: localeOverride,
+                defaultValue: "%@",
+                ShatlErrorCatalog.shortenedTorrentName(name, limit: leftOutNameLimit)
+            )
+        case .several:
+            return L10n.string("main.drop.other_files.message", localeOverride: localeOverride)
         }
     }
 }
 
-/// Takes every drag over the main window's content before anything under it
-/// can.
+/// Takes every drag over a window's content before anything under it can:
+/// the main window's, and the add window's, which adds what is dropped at
+/// its end.
 ///
 /// A system text field accepts dragged text itself: with only SwiftUI's
 /// `onDrop` on the window, a link dragged over the empty list's link field
@@ -89,12 +112,12 @@ struct MainWindowDropScreen: View {
 /// screen went away. AppKit gives a drag to the frontmost view registered
 /// for it, so this view lies over all the content, and the field under it
 /// never hears of the drag. Clicks pass through it.
-struct MainWindowDropCatcher: NSViewRepresentable {
+struct DraggedDownloadCatcher: NSViewRepresentable {
     /// Whether the window can add a download right now.
     let isAvailable: () -> Bool
     /// The window's answer, or `nil` once the drag has left.
-    let onOffer: (DraggedDownloadOffer?) -> Void
-    let onDrop: (DraggedDownload) -> Void
+    var onOffer: (DraggedDownloadOffer?) -> Void = { _ in }
+    let onDrop: ([DraggedDownload]) -> Void
 
     func makeNSView(context: Context) -> CatcherView {
         let view = CatcherView()
@@ -107,7 +130,7 @@ struct MainWindowDropCatcher: NSViewRepresentable {
     }
 
     final class CatcherView: NSView {
-        var catcher: MainWindowDropCatcher?
+        var catcher: DraggedDownloadCatcher?
 
         override init(frame frameRect: NSRect) {
             super.init(frame: frameRect)
@@ -157,24 +180,24 @@ struct MainWindowDropCatcher: NSViewRepresentable {
         }
 
         override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-            guard case let .accept(download) = offer(for: sender) else {
+            guard case let .accept(downloads, _) = offer(for: sender) else {
                 catcher?.onOffer(nil)
                 return false
             }
-            catcher?.onDrop(download)
+            catcher?.onDrop(downloads)
             return true
         }
     }
 }
 
 /// Answers a drag over the main window while it is still in the air: the
-/// same answers as `MainWindowDropCatcher`, for a drag that reaches SwiftUI.
+/// same answers as `DraggedDownloadCatcher`, for a drag that reaches SwiftUI.
 struct MainWindowDropDelegate: DropDelegate {
     /// Whether the window can add a download right now.
     let isAvailable: () -> Bool
     /// The window's answer, or `nil` once the drag has left.
     let onOffer: (DraggedDownloadOffer?) -> Void
-    let onDrop: (DraggedDownload) -> Void
+    let onDrop: ([DraggedDownload]) -> Void
 
     /// A drag of anything else passes over the window as if it took no drops.
     func validateDrop(info: DropInfo) -> Bool {
@@ -198,11 +221,11 @@ struct MainWindowDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         guard isAvailable(),
-              case let .accept(download) = DraggedContent.ofCurrentDrag().offer else {
+              case let .accept(downloads, _) = DraggedContent.ofCurrentDrag().offer else {
             onOffer(nil)
             return false
         }
-        onDrop(download)
+        onDrop(downloads)
         return true
     }
 }
@@ -243,6 +266,22 @@ extension DraggedContent {
         }
 
         return content
+    }
+}
+
+extension AppStore {
+    /// ⌘V in the main window or the add window: copied magnet links or
+    /// `.torrent` files are added as a drop adds them; anything else gets
+    /// the system's "no". A text field takes ⌘V itself, as text.
+    func addPastedDownloads(from providers: [NSItemProvider]) {
+        Task {
+            let content = await DraggedContent.pasted(providers)
+            if acceptsDraggedDownloads, case let .accept(downloads, _) = content.offer {
+                addDraggedDownloads(downloads)
+            } else {
+                NSSound.beep()
+            }
+        }
     }
 }
 

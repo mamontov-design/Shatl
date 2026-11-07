@@ -771,6 +771,7 @@ struct TorrentCardView: View, Equatable {
         .popover(isPresented: $isSavedInfoPresented) {
             SavedDownloadInfoPopover(
                 status: savedInfoStatus,
+                isSavedByChoice: row.isSavedByChoice,
                 metricsMode: row.metricsMode,
                 localeOverride: row.localeOverride
             )

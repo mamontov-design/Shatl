@@ -39,6 +39,10 @@ struct ShatlCommands: Commands {
                 get: { store.debugSimulatesLowDiskSpace },
                 set: { _ in store.toggleLowDiskSpaceForDebug() }
             ))
+            Toggle("menu.debug.inflate_promised_space", isOn: Binding(
+                get: { store.debugInflatesPromisedSpace },
+                set: { _ in store.togglePromisedSpaceForDebug() }
+            ))
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)
@@ -174,7 +178,7 @@ struct ShatlCommands: Commands {
 
     private var isRemoveWithFilesEnabled: Bool {
         if hasSeveralSelected {
-            return store.isToolbarRemoveEnabled
+            return store.isToolbarRemoveEnabled && store.selectedTorrentsHaveOwnFiles
         }
         guard let selectedTorrentID else { return false }
         return store.canRemoveWithFiles(for: selectedTorrentID)

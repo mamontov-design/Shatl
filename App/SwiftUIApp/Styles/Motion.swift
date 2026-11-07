@@ -101,6 +101,12 @@ enum ShatlMotion {
     /// drawn, so that they come as one and not in pieces.
     static let reviewStageSettleDelay = Duration.milliseconds(100)
 
+    /// The add window's summary keeps the numbers it shows while the arrows
+    /// run through the downloads, and rolls to the one on screen once they
+    /// have rested this long: quick steps through twenty downloads do not
+    /// blur it, and its lines do not jump between two and three digits.
+    static let reviewSummarySettleDelay = Duration.milliseconds(600)
+
     /// Shows and hides the message bars under the toolbar.
     static let sessionRestoreStatusBar = Animation.smooth(duration: 0.32)
 

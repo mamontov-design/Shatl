@@ -55,7 +55,7 @@ struct ShatlApp: App {
         // Shatl must have exactly one main window.
         // WindowGroup can create new scene instances, but external torrent or magnet
         // opening would then produce multiple unwanted windows.
-        Window("Shatl", id: "main") {
+        Window("Shatl", id: AppWindowID.main) {
             // The 440 × 448 minimum belongs to the list's content, not to
             // the onboarding: see `MainWindowView`.
             mainWindowContent
@@ -136,6 +136,10 @@ struct ShatlApp: App {
                     appDelegate.terminationFailurePresenter = ShatlTerminationAlertPresenter { [weak store = store] in
                         store?.preferences.localeOverride ?? .system
                     }
+                    appDelegate.quitConfirmation = { [weak store = store] in
+                        guard let store else { return true }
+                        return await AddTorrentQuitQuestion.confirm(for: store)
+                    }
                     store.setApplicationUserAttentionActive(NSApp.isActive)
                 }
         }
@@ -144,6 +148,17 @@ struct ShatlApp: App {
 
 private struct AddTorrentReviewWindowRoot: View {
     @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        AddTorrentReviewWindowContent(review: store.addTorrentReview)
+    }
+}
+
+/// The subtitle names the draft, so the window watches the add window's
+/// model; see `AddTorrentReviewModel`.
+private struct AddTorrentReviewWindowContent: View {
+    @EnvironmentObject private var store: AppStore
+    @ObservedObject var review: AddTorrentReviewModel
     @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some View {
@@ -153,6 +168,15 @@ private struct AddTorrentReviewWindowRoot: View {
             // for it empty. Given here too, the torrent's name stays.
             .navigationTitle(reviewWindowTitle)
             .navigationSubtitle(reviewWindowSubtitle)
+            // Outside the review itself, which a message disables: the
+            // arrows lead away from a message too.
+            .toolbar {
+                if review.isBatch {
+                    ToolbarItem(placement: .navigation) {
+                        downloadNavigation
+                    }
+                }
+            }
             // The files are shown from under a cover of this colour; see
             // `AddTorrentReviewView`.
             .containerBackground(ShatlColor.backgroundAddWindow, for: .window)
@@ -160,6 +184,7 @@ private struct AddTorrentReviewWindowRoot: View {
                 AddTorrentReviewWindowChromeConfigurator(
                     title: reviewWindowTitle,
                     subtitle: reviewWindowSubtitle,
+                    shouldClose: reviewWindowShouldClose,
                     onClose: finishReviewWindowClosure
                 )
                 .frame(width: 0, height: 0)
@@ -175,49 +200,120 @@ private struct AddTorrentReviewWindowRoot: View {
     }
 
     private var reviewWindowTitle: String {
-        L10n.string(
-            "add_torrent.title",
+        review.isBatch
+            ? L10n.string(
+                "add_torrent.title.several",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Добавление нескольких загрузок"
+            )
+            : L10n.string(
+                "add_torrent.title",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Добавление загрузки"
+            )
+    }
+
+    /// One download needs no subtitle: its name heads the file tree, and the
+    /// message in the window says when it is still read. Several say which
+    /// one is on screen (the owner's decision, November 2026). A subtitle
+    /// that came and went would move the title up and down.
+    private var reviewWindowSubtitle: String {
+        guard review.isBatch else { return "" }
+        // The last one waiting, not a bare "1 of 1": it says why the title
+        // still speaks of several while one is shown.
+        if review.count == 1 {
+            return L10n.string(
+                "add_torrent.review.one_left",
+                localeOverride: store.preferences.localeOverride,
+                defaultValue: "Осталась одна загрузка"
+            )
+        }
+        return L10n.format(
+            "add_torrent.review.position",
             localeOverride: store.preferences.localeOverride,
-            defaultValue: "Добавление загрузки"
+            defaultValue: "%lld / %lld",
+            review.position,
+            review.count
         )
     }
 
-    private var reviewWindowSubtitle: String {
-        guard let draft = store.currentAddTorrentDraft else {
-            return L10n.string(
-                "add_torrent.loading_metadata",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Получение метаданных…"
-            )
-        }
+    /// Previous and next download, in one group as Finder's back and
+    /// forward, but with arrows rather than chevrons: they move through the
+    /// downloads waiting here, not back through what was seen.
+    private var downloadNavigation: some View {
+        let localeOverride = store.preferences.localeOverride
+        let previousTitle = L10n.string(
+            "add_torrent.review.previous",
+            localeOverride: localeOverride,
+            defaultValue: "Предыдущая загрузка"
+        )
+        let nextTitle = L10n.string(
+            "add_torrent.review.next",
+            localeOverride: localeOverride,
+            defaultValue: "Следующая загрузка"
+        )
+        return ControlGroup {
+            Button {
+                review.showPrevious()
+            } label: {
+                Label(previousTitle, systemImage: "arrow.backward")
+            }
+            .help(previousTitle)
+            .disabled(!review.hasPrevious)
 
-        if draft.reviewState == .loadingMetadata {
-            return L10n.string(
-                "add_torrent.loading_metadata",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Получение метаданных…"
-            )
+            Button {
+                review.showNext()
+            } label: {
+                Label(nextTitle, systemImage: "arrow.forward")
+            }
+            .help(nextTitle)
+            .disabled(!review.hasNext)
         }
-
-        if case .invalid = draft.reviewState {
-            return ""
-        }
-
-        return draft.originalName
+        .controlGroupStyle(.navigation)
     }
 
     private func finishReviewWindowClosure() {
         store.addTorrentReviewWindowDidClose()
+    }
+
+    /// The close button and ⌘W ask first when closing would lose work —
+    /// downloads still waiting, or a choice of files made here; see
+    /// `AddTorrentReviewModel.ClosingLoss`. The window stays while the
+    /// question is on screen, and the answer closes it, keeps it, or saves
+    /// what waits to the list first.
+    private func reviewWindowShouldClose(_ window: NSWindow) -> Bool {
+        guard let loss = review.closingLoss else { return true }
+        Task { @MainActor in
+            let answer = await AddTorrentCloseQuestion.ask(
+                about: loss,
+                localeOverride: store.preferences.localeOverride,
+                window: window
+            )
+            switch answer {
+            case .goBack:
+                break
+            case .saveToList:
+                // The focus leaves before the window does; see
+                // `AddTorrentReviewWindowFocus`.
+                window.makeFirstResponder(nil)
+                store.saveWaitingDraftsToList()
+            case .close:
+                window.makeFirstResponder(nil)
+                store.dismissModal()
+            }
+        }
+        return false
     }
 }
 
 private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
     let title: String
     let subtitle: String
+    let shouldClose: (NSWindow) -> Bool
     let onClose: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onClose: onClose)
+        Coordinator(shouldClose: shouldClose, onClose: onClose)
     }
 
     func makeNSView(context: Context) -> ChromeNSView {
@@ -229,6 +325,7 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: ChromeNSView, context: Context) {
+        context.coordinator.shouldClose = shouldClose
         context.coordinator.onClose = onClose
         nsView.title = title
         nsView.subtitle = subtitle
@@ -262,15 +359,18 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
+        var shouldClose: (NSWindow) -> Bool
         var onClose: () -> Void
         private weak var observedWindow: NSWindow?
         private var closeObservation: NSObjectProtocol?
 
-        init(onClose: @escaping () -> Void) {
+        init(shouldClose: @escaping (NSWindow) -> Bool, onClose: @escaping () -> Void) {
+            self.shouldClose = shouldClose
             self.onClose = onClose
         }
 
         func observe(_ window: NSWindow) {
+            guardClosing(of: window)
             guard observedWindow !== window else { return }
             stopObserving()
             observedWindow = window
@@ -292,6 +392,15 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
             }
             closeObservation = nil
             observedWindow = nil
+        }
+
+        /// The close button and ⌘W ask this coordinator first; see
+        /// `AddTorrentReviewWindowCloseGuard`. Run each time the window is
+        /// laid out, so a delegate SwiftUI sets anew is wrapped as well.
+        private func guardClosing(of window: NSWindow) {
+            AddTorrentReviewWindowCloseGuard.install(on: window) { [weak self] window in
+                self?.shouldClose(window) ?? true
+            }
         }
 
         isolated deinit {
