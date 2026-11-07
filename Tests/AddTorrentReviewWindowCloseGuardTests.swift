@@ -88,6 +88,17 @@ final class AddTorrentReviewWindowCloseGuardTests: XCTestCase {
         XCTAssertEqual(window.delegate?.windowShouldClose?(window), true)
     }
 
+    /// ⌘Q finds the add window by its guard, whatever SwiftUI names it.
+    func testTheAddWindowIsFoundByItsGuard() {
+        let other = makeWindow()
+        let window = makeWindow()
+        XCTAssertNil(AddTorrentReviewWindowCloseGuard.guardedWindow(among: [other, window]))
+
+        AddTorrentReviewWindowCloseGuard.install(on: window) { _ in true }
+
+        XCTAssertTrue(AddTorrentReviewWindowCloseGuard.guardedWindow(among: [other, window]) === window)
+    }
+
     /// A window holds its delegate weakly: the guard must live as long as
     /// the window, or the window would be left with no delegate at all.
     func testTheWindowKeepsItsGuard() {

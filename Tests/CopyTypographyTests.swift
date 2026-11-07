@@ -69,6 +69,11 @@ final class CopyTypographyTests: XCTestCase {
             "onboarding.data.description",            // supporting the project
             "settings.data.caption",
             "settings.about.licenses.popover.gpl",    // the licence names the program
+            // ⌘Q over the add window: "Выйти" alone could mean the window.
+            "add_torrent.quit.message.single.file",
+            "add_torrent.quit.message.single.link",
+            "add_torrent.quit.message.several",
+            "add_torrent.quit.quit",
         ]
         // Keys still naming Shatl as the actor, until their copy is rewritten.
         let pending: Set<String> = []

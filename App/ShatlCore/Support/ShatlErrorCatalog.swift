@@ -410,10 +410,13 @@ enum ShatlErrorCatalog {
     /// again, or how many; then how to keep them, when any can be kept.
     /// `savableCount` counts the downloads ready to go to the list; links
     /// still waiting for their file list cannot.
+    /// `whenQuitting`: ⌘Q asks the same, but what goes, goes with the app;
+    /// the messages say "Если выйти из Shatl" for "Если закрыть окно".
     nonisolated static func closeWindowQuestion(
         losing drafts: [AddTorrentDraft],
         savableCount: Int,
         includesWaitingLinks: Bool,
+        whenQuitting: Bool = false,
         localeOverride: AppLocaleOverride = .russian
     ) -> (title: String, message: String) {
         let separator = sentenceSeparator(localeOverride)
@@ -427,16 +430,28 @@ enum ShatlErrorCatalog {
             var message: String
             switch draft.source.kind {
             case .magnet:
-                message = L10n.string("add_torrent.close.message.single.link", localeOverride: localeOverride)
+                message = whenQuitting
+                    ? L10n.string("add_torrent.quit.message.single.link", localeOverride: localeOverride)
+                    : L10n.string("add_torrent.close.message.single.link", localeOverride: localeOverride)
             case .torrentFile, .externalOpen:
                 let file = URL(fileURLWithPath: draft.source.rawValue)
-                message = L10n.format(
-                    "add_torrent.close.message.single.file",
-                    localeOverride: localeOverride,
-                    defaultValue: "",
-                    file.lastPathComponent,
-                    folderDisplayName(forPath: file.deletingLastPathComponent().path)
-                )
+                let fileName = file.lastPathComponent
+                let folderName = folderDisplayName(forPath: file.deletingLastPathComponent().path)
+                message = whenQuitting
+                    ? L10n.format(
+                        "add_torrent.quit.message.single.file",
+                        localeOverride: localeOverride,
+                        defaultValue: "",
+                        fileName,
+                        folderName
+                    )
+                    : L10n.format(
+                        "add_torrent.close.message.single.file",
+                        localeOverride: localeOverride,
+                        defaultValue: "",
+                        fileName,
+                        folderName
+                    )
             }
             if savableCount > 0 {
                 message += separator + L10n.string("add_torrent.skip.message.save_hint", localeOverride: localeOverride)
@@ -450,7 +465,9 @@ enum ShatlErrorCatalog {
             defaultValue: "%lld",
             drafts.count
         )
-        var message = L10n.string("add_torrent.close.message.several", localeOverride: localeOverride)
+        var message = whenQuitting
+            ? L10n.string("add_torrent.quit.message.several", localeOverride: localeOverride)
+            : L10n.string("add_torrent.close.message.several", localeOverride: localeOverride)
         if savableCount > 0 {
             message += separator + L10n.string("add_torrent.close.save_hint.several", localeOverride: localeOverride)
             if includesWaitingLinks {

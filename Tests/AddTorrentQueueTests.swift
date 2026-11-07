@@ -396,6 +396,33 @@ final class AddTorrentQueueTests: XCTestCase {
 
     /// "Сохранить в список" in the question saves every download waiting,
     /// each as it was set, by choice, and closes the window.
+    /// ⌘Q asks before it saves anything, so what the question saves to the
+    /// list is in the session the quit writes.
+    func testDownloadsSavedOnQuitReachTheSessionTheQuitWrites() async throws {
+        let (_, bundle) = await makeBundle(requiresPreparedDrafts: true)
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo"], in: bundle.store)
+        let isReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(isReady)
+        XCTAssertNotNil(review.closingLoss, "Two waiting: the quit asks")
+
+        let shouldTerminate = await ShatlTerminationFlow.resolve(
+            handler: bundle.store,
+            source: .user,
+            presenter: UnexpectedSaveFailurePresenter(),
+            confirmQuit: {
+                bundle.store.saveWaitingDraftsToList()
+                return true
+            }
+        )
+
+        XCTAssertTrue(shouldTerminate)
+        let data = try Data(contentsOf: bundle.directories.sessionSnapshotURL)
+        let snapshot = try JSONDecoder().decode(SessionSnapshot.self, from: data)
+        XCTAssertEqual(Set(snapshot.torrents.map(\.originalName)), ["Alpha", "Bravo"])
+        XCTAssertTrue(snapshot.torrents.allSatisfy { $0.savedByChoice == true })
+    }
+
     func testSavingEverythingWaitingKeepsEachAsItWasSet() async throws {
         let (_, bundle) = await makeBundle(requiresPreparedDrafts: true)
         let review = bundle.store.addTorrentReview
@@ -448,5 +475,14 @@ final class AddTorrentQueueTests: XCTestCase {
         XCTAssertEqual(readPaths, names.map { fileURL($0).path })
         XCTAssertEqual(storePublications, 0, "Files read for the add window drew the main window")
         XCTAssertLessThanOrEqual(reviewPublications, 1, "Only the download on screen is drawn as it is read")
+    }
+}
+
+/// The session saves in these tests; a failure would be a bug.
+@MainActor
+private final class UnexpectedSaveFailurePresenter: ShatlTerminationFailurePresenting {
+    func presentSessionSaveFailure() -> ShatlTerminationSaveFailureChoice {
+        XCTFail("The session failed to save on quit")
+        return .returnToApp
     }
 }

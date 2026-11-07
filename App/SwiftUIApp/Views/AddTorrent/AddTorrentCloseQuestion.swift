@@ -8,6 +8,9 @@ import Foundation
 /// downloads still waiting for a decision, or a choice of files made in a
 /// large torrent and about to go with a stray click or ⌘W. It names what
 /// would go, and offers to keep it in the list. Return and Esc go back.
+/// ⌘Q asks it too (`whenQuitting`), with "Выйти из Shatl" for its last
+/// button: over the add window "Выйти" alone could mean the window (the
+/// owner's wording); see `AddTorrentQuitQuestion`.
 @MainActor
 enum AddTorrentCloseQuestion {
     enum Answer: Equatable {
@@ -18,22 +21,25 @@ enum AddTorrentCloseQuestion {
 
     static func ask(
         about loss: AddTorrentReviewModel.ClosingLoss,
+        whenQuitting: Bool = false,
         localeOverride: AppLocaleOverride,
         window: NSWindow?
     ) async -> Answer {
-        let alert = makeAlert(about: loss, localeOverride: localeOverride)
+        let alert = makeAlert(about: loss, whenQuitting: whenQuitting, localeOverride: localeOverride)
         let response = await AddTorrentSkipQuestion.present(alert, on: window)
         return answer(for: response, canSave: !loss.savableDrafts.isEmpty)
     }
 
     static func makeAlert(
         about loss: AddTorrentReviewModel.ClosingLoss,
+        whenQuitting: Bool = false,
         localeOverride: AppLocaleOverride
     ) -> NSAlert {
         let question = ShatlErrorCatalog.closeWindowQuestion(
             losing: loss.drafts,
             savableCount: loss.savableDrafts.count,
             includesWaitingLinks: loss.includesWaitingLinks,
+            whenQuitting: whenQuitting,
             localeOverride: localeOverride
         )
         let alert = NSAlert()
@@ -60,11 +66,13 @@ enum AddTorrentCloseQuestion {
                 defaultValue: "Сохранить загрузки в список"
             ))
         }
-        alert.addButton(withTitle: L10n.string(
-            "add_torrent.close.close_window",
-            localeOverride: localeOverride,
-            defaultValue: "Закрыть окно добавления"
-        ))
+        alert.addButton(withTitle: whenQuitting
+            ? L10n.string("add_torrent.quit.quit", localeOverride: localeOverride, defaultValue: "Выйти из Shatl")
+            : L10n.string(
+                "add_torrent.close.close_window",
+                localeOverride: localeOverride,
+                defaultValue: "Закрыть окно добавления"
+            ))
         return alert
     }
 

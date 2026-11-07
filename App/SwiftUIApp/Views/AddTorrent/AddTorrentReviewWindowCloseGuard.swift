@@ -44,6 +44,12 @@ final class AddTorrentReviewWindowCloseGuard: NSObject, NSWindowDelegate {
 
     nonisolated(unsafe) private static var associationKey: UInt8 = 0
 
+    /// The add window, found by the guard it keeps: SwiftUI names its
+    /// windows in its own way.
+    static func guardedWindow(among windows: [NSWindow]) -> NSWindow? {
+        windows.first { objc_getAssociatedObject($0, &associationKey) is AddTorrentReviewWindowCloseGuard }
+    }
+
     nonisolated override func responds(to aSelector: Selector!) -> Bool {
         if super.responds(to: aSelector) {
             return true

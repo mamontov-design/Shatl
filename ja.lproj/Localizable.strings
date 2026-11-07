@@ -209,6 +209,10 @@
 "add_torrent.close.save_hint.several" = "ダウンロードリストに保存すると、開始するまでそこで待機します。";
 "add_torrent.close.waiting_links" = "ファイルリストがまだ届いていないリンクは保存できません。";
 "add_torrent.close.close_window" = "追加ウインドウを閉じる";
+"add_torrent.quit.message.single.file" = "Shatlを終了すると、ダウンロードリストには表示されず、選んだファイルと設定も失われます。あとでダウンロードするには、「%2$@」フォルダのファイル「%1$@」をもう一度開く必要があります。";
+"add_torrent.quit.message.single.link" = "Shatlを終了すると、ダウンロードリストには表示されず、選んだファイルと設定も失われます。あとでダウンロードするには、リンクをもう一度開く必要があります。";
+"add_torrent.quit.message.several" = "Shatlを終了すると、ダウンロードリストには表示されません。あとでダウンロードするには、それぞれのファイルまたはリンクをもう一度開く必要があります。";
+"add_torrent.quit.quit" = "Shatlを終了";
 "add_torrent.entry.empty_title" = "ダウンロードリストは空です";
 "add_torrent.entry.subtitle" = "下にmagnetリンクを貼り付けるか、Macから.torrentファイルを選択してください。";
 "add_torrent.entry.empty_subtitle" = "ここに.torrentファイルかmagnetリンクをドラッグするか、下で追加してください。";

@@ -243,6 +243,43 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertSecondButtonReturn, canSave: false), .close)
     }
 
+    /// ⌘Q asks the same question, about leaving Shatl rather than the window:
+    /// over the add window "Выйти" alone could mean the window.
+    func testQuitQuestionSpeaksOfLeavingShatl() {
+        let file = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/Probe Folder/tor164677.torrent"))
+        let link = skipDraft(source: AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:abc"))
+
+        let one = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file],
+            savableCount: 1,
+            includesWaitingLinks: false,
+            whenQuitting: true,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(plain(one.title), "Загрузка «Northstar.S01» не добавлена")
+        XCTAssertTrue(plain(one.message).hasPrefix("Если выйти из Shatl, она не появится в списке загрузок"), one.message)
+        XCTAssertTrue(one.message.contains("«tor164677.torrent»") && one.message.contains("«Probe Folder»"), one.message)
+
+        let several = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file, link],
+            savableCount: 2,
+            includesWaitingLinks: false,
+            whenQuitting: true,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(plain(several.title), "2 загрузки не добавлены")
+        XCTAssertTrue(plain(several.message).hasPrefix("Если выйти из Shatl, они не появятся"), several.message)
+
+        let loss = AddTorrentReviewModel.ClosingLoss(drafts: [file, link], savableDrafts: [file, link], includesWaitingLinks: false)
+        let alert = AddTorrentCloseQuestion.makeAlert(about: loss, whenQuitting: true, localeOverride: .russian)
+        XCTAssertEqual(
+            alert.buttons.map { plain($0.title) },
+            ["Вернуться в окно добавления", "Сохранить загрузки в список", "Выйти из Shatl"]
+        )
+        XCTAssertEqual(alert.buttons.first?.keyEquivalent, "\r")
+        XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertThirdButtonReturn, canSave: true), .close)
+    }
+
     private func reviewErrorTitle(afterTimeoutWhileOffline isOffline: Bool) async -> String? {
         let engine = FakeTorrentEngine()
         await engine.setPrepareError(TorrentEngineError(kind: .metadataTimeout))

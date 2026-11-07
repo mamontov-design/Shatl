@@ -209,6 +209,10 @@
 "add_torrent.close.save_hint.several" = "如果保存到下载列表，它们会在那里等待，直到你开始它们。";
 "add_torrent.close.waiting_links" = "尚未收到文件列表的链接无法保存。";
 "add_torrent.close.close_window" = "关闭添加窗口";
+"add_torrent.quit.message.single.file" = "如果退出 Shatl，它不会出现在下载列表中，所选文件和设置也会丢失。如需稍后下载，需要再次打开“%2$@”文件夹中的文件“%1$@”。";
+"add_torrent.quit.message.single.link" = "如果退出 Shatl，它不会出现在下载列表中，所选文件和设置也会丢失。如需稍后下载，需要再次打开链接。";
+"add_torrent.quit.message.several" = "如果退出 Shatl，它们不会出现在下载列表中。如需稍后下载，需要再次打开它们的文件或链接。";
+"add_torrent.quit.quit" = "退出 Shatl";
 "add_torrent.entry.empty_title" = "下载列表为空";
 "add_torrent.entry.subtitle" = "在下方粘贴 magnet 链接，或从你的 Mac 选择 .torrent 文件。";
 "add_torrent.entry.empty_subtitle" = "将 .torrent 文件或 magnet 链接拖到此处，或在下方添加。";

@@ -214,6 +214,10 @@
 "add_torrent.close.save_hint.several" = "Si vous les enregistrez dans la liste des téléchargements, ils y attendront que vous les démarriez.";
 "add_torrent.close.waiting_links" = "Les liens dont la liste des fichiers n’est pas encore arrivée ne peuvent pas être enregistrés.";
 "add_torrent.close.close_window" = "Fermer la fenêtre d’ajout";
+"add_torrent.quit.message.single.file" = "Si vous quittez Shatl, il n’apparaîtra pas dans la liste des téléchargements, et le choix des fichiers et les réglages seront perdus. Pour le télécharger plus tard, il faudra rouvrir le fichier « %1$@ » du dossier « %2$@ ».";
+"add_torrent.quit.message.single.link" = "Si vous quittez Shatl, il n’apparaîtra pas dans la liste des téléchargements, et le choix des fichiers et les réglages seront perdus. Pour le télécharger plus tard, il faudra rouvrir le lien.";
+"add_torrent.quit.message.several" = "Si vous quittez Shatl, ils n’apparaîtront pas dans la liste des téléchargements. Pour les télécharger plus tard, il faudra rouvrir leurs fichiers ou leurs liens.";
+"add_torrent.quit.quit" = "Quitter Shatl";
 "add_torrent.entry.empty_title" = "Aucun téléchargement";
 "add_torrent.entry.subtitle" = "Collez un lien magnet ci-dessous ou choisissez un fichier .torrent sur votre Mac.";
 "add_torrent.entry.empty_subtitle" = "Glissez ici un fichier .torrent ou un lien magnet, ou ajoutez-les ci-dessous.";

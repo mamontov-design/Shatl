@@ -8,6 +8,9 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
     weak var terminationHandler: (any ShatlTerminationPreparing)?
     weak var userAttentionHandler: (any ShatlUserAttentionHandling)?
     var terminationFailurePresenter: any ShatlTerminationFailurePresenting = ShatlTerminationAlertPresenter()
+    /// Asked before a quit the user asked for; `false` keeps Shatl open.
+    /// See `AddTorrentQuitQuestion`.
+    var quitConfirmation: () async -> Bool = { true }
     private var isPreparingForTermination = false
     /// Set once the quit is decided and Shatl has left the screen.
     private var isLeaving = false
@@ -68,11 +71,13 @@ final class ShatlAppDelegate: NSObject, NSApplicationDelegate {
         ShatlSingleInstance.setClosing(true)
         let source = ShatlTerminationRequestSource.current()
         let presenter = terminationFailurePresenter
+        let confirmQuit = quitConfirmation
         Task { [weak self, weak sender] in
             let shouldTerminate = await ShatlTerminationFlow.resolve(
                 handler: terminationHandler,
                 source: source,
                 presenter: presenter,
+                confirmQuit: confirmQuit,
                 willFinish: { self?.leaveScreen() }
             )
             self?.isPreparingForTermination = false

@@ -136,6 +136,10 @@ struct ShatlApp: App {
                     appDelegate.terminationFailurePresenter = ShatlTerminationAlertPresenter { [weak store = store] in
                         store?.preferences.localeOverride ?? .system
                     }
+                    appDelegate.quitConfirmation = { [weak store = store] in
+                        guard let store else { return true }
+                        return await AddTorrentQuitQuestion.confirm(for: store)
+                    }
                     store.setApplicationUserAttentionActive(NSApp.isActive)
                 }
         }

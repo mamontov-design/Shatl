@@ -54,12 +54,21 @@ enum ShatlTerminationFlow {
     /// retry, stay in Shatl, or quit with the last committed session on disk.
     /// A decided quit runs `willFinish`, which takes Shatl off the screen, then
     /// `finishTermination`, which stops the engine for up to two seconds.
+    ///
+    /// `confirmQuit` comes first, before anything is saved: a quit the user
+    /// asked for asks about work it would lose, such as downloads waiting in
+    /// the add window, and what it saves to the list reaches the session the
+    /// quit writes. Logout, restart and shutdown never wait for a question.
     static func resolve(
         handler: any ShatlTerminationPreparing,
         source: ShatlTerminationRequestSource,
         presenter: any ShatlTerminationFailurePresenting,
+        confirmQuit: () async -> Bool = { true },
         willFinish: () -> Void = {}
     ) async -> Bool {
+        if source == .user, await !confirmQuit() {
+            return false
+        }
         let shouldTerminate = await decide(handler: handler, source: source, presenter: presenter)
         if shouldTerminate {
             willFinish()
