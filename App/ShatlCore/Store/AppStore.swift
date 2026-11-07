@@ -965,6 +965,15 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     private static let debugLowDiskSpaceBytes: Int64 = 1_000_000
 
+    /// Debug menu: every download that writes to its disk promises 1 TB
+    /// more than it has left, so the add window's promised-space message
+    /// can be tried with a real download, stopped and started by hand.
+    @Published private(set) var debugInflatesPromisedSpace = false
+
+    func togglePromisedSpaceForDebug() {
+        debugInflatesPromisedSpace.toggle()
+    }
+
     /// Debug menu: the main window shows the empty list in place of the
     /// real one, which goes on as it is. Nothing is saved, so a relaunch
     /// shows the list again. The selection is cleared, or the Downloads
@@ -1532,6 +1541,66 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
         #endif
         return info
+    }
+
+    /// The folders of the downloads that write to their disks by themselves
+    /// (`PromisedDiskSpace.isWriting`), with those being added to start.
+    /// Read from memory: the add window asks on every redraw.
+    var writingDownloadFolders: Set<String> {
+        let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
+        var folders = Set(
+            torrents
+                .filter { !pendingIDs.contains($0.id) && PromisedDiskSpace.isWriting($0) }
+                .map { PromisedDiskSpace.folderKey($0.canonicalSavePath) }
+        )
+        for addition in pendingTorrentAdditions where !addition.savesToList {
+            folders.insert(PromisedDiskSpace.folderKey(addition.draft.suggestedSavePath))
+        }
+        return folders
+    }
+
+    /// What those downloads will still write into `folders`. A download
+    /// stopped in the main window leaves the sum at once, and the add
+    /// window's "Скачать" comes back with it.
+    func promisedBytes(inFolders folders: Set<String>) -> Int64 {
+        let pendingIDs = Set(pendingTorrentAdditions.map(\.id))
+        var bytes: Int64 = 0
+        for record in torrents
+        where !pendingIDs.contains(record.id)
+            && PromisedDiskSpace.isWriting(record)
+            && folders.contains(PromisedDiskSpace.folderKey(record.canonicalSavePath)) {
+            bytes += PromisedDiskSpace.remainingBytes(of: record) + debugExtraPromisedBytes
+        }
+        for addition in pendingTorrentAdditions
+        where !addition.savesToList
+            && folders.contains(PromisedDiskSpace.folderKey(addition.draft.suggestedSavePath)) {
+            bytes += addition.draft.selectedBytes + debugExtraPromisedBytes
+        }
+        return bytes
+    }
+
+    /// See `debugInflatesPromisedSpace`; nothing in a Release build.
+    private var debugExtraPromisedBytes: Int64 {
+        #if DEBUG
+        debugInflatesPromisedSpace ? 1_000_000_000_000 : 0
+        #else
+        0
+        #endif
+    }
+
+    /// Which folders of writing downloads are on the disk of `path`, the
+    /// folder itself always among them. Asks the system once for each other
+    /// folder, off the main thread.
+    func writingFolders(onDiskOf path: String, volumeURL: URL?) async -> Set<String> {
+        let target = PromisedDiskSpace.folderKey(path)
+        var folders: Set<String> = [target]
+        guard let volumeURL else { return folders }
+        for folder in writingDownloadFolders where folder != target {
+            if await diskSpaceReader.diskSpace(atPath: folder)?.volumeURL == volumeURL {
+                folders.insert(folder)
+            }
+        }
+        return folders
     }
 
     /// Whether `neededBytes` fit on the disk of `savePath`.

@@ -1071,6 +1071,9 @@ private struct AddTorrentReviewContent: View {
     @State private var searchExpandedFolderIDs: Set<String> = []
     @State private var pinnedFolderID: String?
     @State private var availableCapacity: AddTorrentAvailableCapacity = .loading
+    /// The folders of downloads writing to the disk the files go to; what
+    /// they will still write is counted beside the free space.
+    @State private var sameDiskFolders: Set<String> = []
     /// The low-space message's height as laid out: the summary's plate grows
     /// by it, and the file list leaves as much room under its last row.
     @State private var lowSpaceMessageHeight: CGFloat = 0
@@ -1273,10 +1276,17 @@ private struct AddTorrentReviewContent: View {
             // open: the low-space message leaves by itself once room appears.
             // One question to the system per read, off the main thread.
             availableCapacity = .loading
+            sameDiskFolders = []
             while !Task.isCancelled {
                 await refreshAvailableCapacity()
                 try? await Task.sleep(for: AddTorrentReviewLayout.freeSpaceRefreshInterval)
             }
+        }
+        .task(id: store.writingDownloadFolders) {
+            // A download started in another folder of the same disk counts
+            // at once, not at the next read of the free space.
+            guard case let .available(info) = availableCapacity else { return }
+            await refreshSameDiskFolders(volumeURL: info.volumeURL)
         }
     }
 
@@ -2208,24 +2218,48 @@ private struct AddTorrentReviewContent: View {
         guard areSettingsControlsEnabled, case let .available(info) = availableCapacity else {
             return nil
         }
-        return DiskSpaceCheck.shortfall(neededBytes: neededBytes, on: info)
+        return DiskSpaceCheck.shortfall(neededBytes: neededBytes, promisedBytes: promisedBytes, on: info)
     }
 
-    /// Names the disk and what it lacks, then every way out; unticking files
-    /// is one of them only when more than one is ticked.
+    /// What downloads already writing to this disk will still write. Read
+    /// from the list on every redraw, so a download stopped in the main
+    /// window gives its room back at once.
+    private var promisedBytes: Int64 {
+        guard let path = draft?.suggestedSavePath else { return 0 }
+        return store.promisedBytes(inFolders: sameDiskFolders.union([PromisedDiskSpace.folderKey(path)]))
+    }
+
+    /// Names the disk and what it lacks, and what downloads writing to it
+    /// will take, then every way out; unticking files is one of them only
+    /// when more than one is ticked, stopping downloads only when some write.
     private var lowSpaceMessage: String? {
         guard let spaceShortfall = shownSpaceShortfall else { return nil }
-        return L10n.format(
-            summaryCounts.selectedFileCount > 1
-                ? "add_torrent.review.low_space.message.many_files"
-                : "add_torrent.review.low_space.message.one_file",
-            localeOverride: store.preferences.localeOverride,
-            defaultValue: "",
-            ShatlErrorCatalog.shortenedTorrentName(spaceShortfall.volumeName),
-            spaceShortfall.shortfallText(
-                mode: store.preferences.metricsMode,
-                localeOverride: store.preferences.localeOverride
+        let localeOverride = store.preferences.localeOverride
+        let mode = store.preferences.metricsMode
+        let volumeName = ShatlErrorCatalog.shortenedTorrentName(spaceShortfall.volumeName)
+        let shortfall = spaceShortfall.shortfallText(mode: mode, localeOverride: localeOverride)
+        let severalFiles = summaryCounts.selectedFileCount > 1
+
+        guard spaceShortfall.promisedBytes != nil else {
+            return L10n.format(
+                severalFiles
+                    ? "add_torrent.review.low_space.message.many_files"
+                    : "add_torrent.review.low_space.message.one_file",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                volumeName,
+                shortfall
             )
+        }
+        return L10n.format(
+            severalFiles
+                ? "add_torrent.review.low_space.message.many_files.promised"
+                : "add_torrent.review.low_space.message.one_file.promised",
+            localeOverride: localeOverride,
+            defaultValue: "",
+            volumeName,
+            shortfall,
+            spaceShortfall.promisedText(mode: mode, localeOverride: localeOverride)
         )
     }
 
@@ -3014,9 +3048,18 @@ private struct AddTorrentReviewContent: View {
         }
 
         let info = await store.diskSpace(atPath: path)
+        let folders = await store.writingFolders(onDiskOf: path, volumeURL: info?.volumeURL)
 
         guard !Task.isCancelled else { return }
         availableCapacity = info.map(AddTorrentAvailableCapacity.available) ?? .unavailable
+        sameDiskFolders = folders
+    }
+
+    private func refreshSameDiskFolders(volumeURL: URL?) async {
+        guard let path = draft?.suggestedSavePath else { return }
+        let folders = await store.writingFolders(onDiskOf: path, volumeURL: volumeURL)
+        guard !Task.isCancelled else { return }
+        sameDiskFolders = folders
     }
 
     private func presentSavePathPicker() {

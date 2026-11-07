@@ -527,30 +527,39 @@ nonisolated final class ControllableSessionDataWriter: @unchecked Sendable {
 }
 
 /// A disk whose free space the test sets; `nil` is a folder out of reach.
+/// Disks of one name are one disk: they share a mount point.
 final class FakeDiskSpaceReader: DiskSpaceReading, @unchecked Sendable {
     private let lock = NSLock()
     private var infoValue: DiskSpaceInfo?
     private var infoByPath: [String: DiskSpaceInfo] = [:]
 
     init(availableBytes: Int64? = nil, volumeName: String = "Test Disk") {
-        infoValue = availableBytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+        infoValue = availableBytes.map { Self.info($0, volumeName: volumeName) }
     }
 
     func setAvailableBytes(_ bytes: Int64?, volumeName: String = "Test Disk") {
         lock.withLock {
-            infoValue = bytes.map { DiskSpaceInfo(availableBytes: $0, volumeName: volumeName) }
+            infoValue = bytes.map { Self.info($0, volumeName: volumeName) }
         }
     }
 
     /// A folder on a disk of its own.
     func setAvailableBytes(_ bytes: Int64, volumeName: String, atPath path: String) {
         lock.withLock {
-            infoByPath[path] = DiskSpaceInfo(availableBytes: bytes, volumeName: volumeName)
+            infoByPath[path] = Self.info(bytes, volumeName: volumeName)
         }
     }
 
     func diskSpace(atPath path: String) async -> DiskSpaceInfo? {
         lock.withLock { infoByPath[path] ?? infoValue }
+    }
+
+    private static func info(_ bytes: Int64, volumeName: String) -> DiskSpaceInfo {
+        DiskSpaceInfo(
+            availableBytes: bytes,
+            volumeName: volumeName,
+            volumeURL: URL(fileURLWithPath: "/Volumes/\(volumeName)", isDirectory: true)
+        )
     }
 }
 

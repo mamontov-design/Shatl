@@ -237,8 +237,10 @@
 "add_torrent.review.alias_placeholder" = "为下载命名…";
 "add_torrent.review.confirm" = "下载";
 "add_torrent.review.save_to_list" = "保存到列表";
-"add_torrent.review.low_space.message.many_files" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间、取消勾选部分文件，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
-"add_torrent.review.low_space.message.one_file" = "磁盘“%1$@”还差 %2$@ 空间。请释放空间，或选择其他磁盘上的文件夹。也可以先将下载保存到列表，等空间足够后再手动开始。";
+"add_torrent.review.low_space.message.many_files" = "磁盘“%1$@”还差 %2$@ 空间。\n请释放空间、取消勾选部分文件，或选择其他磁盘上的文件夹，此窗口中的“下载”按钮就会恢复。\n也可以先将下载保存到列表，等空间足够后再手动开始。";
+"add_torrent.review.low_space.message.one_file" = "磁盘“%1$@”还差 %2$@ 空间。\n请释放空间，或选择其他磁盘上的文件夹，此窗口中的“下载”按钮就会恢复。\n也可以先将下载保存到列表，等空间足够后再手动开始。";
+"add_torrent.review.low_space.message.many_files.promised" = "磁盘“%1$@”还差 %2$@ 空间：正在进行的下载还将占用 %3$@。\n请释放空间、停止其中一部分、取消勾选部分文件，或选择其他磁盘上的文件夹，此窗口中的“下载”按钮就会恢复。\n也可以先将下载保存到列表，等空间足够后再手动开始。";
+"add_torrent.review.low_space.message.one_file.promised" = "磁盘“%1$@”还差 %2$@ 空间：正在进行的下载还将占用 %3$@。\n请释放空间、停止其中一部分，或选择其他磁盘上的文件夹，此窗口中的“下载”按钮就会恢复。\n也可以先将下载保存到列表，等空间足够后再手动开始。";
 "add_torrent.review.close" = "关闭窗口";
 "add_torrent.review.show_in_list" = "在列表中显示";
 "add_torrent.review.summary.selected_files" = "已选文件";
@@ -298,6 +300,7 @@
 "menu.debug.cycle_drop_screen" = "显示拖放界面";
 "menu.debug.show_empty_list" = "显示空列表";
 "menu.debug.simulate_low_space" = "模拟磁盘已满";
+"menu.debug.inflate_promised_space" = "模拟每个下载还需 1 TB";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";
 "menu.debug.runtime_error.no_write_access" = "没有写入权限";

@@ -243,8 +243,10 @@
 "add_torrent.review.alias_placeholder" = "Nombra la descarga…";
 "add_torrent.review.confirm" = "Descargar";
 "add_torrent.review.save_to_list" = "Guardar en la lista";
-"add_torrent.review.low_space.message.many_files" = "Faltan %2$@ en el disco «%1$@». Libera espacio, desmarca algunos archivos o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
-"add_torrent.review.low_space.message.one_file" = "Faltan %2$@ en el disco «%1$@». Libera espacio o elige una carpeta en otro disco. Si lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
+"add_torrent.review.low_space.message.many_files" = "Faltan %2$@ en el disco «%1$@».\nLibera espacio, desmarca algunos archivos o elige una carpeta en otro disco, y el botón «Descargar» volverá a esta misma ventana.\nSi lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
+"add_torrent.review.low_space.message.one_file" = "Faltan %2$@ en el disco «%1$@».\nLibera espacio o elige una carpeta en otro disco, y el botón «Descargar» volverá a esta misma ventana.\nSi lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
+"add_torrent.review.low_space.message.many_files.promised" = "Faltan %2$@ en el disco «%1$@»: las descargas en curso ocuparán otros %3$@.\nLibera espacio, detén algunas de ellas, desmarca algunos archivos o elige una carpeta en otro disco, y el botón «Descargar» volverá a esta misma ventana.\nSi lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
+"add_torrent.review.low_space.message.one_file.promised" = "Faltan %2$@ en el disco «%1$@»: las descargas en curso ocuparán otros %3$@.\nLibera espacio, detén algunas de ellas o elige una carpeta en otro disco, y el botón «Descargar» volverá a esta misma ventana.\nSi lo prefieres, guarda la descarga en la lista ahora e iníciala manualmente cuando haya espacio.";
 "add_torrent.review.close" = "Cerrar ventana";
 "add_torrent.review.show_in_list" = "Mostrar en la lista";
 "add_torrent.review.summary.selected_files" = "Archivos seleccionados";
@@ -306,6 +308,7 @@
 "menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
 "menu.debug.show_empty_list" = "Mostrar la lista vacía";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
+"menu.debug.inflate_promised_space" = "Simular que las descargas necesitan 1 TB más";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
 "menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";

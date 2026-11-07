@@ -243,8 +243,10 @@
 "add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
 "add_torrent.review.save_to_list" = "In Liste sichern";
-"add_torrent.review.low_space.message.many_files" = "Auf dem Datenträger „%1$@“ fehlen %2$@. Geben Sie Speicherplatz frei, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger. Sie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
-"add_torrent.review.low_space.message.one_file" = "Auf dem Datenträger „%1$@“ fehlen %2$@. Geben Sie Speicherplatz frei oder wählen Sie einen Ordner auf einem anderen Datenträger. Sie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.message.many_files" = "Auf dem Datenträger „%1$@“ fehlen %2$@.\nGeben Sie Speicherplatz frei, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.message.one_file" = "Auf dem Datenträger „%1$@“ fehlen %2$@.\nGeben Sie Speicherplatz frei oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.message.many_files.promised" = "Auf dem Datenträger „%1$@“ fehlen %2$@: Laufende Downloads belegen noch %3$@.\nGeben Sie Speicherplatz frei, stoppen Sie einige davon, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.message.one_file.promised" = "Auf dem Datenträger „%1$@“ fehlen %2$@: Laufende Downloads belegen noch %3$@.\nGeben Sie Speicherplatz frei, stoppen Sie einige davon oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
 "add_torrent.review.close" = "Fenster schließen";
 "add_torrent.review.show_in_list" = "In Liste zeigen";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";
@@ -306,6 +308,7 @@
 "menu.debug.cycle_drop_screen" = "Drop-Bildschirm zeigen";
 "menu.debug.show_empty_list" = "Leere Liste zeigen";
 "menu.debug.simulate_low_space" = "So tun, als wäre der Datenträger voll";
+"menu.debug.inflate_promised_space" = "So tun, als bräuchten Downloads 1 TB mehr";
 "menu.debug.runtime_error" = "Download mit Fehler stoppen";
 "menu.debug.runtime_error.disk_full" = "Kein Speicherplatz";
 "menu.debug.runtime_error.no_write_access" = "Kein Schreibzugriff";

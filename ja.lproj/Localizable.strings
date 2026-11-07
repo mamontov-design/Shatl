@@ -237,8 +237,10 @@
 "add_torrent.review.alias_placeholder" = "ダウンロード名を入力…";
 "add_torrent.review.confirm" = "ダウンロード";
 "add_torrent.review.save_to_list" = "リストに保存";
-"add_torrent.review.low_space.message.many_files" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、一部のファイルの選択を解除するか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
-"add_torrent.review.low_space.message.one_file" = "ディスク「%1$@」の空き容量が%2$@不足しています。空き容量を増やすか、別のディスクのフォルダを選択してください。ダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
+"add_torrent.review.low_space.message.many_files" = "ディスク「%1$@」の空き容量が%2$@不足しています。\n空き容量を増やすか、一部のファイルの選択を解除するか、別のディスクのフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。\nダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
+"add_torrent.review.low_space.message.one_file" = "ディスク「%1$@」の空き容量が%2$@不足しています。\n空き容量を増やすか、別のディスクのフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。\nダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
+"add_torrent.review.low_space.message.many_files.promised" = "ディスク「%1$@」の空き容量が%2$@不足しています。進行中のダウンロードが、さらに%3$@を使用します。\n空き容量を増やすか、その一部を停止するか、一部のファイルの選択を解除するか、別のディスクのフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。\nダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
+"add_torrent.review.low_space.message.one_file.promised" = "ディスク「%1$@」の空き容量が%2$@不足しています。進行中のダウンロードが、さらに%3$@を使用します。\n空き容量を増やすか、その一部を停止するか、別のディスクのフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。\nダウンロードを今リストに保存しておき、空き容量ができてから手動で開始することもできます。";
 "add_torrent.review.close" = "ウインドウを閉じる";
 "add_torrent.review.show_in_list" = "リストで表示";
 "add_torrent.review.summary.selected_files" = "選択したファイル";
@@ -298,6 +300,7 @@
 "menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
 "menu.debug.show_empty_list" = "空のリストを表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
+"menu.debug.inflate_promised_space" = "ダウンロードにさらに1 TB必要なものとして扱う";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";
