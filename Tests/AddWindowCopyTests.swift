@@ -138,7 +138,7 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertEqual(plain(question.title), "Не скачивать «Northstar.S01»?")
         XCTAssertTrue(question.message.contains("«tor164677.torrent»"), question.message)
         XCTAssertTrue(question.message.contains("«Probe Folder»"), question.message)
-        XCTAssertTrue(plain(question.message).hasSuffix("Если сохранить её в список, она подождёт там, пока вы её не запустите."))
+        XCTAssertTrue(plain(question.message).hasSuffix("Если сохранить её в список загрузок, она подождёт там, пока вы её не запустите."))
 
         let unsavable = ShatlErrorCatalog.skipDownloadQuestion(for: file, canSave: false, localeOverride: .russian)
         XCTAssertFalse(plain(unsavable.message).contains("сохранить"), unsavable.message)
@@ -152,20 +152,95 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertFalse(japanese.message.contains("。 "), japanese.message)
     }
 
-    /// Return goes back, and "Сохранить в список" is there only when there
-    /// is something to keep.
+    /// Return goes back to the add window, and the button that keeps the
+    /// download is there only when there is something to keep. The window's
+    /// own button stays "Сохранить в список": there the download is in view.
     func testSkipQuestionGoesBackOnReturnAndOffersToKeepTheDownload() {
         let draft = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/tor164677.torrent"))
         let alert = AddTorrentSkipQuestion.makeAlert(about: draft, canSave: true, localeOverride: .russian)
-        XCTAssertEqual(alert.buttons.map { plain($0.title) }, ["Вернуться", "Сохранить в список", "Не скачивать"])
+        XCTAssertEqual(alert.buttons.map { plain($0.title) }, ["Вернуться в окно добавления", "Сохранить загрузку в список", "Не скачивать"])
         XCTAssertEqual(alert.buttons.first?.keyEquivalent, "\r")
         XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertFirstButtonReturn, canSave: true), .goBack)
         XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertSecondButtonReturn, canSave: true), .saveToList)
         XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertThirdButtonReturn, canSave: true), .skip)
 
         let unsavable = AddTorrentSkipQuestion.makeAlert(about: draft, canSave: false, localeOverride: .russian)
-        XCTAssertEqual(unsavable.buttons.map { plain($0.title) }, ["Вернуться", "Не скачивать"])
+        XCTAssertEqual(unsavable.buttons.map { plain($0.title) }, ["Вернуться в окно добавления", "Не скачивать"])
         XCTAssertEqual(AddTorrentSkipQuestion.answer(for: .alertSecondButtonReturn, canSave: false), .skip)
+    }
+
+    /// Closing with work in one download names it, and the file and folder
+    /// to open it from again; with several, it counts them.
+    func testCloseQuestionNamesOneDownloadAndCountsSeveral() {
+        let file = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/Probe Folder/tor164677.torrent"))
+        let one = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file],
+            savableCount: 1,
+            includesWaitingLinks: false,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(plain(one.title), "Загрузка «Northstar.S01» не добавлена")
+        XCTAssertTrue(plain(one.message).contains("выбор файлов и настройки пропадут"), one.message)
+        XCTAssertTrue(one.message.contains("«tor164677.torrent»") && one.message.contains("«Probe Folder»"), one.message)
+        XCTAssertTrue(plain(one.message).hasSuffix("Если сохранить её в список загрузок, она подождёт там, пока вы её не запустите."))
+
+        let link = skipDraft(source: AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:abc"))
+        let two = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file, link],
+            savableCount: 2,
+            includesWaitingLinks: false,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(plain(two.title), "2 загрузки не добавлены")
+        XCTAssertTrue(plain(two.message).hasSuffix("Если сохранить их в список загрузок, они подождут там, пока вы их не запустите."))
+        let five = ShatlErrorCatalog.closeWindowQuestion(
+            losing: Array(repeating: file, count: 5),
+            savableCount: 5,
+            includesWaitingLinks: false,
+            localeOverride: .russian
+        )
+        XCTAssertEqual(plain(five.title), "5 загрузок не добавлены")
+
+        let waiting = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file, link],
+            savableCount: 1,
+            includesWaitingLinks: true,
+            localeOverride: .russian
+        )
+        XCTAssertTrue(plain(waiting.message).hasSuffix("Ссылки, для которых ещё нет списка файлов, сохранить нельзя."))
+
+        let unsavable = ShatlErrorCatalog.closeWindowQuestion(
+            losing: [file, link],
+            savableCount: 0,
+            includesWaitingLinks: true,
+            localeOverride: .russian
+        )
+        XCTAssertFalse(plain(unsavable.message).contains("сохранить"), unsavable.message)
+    }
+
+    func testCloseQuestionGoesBackOnReturnAndOffersToKeepWhatWaits() {
+        let draft = skipDraft(source: AddTorrentSource(kind: .externalOpen, rawValue: "/tmp/tor164677.torrent"))
+        let loss = AddTorrentReviewModel.ClosingLoss(drafts: [draft, draft], savableDrafts: [draft, draft], includesWaitingLinks: false)
+        let alert = AddTorrentCloseQuestion.makeAlert(about: loss, localeOverride: .russian)
+        XCTAssertEqual(
+            alert.buttons.map { plain($0.title) },
+            ["Вернуться в окно добавления", "Сохранить загрузки в список", "Закрыть окно добавления"]
+        )
+        XCTAssertEqual(alert.buttons.first?.keyEquivalent, "\r")
+        XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertSecondButtonReturn, canSave: true), .saveToList)
+        XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertThirdButtonReturn, canSave: true), .close)
+
+        // Of two waiting, one has its files: the button saves one.
+        let oneSavable = AddTorrentReviewModel.ClosingLoss(drafts: [draft, draft], savableDrafts: [draft], includesWaitingLinks: true)
+        XCTAssertEqual(
+            AddTorrentCloseQuestion.makeAlert(about: oneSavable, localeOverride: .russian).buttons.map { plain($0.title) },
+            ["Вернуться в окно добавления", "Сохранить загрузку в список", "Закрыть окно добавления"]
+        )
+
+        let unsavable = AddTorrentReviewModel.ClosingLoss(drafts: [draft, draft], savableDrafts: [], includesWaitingLinks: true)
+        let shortAlert = AddTorrentCloseQuestion.makeAlert(about: unsavable, localeOverride: .russian)
+        XCTAssertEqual(shortAlert.buttons.map { plain($0.title) }, ["Вернуться в окно добавления", "Закрыть окно добавления"])
+        XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertSecondButtonReturn, canSave: false), .close)
     }
 
     private func reviewErrorTitle(afterTimeoutWhileOffline isOffline: Bool) async -> String? {

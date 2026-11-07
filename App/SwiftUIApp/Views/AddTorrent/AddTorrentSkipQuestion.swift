@@ -27,9 +27,14 @@ enum AddTorrentSkipQuestion {
         window: NSWindow?
     ) async -> Answer {
         let alert = makeAlert(about: draft, canSave: canSave, localeOverride: localeOverride)
+        return answer(for: await present(alert, on: window), canSave: canSave)
+    }
 
-        // NSAlert gives Esc only to a button titled with AppKit's own
-        // "Cancel", so "Вернуться" takes it from a monitor while shown.
+    /// Shows a question of the add window as a sheet over it. Its first
+    /// button, "Вернуться", takes Return and Esc: NSAlert gives Esc only to
+    /// a button titled with AppKit's own "Cancel", so a monitor hands it over
+    /// while the question is shown.
+    static func present(_ alert: NSAlert, on window: NSWindow?) async -> NSApplication.ModalResponse {
         let goBackButton = alert.buttons.first
         let escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             TorrentRemovalDialogPresenter.escapeClicksCancel(event, alert: alert, cancelButton: goBackButton)
@@ -40,17 +45,12 @@ enum AddTorrentSkipQuestion {
             }
         }
 
-        let response: NSApplication.ModalResponse
-        if let window {
-            response = await withCheckedContinuation { continuation in
-                alert.beginSheetModal(for: window) { response in
-                    continuation.resume(returning: response)
-                }
+        guard let window else { return alert.runModal() }
+        return await withCheckedContinuation { continuation in
+            alert.beginSheetModal(for: window) { response in
+                continuation.resume(returning: response)
             }
-        } else {
-            response = alert.runModal()
         }
-        return answer(for: response, canSave: canSave)
     }
 
     static func makeAlert(
@@ -71,13 +71,13 @@ enum AddTorrentSkipQuestion {
         alert.addButton(withTitle: L10n.string(
             "add_torrent.review.go_back",
             localeOverride: localeOverride,
-            defaultValue: "Вернуться"
+            defaultValue: "Вернуться в окно добавления"
         ))
         if canSave {
             alert.addButton(withTitle: L10n.string(
-                "add_torrent.review.save_to_list",
+                "add_torrent.question.save_one_to_list",
                 localeOverride: localeOverride,
-                defaultValue: "Сохранить в список"
+                defaultValue: "Сохранить загрузку в список"
             ))
         }
         alert.addButton(withTitle: L10n.string(

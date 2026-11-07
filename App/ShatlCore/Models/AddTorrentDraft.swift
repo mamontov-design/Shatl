@@ -102,6 +102,15 @@ nonisolated struct AddTorrentDraft: Identifiable, Equatable, Sendable {
         reviewState == .ready && hasSelectedFiles
     }
 
+    /// The same files ticked, the same folder, alias and "Остановить раздачу":
+    /// nothing a person chose here differs.
+    nonisolated func hasSameChoices(as other: AddTorrentDraft) -> Bool {
+        files.map(\.isSelected) == other.files.map(\.isSelected)
+            && suggestedSavePath == other.suggestedSavePath
+            && alias == other.alias
+            && stopAfterDownload == other.stopAfterDownload
+    }
+
     /// Ticks or unticks one file; `false` when it already was so.
     @discardableResult
     nonisolated mutating func setFileSelection(id: UUID, isSelected: Bool) -> Bool {

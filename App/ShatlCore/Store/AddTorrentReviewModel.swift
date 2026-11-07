@@ -43,10 +43,49 @@ protocol AddTorrentReviewHost: AnyObject {
 final class AddTorrentReviewModel: ObservableObject {
     struct Item: Identifiable, Equatable {
         let id: UUID
-        var draft: AddTorrentDraft
+        var draft: AddTorrentDraft {
+            didSet {
+                // Another draft — the one read, or a message — is where its
+                // choices start.
+                if draft.id != oldValue.id {
+                    arrived = draft
+                }
+            }
+        }
         /// The download in the list this one repeats, so the window can show
         /// it there rather than leave it to be found.
         var duplicateID: UUID?
+        /// The draft as it came, before anything was changed here.
+        private(set) var arrived: AddTorrentDraft
+
+        init(id: UUID, draft: AddTorrentDraft, duplicateID: UUID? = nil) {
+            self.id = id
+            self.draft = draft
+            self.duplicateID = duplicateID
+            arrived = draft
+        }
+
+        /// Its files, folder, alias or "Остановить раздачу" differ from how
+        /// it came: closing the window would lose that work. A switch turned
+        /// on and off again, or a file unticked and ticked again, is no work
+        /// lost.
+        var isEdited: Bool {
+            !draft.hasSameChoices(as: arrived)
+        }
+    }
+
+    /// What closing the window would lose, and so whether to ask first: two
+    /// downloads or more still waiting for a decision, or one with work in
+    /// it — files ticked, a folder chosen, an alias. One untouched download
+    /// closes without a question, as a single one always did; a broken file
+    /// or a duplicate loses nothing.
+    struct ClosingLoss: Equatable {
+        /// The downloads that would leave unadded, in the window's order.
+        var drafts: [AddTorrentDraft]
+        /// Those of them that can go to the list: ready, with a file ticked.
+        var savableDrafts: [AddTorrentDraft]
+        /// Some of them still wait for a link's file list, and cannot be saved.
+        var includesWaitingLinks: Bool
     }
 
     weak var host: (any AddTorrentReviewHost)?
@@ -101,6 +140,26 @@ final class AddTorrentReviewModel: ObservableObject {
 
     var duplicateID: UUID? {
         currentItem?.duplicateID
+    }
+
+    /// `nil` when closing loses nothing worth a question.
+    var closingLoss: ClosingLoss? {
+        let waiting = items.filter { Self.canStillBeAdded($0.draft) }
+        guard waiting.count >= 2 || waiting.contains(where: \.isEdited) else { return nil }
+        let drafts = waiting.map(\.draft)
+        return ClosingLoss(
+            drafts: drafts,
+            savableDrafts: drafts.filter(\.canConfirmDownload),
+            includesWaitingLinks: drafts.contains { $0.reviewState == .loadingMetadata }
+        )
+    }
+
+    private static func canStillBeAdded(_ draft: AddTorrentDraft) -> Bool {
+        switch draft.reviewState {
+        case .loadingMetadata: true
+        case .ready: !draft.files.isEmpty
+        case .invalid: false
+        }
     }
 
     /// Which download is on screen, counted from 1.
@@ -528,9 +587,11 @@ final class AddTorrentReviewModel: ObservableObject {
     }
 
     private func editCurrentDraft(_ edit: (inout AddTorrentDraft) -> Void) {
-        guard var draft else { return }
-        edit(&draft)
-        self.draft = draft
+        guard let original = draft else { return }
+        var edited = original
+        edit(&edited)
+        guard edited != original else { return }
+        self.draft = edited
     }
 
     // MARK: - Drafts and their prepared metadata

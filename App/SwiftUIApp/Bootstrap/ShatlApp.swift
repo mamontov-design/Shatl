@@ -55,7 +55,7 @@ struct ShatlApp: App {
         // Shatl must have exactly one main window.
         // WindowGroup can create new scene instances, but external torrent or magnet
         // opening would then produce multiple unwanted windows.
-        Window("Shatl", id: "main") {
+        Window("Shatl", id: AppWindowID.main) {
             // The 440 × 448 minimum belongs to the list's content, not to
             // the onboarding: see `MainWindowView`.
             mainWindowContent
@@ -180,6 +180,7 @@ private struct AddTorrentReviewWindowContent: View {
                 AddTorrentReviewWindowChromeConfigurator(
                     title: reviewWindowTitle,
                     subtitle: reviewWindowSubtitle,
+                    shouldClose: reviewWindowShouldClose,
                     onClose: finishReviewWindowClosure
                 )
                 .frame(width: 0, height: 0)
@@ -270,15 +271,45 @@ private struct AddTorrentReviewWindowContent: View {
     private func finishReviewWindowClosure() {
         store.addTorrentReviewWindowDidClose()
     }
+
+    /// The close button and ⌘W ask first when closing would lose work —
+    /// downloads still waiting, or a choice of files made here; see
+    /// `AddTorrentReviewModel.ClosingLoss`. The window stays while the
+    /// question is on screen, and the answer closes it, keeps it, or saves
+    /// what waits to the list first.
+    private func reviewWindowShouldClose(_ window: NSWindow) -> Bool {
+        guard let loss = review.closingLoss else { return true }
+        Task { @MainActor in
+            let answer = await AddTorrentCloseQuestion.ask(
+                about: loss,
+                localeOverride: store.preferences.localeOverride,
+                window: window
+            )
+            switch answer {
+            case .goBack:
+                break
+            case .saveToList:
+                // The focus leaves before the window does; see
+                // `AddTorrentReviewWindowFocus`.
+                window.makeFirstResponder(nil)
+                store.saveWaitingDraftsToList()
+            case .close:
+                window.makeFirstResponder(nil)
+                store.dismissModal()
+            }
+        }
+        return false
+    }
 }
 
 private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
     let title: String
     let subtitle: String
+    let shouldClose: (NSWindow) -> Bool
     let onClose: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onClose: onClose)
+        Coordinator(shouldClose: shouldClose, onClose: onClose)
     }
 
     func makeNSView(context: Context) -> ChromeNSView {
@@ -290,6 +321,7 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: ChromeNSView, context: Context) {
+        context.coordinator.shouldClose = shouldClose
         context.coordinator.onClose = onClose
         nsView.title = title
         nsView.subtitle = subtitle
@@ -323,15 +355,18 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
+        var shouldClose: (NSWindow) -> Bool
         var onClose: () -> Void
         private weak var observedWindow: NSWindow?
         private var closeObservation: NSObjectProtocol?
 
-        init(onClose: @escaping () -> Void) {
+        init(shouldClose: @escaping (NSWindow) -> Bool, onClose: @escaping () -> Void) {
+            self.shouldClose = shouldClose
             self.onClose = onClose
         }
 
         func observe(_ window: NSWindow) {
+            guardClosing(of: window)
             guard observedWindow !== window else { return }
             stopObserving()
             observedWindow = window
@@ -353,6 +388,15 @@ private struct AddTorrentReviewWindowChromeConfigurator: NSViewRepresentable {
             }
             closeObservation = nil
             observedWindow = nil
+        }
+
+        /// The close button and ⌘W ask this coordinator first; see
+        /// `AddTorrentReviewWindowCloseGuard`. Run each time the window is
+        /// laid out, so a delegate SwiftUI sets anew is wrapped as well.
+        private func guardClosing(of window: NSWindow) {
+            AddTorrentReviewWindowCloseGuard.install(on: window) { [weak self] window in
+                self?.shouldClose(window) ?? true
+            }
         }
 
         isolated deinit {

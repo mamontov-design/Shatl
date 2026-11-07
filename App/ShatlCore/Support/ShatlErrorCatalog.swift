@@ -399,12 +399,71 @@ enum ShatlErrorCatalog {
             )
         }
         if canSave {
-            // Japanese and Chinese run their sentences on without a space.
-            let languageCode = L10n.locale(for: localeOverride).language.languageCode?.identifier ?? ""
-            let separator = ["ja", "zh"].contains(languageCode) ? "" : " "
-            message += separator + L10n.string("add_torrent.skip.message.save_hint", localeOverride: localeOverride)
+            message += sentenceSeparator(localeOverride)
+                + L10n.string("add_torrent.skip.message.save_hint", localeOverride: localeOverride)
         }
         return (title, message)
+    }
+
+    /// The question closing the add window asks when that would lose work:
+    /// one download by its name, with the file and folder to open it from
+    /// again, or how many; then how to keep them, when any can be kept.
+    /// `savableCount` counts the downloads ready to go to the list; links
+    /// still waiting for their file list cannot.
+    nonisolated static func closeWindowQuestion(
+        losing drafts: [AddTorrentDraft],
+        savableCount: Int,
+        includesWaitingLinks: Bool,
+        localeOverride: AppLocaleOverride = .russian
+    ) -> (title: String, message: String) {
+        let separator = sentenceSeparator(localeOverride)
+        if drafts.count == 1, let draft = drafts.first {
+            let title = L10n.format(
+                "add_torrent.close.title.single",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                shortenedTorrentName(draft.originalName)
+            )
+            var message: String
+            switch draft.source.kind {
+            case .magnet:
+                message = L10n.string("add_torrent.close.message.single.link", localeOverride: localeOverride)
+            case .torrentFile, .externalOpen:
+                let file = URL(fileURLWithPath: draft.source.rawValue)
+                message = L10n.format(
+                    "add_torrent.close.message.single.file",
+                    localeOverride: localeOverride,
+                    defaultValue: "",
+                    file.lastPathComponent,
+                    folderDisplayName(forPath: file.deletingLastPathComponent().path)
+                )
+            }
+            if savableCount > 0 {
+                message += separator + L10n.string("add_torrent.skip.message.save_hint", localeOverride: localeOverride)
+            }
+            return (title, message)
+        }
+
+        let title = L10n.format(
+            L10n.pluralKey("add_torrent.close.title.several", count: drafts.count, localeOverride: localeOverride),
+            localeOverride: localeOverride,
+            defaultValue: "%lld",
+            drafts.count
+        )
+        var message = L10n.string("add_torrent.close.message.several", localeOverride: localeOverride)
+        if savableCount > 0 {
+            message += separator + L10n.string("add_torrent.close.save_hint.several", localeOverride: localeOverride)
+            if includesWaitingLinks {
+                message += separator + L10n.string("add_torrent.close.waiting_links", localeOverride: localeOverride)
+            }
+        }
+        return (title, message)
+    }
+
+    /// Japanese and Chinese run their sentences on without a space.
+    nonisolated private static func sentenceSeparator(_ localeOverride: AppLocaleOverride) -> String {
+        let languageCode = L10n.locale(for: localeOverride).language.languageCode?.identifier ?? ""
+        return ["ja", "zh"].contains(languageCode) ? "" : " "
     }
 
     /// What a message among several downloads names: the `.torrent` file as

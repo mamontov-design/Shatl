@@ -1047,6 +1047,7 @@ struct AddTorrentReviewView: View {
 private struct AddTorrentReviewContent: View {
     @EnvironmentObject private var store: AppStore
     @ObservedObject var review: AddTorrentReviewModel
+    @Environment(\.openWindow) private var openWindow
     @Environment(\.shatlTypographyProfile) private var typographyProfile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expandedFolderIDs: Set<String> = []
@@ -1628,8 +1629,7 @@ private struct AddTorrentReviewContent: View {
             ShatlMessageBlockPrimaryButton(
                 title: L10n.string("add_torrent.review.show_in_list", localeOverride: store.preferences.localeOverride)
             ) {
-                windowFocus.release()
-                store.showAddTorrentDuplicateInList()
+                showDuplicateInList()
             }
         }
     }
@@ -1711,6 +1711,15 @@ private struct AddTorrentReviewContent: View {
             selectedBytes: filePresentation.selectedBytes,
             totalFileCount: filePresentation.totalFileCount
         )
+    }
+
+    /// "Показать в списке": the main window comes forward with the download,
+    /// opened anew if it was closed. Among several the others keep waiting
+    /// here, so it asks nothing; see `AppStore.showAddTorrentDuplicateInList`.
+    private func showDuplicateInList() {
+        windowFocus.release()
+        store.showAddTorrentDuplicateInList()
+        openWindow(id: AppWindowID.main)
     }
 
     /// The download on screen leaves the window, which shows the next one or

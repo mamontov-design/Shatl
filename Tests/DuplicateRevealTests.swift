@@ -6,7 +6,8 @@ import XCTest
 @testable import Shatl
 
 /// A duplicate in the add window offers to show the download it repeats:
-/// the window closes, and the list selects that download and scrolls to it.
+/// the window closes (among several, only the duplicate leaves it), and the
+/// list selects that download and scrolls to it.
 @MainActor
 final class DuplicateRevealTests: XCTestCase {
     private var preferences: AppPreferences {
@@ -34,6 +35,37 @@ final class DuplicateRevealTests: XCTestCase {
         bundle.store.showAddTorrentDuplicateInList()
 
         XCTAssertNil(bundle.store.presentedModal)
+        XCTAssertNil(bundle.store.addTorrentDuplicateID)
+        XCTAssertEqual(bundle.store.selectedTorrentID, record.id)
+        XCTAssertEqual(bundle.store.listRevealRequest?.torrentID, record.id)
+    }
+
+    /// Among several, the others keep waiting: only the duplicate leaves
+    /// the add window, the list shows the download it repeats, and nothing
+    /// is asked (the owner's check, step 4b).
+    func testADuplicateAmongSeveralLeavesTheOthersWaiting() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setNamesDraftsBySource(true)
+        await engine.setInfoHash("test-info-hash", forSource: "/tmp/Alpha.torrent")
+        let record = makeTestRecord(infoHash: "test-info-hash")
+        let other = makeTestRecord(infoHash: "other-hash", originalName: "Other")
+        let bundle = makeTestStoreBundle(engine: engine, torrents: [other, record], preferences: preferences)
+        addTeardownBlock { try? FileManager.default.removeItem(at: bundle.rootURL) }
+        let review = bundle.store.addTorrentReview
+
+        bundle.store.continueFromTorrentFile(at: "/tmp/Alpha.torrent")
+        bundle.store.continueFromTorrentFile(at: "/tmp/Bravo.torrent")
+        let shown = await waitForCondition {
+            review.count == 2
+                && bundle.store.addTorrentDuplicateID == record.id
+                && review.items.last?.draft.reviewState == .ready
+        }
+        XCTAssertTrue(shown)
+
+        bundle.store.showAddTorrentDuplicateInList()
+
+        XCTAssertNotNil(bundle.store.presentedModal, "The window stays for the one still waiting")
+        XCTAssertEqual(review.items.map(\.draft.originalName), ["Bravo"])
         XCTAssertNil(bundle.store.addTorrentDuplicateID)
         XCTAssertEqual(bundle.store.selectedTorrentID, record.id)
         XCTAssertEqual(bundle.store.listRevealRequest?.torrentID, record.id)

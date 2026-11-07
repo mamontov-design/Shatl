@@ -299,6 +299,127 @@ final class AddTorrentQueueTests: XCTestCase {
         XCTAssertTrue(didRelease)
     }
 
+    // MARK: - Closing
+
+    /// One untouched download closes without a question, as a single one
+    /// always did; work in it, or a second download waiting, asks first.
+    func testClosingAsksOnlyWhenItWouldLoseWork() async throws {
+        let (_, bundle) = await makeBundle()
+        let review = bundle.store.addTorrentReview
+        open(["Alpha"], in: bundle.store)
+        let isReady = await waitUntilReady(review, count: 1)
+        XCTAssertTrue(isReady)
+        XCTAssertNil(review.closingLoss, "One untouched download closes quietly")
+
+        bundle.store.updateDraftAlias("Mine")
+        XCTAssertEqual(review.closingLoss?.drafts.map(\.originalName), ["Alpha"], "Work in it asks")
+
+        open(["Bravo"], in: bundle.store)
+        let areReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(areReady)
+        XCTAssertEqual(review.closingLoss?.drafts.count, 2)
+        XCTAssertEqual(review.closingLoss?.savableDrafts.count, 2)
+        XCTAssertEqual(review.closingLoss?.includesWaitingLinks, false)
+    }
+
+    /// A change put back as it was is no work: a switch turned on and off
+    /// again, a file unticked and ticked, an alias typed and erased.
+    func testAChangePutBackAsItWasAsksNothing() async throws {
+        let (_, bundle) = await makeBundle()
+        let review = bundle.store.addTorrentReview
+        open(["Alpha"], in: bundle.store)
+        let isReady = await waitUntilReady(review, count: 1)
+        XCTAssertTrue(isReady)
+        let draft = try XCTUnwrap(bundle.store.currentAddTorrentDraft)
+
+        bundle.store.updateDraftStopAfterDownload(!draft.stopAfterDownload)
+        XCTAssertNotNil(review.closingLoss)
+        bundle.store.updateDraftStopAfterDownload(draft.stopAfterDownload)
+        XCTAssertNil(review.closingLoss, "The switch is as it came")
+
+        let file = try XCTUnwrap(draft.files.first)
+        bundle.store.setDraftFileSelection(id: file.id, isSelected: !file.isSelected)
+        XCTAssertNotNil(review.closingLoss)
+        bundle.store.setDraftFileSelection(id: file.id, isSelected: file.isSelected)
+        XCTAssertNil(review.closingLoss, "The files are as they came")
+
+        bundle.store.updateDraftAlias("Mine")
+        bundle.store.updateDraftAlias(draft.alias)
+        XCTAssertNil(review.closingLoss, "The alias is as it came")
+    }
+
+    func testTwoUntouchedDownloadsAskAndABrokenOneDoesNotCount() async throws {
+        let (engine, bundle) = await makeBundle()
+        await engine.setPrepareError(
+            TorrentEngineError(kind: .invalidTorrentFile, debugReason: "broken"),
+            forSource: fileURL("Bravo").path
+        )
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo"], in: bundle.store)
+        let isSettled = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            review.count == 2 && !review.items.contains { $0.draft.reviewState == .loadingMetadata }
+        }
+        XCTAssertTrue(isSettled)
+        XCTAssertNil(review.closingLoss, "A broken file loses nothing; one untouched download is left")
+
+        open(["Charlie"], in: bundle.store)
+        let isCharlieReady = await waitForCondition(timeoutNanoseconds: 2_000_000_000) {
+            review.items.last?.draft.reviewState == .ready
+        }
+        XCTAssertTrue(isCharlieReady)
+        XCTAssertEqual(review.closingLoss?.drafts.map(\.originalName), ["Alpha", "Charlie"])
+    }
+
+    func testALinkStillWaitingCountsButCannotBeSaved() async throws {
+        let (_, bundle) = await makeBundle()
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo"], in: bundle.store)
+        let isReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(isReady)
+        review.showNext()
+        review.draft = AddTorrentDraft(
+            source: AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:waiting"),
+            originalName: "",
+            suggestedSavePath: "/tmp",
+            alias: "",
+            stopAfterDownload: false,
+            files: [],
+            reviewState: .loadingMetadata,
+            errorState: nil
+        )
+
+        let loss = try XCTUnwrap(review.closingLoss)
+        XCTAssertEqual(loss.drafts.count, 2)
+        XCTAssertEqual(loss.savableDrafts.map(\.originalName), ["Alpha"])
+        XCTAssertTrue(loss.includesWaitingLinks)
+    }
+
+    /// "Сохранить в список" in the question saves every download waiting,
+    /// each as it was set, by choice, and closes the window.
+    func testSavingEverythingWaitingKeepsEachAsItWasSet() async throws {
+        let (_, bundle) = await makeBundle(requiresPreparedDrafts: true)
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo"], in: bundle.store)
+        let isReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(isReady)
+        bundle.store.updateDraftAlias("First")
+        review.showNext()
+        bundle.store.updateDraftStopAfterDownload(true)
+
+        bundle.store.saveWaitingDraftsToList()
+
+        XCTAssertNil(bundle.store.presentedModal)
+        let didSave = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
+            bundle.store.torrents.count == 2
+        }
+        XCTAssertTrue(didSave, "Each download kept its prepared metadata until it was saved")
+        XCTAssertTrue(bundle.store.torrents.allSatisfy { $0.isSavedForLater && $0.isSavedByChoice })
+        let alpha = try XCTUnwrap(bundle.store.torrents.first { $0.originalName == "Alpha" })
+        let bravo = try XCTUnwrap(bundle.store.torrents.first { $0.originalName == "Bravo" })
+        XCTAssertEqual(alpha.alias, "First")
+        XCTAssertTrue(bravo.stopAfterDownload)
+    }
+
     // MARK: - Many at once
 
     /// Two hundred files are read one after another, in order, and none of

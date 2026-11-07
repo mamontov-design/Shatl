@@ -1476,9 +1476,23 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
     /// Closes the add window and shows the download it duplicates: selected,
     /// scrolled to, and not hidden by a search.
+    ///
+    /// Among several downloads the others keep waiting: only the duplicate
+    /// leaves the add window, and the main window comes forward with the
+    /// download shown, so nothing is lost and nothing is asked.
     func showAddTorrentDuplicateInList() {
         guard let id = addTorrentDuplicateID else { return }
-        dismissModal()
+        if addTorrentReview.count > 1 {
+            _ = addTorrentReview.skipCurrent()
+        } else {
+            dismissModal()
+        }
+        showInList(id)
+    }
+
+    /// Selects a download and scrolls the list to it, clearing a search
+    /// that would hide it.
+    func showInList(_ id: UUID) {
         selectTorrent(id: id)
         listRevealRequest = TorrentListRevealRequest(torrentID: id)
     }
@@ -2602,6 +2616,30 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             return
         }
 
+        startAddition(of: draft, savesToList: savesToList, byChoice: byChoice)
+        // The window shows the next download waiting, and closes after the last.
+        if addTorrentReview.finishCurrent() {
+            dismissModal()
+        }
+    }
+
+    /// "Сохранить в список" in the question closing the add window asks:
+    /// every download still waiting goes to the list, each with its own
+    /// files, folder and alias, saved by choice; then the window closes.
+    /// One already in the list or being added is left out, as "Скачать"
+    /// would leave it.
+    func saveWaitingDraftsToList() {
+        guard canAddTorrent else { return }
+        let drafts = addTorrentReview.closingLoss?.savableDrafts ?? []
+        for draft in drafts where !isDuplicateDraft(draft) {
+            startAddition(of: draft, savesToList: true, byChoice: true)
+        }
+        dismissModal()
+    }
+
+    /// A pending addition for `draft`, which takes the draft's prepared
+    /// metadata over from the add window.
+    private func startAddition(of draft: AddTorrentDraft, savesToList: Bool, byChoice: Bool) {
         let addition = PendingTorrentAddition(
             id: UUID(),
             attemptID: UUID(),
@@ -2612,10 +2650,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             savesByChoice: savesToList && byChoice
         )
         insertPendingTorrentAddition(addition)
-        // The window shows the next download waiting, and closes after the last.
-        if addTorrentReview.finishCurrent() {
-            dismissModal()
-        }
 
         let task = Task { [weak self] in
             guard let self else { return }
