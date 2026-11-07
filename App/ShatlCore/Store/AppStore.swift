@@ -931,23 +931,25 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     /// Debug menu: the main window shows what it answers to a drag, without
-    /// one: a file, a link, several files, and back to the list.
+    /// one: a file, a link, several files with one other file among them,
+    /// then with several, and back to the list.
     @Published private(set) var debugDropOfferPreview: DraggedDownloadOffer?
 
     func cycleDropScreenPreviewForDebug() {
         let file = DraggedDownload.torrentFile(URL(fileURLWithPath: "/tmp/preview.torrent"))
+        let otherFile = DraggedDownload.torrentFile(URL(fileURLWithPath: "/tmp/preview-2.torrent"))
+        let link = URL(string: "magnet:?xt=urn:btih:preview").map(DraggedDownload.magnetLink)
+        let oneLeftOut = DraggedDownloadOffer.accept([file, otherFile], leftOut: .one(name: "Holiday by the sea 2026.jpg"))
         switch debugDropOfferPreview {
         case nil:
-            debugDropOfferPreview = .accept(file)
-        case .accept(.torrentFile):
-            if let link = URL(string: "magnet:?xt=urn:btih:preview") {
-                debugDropOfferPreview = .accept(.magnetLink(link))
-            } else {
-                debugDropOfferPreview = .tooMany
-            }
-        case .accept(.magnetLink):
-            debugDropOfferPreview = .tooMany
-        case .tooMany, .unsupported:
+            debugDropOfferPreview = .accept([file])
+        case let .accept(downloads, _) where downloads == [file]:
+            debugDropOfferPreview = link.map { .accept([$0]) } ?? oneLeftOut
+        case let .accept(downloads, _) where downloads.count == 1:
+            debugDropOfferPreview = oneLeftOut
+        case .accept(_, .some(.one)):
+            debugDropOfferPreview = .accept([file, otherFile], leftOut: .several)
+        case .accept, .unsupported:
             debugDropOfferPreview = nil
         }
     }
@@ -2421,20 +2423,24 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         )
     }
 
-    /// Whether a drop or a paste can start the add flow right now: the list
-    /// is open and nothing else is being added.
+    /// Whether a drop or a paste can add downloads right now: the list is
+    /// open, and the add window, if it is open, takes them at its end. The
+    /// sheet with the link field takes none: it has a field of its own.
     var acceptsDraggedDownloads: Bool {
         didBootstrap
             && canAddTorrent
-            && !isAddTorrentReviewWindowActive
-            && presentedModal == nil
+            && (presentedModal == nil || isAddTorrentReviewWindowActive)
     }
 
-    /// Starts the add flow for a download dragged into the window or pasted,
-    /// the way a file opened from Finder starts it.
-    func addDraggedDownload(_ download: DraggedDownload) {
+    /// Adds downloads dragged into a window or pasted, in their order, the
+    /// way files opened from Finder are added: the first opens the add
+    /// window, the others wait in it, and with the window open all of them
+    /// wait at its end.
+    func addDraggedDownloads(_ downloads: [DraggedDownload]) {
         guard acceptsDraggedDownloads else { return }
-        handleIncomingURL(download.url)
+        for download in downloads {
+            handleIncomingURL(download.url)
+        }
     }
 
     func handleIncomingURL(_ url: URL) {

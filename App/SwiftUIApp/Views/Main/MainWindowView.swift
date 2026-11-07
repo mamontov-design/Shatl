@@ -228,7 +228,7 @@ struct MainWindowView: View {
         // and takes a drag before a system text field under it can; SwiftUI's
         // own drop stays for a drag that reaches the hosting view instead.
         .overlay {
-            MainWindowDropCatcher(
+            DraggedDownloadCatcher(
                 isAvailable: { acceptsDrops },
                 onOffer: showDropOffer,
                 onDrop: takeDrop
@@ -414,7 +414,7 @@ struct MainWindowView: View {
     }
 
     /// A drop is taken where the add button would work: over the list or
-    /// the empty list, with nothing else being added.
+    /// the empty list. With the add window open, it waits there.
     private var acceptsDrops: Bool {
         (stage == .list || stage == .empty) && store.acceptsDraggedDownloads
     }
@@ -430,10 +430,10 @@ struct MainWindowView: View {
     /// A drop leaves the app it came from in front, Finder or a browser:
     /// the window comes forward first, as it does for a file opened from
     /// Finder, or the add window would open behind that app.
-    private func takeDrop(_ download: DraggedDownload) {
+    private func takeDrop(_ downloads: [DraggedDownload]) {
         showDropOffer(nil, afterDelay: false)
         NSApp.activate()
-        store.addDraggedDownload(download)
+        store.addDraggedDownloads(downloads)
     }
 
     private func showDropOffer(_ offer: DraggedDownloadOffer?) {

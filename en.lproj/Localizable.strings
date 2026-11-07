@@ -33,8 +33,10 @@
 "search.empty.title" = "No results for “%@”.";
 "search.empty.description" = "Try a different name or alias.";
 "main.drop.accept.title" = "Release to add the download.";
-"main.drop.too_many.title" = "Downloads are added one at a time.";
-"main.drop.too_many.message" = "Drag the files in one by one.";
+"main.drop.accept.title.several.one" = "Release to add %lld download.";
+"main.drop.accept.title.several.other" = "Release to add %lld downloads.";
+"main.drop.other_file.message" = "The file “%@” won’t be added: it isn’t a .torrent file.";
+"main.drop.other_files.message" = "The other files won’t be added: they aren’t .torrent files.";
 
 "session.restore.title" = "Preparing downloads";
 "session.restore.message" = "Downloads are getting back to work after the restart—this takes a few seconds. While they’re being prepared, they can’t be started, stopped, or deleted.";
@@ -262,7 +264,7 @@
 "add_torrent.error.invalid_magnet.title" = "Couldn’t recognize the magnet link.";
 "add_torrent.error.invalid_magnet.title.several" = "Couldn’t recognize the link “%@”.";
 "add_torrent.error.invalid_magnet.message" = "The link may have been cut off when it was copied: magnet links are long, and the end is easy to lose. Close this window, copy the whole link again, and add it once more.";
-"add_torrent.error.invalid_magnet.message.several" = "The link may have been cut off when it was copied: magnet links are long, and the end is easy to lose. Go to another download, then copy the whole link again and add it once you’re done with the rest.";
+"add_torrent.error.invalid_magnet.message.several" = "The link may have been cut off when it was copied: magnet links are long, and the end is easy to lose. Go to another download, then copy the whole link again and paste it into this window.";
 "add_torrent.error.invalid_torrent_file.title" = "Couldn’t open the .torrent file.";
 "add_torrent.error.invalid_torrent_file.title.several" = "Couldn’t open “%@”.";
 "add_torrent.error.invalid_torrent_file.message" = "The file may be damaged or incompletely downloaded. Close this window, download the file again, and add it once more.";

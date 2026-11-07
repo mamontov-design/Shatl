@@ -33,8 +33,10 @@
 "search.empty.title" = "Aucun résultat pour « %@ ».";
 "search.empty.description" = "Essayez un autre nom ou alias.";
 "main.drop.accept.title" = "Relâchez pour ajouter le téléchargement.";
-"main.drop.too_many.title" = "Les téléchargements s’ajoutent un par un.";
-"main.drop.too_many.message" = "Faites glisser les fichiers l’un après l’autre.";
+"main.drop.accept.title.several.one" = "Relâchez pour ajouter %lld téléchargement.";
+"main.drop.accept.title.several.other" = "Relâchez pour ajouter %lld téléchargements.";
+"main.drop.other_file.message" = "Le fichier « %@ » ne sera pas ajouté : ce n’est pas un fichier .torrent.";
+"main.drop.other_files.message" = "Les autres fichiers ne seront pas ajoutés : ce ne sont pas des fichiers .torrent.";
 
 "session.restore.title" = "Préparation des téléchargements";
 "session.restore.message" = "Les téléchargements reprennent après le redémarrage — cela prend quelques secondes. Pendant leur préparation, ils ne peuvent être ni lancés, ni arrêtés, ni supprimés.";
@@ -262,7 +264,7 @@
 "add_torrent.error.invalid_magnet.title" = "Impossible de reconnaître le lien magnet.";
 "add_torrent.error.invalid_magnet.title.several" = "Impossible de reconnaître le lien « %@ ».";
 "add_torrent.error.invalid_magnet.message" = "Le lien a peut-être été tronqué lors de la copie : les liens magnet sont longs et la fin se perd facilement. Fermez cette fenêtre, copiez à nouveau le lien et ajoutez-le de nouveau.";
-"add_torrent.error.invalid_magnet.message.several" = "Le lien a peut-être été tronqué lors de la copie : les liens magnet sont longs et la fin se perd facilement. Passez à un autre téléchargement, puis recopiez le lien en entier et ajoutez-le une fois les autres terminés.";
+"add_torrent.error.invalid_magnet.message.several" = "Le lien a peut-être été tronqué lors de la copie : les liens magnet sont longs et la fin se perd facilement. Passez à un autre téléchargement, puis recopiez le lien en entier et collez-le dans cette fenêtre.";
 "add_torrent.error.invalid_torrent_file.title" = "Impossible d’ouvrir le fichier .torrent.";
 "add_torrent.error.invalid_torrent_file.title.several" = "Impossible d’ouvrir « %@ ».";
 "add_torrent.error.invalid_torrent_file.message" = "Le fichier est peut-être endommagé ou téléchargé en partie. Fermez cette fenêtre, téléchargez à nouveau le fichier et ajoutez-le de nouveau.";

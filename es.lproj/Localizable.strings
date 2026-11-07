@@ -33,8 +33,10 @@
 "search.empty.title" = "No hay resultados para «%@».";
 "search.empty.description" = "Prueba con otro nombre o alias.";
 "main.drop.accept.title" = "Suelta para añadir la descarga.";
-"main.drop.too_many.title" = "Las descargas se añaden de una en una.";
-"main.drop.too_many.message" = "Arrastra los archivos de uno en uno.";
+"main.drop.accept.title.several.one" = "Suelta para añadir %lld descarga.";
+"main.drop.accept.title.several.other" = "Suelta para añadir %lld descargas.";
+"main.drop.other_file.message" = "El archivo «%@» no se añadirá: no es un archivo .torrent.";
+"main.drop.other_files.message" = "Los demás archivos no se añadirán: no son archivos .torrent.";
 
 "session.restore.title" = "Preparando descargas";
 "session.restore.message" = "Las descargas vuelven a funcionar tras el reinicio; tardará unos segundos. Mientras se preparan, no se pueden iniciar, detener ni eliminar.";
@@ -262,7 +264,7 @@
 "add_torrent.error.invalid_magnet.title" = "No se pudo reconocer el enlace magnet.";
 "add_torrent.error.invalid_magnet.title.several" = "No se pudo reconocer el enlace «%@».";
 "add_torrent.error.invalid_magnet.message" = "Puede que el enlace se cortara al copiarlo: los enlaces magnet son largos y es fácil perder el final. Cierra esta ventana, copia el enlace de nuevo y vuelve a añadirlo.";
-"add_torrent.error.invalid_magnet.message.several" = "Puede que el enlace se cortara al copiarlo: los enlaces magnet son largos y es fácil perder el final. Pasa a otra descarga; luego copia de nuevo el enlace completo y añádelo cuando termines con las demás.";
+"add_torrent.error.invalid_magnet.message.several" = "Puede que el enlace se cortara al copiarlo: los enlaces magnet son largos y es fácil perder el final. Pasa a otra descarga; luego copia de nuevo el enlace completo y pégalo en esta ventana.";
 "add_torrent.error.invalid_torrent_file.title" = "No se pudo abrir el archivo .torrent.";
 "add_torrent.error.invalid_torrent_file.title.several" = "No se pudo abrir «%@».";
 "add_torrent.error.invalid_torrent_file.message" = "Puede que el archivo esté dañado o incompleto. Cierra esta ventana, vuelve a descargar el archivo y añádelo de nuevo.";

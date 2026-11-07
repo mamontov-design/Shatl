@@ -33,8 +33,9 @@
 "search.empty.title" = "「%@」の検索結果はありません。";
 "search.empty.description" = "別の名前またはエイリアスをお試しください。";
 "main.drop.accept.title" = "ドロップしてダウンロードを追加します。";
-"main.drop.too_many.title" = "ダウンロードは1件ずつ追加します。";
-"main.drop.too_many.message" = "ファイルを1つずつドラッグしてください。";
+"main.drop.accept.title.several.other" = "ドロップして%lld件のダウンロードを追加します。";
+"main.drop.other_file.message" = "「%@」は.torrentファイルではないため、追加されません。";
+"main.drop.other_files.message" = "ほかのファイルは.torrentファイルではないため、追加されません。";
 
 "session.restore.title" = "ダウンロードを準備しています";
 "session.restore.message" = "再起動後、ダウンロードを再開しています。数秒かかります。準備中は、ダウンロードの開始、停止、削除はできません。";
@@ -255,7 +256,7 @@
 "add_torrent.error.invalid_magnet.title" = "magnetリンクを認識できませんでした。";
 "add_torrent.error.invalid_magnet.title.several" = "リンク「%@」を認識できませんでした。";
 "add_torrent.error.invalid_magnet.message" = "コピーの際にリンクが途中で切れた可能性があります。magnetリンクは長く、末尾が欠けやすいためです。このウインドウを閉じ、リンクをもう一度コピーして追加し直してください。";
-"add_torrent.error.invalid_magnet.message.several" = "コピーの際にリンクが途中で切れた可能性があります。magnetリンクは長く、末尾が欠けやすいためです。ほかのダウンロードに移り、リンク全体をもう一度コピーして、残りのダウンロードが済んだら追加してください。";
+"add_torrent.error.invalid_magnet.message.several" = "コピーの際にリンクが途中で切れた可能性があります。magnetリンクは長く、末尾が欠けやすいためです。ほかのダウンロードに移り、リンク全体をもう一度コピーして、このウインドウにペーストしてください。";
 "add_torrent.error.invalid_torrent_file.title" = ".torrentファイルを開けませんでした。";
 "add_torrent.error.invalid_torrent_file.title.several" = "「%@」を開けませんでした。";
 "add_torrent.error.invalid_torrent_file.message" = "ファイルが破損しているか、ダウンロードが不完全な可能性があります。このウインドウを閉じ、ファイルをもう一度ダウンロードして追加し直してください。";

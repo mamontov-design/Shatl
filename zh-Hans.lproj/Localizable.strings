@@ -33,8 +33,9 @@
 "search.empty.title" = "未找到“%@”的结果。";
 "search.empty.description" = "请尝试其他名称或别名。";
 "main.drop.accept.title" = "松开即可添加下载。";
-"main.drop.too_many.title" = "下载需逐个添加。";
-"main.drop.too_many.message" = "请逐个拖入文件。";
+"main.drop.accept.title.several.other" = "松开即可添加 %lld 个下载。";
+"main.drop.other_file.message" = "“%@”不是 .torrent 文件，不会被添加。";
+"main.drop.other_files.message" = "其他文件不是 .torrent 文件，不会被添加。";
 
 "session.restore.title" = "正在准备下载";
 "session.restore.message" = "重新启动后，下载正在恢复，这需要几秒钟。准备期间无法开始、停止或删除下载。";
@@ -255,7 +256,7 @@
 "add_torrent.error.invalid_magnet.title" = "无法识别 magnet 链接。";
 "add_torrent.error.invalid_magnet.title.several" = "无法识别链接“%@”。";
 "add_torrent.error.invalid_magnet.message" = "复制时链接可能被截断：magnet 链接很长，结尾容易丢失。请关闭此窗口，重新复制链接后再次添加。";
-"add_torrent.error.invalid_magnet.message.several" = "复制时链接可能被截断：magnet 链接很长，结尾容易丢失。请先转到其他下载，然后重新完整复制链接，处理完其余下载后再添加。";
+"add_torrent.error.invalid_magnet.message.several" = "复制时链接可能被截断：magnet 链接很长，结尾容易丢失。请先转到其他下载，然后重新完整复制链接，并粘贴到此窗口中。";
 "add_torrent.error.invalid_torrent_file.title" = "无法打开 .torrent 文件。";
 "add_torrent.error.invalid_torrent_file.title.several" = "无法打开“%@”。";
 "add_torrent.error.invalid_torrent_file.message" = "文件可能已损坏或未下载完整。请关闭此窗口，重新下载文件后再次添加。";

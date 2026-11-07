@@ -33,8 +33,12 @@
 "search.empty.title" = "Нет результатов для «%@».";
 "search.empty.description" = "Попробуйте другое название или псевдоним.";
 "main.drop.accept.title" = "Отпустите, чтобы добавить загрузку.";
-"main.drop.too_many.title" = "Загрузки добавляются по одной.";
-"main.drop.too_many.message" = "Перетащите файлы по очереди.";
+"main.drop.accept.title.several.one" = "Отпустите, чтобы добавить %lld загрузку.";
+"main.drop.accept.title.several.few" = "Отпустите, чтобы добавить %lld загрузки.";
+"main.drop.accept.title.several.many" = "Отпустите, чтобы добавить %lld загрузок.";
+"main.drop.accept.title.several.other" = "Отпустите, чтобы добавить %lld загрузки.";
+"main.drop.other_file.message" = "Файл «%@» не добавится: это не .torrent‑файл.";
+"main.drop.other_files.message" = "Остальные файлы не добавятся: это не .torrent‑файлы.";
 
 "session.restore.title" = "Подготовка загрузок";
 "session.restore.message" = "Загрузки возвращаются к работе после перезапуска — это займёт несколько секунд. Пока загрузки готовятся, их нельзя запустить, остановить или удалить.";
@@ -276,7 +280,7 @@
 "add_torrent.error.invalid_magnet.title" = "Не удалось распознать magnet‑ссылку.";
 "add_torrent.error.invalid_magnet.title.several" = "Не удалось распознать ссылку «%@».";
 "add_torrent.error.invalid_magnet.message" = "Возможно, ссылка обрезалась при копировании: magnet‑ссылки длинные, и конец легко потерять. Закройте окно, скопируйте её ещё раз и вставьте в поле добавления.";
-"add_torrent.error.invalid_magnet.message.several" = "Возможно, ссылка обрезалась при копировании: magnet‑ссылки длинные, и конец легко потерять. Перейдите к другой загрузке, а ссылку скопируйте ещё раз целиком и добавьте, когда закончите с остальными.";
+"add_torrent.error.invalid_magnet.message.several" = "Возможно, ссылка обрезалась при копировании: magnet‑ссылки длинные, и конец легко потерять. Перейдите к другой загрузке, а ссылку скопируйте ещё раз целиком и вставьте в это окно.";
 "add_torrent.error.invalid_torrent_file.title" = "Не удалось открыть .torrent‑файл.";
 "add_torrent.error.invalid_torrent_file.title.several" = "Не удалось открыть «%@».";
 "add_torrent.error.invalid_torrent_file.message" = "Возможно, файл повреждён или скачался не полностью. Закройте окно, скачайте файл заново и добавьте его ещё раз.";

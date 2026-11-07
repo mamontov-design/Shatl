@@ -23,6 +23,18 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertEqual(title, "Не\u{00A0}удалось получить список файлов.")
     }
 
+    /// Among several, an unreadable link is pasted again into the same
+    /// window, which takes it at its end (`DraggedDownloadStoreTests`).
+    func testAnUnreadableLinkAmongSeveralIsPastedIntoTheWindow() {
+        let error = ShatlErrorCatalog.reviewError(
+            for: TorrentEngineError(kind: .invalidMagnet),
+            source: AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:abc"),
+            localeOverride: .russian
+        )
+        let several = plain(error.messageAmongSeveral ?? "")
+        XCTAssertTrue(several.hasSuffix("а ссылку скопируйте ещё раз целиком и вставьте в это окно."), several)
+    }
+
     /// Each message of the add window that says to close it has a second
     /// text for a window of several downloads, where "Закрыть окно" gives
     /// way to "Следующая загрузка" and closing would take the others.

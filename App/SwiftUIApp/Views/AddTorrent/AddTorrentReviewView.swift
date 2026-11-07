@@ -1041,6 +1041,22 @@ struct AddTorrentReviewView: View {
 
     var body: some View {
         AddTorrentReviewContent(review: store.addTorrentReview)
+            // A download dropped here waits at the end, as one opened from
+            // Finder. Only the system's "+" at the pointer says so: a screen
+            // over the settings plate is the kind of effect that has drawn
+            // its labels upside down; `AddTorrentReviewAppearanceTests`
+            // builds the window with this catcher over it.
+            .overlay {
+                DraggedDownloadCatcher(
+                    isAvailable: { store.acceptsDraggedDownloads },
+                    onDrop: { downloads in
+                        NSApp.activate()
+                        store.addDraggedDownloads(downloads)
+                    }
+                )
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
     }
 }
 
@@ -1164,6 +1180,11 @@ private struct AddTorrentReviewContent: View {
         .focusEffectDisabled()
         .focused($isWindowFocused)
         .defaultFocus($isWindowFocused, true)
+        // ⌘V adds copied links or `.torrent` files at the end, a message on
+        // screen or not; the alias and search fields take ⌘V as text.
+        .onPasteCommand(of: MainWindowDropLayout.draggedTypes) { providers in
+            store.addPastedDownloads(from: providers)
+        }
         .onChange(of: waitingKey, initial: true) { _, key in
             followWaiting(key)
         }

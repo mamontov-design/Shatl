@@ -18,12 +18,21 @@ nonisolated enum DraggedDownload: Equatable, Sendable {
     }
 }
 
-/// What the main window answers to a drag over it.
+/// Files a drag carries beside its `.torrent` files. They stay out, and the
+/// window says so: a count lower than the files dragged would otherwise
+/// look like a loss.
+nonisolated enum LeftOutFiles: Equatable, Sendable {
+    /// One file, named, so the window can say which one stays out.
+    case one(name: String)
+    case several
+}
+
+/// What a window answers to a drag over it, or to a paste.
 nonisolated enum DraggedDownloadOffer: Equatable, Sendable {
-    /// One download: the window invites to release it.
-    case accept(DraggedDownload)
-    /// Several: downloads are added one at a time, and the window says so.
-    case tooMany
+    /// The downloads a release adds, in the order the drag lists them; one
+    /// or several go to one add window, as files opened from Finder do.
+    /// `leftOut`: the files that are not `.torrent`, if the drag has any.
+    case accept([DraggedDownload], leftOut: LeftOutFiles? = nil)
     /// Nothing the window adds: it stays as it is.
     case unsupported
 }
@@ -38,25 +47,40 @@ nonisolated struct DraggedContent: Equatable, Sendable {
     /// Files decide alone: a drag of files also carries their names as text.
     /// Only `.torrent` files and magnet links count; a web link to a
     /// `.torrent` does not, as the app downloads nothing from the web itself.
+    /// A text may hold several links, one to a line.
     var offer: DraggedDownloadOffer {
         guard fileURLs.isEmpty else {
-            let torrents = fileURLs.filter { $0.pathExtension.lowercased() == "torrent" }
-            guard let torrent = torrents.first else { return .unsupported }
-            return fileURLs.count == 1 ? .accept(.torrentFile(torrent)) : .tooMany
+            var torrents: [URL] = []
+            var others: [URL] = []
+            for url in fileURLs {
+                if url.pathExtension.lowercased() == "torrent" {
+                    if !torrents.contains(url) { torrents.append(url) }
+                } else if !others.contains(url) {
+                    others.append(url)
+                }
+            }
+            guard !torrents.isEmpty else { return .unsupported }
+            let leftOut: LeftOutFiles? = switch others.count {
+            case 0: nil
+            case 1: .one(name: others[0].lastPathComponent)
+            default: .several
+            }
+            return .accept(torrents.map(DraggedDownload.torrentFile), leftOut: leftOut)
         }
 
         var magnets: [URL] = []
         for text in texts {
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let url = URL(string: trimmed),
-                  url.scheme?.lowercased() == "magnet",
-                  !magnets.contains(url) else {
-                continue
+            for word in text.split(whereSeparator: \.isWhitespace) {
+                guard let url = URL(string: String(word)),
+                      url.scheme?.lowercased() == "magnet",
+                      !magnets.contains(url) else {
+                    continue
+                }
+                magnets.append(url)
             }
-            magnets.append(url)
         }
 
-        guard let magnet = magnets.first else { return .unsupported }
-        return magnets.count == 1 ? .accept(.magnetLink(magnet)) : .tooMany
+        guard !magnets.isEmpty else { return .unsupported }
+        return .accept(magnets.map(DraggedDownload.magnetLink))
     }
 }
