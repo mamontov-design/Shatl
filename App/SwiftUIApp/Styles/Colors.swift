@@ -74,6 +74,11 @@ enum ShatlColor {
     /// A card keeps one fill whatever happens to it; its outline answers the
     /// pointer and the selection.
     static let cardBackgroundDefault = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDarkA3)
+    /// A card that things pass under: the add window's summary, with the
+    /// files scrolling beneath it. The dark step is what the nearly clear
+    /// card looks like on the files' ground, so it looks the same and
+    /// nothing shows through.
+    static let cardBackgroundSolid = Color(light: ShatlPalette.white, dark: ShatlPalette.grayDark4)
 
     static let cardOutlineDefault = Color(light: ShatlPalette.gray6, dark: ShatlPalette.grayDarkA6)
     static let cardOutlineHover = Color(light: ShatlPalette.gray9, dark: ShatlPalette.grayDarkA9)

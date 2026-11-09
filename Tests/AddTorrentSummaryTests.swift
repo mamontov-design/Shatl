@@ -207,6 +207,25 @@ final class AddTorrentSummaryTests: XCTestCase {
         }
     }
 
+    /// The files scroll under the summary: its card is solid in both themes,
+    /// and in dark as light as a download card looks on the files' ground.
+    func testTheCardIsSolidSoTheFilesDoNotShowThrough() {
+        for scheme in [ColorScheme.light, .dark] {
+            var environment = EnvironmentValues()
+            environment.colorScheme = scheme
+            XCTAssertEqual(ShatlColor.cardBackgroundSolid.resolve(in: environment).opacity, 1, "\(scheme)")
+        }
+
+        var dark = EnvironmentValues()
+        dark.colorScheme = .dark
+        let solid = ShatlColor.cardBackgroundSolid.resolve(in: dark)
+        let ground = ShatlColor.backgroundAddWindow.resolve(in: dark)
+        let clear = ShatlColor.cardBackgroundDefault.resolve(in: dark)
+        // The clear card over the ground, channel by channel.
+        let seen = ground.red + (clear.red - ground.red) * clear.opacity
+        XCTAssertEqual(Double(solid.red), Double(seen), accuracy: 0.02)
+    }
+
     // MARK: - Plates
 
     /// A lone "1" or the sparkle stands in a square plate: the set is never

@@ -1384,9 +1384,14 @@ private struct AddTorrentReviewContent: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(ShatlColor.backgroundAddWindow)
             .overlay(alignment: .trailing) {
+                // Up through the toolbar to the window's top edge, as the
+                // files' ground goes: the window is split into two columns
+                // there too, the title over the files and the search over
+                // the settings (the owner's choice, November 2026).
                 Rectangle()
                     .fill(ShatlColor.outlineTertiary)
                     .frame(width: AddTorrentReviewLayout.leftColumnOutlineWidth)
+                    .ignoresSafeArea(.container, edges: .top)
                     .allowsHitTesting(false)
             }
     }
@@ -2058,11 +2063,13 @@ private struct AddTorrentReviewContent: View {
             }
     }
 
-    /// A download card's fill, outline and corner, with a shadow of its own
-    /// seen only around it.
+    /// A download card's outline and corner, with a shadow of its own seen
+    /// only around it. Its fill is solid in both themes: the files scroll
+    /// under it, and through a card's nearly clear dark fill they showed
+    /// (the owner's check, November 2026).
     private var summaryCard: some View {
         torrentSummaryShape
-            .fill(ShatlColor.cardBackgroundDefault)
+            .fill(ShatlColor.cardBackgroundSolid)
             .overlay {
                 torrentSummaryShape
                     .strokeBorder(
