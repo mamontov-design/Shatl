@@ -15,13 +15,23 @@ nonisolated struct MetricItemPresentation: Identifiable, Equatable, Sendable {
     var number: String?
     var unit: String?
     var usesAccentIcon: Bool
+    /// A count, Figma's `Type=Count`: the word after the number, "из" in
+    /// "1 из 2", or "(все)" alone after it when everything is counted.
+    var of: String? = nil
+    /// The count's total, after `of`.
+    var total: String? = nil
+    /// The value is still being read: a spinner stands in its place.
+    var isPending = false
 
     var widthAnimationSignature: MetricItemWidthAnimationSignature {
         MetricItemWidthAnimationSignature(
             id: id,
             iconName: iconName,
             numberPattern: number.map(MetricWidthAnimationPattern.forText),
-            unit: unit
+            unit: unit,
+            of: of,
+            totalPattern: total.map(MetricWidthAnimationPattern.forText),
+            isPending: isPending
         )
     }
 }
@@ -31,6 +41,9 @@ nonisolated struct MetricItemWidthAnimationSignature: Hashable, Sendable {
     var iconName: String?
     var numberPattern: String?
     var unit: String?
+    var of: String?
+    var totalPattern: String?
+    var isPending: Bool
 }
 
 nonisolated extension Array where Element == MetricItemPresentation {
@@ -614,7 +627,9 @@ nonisolated enum TorrentPresentation {
         record.metrics.selectedBytes > 0 ? record.metrics.selectedBytes : record.metrics.totalBytes
     }
 
-    private nonisolated static func splitMetricValue(_ value: String) -> (number: String, unit: String?) {
+    /// "120 ГБ" as its number and its unit. Digits are grouped by a
+    /// non-breaking space, so only the space before the unit splits.
+    nonisolated static func splitMetricValue(_ value: String) -> (number: String, unit: String?) {
         let parts = value.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
         guard parts.count == 2 else {
             return (value, nil)

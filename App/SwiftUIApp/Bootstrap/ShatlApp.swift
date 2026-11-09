@@ -179,7 +179,7 @@ private struct AddTorrentReviewWindowContent: View {
             }
             // The files are shown from under a cover of this colour; see
             // `AddTorrentReviewView`.
-            .containerBackground(ShatlColor.backgroundAddWindow, for: .window)
+            .containerBackground(ShatlColor.backgroundWindow, for: .window)
             .background {
                 AddTorrentReviewWindowChromeConfigurator(
                     title: reviewWindowTitle,

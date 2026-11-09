@@ -59,12 +59,15 @@ enum ShatlColor {
     static let backgroundPrimary = Color(light: ShatlPalette.gray2, dark: ShatlPalette.grayDarkA4)
     static let backgroundSecondary = Color(light: ShatlPalette.gray3, dark: ShatlPalette.grayDarkA3)
     static let backgroundTertiary = Color(light: ShatlPalette.white, dark: ShatlPalette.black)
-    /// The add window's own background, and the cover its files are shown
-    /// from under: what the system draws as a window's background, white in
-    /// light and #1E1E1E in dark, without the wallpaper's tint. The tint is
-    /// no one colour, so nothing painted over the system's background could
-    /// match it.
-    static let backgroundAddWindow = Color(light: ShatlPalette.white, dark: ShatlPalette.windowBackgroundDark)
+    /// The add window's own background, under its settings, and the cover
+    /// its files are shown from under: what the system draws as a window's
+    /// background, white in light and #1E1E1E in dark, without the
+    /// wallpaper's tint. The tint is no one colour, so nothing painted over
+    /// the system's background could match it.
+    static let backgroundWindow = Color(light: ShatlPalette.white, dark: ShatlPalette.windowBackgroundDark)
+    /// The add window's half with the files and the summary, a step darker
+    /// than the window, so the summary's white card stands out on it.
+    static let backgroundAddWindow = Color(light: ShatlPalette.gray1, dark: ShatlPalette.grayDark2)
 
     static let buttonNeutral = Color(light: ShatlPalette.grayA3, dark: ShatlPalette.grayDarkA8)
 
@@ -619,6 +622,16 @@ enum ShatlShadow {
         )
     )
 
+    /// Under the add window's summary card: `shadowSummary` in Figma.
+    static let summary = ShatlShadowToken(
+        light: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.10, radius: 4)
+        ),
+        dark: ShatlShadowAppearance(
+            primary: ShatlShadowLayer(opacity: 0.24, radius: 4)
+        )
+    )
+
     /// Shadow for demonstration cards in onboarding steps.
     static let onboardingCard = ShatlShadowToken(
         light: ShatlShadowAppearance(
@@ -731,11 +744,48 @@ private struct ShatlShadowModifier: ViewModifier {
     }
 }
 
+/// A shadow cast by a shape and seen only outside it, as Figma draws a
+/// frame's shadow. Laid on a view itself, a shadow comes from whatever is
+/// opaque inside it: in dark a card's fill is nearly clear, and the plates
+/// on it would cast shadows of their own (the owner's check on macOS 26).
+private struct ShatlOutsideShadowModifier<ShadowShape: Shape>: ViewModifier {
+    let token: ShatlShadowToken
+    let shape: ShadowShape
+
+    func body(content: Content) -> some View {
+        content.background {
+            // The fill only casts the shadow; the mask takes the shape's own
+            // area away, so nothing of it shows through a clear fill.
+            shape
+                .fill(ShatlColor.shadowKeyColor)
+                .shatlShadow(token)
+                .mask {
+                    ZStack {
+                        Rectangle().padding(-Self.shadowReach)
+                        shape.blendMode(.destinationOut)
+                    }
+                    .compositingGroup()
+                }
+        }
+    }
+
+    /// Room around the shape for the widest shadow layer to fade out.
+    private static var shadowReach: CGFloat { 48 }
+}
+
 extension View {
     func shatlShadow(
         _ token: ShatlShadowToken,
         isEnabled: Bool = true
     ) -> some View {
         modifier(ShatlShadowModifier(token: token, isEnabled: isEnabled))
+    }
+
+    /// `token` cast by `shape` behind the view, seen only outside the shape.
+    func shatlOutsideShadow<ShadowShape: Shape>(
+        _ token: ShatlShadowToken,
+        in shape: ShadowShape
+    ) -> some View {
+        modifier(ShatlOutsideShadowModifier(token: token, shape: shape))
     }
 }

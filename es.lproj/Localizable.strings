@@ -253,7 +253,11 @@
 "add_torrent.review.summary.size" = "Tamaño";
 "add_torrent.review.summary.free_space" = "Libre";
 "add_torrent.review.summary.unavailable" = "No disponible";
-"add_torrent.review.summary.selected_count" = "%lld de %lld";
+"add_torrent.review.summary.selected_file" = "Archivo seleccionado";
+"add_torrent.review.summary.no_files_selected" = "Ningún archivo seleccionado";
+"add_torrent.review.summary.no_file_selected" = "Archivo no seleccionado";
+"add_torrent.review.summary.of" = "de";
+"add_torrent.review.summary.all" = "(todos)";
 "add_torrent.review.folder.files.none" = "No hay archivos seleccionados";
 "add_torrent.review.folder.files.count.one" = "%lld archivo";
 "add_torrent.review.folder.files.count.other" = "%lld archivos";
@@ -308,7 +312,8 @@
 "menu.debug.cycle_drop_screen" = "Mostrar la pantalla de arrastre";
 "menu.debug.show_empty_list" = "Mostrar la lista vacía";
 "menu.debug.simulate_low_space" = "Simular que el disco está lleno";
-"menu.debug.inflate_promised_space" = "Simular que las descargas necesitan 1 TB más";
+"menu.debug.slow_disk_space" = "Retrasar 2 s la lectura del espacio libre";
+"menu.debug.inflate_promised_space" ="Simular que las descargas necesitan 1 TB más";
 "menu.debug.runtime_error" = "Detener la descarga con un error";
 "menu.debug.runtime_error.disk_full" = "Sin espacio";
 "menu.debug.runtime_error.no_write_access" = "Sin permiso de escritura";

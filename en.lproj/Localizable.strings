@@ -253,7 +253,11 @@
 "add_torrent.review.summary.size" = "Size";
 "add_torrent.review.summary.free_space" = "Available";
 "add_torrent.review.summary.unavailable" = "Unavailable";
-"add_torrent.review.summary.selected_count" = "%lld of %lld";
+"add_torrent.review.summary.selected_file" = "File selected";
+"add_torrent.review.summary.no_files_selected" = "No files selected";
+"add_torrent.review.summary.no_file_selected" = "No file selected";
+"add_torrent.review.summary.of" = "of";
+"add_torrent.review.summary.all" = "(all)";
 "add_torrent.review.folder.files.none" = "No files selected";
 "add_torrent.review.folder.files.count.one" = "%lld file";
 "add_torrent.review.folder.files.count.other" = "%lld files";
@@ -308,7 +312,8 @@
 "menu.debug.cycle_drop_screen" = "Show the Drop Screen";
 "menu.debug.show_empty_list" = "Show the Empty List";
 "menu.debug.simulate_low_space" = "Pretend the Disk Is Full";
-"menu.debug.inflate_promised_space" = "Pretend Downloads Need 1 TB More";
+"menu.debug.slow_disk_space" = "Delay Reading Free Space by 2 s";
+"menu.debug.inflate_promised_space" ="Pretend Downloads Need 1 TB More";
 "menu.debug.runtime_error" = "Stop Download with Error";
 "menu.debug.runtime_error.disk_full" = "Out of Space";
 "menu.debug.runtime_error.no_write_access" = "No Write Access";

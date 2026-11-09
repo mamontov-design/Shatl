@@ -1139,10 +1139,7 @@ enum TorrentCardPreviewShadowStyle {
 }
 
 /// The demo card's shadow, cast by the card's shape and seen only outside
-/// it, as Figma draws a frame's shadow. Laid on the card itself, the shadow
-/// came from whatever is opaque inside it: in dark the card's fill is the
-/// list's nearly clear one, and every plate of the expanded metrics cast a
-/// shadow of its own (the owner's check on macOS 26).
+/// it, as Figma draws a frame's shadow; see `shatlOutsideShadow`.
 private struct TorrentCardPreviewShadowModifier: ViewModifier {
     let style: TorrentCardPreviewShadowStyle
 
@@ -1154,25 +1151,11 @@ private struct TorrentCardPreviewShadowModifier: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content.background {
-            let shape = RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
-            // The fill only casts the shadow; the mask takes the card's
-            // own area away, so nothing of it shows through a clear card.
-            shape
-                .fill(ShatlColor.shadowKeyColor)
-                .shatlShadow(token)
-                .mask {
-                    ZStack {
-                        Rectangle().padding(-Self.shadowReach)
-                        shape.blendMode(.destinationOut)
-                    }
-                    .compositingGroup()
-                }
-        }
+        content.shatlOutsideShadow(
+            token,
+            in: RoundedRectangle(cornerRadius: TorrentCardLayout.cornerRadius, style: .continuous)
+        )
     }
-
-    /// Room around the card for the widest shadow layer to fade out.
-    private static let shadowReach: CGFloat = 48
 }
 
 struct TorrentCardPreviewView: View {
@@ -1545,9 +1528,18 @@ struct ShatlMetricItem: View {
                     .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
             }
 
-            if let number = item.number, !isFolded {
-                HStack(spacing: 2) {
-                    metricNumber(number)
+            if item.isPending {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
+                    .transition(contentTransition)
+            }
+
+            if item.number != nil || item.unit != nil, !isFolded {
+                HStack(spacing: item.of == nil ? 2 : Self.countSpacing) {
+                    if let number = item.number {
+                        metricNumber(number)
+                    }
 
                     if let unit = item.unit {
                         Text(unit)
@@ -1555,6 +1547,26 @@ struct ShatlMetricItem: View {
                             .foregroundStyle(unitColor)
                             .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
                             .fixedSize(horizontal: true, vertical: false)
+                    }
+
+                    if let of = item.of {
+                        // "из" becomes "(все)" in place: the old word and the
+                        // new one overlap while one blurs into the other.
+                        ZStack {
+                            Text(of)
+                                .shatlTypography(ShatlTypography.metricSemibold)
+                                .foregroundStyle(unitColor)
+                                .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .id(of)
+                                .transition(wordReplace)
+                        }
+                        .transition(contentTransition)
+                    }
+
+                    if let total = item.total {
+                        metricNumber(total)
+                            .transition(contentTransition)
                     }
                 }
                 .frame(height: ShatlMetricLayout.contentHeight, alignment: .center)
@@ -1583,11 +1595,23 @@ struct ShatlMetricItem: View {
         reduceMotion ? .opacity : ShatlMotion.appearFromTop
     }
 
+    /// As a group's title is replaced.
+    private var wordReplace: AnyTransition {
+        (reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
+            .animation(ShatlMotion.progressStatusReplace)
+    }
+
+    /// Between the parts of a count, wider than between a number and its
+    /// unit: "1 657  из  1 658" reads as three parts, where the digits are
+    /// grouped by a space of their own.
+    static let countSpacing: CGFloat = 6
+
     /// The wider trailing padding leaves room after the unit; with the number
-    /// folded away the paddings match, so what is left sits in the middle.
+    /// folded away the paddings match, so what is left sits in the middle,
+    /// as an icon alone does.
     private var leadingPadding: CGFloat {
         if isFolded { return 4 }
-        return item.iconName == nil ? 5 : 3
+        return item.iconName != nil && item.number != nil ? 3 : 5
     }
 
     private var trailingPadding: CGFloat {
@@ -1618,7 +1642,7 @@ struct ShatlMetricItem: View {
     }
 
     private var spokenValue: String {
-        [item.number, item.unit].compactMap { $0 }.joined(separator: " ")
+        [item.number, item.unit, item.of, item.total].compactMap { $0 }.joined(separator: " ")
     }
 
     private var iconColor: Color {
@@ -1772,6 +1796,9 @@ struct ShatlMetricSet: View {
             }
         }
         .padding(ShatlMetricLayout.setPadding)
+        // Never narrower than it is tall: a lone "1" or icon stands in the
+        // middle of a square plate.
+        .frame(minWidth: ShatlMetricLayout.containerHeight)
         .overlay {
             MetricSetOutlineView(
                 baseColor: metricOutlineColor,

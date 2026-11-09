@@ -43,6 +43,10 @@ struct ShatlCommands: Commands {
                 get: { store.debugInflatesPromisedSpace },
                 set: { _ in store.togglePromisedSpaceForDebug() }
             ))
+            Toggle("menu.debug.slow_disk_space", isOn: Binding(
+                get: { store.debugSlowsDiskSpaceReading },
+                set: { _ in store.toggleSlowDiskSpaceReadingForDebug() }
+            ))
             Menu("menu.debug.runtime_error") {
                 debugRuntimeErrorButton("menu.debug.runtime_error.disk_full", cause: .diskFull)
                 debugRuntimeErrorButton("menu.debug.runtime_error.no_write_access", cause: .noWriteAccess)

@@ -247,7 +247,11 @@
 "add_torrent.review.summary.size" = "大小";
 "add_torrent.review.summary.free_space" = "可用空间";
 "add_torrent.review.summary.unavailable" = "不可用";
-"add_torrent.review.summary.selected_count" = "%lld／%lld";
+"add_torrent.review.summary.selected_file" = "已选文件";
+"add_torrent.review.summary.no_files_selected" = "未选文件";
+"add_torrent.review.summary.no_file_selected" = "未选文件";
+"add_torrent.review.summary.of" = "／";
+"add_torrent.review.summary.all" = "（全部）";
 "add_torrent.review.folder.files.none" = "未选择文件";
 "add_torrent.review.folder.files.count.other" = "%lld个文件";
 "add_torrent.review.folder.files.partial.other" = "已选择%1$lld个，共%2$lld个";
@@ -300,7 +304,8 @@
 "menu.debug.cycle_drop_screen" = "显示拖放界面";
 "menu.debug.show_empty_list" = "显示空列表";
 "menu.debug.simulate_low_space" = "模拟磁盘已满";
-"menu.debug.inflate_promised_space" = "模拟每个下载还需 1 TB";
+"menu.debug.slow_disk_space" = "将读取可用空间延迟 2 秒";
+"menu.debug.inflate_promised_space" ="模拟每个下载还需 1 TB";
 "menu.debug.runtime_error" = "以错误停止下载";
 "menu.debug.runtime_error.disk_full" = "磁盘空间已满";
 "menu.debug.runtime_error.no_write_access" = "没有写入权限";

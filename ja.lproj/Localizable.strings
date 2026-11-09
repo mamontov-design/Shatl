@@ -247,7 +247,11 @@
 "add_torrent.review.summary.size" = "サイズ";
 "add_torrent.review.summary.free_space" = "空き容量";
 "add_torrent.review.summary.unavailable" = "利用できません";
-"add_torrent.review.summary.selected_count" = "%lld／%lld";
+"add_torrent.review.summary.selected_file" = "選択したファイル";
+"add_torrent.review.summary.no_files_selected" = "ファイル未選択";
+"add_torrent.review.summary.no_file_selected" = "ファイル未選択";
+"add_torrent.review.summary.of" = "／";
+"add_torrent.review.summary.all" = "（すべて）";
 "add_torrent.review.folder.files.none" = "ファイルは選択されていません";
 "add_torrent.review.folder.files.count.other" = "%lld件のファイル";
 "add_torrent.review.folder.files.partial.other" = "%2$lld件中%1$lld件を選択";
@@ -300,7 +304,8 @@
 "menu.debug.cycle_drop_screen" = "ドロップ画面を表示";
 "menu.debug.show_empty_list" = "空のリストを表示";
 "menu.debug.simulate_low_space" = "ディスクの空き容量がないものとして扱う";
-"menu.debug.inflate_promised_space" = "ダウンロードにさらに1 TB必要なものとして扱う";
+"menu.debug.slow_disk_space" = "空き容量の読み取りを2秒遅らせる";
+"menu.debug.inflate_promised_space" ="ダウンロードにさらに1 TB必要なものとして扱う";
 "menu.debug.runtime_error" = "エラーでダウンロードを停止";
 "menu.debug.runtime_error.disk_full" = "空き容量なし";
 "menu.debug.runtime_error.no_write_access" = "書き込み権限なし";
