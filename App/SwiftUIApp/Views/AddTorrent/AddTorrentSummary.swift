@@ -225,7 +225,7 @@ struct AddTorrentSummaryMetrics: View {
             ShatlMetricGroupSet(groups: groups.leading, isMuted: true)
                 .layoutPriority(2)
 
-            Spacer(minLength: 10)
+            Spacer(minLength: ShatlMetricLayout.groupSpacing)
                 .layoutPriority(0)
 
             ShatlMetricGroup(group: groups.trailing, isMuted: true)

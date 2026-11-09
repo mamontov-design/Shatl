@@ -833,7 +833,7 @@ struct TorrentCardView: View, Equatable {
                     .layoutPriority(2)
                     .transition(ShatlMotion.appearFromTop)
 
-                Spacer(minLength: 10)
+                Spacer(minLength: ShatlMetricLayout.groupSpacing)
                     .layoutPriority(0)
             }
 

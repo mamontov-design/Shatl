@@ -19,6 +19,8 @@ enum ShatlMetricLayout {
     static let containerHeight: CGFloat = 27
     /// Between a metric set's edge and its items.
     static let setPadding: CGFloat = 3
+    /// Between two metric groups side by side.
+    static let groupSpacing: CGFloat = 10
 }
 
 /// The circle a selected download card or option card wears, 16 pt as
@@ -2298,10 +2300,13 @@ struct ShatlMetricGroup: View {
     /// A box as wide as the whole group, which stays as the title changes
     /// ("Сиды и пиры" to "Сиды"): the old title blurs into the new one in
     /// place while the group's width follows on the card's metric resize.
-    /// The box clips at the group's edge, so a longer title on its way out
-    /// does not run over the next group as the group narrows; and as wide
-    /// as the group, not the title, it shows a longer title whole at once
-    /// wherever the cells under it already make room for it.
+    /// The box clips on the right where the next group begins, so a longer
+    /// title on its way out does not run over it as the group narrows; and
+    /// as wide as the group, not the title, it shows a longer title whole at
+    /// once wherever the cells under it already make room for it. Above,
+    /// below and on the left it clips only past the blur's reach: clipped
+    /// at the title's own edges, the blur was cut off in a straight line
+    /// (the owner's screenshot, November 2026).
     private var titleOverlay: some View {
         ZStack(alignment: .topLeading) {
             titleText
@@ -2309,9 +2314,30 @@ struct ShatlMetricGroup: View {
                 .transition(titleReplace)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // Room around the box, clipped, then taken back: the group's layout
+        // stays as it was, only the clip reaches further.
+        .padding(Self.titleClipRoom)
         .clipped()
+        .padding(
+            EdgeInsets(
+                top: -Self.titleClipRoom.top,
+                leading: -Self.titleClipRoom.leading,
+                bottom: -Self.titleClipRoom.bottom,
+                trailing: -Self.titleClipRoom.trailing
+            )
+        )
         .shatlCardPreviewBlur(.metricGroupTitles)
     }
+
+    /// `blurReplace` blurs a title by up to 7 pt (measured on macOS 27),
+    /// and a blur shows to about twice its radius. On the right the room
+    /// ends where the next group begins.
+    private static let titleClipRoom = EdgeInsets(
+        top: 14,
+        leading: 14,
+        bottom: 14,
+        trailing: ShatlMetricLayout.groupSpacing
+    )
 
     private var titleText: some View {
         Text(group.title)
@@ -2337,7 +2363,7 @@ struct ShatlMetricGroupSet: View {
     var showsShadows = true
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
+        HStack(alignment: .bottom, spacing: ShatlMetricLayout.groupSpacing) {
             ForEach(groups) { group in
                 ShatlMetricGroup(
                     group: group,
