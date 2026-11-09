@@ -255,6 +255,9 @@
 "add_torrent.review.alias_placeholder" = "Назовите загрузку…";
 "add_torrent.review.confirm" = "Скачать";
 "add_torrent.review.save_to_list" = "Сохранить в список";
+"add_torrent.review.folder_unavailable.title" = "Папка «%@» недоступна.";
+"add_torrent.review.folder_unavailable.fix" = "Возможно, диск с ней отключён или папку переместили. Подключите диск или выберите другую папку — тогда кнопка «Скачать» вернётся в этом же окне.";
+"add_torrent.review.folder_unavailable.save_for_later" = "Для удобства загрузку можно сохранить в список сейчас, а запустить вручную, когда папка снова станет доступна.";
 "add_torrent.review.low_space.title" = "На диске «%1$@» не хватает %2$@.";
 "add_torrent.review.low_space.title.promised" = "На диске «%1$@» не хватает %2$@: ещё %3$@ займут загрузки, которые сейчас скачиваются.";
 "add_torrent.review.low_space.fix.one_file" = "Освободите место или выберите папку на другом диске — тогда кнопка «Скачать» вернётся в этом же окне.";

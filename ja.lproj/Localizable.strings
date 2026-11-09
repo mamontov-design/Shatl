@@ -237,6 +237,9 @@
 "add_torrent.review.alias_placeholder" = "ダウンロード名を入力…";
 "add_torrent.review.confirm" = "ダウンロード";
 "add_torrent.review.save_to_list" = "リストに保存";
+"add_torrent.review.folder_unavailable.title" = "「%@」フォルダを利用できません。";
+"add_torrent.review.folder_unavailable.fix" = "フォルダのあるディスクが取り外されているか、フォルダが移動された可能性があります。ディスクを接続するか、別のフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。";
+"add_torrent.review.folder_unavailable.save_for_later" = "ダウンロードを今リストに保存しておき、フォルダを再び利用できるようになってから手動で開始することもできます。";
 "add_torrent.review.low_space.title" = "ディスク「%1$@」の空き容量が%2$@不足しています。";
 "add_torrent.review.low_space.title.promised" = "ディスク「%1$@」の空き容量が%2$@不足しています。進行中のダウンロードが、さらに%3$@を使用します。";
 "add_torrent.review.low_space.fix.one_file" = "空き容量を増やすか、別のディスクのフォルダを選択すると、このウインドウに「ダウンロード」ボタンが戻ります。";

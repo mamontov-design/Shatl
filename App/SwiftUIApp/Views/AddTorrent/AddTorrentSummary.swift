@@ -12,6 +12,25 @@ enum AddTorrentFreeSpace: Equatable {
     case unavailable
 }
 
+/// What the add window's main button does.
+enum AddTorrentConfirmation: Equatable {
+    case download
+    /// "Сохранить в список": the download waits in the list, stopped. With
+    /// the folder out of reach it is saved as by choice, so its "i" does not
+    /// say it lacked room; its disk's state is said after.
+    case saveToList(byChoice: Bool)
+
+    static func decide(lacksSpace: Bool, folderIsUnavailable: Bool) -> AddTorrentConfirmation {
+        if lacksSpace {
+            return .saveToList(byChoice: false)
+        }
+        if folderIsUnavailable {
+            return .saveToList(byChoice: true)
+        }
+        return .download
+    }
+}
+
 /// What stands in the way of "Скачать", said in the summary above its
 /// numbers: a title and paragraphs, each a part that changes on its own.
 struct AddTorrentSummaryMessage: Equatable {

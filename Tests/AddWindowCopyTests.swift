@@ -70,6 +70,26 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertTrue(fix.contains("кнопка «Скачать» вернётся в этом же окне"), fix)
     }
 
+    /// A folder out of reach is named in the title; the way to fix it
+    /// promises the button back by the name it wears, in every language.
+    func testUnavailableFolderMessagePromisesTheDownloadButtonBack() {
+        for locale in AppLocaleOverride.allCases where locale != .system {
+            let button = L10n.string("add_torrent.review.confirm", localeOverride: locale)
+            let title = L10n.string("add_torrent.review.folder_unavailable.title", localeOverride: locale)
+            let fix = L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: locale)
+            let wait = L10n.string("add_torrent.review.folder_unavailable.save_for_later", localeOverride: locale)
+            XCTAssertTrue(title.contains("%@"), "\(locale): \(title)")
+            XCTAssertTrue(fix.contains(button), "\(locale): \(fix)")
+            XCTAssertFalse(fix.contains("%") || wait.contains("%"), "\(locale)")
+        }
+        let fix = plain(L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: .russian))
+        XCTAssertTrue(fix.contains("кнопка «Скачать» вернётся в этом же окне"), fix)
+        XCTAssertEqual(
+            plain(L10n.format("add_torrent.review.folder_unavailable.title", localeOverride: .russian, defaultValue: "", "Загрузки")),
+            "Папка «Загрузки» недоступна."
+        )
+    }
+
     /// Each message of the add window that says to close it has a second
     /// text for a window of several downloads, where "Закрыть окно" gives
     /// way to "Следующая загрузка" and closing would take the others.

@@ -243,6 +243,9 @@
 "add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
 "add_torrent.review.save_to_list" = "Enregistrer dans la liste";
+"add_torrent.review.folder_unavailable.title" = "Le dossier « %@ » est indisponible.";
+"add_torrent.review.folder_unavailable.fix" = "Son disque est peut-être déconnecté, ou le dossier a été déplacé. Connectez le disque ou choisissez un autre dossier : le bouton « Télécharger » reviendra dans cette même fenêtre.";
+"add_torrent.review.folder_unavailable.save_for_later" = "Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois le dossier de nouveau disponible.";
 "add_torrent.review.low_space.title" = "Il manque %2$@ sur le disque « %1$@ ».";
 "add_torrent.review.low_space.title.promised" = "Il manque %2$@ sur le disque « %1$@ » : les téléchargements en cours occuperont encore %3$@.";
 "add_torrent.review.low_space.fix.one_file" = "Libérez de l’espace ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.";

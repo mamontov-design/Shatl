@@ -243,6 +243,9 @@
 "add_torrent.review.alias_placeholder" = "Name your download…";
 "add_torrent.review.confirm" = "Download";
 "add_torrent.review.save_to_list" = "Save to List";
+"add_torrent.review.folder_unavailable.title" = "The “%@” folder is unavailable.";
+"add_torrent.review.folder_unavailable.fix" = "The disk it’s on may be disconnected, or the folder may have been moved. Connect the disk or choose another folder, and the Download button will be back in this window.";
+"add_torrent.review.folder_unavailable.save_for_later" = "For convenience, you can save the download to the list now and start it manually once the folder is available again.";
 "add_torrent.review.low_space.title" = "The disk “%1$@” is %2$@ short of space.";
 "add_torrent.review.low_space.title.promised" = "The disk “%1$@” is %2$@ short of space: the downloads now in progress will take another %3$@.";
 "add_torrent.review.low_space.fix.one_file" = "Free up space or choose a folder on another disk, and the Download button will be back in this window.";

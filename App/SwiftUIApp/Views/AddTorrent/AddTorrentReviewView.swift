@@ -2214,7 +2214,36 @@ private struct AddTorrentReviewContent: View {
 
     /// What stands in the way of "Скачать", said in the summary.
     private var summaryMessage: AddTorrentSummaryMessage? {
-        lowSpaceMessage
+        lowSpaceMessage ?? folderUnavailableMessage
+    }
+
+    /// The folder to save to cannot be reached: its disk gives no answer,
+    /// as when the disk is off or the folder has moved. Only once that is
+    /// known, never while the disk is read, so the button does not blink as
+    /// folders change.
+    private var isFolderUnavailable: Bool {
+        guard areSettingsControlsEnabled, availableCapacity == .unavailable else { return false }
+        let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !path.isEmpty
+    }
+
+    /// Names the folder as the window does above its path, then the likely
+    /// causes and every way out.
+    private var folderUnavailableMessage: AddTorrentSummaryMessage? {
+        guard isFolderUnavailable else { return nil }
+        let localeOverride = store.preferences.localeOverride
+        return AddTorrentSummaryMessage(
+            title: L10n.format(
+                "add_torrent.review.folder_unavailable.title",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                ShatlErrorCatalog.shortenedTorrentName(displayedFolderName)
+            ),
+            paragraphs: [
+                L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: localeOverride),
+                L10n.string("add_torrent.review.folder_unavailable.save_for_later", localeOverride: localeOverride),
+            ]
+        )
     }
 
     /// Names the disk and what it lacks, and what downloads writing to it
@@ -2871,10 +2900,15 @@ private struct AddTorrentReviewContent: View {
         }
     }
 
-    /// With no room for the download the button saves it to the list
-    /// instead of starting it, so the window is never a dead end.
+    /// With no room for the download, or no folder to put it in, the button
+    /// saves it to the list instead of starting it, so the window is never a
+    /// dead end.
     private var confirmButton: some View {
-        let savesToList = spaceShortfall != nil
+        let confirmation = AddTorrentConfirmation.decide(
+            lacksSpace: spaceShortfall != nil,
+            folderIsUnavailable: isFolderUnavailable
+        )
+        let savesToList = confirmation != .download
         return ShatlButton(
             title: L10n.string(
                 savesToList ? "add_torrent.review.save_to_list" : "add_torrent.review.confirm",
@@ -2886,10 +2920,11 @@ private struct AddTorrentReviewContent: View {
         ) {
             isAliasFocused = false
             windowFocus.release()
-            if savesToList {
-                store.saveDraftToList()
-            } else {
+            switch confirmation {
+            case .download:
                 store.confirmDraft()
+            case let .saveToList(byChoice):
+                store.saveDraftToList(byChoice: byChoice)
             }
         }
     }

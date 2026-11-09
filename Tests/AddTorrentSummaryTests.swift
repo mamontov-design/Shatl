@@ -226,6 +226,16 @@ final class AddTorrentSummaryTests: XCTestCase {
         XCTAssertEqual(Double(solid.red), Double(seen), accuracy: 0.02)
     }
 
+    /// No room: saved for want of room. The folder out of reach: saved as by
+    /// choice, so its "i" does not claim it lacked room. Room lacking wins,
+    /// though only a folder that answers can say so.
+    func testTheButtonSavesToTheListWhenTheDownloadCannotStart() {
+        XCTAssertEqual(AddTorrentConfirmation.decide(lacksSpace: false, folderIsUnavailable: false), .download)
+        XCTAssertEqual(AddTorrentConfirmation.decide(lacksSpace: true, folderIsUnavailable: false), .saveToList(byChoice: false))
+        XCTAssertEqual(AddTorrentConfirmation.decide(lacksSpace: false, folderIsUnavailable: true), .saveToList(byChoice: true))
+        XCTAssertEqual(AddTorrentConfirmation.decide(lacksSpace: true, folderIsUnavailable: true), .saveToList(byChoice: false))
+    }
+
     // MARK: - Plates
 
     /// A lone "1" or the sparkle stands in a square plate: the set is never
