@@ -122,19 +122,45 @@ final class AddTorrentSummaryTests: XCTestCase {
         XCTAssertEqual(english.total, "1,658")
     }
 
-    /// The size is rounded up and the free space down, as the add window
-    /// always rounded them, each split into its number and unit.
+    /// The size is rounded to the nearest whole number and the free space
+    /// down, each split into its number and unit.
     func testSizeAndFreeSpaceAreSplitAndRoundedEachTheirWay() throws {
-        let summary = groups(selected: 2, total: 3, bytes: 1_200_000_000)
+        let summary = groups(selected: 2, total: 3, bytes: 1_600_000_000)
         let size = try XCTUnwrap(summary.leading.last?.items.first)
         XCTAssertEqual(size.number, "2")
         XCTAssertEqual(size.unit, "ГБ")
+        XCTAssertEqual(try XCTUnwrap(groups(selected: 2, total: 3, bytes: 1_200_000_000).leading.last?.items.first).number, "1")
 
         let free = try XCTUnwrap(summary.trailing.items.first)
         XCTAssertEqual(summary.trailing.title, "Свободно")
         XCTAssertEqual(free.number, "120")
         XCTAssertEqual(free.unit, "ГБ")
         XCTAssertFalse(free.isPending)
+    }
+
+    /// A file of a little over 2 GB showed "2 ГБ" in its row and "3 ГБ" in
+    /// the summary (the owner's screenshot): the row and the summary now
+    /// round one way, by the same switch of precision.
+    func testOneFileAndItsSummaryNameOneSize() throws {
+        for bytes: Int64 in [2_040_000_000, 2_400_000_000, 2_600_000_000, 748_300_000, 999_600_000] {
+            for mode in MetricsPresentationMode.allCases {
+                let row = AddTorrentSummaryByteFormatter.format(bytes, mode: mode, rounding: .nearest, localeOverride: .russian)
+                let summary = AddTorrentSummaryPresentation.groups(
+                    selectedFileCount: 1,
+                    totalFileCount: 1,
+                    selectedBytes: bytes,
+                    freeSpace: .available(120_900_000_000),
+                    mode: mode,
+                    localeOverride: .russian
+                )
+                let size = try XCTUnwrap(summary.leading.last?.items.first)
+                XCTAssertEqual(
+                    [size.number, size.unit].compactMap { $0 }.joined(separator: " "),
+                    row,
+                    "\(bytes) bytes, \(mode)"
+                )
+            }
+        }
     }
 
     /// While the disk is read a spinner stands in the plate; a folder out of

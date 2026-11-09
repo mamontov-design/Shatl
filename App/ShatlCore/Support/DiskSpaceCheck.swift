@@ -37,26 +37,26 @@ nonisolated struct DiskSpaceCheck: Equatable, Codable, Sendable {
         return check.fits ? nil : check
     }
 
-    /// What the downloads writing to the disk will still take, rounded up
-    /// as a size is.
+    /// What the downloads writing to the disk will still take, rounded as a
+    /// size is.
     func promisedText(mode: MetricsPresentationMode, localeOverride: AppLocaleOverride) -> String {
         Self.unbroken(
             AddTorrentSummaryByteFormatter.format(
                 promisedBytes ?? 0,
                 mode: mode,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: localeOverride
             )
         )
     }
 
-    /// The size a text names, rounded up as the add window rounds it.
+    /// The size a text names, rounded as the add window rounds it.
     func neededText(mode: MetricsPresentationMode, localeOverride: AppLocaleOverride) -> String {
         Self.unbroken(
             AddTorrentSummaryByteFormatter.format(
                 neededBytes,
                 mode: mode,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: localeOverride
             )
         )
@@ -82,27 +82,27 @@ nonisolated struct DiskSpaceCheck: Equatable, Codable, Sendable {
     /// What is missing. With rounded numbers it is what the numbers shown
     /// add up to, so "needs 172 GB, 16 GB free" lacks 156 GB and not the 155
     /// the exact bytes would round to, and "needs 60 GB, 100 GB free, 60 GB
-    /// promised" lacks 20 GB.
+    /// promised" lacks 20 GB. When the numbers shown leave nothing missing,
+    /// "needs 2 GB, 2 GB free", it is what the exact bytes lack: "100 MB".
     func shortfallText(mode: MetricsPresentationMode, localeOverride: AppLocaleOverride) -> String {
         let promised = promisedBytes ?? 0
+        let exact = max(0, neededBytes + promised - availableBytes)
         let shortfall: Int64
         switch mode {
         case .detailed:
-            shortfall = max(0, neededBytes + promised - availableBytes)
+            shortfall = exact
         case .simplified:
-            shortfall = max(
-                0,
-                AddTorrentSummaryByteFormatter.roundedBytes(neededBytes, rounding: .up)
-                    + (promised > 0 ? AddTorrentSummaryByteFormatter.roundedBytes(promised, rounding: .up) : 0)
-                    - AddTorrentSummaryByteFormatter.roundedBytes(availableBytes, rounding: .down)
-            )
+            let shown = AddTorrentSummaryByteFormatter.roundedBytes(neededBytes, rounding: .nearest)
+                + (promised > 0 ? AddTorrentSummaryByteFormatter.roundedBytes(promised, rounding: .nearest) : 0)
+                - AddTorrentSummaryByteFormatter.roundedBytes(availableBytes, rounding: .down)
+            shortfall = shown > 0 ? shown : exact
         }
 
         return Self.unbroken(
             AddTorrentSummaryByteFormatter.format(
                 shortfall,
                 mode: mode,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: localeOverride
             )
         )
@@ -149,13 +149,19 @@ nonisolated enum SavedDownloadSpaceStatus: Equatable, Sendable {
 }
 
 nonisolated enum AddTorrentSummaryByteRounding: Sendable {
-    case up
+    /// Sizes: a file, a folder, what is chosen, what is missing.
+    case nearest
+    /// Free space, so the window never promises room that is not there.
     case down
 }
 
-/// Sizes as the add window's summary shows them: whole numbers in the
-/// simplified mode, a size rounded up and free space rounded down, so the
-/// window never promises room that is not there.
+/// Sizes as the add window shows them, in its files and its summary, and
+/// as the texts about a disk's room name them: whole numbers in the
+/// simplified mode, the exact value in the detailed one, as the card's
+/// metrics follow the same switch. A size is rounded to the nearest whole
+/// number, so a file and the summary of that file name one size (the
+/// owner's decision, November 2026; until then the summary rounded up and
+/// the files to a tenth); free space is rounded down.
 nonisolated enum AddTorrentSummaryByteFormatter {
     static func format(
         _ bytes: Int64,
@@ -174,10 +180,10 @@ nonisolated enum AddTorrentSummaryByteFormatter {
     /// The bytes behind the whole number the simplified mode shows.
     static func roundedBytes(_ bytes: Int64, rounding: AddTorrentSummaryByteRounding) -> Int64 {
         let positiveBytes = max(bytes, 0)
-        guard let threshold = unitThresholds.first(where: { Double(positiveBytes) >= $0 }) else {
+        guard let shown = shownValue(positiveBytes, rounding: rounding) else {
             return positiveBytes
         }
-        return Int64(roundedValue(Double(positiveBytes) / threshold, rounding: rounding)) * Int64(threshold)
+        return shown.value * Int64(unitThresholds[shown.unitIndex])
     }
 
     private static func formatSimplified(
@@ -186,18 +192,35 @@ nonisolated enum AddTorrentSummaryByteFormatter {
         localeOverride: AppLocaleOverride
     ) -> String {
         let positiveBytes = max(bytes, 0)
-        guard let unit = units(localeOverride: localeOverride).first(where: { Double(positiveBytes) >= $0.threshold }) else {
+        guard let shown = shownValue(positiveBytes, rounding: rounding) else {
             return metricValue(positiveBytes, unitKey: "unit.byte", fallback: "Б", localeOverride: localeOverride)
         }
 
-        let visibleValue = roundedValue(Double(positiveBytes) / unit.threshold, rounding: rounding)
-        return "\(localizedInteger(visibleValue, localeOverride: localeOverride)) \(unit.label)"
+        let label = units(localeOverride: localeOverride)[shown.unitIndex].label
+        return "\(localizedInteger(shown.value, localeOverride: localeOverride)) \(label)"
+    }
+
+    /// The whole number shown and the index of its unit. A value that rounds
+    /// to 1 000 of its unit is 1 of the next one: "1 ГБ", not "1 000 МБ".
+    private static func shownValue(
+        _ bytes: Int64,
+        rounding: AddTorrentSummaryByteRounding
+    ) -> (value: Int64, unitIndex: Int)? {
+        guard var index = unitThresholds.firstIndex(where: { Double(bytes) >= $0 }) else {
+            return nil
+        }
+        var value = roundedValue(Double(bytes) / unitThresholds[index], rounding: rounding)
+        if value >= 1_000, index > 0 {
+            index -= 1
+            value = roundedValue(Double(bytes) / unitThresholds[index], rounding: rounding)
+        }
+        return (value, index)
     }
 
     private static func roundedValue(_ value: Double, rounding: AddTorrentSummaryByteRounding) -> Int64 {
         switch rounding {
-        case .up:
-            Int64(value.rounded(.up))
+        case .nearest:
+            Int64(value.rounded())
         case .down:
             Int64(value.rounded(.down))
         }

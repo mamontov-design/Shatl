@@ -339,34 +339,18 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         )
     }
 
+    /// A size to the nearest whole number, free space down; a value that
+    /// rounds to 1 000 of its unit is 1 of the next one.
     func testSummaryByteFormatterRoundsSimplifiedValuesByContext() {
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                1_200_000_000,
-                mode: .simplified,
-                rounding: .up,
-                localeOverride: .russian
-            ),
-            "2 ГБ"
-        )
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                1_200_000_000,
-                mode: .simplified,
-                rounding: .down,
-                localeOverride: .russian
-            ),
-            "1 ГБ"
-        )
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                512,
-                mode: .simplified,
-                rounding: .up,
-                localeOverride: .russian
-            ),
-            "512 Б"
-        )
+        func format(_ bytes: Int64, _ rounding: AddTorrentSummaryByteRounding) -> String {
+            AddTorrentSummaryByteFormatter.format(bytes, mode: .simplified, rounding: rounding, localeOverride: .russian)
+        }
+        XCTAssertEqual(format(1_200_000_000, .nearest), "1 ГБ")
+        XCTAssertEqual(format(1_600_000_000, .nearest), "2 ГБ")
+        XCTAssertEqual(format(1_600_000_000, .down), "1 ГБ")
+        XCTAssertEqual(format(999_600_000, .nearest), "1 ГБ")
+        XCTAssertEqual(format(999_600_000, .down), "999 МБ")
+        XCTAssertEqual(format(512, .nearest), "512 Б")
     }
 
     func testSummaryByteFormatterKeepsDetailedModePrecision() {
@@ -376,7 +360,7 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             AddTorrentSummaryByteFormatter.format(
                 bytes,
                 mode: .detailed,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: .russian
             ),
             Metrics.formatBytes(bytes, mode: .detailed, localeOverride: .russian)

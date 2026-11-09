@@ -123,7 +123,8 @@ enum AddTorrentSummaryPresentation {
         )
     }
 
-    /// Rounded up, so the summary never promises the files take less.
+    /// Rounded as the files above it are, so one file and the summary of it
+    /// name one size.
     private static func sizeGroup(
         selectedBytes: Int64,
         mode: MetricsPresentationMode,
@@ -133,7 +134,7 @@ enum AddTorrentSummaryPresentation {
             AddTorrentSummaryByteFormatter.format(
                 selectedBytes,
                 mode: mode,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: localeOverride
             )
         )

@@ -2005,9 +2005,12 @@ private struct AddTorrentReviewContent: View {
         return AddTorrentFileListItem(
             node: node,
             level: row.level,
-            formattedSize: Metrics.formatBytes(
+            // As the summary rounds its size, and by the same switch of
+            // precision: one file and the summary name one size.
+            formattedSize: AddTorrentSummaryByteFormatter.format(
                 node.sizeBytes,
-                mode: .simplified,
+                mode: store.preferences.metricsMode,
+                rounding: .nearest,
                 localeOverride: store.preferences.localeOverride
             ),
             folderSummary: folderSummary(for: node),
