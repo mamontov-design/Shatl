@@ -243,10 +243,13 @@
 "add_torrent.review.alias_placeholder" = "Benennen Sie den Download…";
 "add_torrent.review.confirm" = "Laden";
 "add_torrent.review.save_to_list" = "In Liste sichern";
-"add_torrent.review.low_space.message.many_files" = "Auf dem Datenträger „%1$@“ fehlen %2$@.\nGeben Sie Speicherplatz frei, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
-"add_torrent.review.low_space.message.one_file" = "Auf dem Datenträger „%1$@“ fehlen %2$@.\nGeben Sie Speicherplatz frei oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
-"add_torrent.review.low_space.message.many_files.promised" = "Auf dem Datenträger „%1$@“ fehlen %2$@: Laufende Downloads belegen noch %3$@.\nGeben Sie Speicherplatz frei, stoppen Sie einige davon, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
-"add_torrent.review.low_space.message.one_file.promised" = "Auf dem Datenträger „%1$@“ fehlen %2$@: Laufende Downloads belegen noch %3$@.\nGeben Sie Speicherplatz frei, stoppen Sie einige davon oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.\nSie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
+"add_torrent.review.low_space.title" = "Auf dem Datenträger „%1$@“ fehlen %2$@.";
+"add_torrent.review.low_space.title.promised" = "Auf dem Datenträger „%1$@“ fehlen %2$@: Laufende Downloads belegen noch %3$@.";
+"add_torrent.review.low_space.fix.one_file" = "Geben Sie Speicherplatz frei oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.";
+"add_torrent.review.low_space.fix.many_files" = "Geben Sie Speicherplatz frei, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.";
+"add_torrent.review.low_space.fix.one_file.promised" = "Geben Sie Speicherplatz frei, stoppen Sie einige davon oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.";
+"add_torrent.review.low_space.fix.many_files.promised" = "Geben Sie Speicherplatz frei, stoppen Sie einige davon, wählen Sie einige Dateien ab oder wählen Sie einen Ordner auf einem anderen Datenträger – dann erscheint die Schaltfläche „Laden“ in diesem Fenster wieder.";
+"add_torrent.review.low_space.save_for_later" = "Sie können den Download auch jetzt in der Liste sichern und manuell starten, sobald Platz frei ist.";
 "add_torrent.review.close" = "Fenster schließen";
 "add_torrent.review.show_in_list" = "In Liste zeigen";
 "add_torrent.review.summary.selected_files" = "Dateien ausgewählt";

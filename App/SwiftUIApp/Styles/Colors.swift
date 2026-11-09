@@ -88,10 +88,6 @@ enum ShatlColor {
     static let cardOutlineSelectedMonochrome = accentMonochrome.opacity(0.75)
     static let cardOutlineError = Color(light: ShatlPalette.red8, dark: ShatlPalette.redDarkA8)
 
-    /// The fill of a message that needs attention now, under white text:
-    /// no room for a download in the add window.
-    static let errorSolidBackground = Color(light: ShatlPalette.red9, dark: ShatlPalette.redDark9)
-
     /// The line message under the toolbar is inverted: in light it takes
     /// the dark scale, in dark the light one.
     static let lineMessageBackground = Color(light: ShatlPalette.grayDark3, dark: ShatlPalette.gray3)

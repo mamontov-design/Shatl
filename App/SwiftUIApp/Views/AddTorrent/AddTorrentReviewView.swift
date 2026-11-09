@@ -463,10 +463,10 @@ enum AddTorrentReviewLayout {
         if #available(macOS 27.0, *) { 12 } else { 8 }
     }
     /// The summary card grows with the files' side up to this width, then
-    /// stands in the middle of it as the window is widened further: 496 pt,
+    /// stands in the middle of it as the window is widened further: 396 pt,
     /// and 404 pt on macOS 26 (the owner's measures, November 2026).
     static var summaryMaximumWidth: CGFloat {
-        if #available(macOS 27.0, *) { 496 } else { 404 }
+        if #available(macOS 27.0, *) { 396 } else { 404 }
     }
 
     static let standardListItemHeight: CGFloat = 32
@@ -497,13 +497,14 @@ enum AddTorrentReviewLayout {
     /// Around the numbers, inside the row, as around a card's expanded
     /// metrics.
     static let summaryMetricsPadding: CGFloat = 6
-    /// The low-space message sits inside the summary, this far from its edges
-    /// and from the numbers below it.
+    /// A message in the summary sits this far from the card's edges.
     static let summaryMessageInset: CGFloat = summaryContentInset
-    static let summaryMessagePadding: CGFloat = 8
-    static var summaryMessageCornerRadius: CGFloat {
-        ShatlCornerRadius.nested(in: summaryCornerRadius, inset: summaryMessageInset)
-    }
+    /// Between a message in the summary and the row of numbers under it.
+    static let summaryMessageGap: CGFloat = 10
+    /// The card's top corners above a message: the message's own corner
+    /// and the room around it, so the two curves keep one gap.
+    static let summaryCornerRadiusAboveMessage: CGFloat =
+        ShatlMessageBlockPrimary.cornerRadius + summaryMessageInset
     static let freeSpaceRefreshInterval = Duration.seconds(2)
     static let filesVerticalPadding: CGFloat = 4
     /// A group's title, the gap under it and a metric plate.
@@ -1040,7 +1041,7 @@ private struct AddTorrentReviewContent: View {
     @State private var sameDiskFolders: Set<String> = []
     /// The low-space message's height as laid out: the summary's plate grows
     /// by it, and the file list leaves as much room under its last row.
-    @State private var lowSpaceMessageHeight: CGFloat = 0
+    @State private var summaryMessageHeight: CGFloat = 0
     #if DEBUG
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
     #endif
@@ -1756,7 +1757,7 @@ private struct AddTorrentReviewContent: View {
         .padding(.horizontal, 24)
         .padding(
             .bottom,
-            AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile) + lowSpaceExtraHeight
+            AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile) + summaryExtraHeight
         )
         .allowsHitTesting(false)
     }
@@ -1777,7 +1778,7 @@ private struct AddTorrentReviewContent: View {
                 .padding(
                     .bottom,
                     AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
-                        + lowSpaceExtraHeight
+                        + summaryExtraHeight
                 )
             }
             .scrollIndicators(.hidden)
@@ -2053,7 +2054,7 @@ private struct AddTorrentReviewContent: View {
             .frame(maxWidth: .infinity)
 
         // The numbers are what the summary is laid out by, and they never
-        // move. The card behind them grows upward for the low-space message
+        // move. The card behind them grows upward for a message
         // the way a card grows for its expanded metrics: the height changes
         // smoothly while the message scales up and fades in, cut by the
         // card's shape. Stacked above the numbers, the message made the
@@ -2061,11 +2062,12 @@ private struct AddTorrentReviewContent: View {
         return metrics
             .background {
                 summaryCard
-                    .padding(.top, -lowSpaceExtraHeight)
-                    .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
+                    .padding(.top, -summaryExtraHeight)
+                    .animation(ShatlMotion.cardLayout, value: summaryMessage != nil)
+                    .animation(ShatlMotion.cardLayout, value: summaryExtraHeight)
             }
             .overlay(alignment: .bottom) {
-                lowSpaceMessageLayer
+                summaryMessageLayer
             }
             // The card and its message stop growing here; the files' side
             // keeps the card in its middle.
@@ -2077,16 +2079,16 @@ private struct AddTorrentReviewContent: View {
     /// under it, and through a card's nearly clear dark fill they showed
     /// (the owner's check, November 2026).
     private var summaryCard: some View {
-        torrentSummaryShape
+        summaryShape
             .fill(ShatlColor.cardBackgroundSolid)
             .overlay {
-                torrentSummaryShape
+                summaryShape
                     .strokeBorder(
                         ShatlColor.cardOutlineDefault,
                         lineWidth: AddTorrentReviewLayout.summaryOutlineWidth
                     )
             }
-            .shatlOutsideShadow(ShatlShadow.summary, in: torrentSummaryShape)
+            .shatlOutsideShadow(ShatlShadow.summary, in: summaryShape)
     }
 
     /// The numbers held for the download on screen (`followSummary`), and
@@ -2126,50 +2128,61 @@ private struct AddTorrentReviewContent: View {
         }
     }
 
-    /// The message in a box as tall as the plate at its fullest, standing on
+    /// The message in a box as tall as the card at its fullest, standing on
     /// the summary's bottom edge. The box keeps its size as the message comes
     /// and goes, so a message on its way out stays where it was; inside the
-    /// plate itself it rode the plate's falling top edge down over the
-    /// numbers. A mask the shape of the plate cuts the message as the plate
+    /// card itself it rode the card's falling top edge down over the
+    /// numbers. A mask the shape of the card cuts the message as the card
     /// grows and shrinks.
-    private var lowSpaceMessageLayer: some View {
+    private var summaryMessageLayer: some View {
         let rowHeight = AddTorrentReviewLayout.summaryRowHeight(for: typographyProfile)
 
         return Color.clear
             .frame(
                 height: rowHeight
-                    + lowSpaceMessageHeight
-                    + AddTorrentReviewLayout.summaryMessageInset
+                    + summaryMessageHeight
+                    + AddTorrentReviewLayout.summaryMessageGap
             )
             .overlay(alignment: .bottom) {
-                if let lowSpaceMessage {
-                    lowSpaceMessageBlock(lowSpaceMessage)
-                        .onGeometryChange(for: CGFloat.self) { geometry in
-                            geometry.size.height
-                        } action: { height in
-                            lowSpaceMessageHeight = height
-                        }
-                        .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
-                        // Right above the numbers.
-                        .padding(.bottom, rowHeight)
-                        .transition(ShatlMotion.appearFromTop)
+                if let summaryMessage {
+                    ShatlMessageBlockPrimary(
+                        title: summaryMessage.title,
+                        paragraphs: summaryMessage.paragraphs,
+                        tone: .error,
+                        width: nil,
+                        changesPartsInTurn: true
+                    )
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        summaryMessageHeight = height
+                    }
+                    .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
+                    // Above the numbers' row, a gap apart.
+                    .padding(
+                        .bottom,
+                        rowHeight
+                            - AddTorrentReviewLayout.summaryContentInset
+                            + AddTorrentReviewLayout.summaryMessageGap
+                    )
+                    .transition(ShatlMotion.appearFromTop)
                 }
             }
             .mask(alignment: .bottom) {
-                torrentSummaryShape
-                    .frame(height: rowHeight + lowSpaceExtraHeight)
+                summaryShape
+                    .frame(height: rowHeight + summaryExtraHeight)
             }
             .allowsHitTesting(false)
-            .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
-            .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
+            .animation(ShatlMotion.cardLayout, value: summaryMessage != nil)
+            .animation(ShatlMotion.cardLayout, value: summaryExtraHeight)
     }
 
-    /// How far the plate reaches above the numbers: the message and the gap
-    /// between it and the plate's top edge.
-    private var lowSpaceExtraHeight: CGFloat {
-        lowSpaceMessage == nil
+    /// How far the card reaches above the numbers: the message and the gap
+    /// under it; the card's own room above the message is in the row.
+    private var summaryExtraHeight: CGFloat {
+        summaryMessage == nil
             ? 0
-            : lowSpaceMessageHeight + AddTorrentReviewLayout.summaryMessageInset
+            : summaryMessageHeight + AddTorrentReviewLayout.summaryMessageGap
     }
 
     /// The selected files do not fit on the disk they are to be saved to.
@@ -2199,62 +2212,71 @@ private struct AddTorrentReviewContent: View {
         return store.promisedBytes(inFolders: sameDiskFolders.union([PromisedDiskSpace.folderKey(path)]))
     }
 
+    /// What stands in the way of "Скачать", said in the summary.
+    private var summaryMessage: AddTorrentSummaryMessage? {
+        lowSpaceMessage
+    }
+
     /// Names the disk and what it lacks, and what downloads writing to it
     /// will take, then every way out; unticking files is one of them only
     /// when more than one is ticked, stopping downloads only when some write.
-    private var lowSpaceMessage: String? {
+    /// Each a part of its own, so they change one after another.
+    private var lowSpaceMessage: AddTorrentSummaryMessage? {
         guard let spaceShortfall = shownSpaceShortfall else { return nil }
         let localeOverride = store.preferences.localeOverride
         let mode = store.preferences.metricsMode
         let volumeName = ShatlErrorCatalog.shortenedTorrentName(spaceShortfall.volumeName)
         let shortfall = spaceShortfall.shortfallText(mode: mode, localeOverride: localeOverride)
         let severalFiles = summaryCounts.selectedFileCount > 1
+        let isPromised = spaceShortfall.promisedBytes != nil
 
-        guard spaceShortfall.promisedBytes != nil else {
-            return L10n.format(
-                severalFiles
-                    ? "add_torrent.review.low_space.message.many_files"
-                    : "add_torrent.review.low_space.message.one_file",
+        let title = isPromised
+            ? L10n.format(
+                "add_torrent.review.low_space.title.promised",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                volumeName,
+                shortfall,
+                spaceShortfall.promisedText(mode: mode, localeOverride: localeOverride)
+            )
+            : L10n.format(
+                "add_torrent.review.low_space.title",
                 localeOverride: localeOverride,
                 defaultValue: "",
                 volumeName,
                 shortfall
             )
+        let fix = switch (isPromised, severalFiles) {
+        case (false, false):
+            L10n.string("add_torrent.review.low_space.fix.one_file", localeOverride: localeOverride)
+        case (false, true):
+            L10n.string("add_torrent.review.low_space.fix.many_files", localeOverride: localeOverride)
+        case (true, false):
+            L10n.string("add_torrent.review.low_space.fix.one_file.promised", localeOverride: localeOverride)
+        case (true, true):
+            L10n.string("add_torrent.review.low_space.fix.many_files.promised", localeOverride: localeOverride)
         }
-        return L10n.format(
-            severalFiles
-                ? "add_torrent.review.low_space.message.many_files.promised"
-                : "add_torrent.review.low_space.message.one_file.promised",
-            localeOverride: localeOverride,
-            defaultValue: "",
-            volumeName,
-            shortfall,
-            spaceShortfall.promisedText(mode: mode, localeOverride: localeOverride)
+
+        return AddTorrentSummaryMessage(
+            title: title,
+            paragraphs: [
+                fix,
+                L10n.string("add_torrent.review.low_space.save_for_later", localeOverride: localeOverride),
+            ]
         )
     }
 
-    private func lowSpaceMessageBlock(_ message: String) -> some View {
-        Text(message)
-            .shatlTypography(ShatlTypography.captionRegular)
-            .foregroundStyle(Color.white)
-            .contentTransition(.numericText())
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(AddTorrentReviewLayout.summaryMessagePadding)
-            .background(ShatlColor.errorSolidBackground)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: AddTorrentReviewLayout.summaryMessageCornerRadius,
-                    style: .continuous
-                )
-            )
-            .animation(ShatlMotion.metricResize, value: message)
-            .accessibilityAddTraits(.isStaticText)
-    }
-
-    private var torrentSummaryShape: RoundedRectangle {
-        RoundedRectangle(
-            cornerRadius: AddTorrentReviewLayout.summaryCornerRadius,
+    /// Rounded as a download card is; with a message, its top corners
+    /// follow the message's, the card's room around it apart.
+    private var summaryShape: UnevenRoundedRectangle {
+        let top = summaryMessage == nil
+            ? AddTorrentReviewLayout.summaryCornerRadius
+            : AddTorrentReviewLayout.summaryCornerRadiusAboveMessage
+        return UnevenRoundedRectangle(
+            topLeadingRadius: top,
+            bottomLeadingRadius: AddTorrentReviewLayout.summaryCornerRadius,
+            bottomTrailingRadius: AddTorrentReviewLayout.summaryCornerRadius,
+            topTrailingRadius: top,
             style: .continuous
         )
     }

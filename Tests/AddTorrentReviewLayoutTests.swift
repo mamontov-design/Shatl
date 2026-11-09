@@ -149,9 +149,10 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
     func testNestedCornersFollowTheWindowCorner() {
         XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, TorrentCardLayout.cornerRadius)
         XCTAssertEqual(AddTorrentReviewLayout.summaryMessageInset, 6)
+        // Above a message the card's top corners follow the message's.
         XCTAssertEqual(
-            AddTorrentReviewLayout.summaryMessageCornerRadius + AddTorrentReviewLayout.summaryMessageInset,
-            AddTorrentReviewLayout.summaryCornerRadius
+            AddTorrentReviewLayout.summaryCornerRadiusAboveMessage,
+            ShatlMessageBlockPrimary.cornerRadius + AddTorrentReviewLayout.summaryMessageInset
         )
         if #unavailable(macOS 27.0) {
             XCTAssertEqual(
@@ -173,7 +174,7 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             XCTAssertEqual(ShatlCornerRadius.window, 16)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
             XCTAssertEqual(AddTorrentReviewLayout.summaryInset, 12)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 496)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 396)
         } else {
             XCTAssertEqual(ShatlCornerRadius.window, 26)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 18)
@@ -181,7 +182,8 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 404)
         }
         XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 18)
-        XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 12)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadiusAboveMessage, 24)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryMessageGap, 10)
         XCTAssertEqual(AddTorrentReviewLayout.leftColumnOutlineWidth, 1)
         XCTAssertEqual(AddTorrentReviewLayout.summaryOutlineWidth, 0.5)
         XCTAssertEqual(AddTorrentReviewLayout.summaryContentInset, 6)

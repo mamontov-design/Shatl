@@ -243,10 +243,13 @@
 "add_torrent.review.alias_placeholder" = "Nommer le téléchargement…";
 "add_torrent.review.confirm" = "Télécharger";
 "add_torrent.review.save_to_list" = "Enregistrer dans la liste";
-"add_torrent.review.low_space.message.many_files" = "Il manque %2$@ sur le disque « %1$@ ».\nLibérez de l’espace, décochez certains fichiers ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.\nVous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
-"add_torrent.review.low_space.message.one_file" = "Il manque %2$@ sur le disque « %1$@ ».\nLibérez de l’espace ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.\nVous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
-"add_torrent.review.low_space.message.many_files.promised" = "Il manque %2$@ sur le disque « %1$@ » : les téléchargements en cours occuperont encore %3$@.\nLibérez de l’espace, arrêtez-en quelques-uns, décochez certains fichiers ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.\nVous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
-"add_torrent.review.low_space.message.one_file.promised" = "Il manque %2$@ sur le disque « %1$@ » : les téléchargements en cours occuperont encore %3$@.\nLibérez de l’espace, arrêtez-en quelques-uns ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.\nVous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
+"add_torrent.review.low_space.title" = "Il manque %2$@ sur le disque « %1$@ ».";
+"add_torrent.review.low_space.title.promised" = "Il manque %2$@ sur le disque « %1$@ » : les téléchargements en cours occuperont encore %3$@.";
+"add_torrent.review.low_space.fix.one_file" = "Libérez de l’espace ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.";
+"add_torrent.review.low_space.fix.many_files" = "Libérez de l’espace, décochez certains fichiers ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.";
+"add_torrent.review.low_space.fix.one_file.promised" = "Libérez de l’espace, arrêtez-en quelques-uns ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.";
+"add_torrent.review.low_space.fix.many_files.promised" = "Libérez de l’espace, arrêtez-en quelques-uns, décochez certains fichiers ou choisissez un dossier sur un autre disque : le bouton « Télécharger » reviendra dans cette même fenêtre.";
+"add_torrent.review.low_space.save_for_later" = "Vous pouvez aussi enregistrer le téléchargement dans la liste maintenant et le démarrer manuellement une fois l’espace libéré.";
 "add_torrent.review.close" = "Fermer la fenêtre";
 "add_torrent.review.show_in_list" = "Afficher dans la liste";
 "add_torrent.review.summary.selected_files" = "Fichiers sélectionnés";

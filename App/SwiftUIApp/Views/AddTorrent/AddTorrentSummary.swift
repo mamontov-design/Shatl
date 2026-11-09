@@ -12,6 +12,13 @@ enum AddTorrentFreeSpace: Equatable {
     case unavailable
 }
 
+/// What stands in the way of "Скачать", said in the summary above its
+/// numbers: a title and paragraphs, each a part that changes on its own.
+struct AddTorrentSummaryMessage: Equatable {
+    var title: String
+    var paragraphs: [String]
+}
+
 /// What the add window's summary shows, laid out as a download card lays out
 /// its expanded metrics: the files chosen and their size on the left, the
 /// free space on the right.
