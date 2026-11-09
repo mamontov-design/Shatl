@@ -447,7 +447,7 @@ private func addTorrentDiagnosticsNumber(_ value: CGFloat) -> String {
 #endif
 
 enum AddTorrentReviewLayout {
-    static let minimumWindowWidth: CGFloat = 780
+    static let minimumWindowWidth: CGFloat = 800
     static let minimumWindowHeight: CGFloat = 570
     static let settingsColumnWidth: CGFloat = 380
     /// The window's corners are rounder on macOS 26: the buttons and cards
@@ -461,6 +461,12 @@ enum AddTorrentReviewLayout {
     /// corner leaves the card's corner one gap all round.
     static var summaryInset: CGFloat {
         if #available(macOS 27.0, *) { 12 } else { 8 }
+    }
+    /// The summary card grows with the files' side up to this width, then
+    /// stands in the middle of it as the window is widened further: 496 pt,
+    /// and 404 pt on macOS 26 (the owner's measures, November 2026).
+    static var summaryMaximumWidth: CGFloat {
+        if #available(macOS 27.0, *) { 496 } else { 404 }
     }
 
     static let standardListItemHeight: CGFloat = 32
@@ -2061,6 +2067,9 @@ private struct AddTorrentReviewContent: View {
             .overlay(alignment: .bottom) {
                 lowSpaceMessageLayer
             }
+            // The card and its message stop growing here; the files' side
+            // keeps the card in its middle.
+            .frame(maxWidth: AddTorrentReviewLayout.summaryMaximumWidth)
     }
 
     /// A download card's outline and corner, with a shadow of its own seen

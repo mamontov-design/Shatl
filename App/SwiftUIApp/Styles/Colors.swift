@@ -627,10 +627,11 @@ enum ShatlShadow {
         )
     )
 
-    /// Under the add window's summary card: `shadowSummary` in Figma.
+    /// Under the add window's summary card: `shadowSummary` in Figma. In
+    /// light 14 % since the owner's check in November 2026 (10 % before).
     static let summary = ShatlShadowToken(
         light: ShatlShadowAppearance(
-            primary: ShatlShadowLayer(opacity: 0.10, radius: 4)
+            primary: ShatlShadowLayer(opacity: 0.14, radius: 4)
         ),
         dark: ShatlShadowAppearance(
             primary: ShatlShadowLayer(opacity: 0.24, radius: 4)

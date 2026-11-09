@@ -164,7 +164,7 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
     }
 
     func testWindowAndSplitLayoutMetricsMatchReviewDesign() {
-        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 780)
+        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 800)
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowHeight, 570)
         XCTAssertEqual(AddTorrentReviewLayout.settingsColumnWidth, 380)
         // macOS 26 rounds window corners more: the column keeps more room
@@ -173,10 +173,12 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             XCTAssertEqual(ShatlCornerRadius.window, 16)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
             XCTAssertEqual(AddTorrentReviewLayout.summaryInset, 12)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 496)
         } else {
             XCTAssertEqual(ShatlCornerRadius.window, 26)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 18)
             XCTAssertEqual(AddTorrentReviewLayout.summaryInset, 8)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 404)
         }
         XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 18)
         XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 12)
