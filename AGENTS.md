@@ -69,6 +69,12 @@ something new shows a part listed here, add the place to its line.
   low-space text (`AddTorrentSummaryByteFormatter`, `DiskSpaceCheck`); the
   "Точность значений" popover, whose examples must be what the formatter
   shows; README ("simplified metrics").
+- Metric plates (`ShatlMetricSet`, `ShatlMetricItem`, `ShatlMetricGroup`):
+  the card's speed set and expanded groups, the demo cards, and the add
+  window's summary (`AddTorrentSummaryMetrics`), which also shows counts
+  ("1 из 2", `of` / `total`) and a spinner (`isPending`); Figma
+  `components / metric / metric-set` and `metric-item` (`Type=Value` /
+  `Count`).
 - Speed levels (`TransferSpeedLevel` thresholds): the card's speed icons and
   colours, the speed-colour legend in Settings (derived from the code), and
   the descriptions of Figma's `speed/badge/*` tokens, which name the
@@ -211,8 +217,10 @@ something new shows a part listed here, add the place to its line.
   drawn upside down (the owner's recordings, September and October 2026).
   The files come out from under a cover of the window's own colour and go
   back under it, which is why the add window has a fixed background
-  (`ShatlColor.backgroundAddWindow`) and not the system's, tinted by the
-  wallpaper. `AddTorrentReviewAppearanceTests` watches where the labels sit.
+  (`ShatlColor.backgroundWindow`) and not the system's, tinted by the
+  wallpaper. The files' half is a step darker (`backgroundAddWindow`) and
+  shows from under the same cover. `AddTorrentReviewAppearanceTests`
+  watches where the labels sit.
 - Colours follow Figma. `ShatlPalette` (`Palette.swift`) holds the Radix
   values of Figma's Palette collection, `ShatlColor` (`Colors.swift`) the
   tokens of its UI collection under their iOS code syntax names, each a
