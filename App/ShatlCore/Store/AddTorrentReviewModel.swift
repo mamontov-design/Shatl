@@ -142,6 +142,15 @@ final class AddTorrentReviewModel: ObservableObject {
         currentItem?.duplicateID
     }
 
+    /// Whether "Не скачивать" asks before the download on screen leaves:
+    /// only when there is work in it, by the same rule as closing the
+    /// window (`Item.isEdited`: its files, folder, alias or "Остановить
+    /// раздачу"). An untouched one leaves at once: among several, a question
+    /// for each was tiresome (the owner's use, November 2026).
+    var asksBeforeSkippingCurrent: Bool {
+        currentItem?.isEdited ?? false
+    }
+
     /// `nil` when closing loses nothing worth a question.
     var closingLoss: ClosingLoss? {
         let waiting = items.filter { Self.canStillBeAdded($0.draft) }

@@ -2871,11 +2871,17 @@ private struct AddTorrentReviewContent: View {
         .keyboardShortcut(.cancelAction)
     }
 
-    /// "Не скачивать" among several downloads asks first; see
-    /// `AddTorrentSkipQuestion`. A download with no file ticked cannot be
-    /// kept in the list, so it is only asked whether to let it go.
+    /// "Не скачивать" among several downloads asks first when there is work
+    /// in the download on screen (`asksBeforeSkippingCurrent`); see
+    /// `AddTorrentSkipQuestion`. An untouched one leaves at once. A download
+    /// with no file ticked cannot be kept in the list, so it is only asked
+    /// whether to let it go.
     private func askToSkipCurrentDownload() {
         guard let draft = review.draft else { return }
+        guard review.asksBeforeSkippingCurrent else {
+            skipCurrentDownload()
+            return
+        }
         let canSave = draft.canConfirmDownload
         isAliasFocused = false
         windowFocus.release()

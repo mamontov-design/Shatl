@@ -348,6 +348,39 @@ final class AddTorrentQueueTests: XCTestCase {
         XCTAssertNil(review.closingLoss, "The alias is as it came")
     }
 
+    /// "Не скачивать" asks only about the download on screen, and only when
+    /// there is work in it: among several untouched downloads each leaves at
+    /// once, though closing the window with them still asks.
+    func testSkippingAsksOnlyWhenTheDownloadOnScreenHasWorkInIt() async throws {
+        let (_, bundle) = await makeBundle()
+        let review = bundle.store.addTorrentReview
+        open(["Alpha", "Bravo"], in: bundle.store)
+        let areReady = await waitUntilReady(review, count: 2)
+        XCTAssertTrue(areReady)
+        XCTAssertEqual(review.position, 1)
+        XCTAssertFalse(review.asksBeforeSkippingCurrent, "An untouched download leaves at once")
+        XCTAssertNotNil(review.closingLoss, "Closing the window with two still asks")
+
+        let draft = try XCTUnwrap(bundle.store.currentAddTorrentDraft)
+        let file = try XCTUnwrap(draft.files.first)
+        bundle.store.setDraftFileSelection(id: file.id, isSelected: !file.isSelected)
+        XCTAssertTrue(review.asksBeforeSkippingCurrent, "Its files were changed")
+        bundle.store.setDraftFileSelection(id: file.id, isSelected: file.isSelected)
+        XCTAssertFalse(review.asksBeforeSkippingCurrent, "The files are as they came")
+
+        bundle.store.updateDraftStopAfterDownload(!draft.stopAfterDownload)
+        XCTAssertTrue(review.asksBeforeSkippingCurrent, "The switch was changed")
+        bundle.store.updateDraftStopAfterDownload(draft.stopAfterDownload)
+
+        bundle.store.updateDraftAlias("Mine")
+        XCTAssertTrue(review.asksBeforeSkippingCurrent, "An alias was typed")
+
+        // The other download's work is not this one's.
+        bundle.store.skipCurrentDraft()
+        XCTAssertEqual(bundle.store.currentAddTorrentDraft?.originalName, "Bravo")
+        XCTAssertFalse(review.asksBeforeSkippingCurrent)
+    }
+
     func testTwoUntouchedDownloadsAskAndABrokenOneDoesNotCount() async throws {
         let (engine, bundle) = await makeBundle()
         await engine.setPrepareError(
