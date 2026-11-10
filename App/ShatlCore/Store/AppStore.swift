@@ -974,6 +974,15 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         debugInflatesPromisedSpace.toggle()
     }
 
+    /// Debug menu: a disk answers only after two seconds, so the spinner
+    /// the add window's summary shows while it reads the free space can be
+    /// seen.
+    @Published private(set) var debugSlowsDiskSpaceReading = false
+
+    func toggleSlowDiskSpaceReadingForDebug() {
+        debugSlowsDiskSpaceReading.toggle()
+    }
+
     /// Debug menu: the main window shows the empty list in place of the
     /// real one, which goes on as it is. Nothing is saved, so a relaunch
     /// shows the list again. The selection is cleared, or the Downloads
@@ -1534,6 +1543,11 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// The free space of the disk `path` is on, as Finder counts it; `nil`
     /// when the folder cannot be reached. Asks the system once.
     func diskSpace(atPath path: String) async -> DiskSpaceInfo? {
+        #if DEBUG
+        if debugSlowsDiskSpaceReading {
+            try? await Task.sleep(for: .seconds(2))
+        }
+        #endif
         guard var info = await diskSpaceReader.diskSpace(atPath: path) else { return nil }
         #if DEBUG
         if debugSimulatesLowDiskSpace {

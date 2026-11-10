@@ -261,50 +261,6 @@ enum AddTorrentTextSegmentSpacing {
     }
 }
 
-enum AddTorrentNumericTextSegmentation {
-    static func segments(in value: String) -> [AddTorrentTextSegment] {
-        var segments: [AddTorrentTextSegment] = []
-        var buffer = ""
-        var currentKind: AddTorrentTextSegment.Kind?
-        var textIndex = 0
-        var numberIndex = 0
-
-        func appendBuffer() {
-            guard let currentKind, !buffer.isEmpty else { return }
-            let isNumber = currentKind == .number
-            let index = isNumber ? numberIndex : textIndex
-            segments.append(
-                AddTorrentTextSegment(
-                    id: "\(isNumber ? "number" : "text")-\(index)",
-                    kind: currentKind,
-                    value: buffer,
-                    animatesNumericChange: isNumber
-                )
-            )
-            if isNumber {
-                numberIndex += 1
-            } else {
-                textIndex += 1
-            }
-            buffer = ""
-        }
-
-        for character in value {
-            let kind: AddTorrentTextSegment.Kind = character.isNumber ? .number : .text
-            if let currentKind, currentKind != kind {
-                appendBuffer()
-            }
-            currentKind = kind
-            buffer.append(character)
-        }
-        appendBuffer()
-
-        return AddTorrentTextSegmentSpacing.movingTrailingWhitespaceToFollowingNumber(
-            in: segments
-        )
-    }
-}
-
 private struct AddTorrentFolderSummary: Equatable {
     enum Mode: Hashable {
         case noneSelected
@@ -491,7 +447,7 @@ private func addTorrentDiagnosticsNumber(_ value: CGFloat) -> String {
 #endif
 
 enum AddTorrentReviewLayout {
-    static let minimumWindowWidth: CGFloat = 780
+    static let minimumWindowWidth: CGFloat = 800
     static let minimumWindowHeight: CGFloat = 570
     static let settingsColumnWidth: CGFloat = 380
     /// The window's corners are rounder on macOS 26: the buttons and cards
@@ -500,8 +456,18 @@ enum AddTorrentReviewLayout {
         if #available(macOS 27.0, *) { 12 } else { 18 }
     }
     static let leftColumnOutlineWidth: CGFloat = 1
-    static let summaryContainerHorizontalPadding: CGFloat = 6
-    static let summaryContainerBottomPadding: CGFloat = 6
+    /// The summary card's distance from the window's edges, below and at
+    /// the sides: 12 pt, and 8 pt on macOS 26, where the window's rounder
+    /// corner leaves the card's corner one gap all round.
+    static var summaryInset: CGFloat {
+        if #available(macOS 27.0, *) { 12 } else { 8 }
+    }
+    /// The summary card grows with the files' side up to this width, then
+    /// stands in the middle of it as the window is widened further: 396 pt,
+    /// and 404 pt on macOS 26 (the owner's measures, November 2026).
+    static var summaryMaximumWidth: CGFloat {
+        if #available(macOS 27.0, *) { 396 } else { 404 }
+    }
 
     static let standardListItemHeight: CGFloat = 32
     static let cjkListItemHeight: CGFloat = 34
@@ -521,28 +487,29 @@ enum AddTorrentReviewLayout {
     static let hoverAreaSpacing: CGFloat = 4
     static let hoverAreaPadding: CGFloat = 6
     static let hoverAreaCornerRadius: CGFloat = 8
-    /// The summary's corner follows the window's: 10 pt, and 20 pt on
-    /// macOS 26, where windows are rounder.
-    static var summaryCornerRadius: CGFloat {
-        ShatlCornerRadius.nested(
-            in: ShatlCornerRadius.window,
-            inset: summaryContainerHorizontalPadding
-        )
-    }
-    static let summaryHorizontalPadding: CGFloat = 6
-    static let summaryVerticalPadding: CGFloat = 12
-    static let summarySpacing: CGFloat = 24
-    /// The low-space message sits inside the summary, this far from its edges
-    /// and from the numbers below it.
-    static let summaryMessageInset: CGFloat = 6
-    static let summaryMessagePadding: CGFloat = 8
-    static var summaryMessageCornerRadius: CGFloat {
-        ShatlCornerRadius.nested(in: summaryCornerRadius, inset: summaryMessageInset)
-    }
+    /// The summary is a card, rounded as a download card is, on both
+    /// systems.
+    static let summaryCornerRadius: CGFloat = TorrentCardLayout.cornerRadius
+    static let summaryOutlineWidth: CGFloat = 0.5
+    /// Between the card's edge and what it holds: the message and the row
+    /// of numbers.
+    static let summaryContentInset: CGFloat = 6
+    /// Around the numbers, inside the row, as around a card's expanded
+    /// metrics.
+    static let summaryMetricsPadding: CGFloat = 6
+    /// A message in the summary sits this far from the card's edges.
+    static let summaryMessageInset: CGFloat = summaryContentInset
+    /// Between a message in the summary and the row of numbers under it.
+    static let summaryMessageGap: CGFloat = 10
+    /// The card's top corners above a message: the message's own corner
+    /// and the room around it, so the two curves keep one gap.
+    static let summaryCornerRadiusAboveMessage: CGFloat =
+        ShatlMessageBlockPrimary.cornerRadius + summaryMessageInset
     static let freeSpaceRefreshInterval = Duration.seconds(2)
     static let filesVerticalPadding: CGFloat = 4
-    static let standardSummaryContentHeight: CGFloat = 29
-    static let cjkSummaryContentHeight: CGFloat = 33
+    /// A group's title, the gap under it and a metric plate.
+    static let standardSummaryMetricsHeight: CGFloat = 44
+    static let cjkSummaryMetricsHeight: CGFloat = 46
 
     static func listItemHeight(
         for profile: ShatlTypographyProfile,
@@ -569,22 +536,24 @@ enum AddTorrentReviewLayout {
         }
     }
 
-    static func summaryContentHeight(for profile: ShatlTypographyProfile) -> CGFloat {
+    static func summaryMetricsHeight(for profile: ShatlTypographyProfile) -> CGFloat {
         switch profile {
         case .standard:
-            standardSummaryContentHeight
+            standardSummaryMetricsHeight
         case .cjk:
-            cjkSummaryContentHeight
+            cjkSummaryMetricsHeight
         }
     }
 
-    /// The numbers of the summary with the room above and below them.
+    /// The numbers of the summary with the card's room above and below
+    /// them: the card's height without a message.
     static func summaryRowHeight(for profile: ShatlTypographyProfile) -> CGFloat {
-        summaryContentHeight(for: profile) + summaryVerticalPadding * 2
+        summaryMetricsHeight(for: profile) + (summaryContentInset + summaryMetricsPadding) * 2
     }
 
+    /// How much of the files the summary covers, with the gap under it.
     static func summaryOverlayHeight(for profile: ShatlTypographyProfile) -> CGFloat {
-        summaryRowHeight(for: profile) + summaryContainerBottomPadding
+        summaryRowHeight(for: profile) + summaryInset
     }
 
     static func leadingPadding(isFolder: Bool, level: Int) -> CGFloat {
@@ -601,12 +570,6 @@ enum AddTorrentReviewLayout {
         return (0..<level).map { guideIndex in
             guideIndex == level - 1 ? nearestHierarchyGuideWidth : hierarchyGuideWidth
         }
-    }
-}
-
-enum AddTorrentSummaryPresentation {
-    static func showsSelectionMetrics(selectedFileCount: Int) -> Bool {
-        selectedFileCount >= 4
     }
 }
 
@@ -808,8 +771,10 @@ private struct AddTorrentFileListItem<SelectionControl: View>: View {
             .background {
                 hoverAreaShape
                     .fill(
+                        // A step darker than the files' ground, which is
+                        // itself a step darker than the window.
                         isHovered && !isPinned
-                            ? ShatlColor.backgroundPrimary
+                            ? ShatlColor.backgroundSecondary
                             : Color.clear
                     )
             }
@@ -1076,7 +1041,7 @@ private struct AddTorrentReviewContent: View {
     @State private var sameDiskFolders: Set<String> = []
     /// The low-space message's height as laid out: the summary's plate grows
     /// by it, and the file list leaves as much room under its last row.
-    @State private var lowSpaceMessageHeight: CGFloat = 0
+    @State private var summaryMessageHeight: CGFloat = 0
     #if DEBUG
     @State private var addTorrentDiagnosticsState = AddTorrentReviewDiagnosticsState()
     #endif
@@ -1089,6 +1054,9 @@ private struct AddTorrentReviewContent: View {
     /// while the arrows run; see `followSummary`.
     @State private var summaryCounts = AddTorrentReviewSummaryCounts()
     @State private var summarySettleTask: Task<Void, Never>?
+    /// The free space the summary shows; see `followFreeSpace`.
+    @State private var shownFreeSpace: AddTorrentFreeSpace = .reading
+    @State private var freeSpaceSpinnerTask: Task<Void, Never>?
     /// Set once waiting has lasted long enough to be worth a message; see
     /// `AddTorrentReviewStage`.
     @State private var showsWaitingMessage = false
@@ -1141,7 +1109,7 @@ private struct AddTorrentReviewContent: View {
             // The cover is the window's own colour: the files come out of
             // the window as it dissolves, and go back into it.
             if shownStage != .review {
-                ShatlColor.backgroundAddWindow
+                ShatlColor.backgroundWindow
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
                     .transition(.opacity)
@@ -1208,6 +1176,7 @@ private struct AddTorrentReviewContent: View {
             waitingMessageTask?.cancel()
             stageTask?.cancel()
             summarySettleTask?.cancel()
+            freeSpaceSpinnerTask?.cancel()
         }
         #if DEBUG
         .onGeometryChange(for: CGSize.self) { geometry in
@@ -1281,6 +1250,9 @@ private struct AddTorrentReviewContent: View {
                 await refreshAvailableCapacity()
                 try? await Task.sleep(for: AddTorrentReviewLayout.freeSpaceRefreshInterval)
             }
+        }
+        .onChange(of: availableCapacity, initial: true) { _, capacity in
+            followFreeSpace(capacity)
         }
         .task(id: store.writingDownloadFolders) {
             // A download started in another folder of the same disk counts
@@ -1417,10 +1389,16 @@ private struct AddTorrentReviewContent: View {
                 torrentSummaryContainer
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(ShatlColor.backgroundAddWindow)
             .overlay(alignment: .trailing) {
+                // Up through the toolbar to the window's top edge, as the
+                // files' ground goes: the window is split into two columns
+                // there too, the title over the files and the search over
+                // the settings (the owner's choice, November 2026).
                 Rectangle()
                     .fill(ShatlColor.outlineTertiary)
                     .frame(width: AddTorrentReviewLayout.leftColumnOutlineWidth)
+                    .ignoresSafeArea(.container, edges: .top)
                     .allowsHitTesting(false)
             }
     }
@@ -1779,7 +1757,7 @@ private struct AddTorrentReviewContent: View {
         .padding(.horizontal, 24)
         .padding(
             .bottom,
-            AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile) + lowSpaceExtraHeight
+            AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile) + summaryExtraHeight
         )
         .allowsHitTesting(false)
     }
@@ -1800,7 +1778,7 @@ private struct AddTorrentReviewContent: View {
                 .padding(
                     .bottom,
                     AddTorrentReviewLayout.summaryOverlayHeight(for: typographyProfile)
-                        + lowSpaceExtraHeight
+                        + summaryExtraHeight
                 )
             }
             .scrollIndicators(.hidden)
@@ -2039,9 +2017,12 @@ private struct AddTorrentReviewContent: View {
         return AddTorrentFileListItem(
             node: node,
             level: row.level,
-            formattedSize: Metrics.formatBytes(
+            // As the summary rounds its size, and by the same switch of
+            // precision: one file and the summary name one size.
+            formattedSize: AddTorrentSummaryByteFormatter.format(
                 node.sizeBytes,
-                mode: .simplified,
+                mode: store.preferences.metricsMode,
+                rounding: .nearest,
                 localeOverride: store.preferences.localeOverride
             ),
             folderSummary: folderSummary(for: node),
@@ -2063,143 +2044,145 @@ private struct AddTorrentReviewContent: View {
 
     private var torrentSummaryContainer: some View {
         torrentSummary
-            .padding(.horizontal, AddTorrentReviewLayout.summaryContainerHorizontalPadding)
-            .padding(.bottom, AddTorrentReviewLayout.summaryContainerBottomPadding)
+            .padding(.horizontal, AddTorrentReviewLayout.summaryInset)
+            .padding(.bottom, AddTorrentReviewLayout.summaryInset)
     }
 
-    @ViewBuilder
     private var torrentSummary: some View {
-        let selectedFileCount = summaryCounts.selectedFileCount
-        let selectedBytes = summaryCounts.selectedBytes
-        let showsSelectedMetrics = AddTorrentSummaryPresentation.showsSelectionMetrics(
-            selectedFileCount: selectedFileCount
-        )
-
-        let metrics = HStack(spacing: AddTorrentReviewLayout.summarySpacing) {
-            if showsSelectedMetrics {
-                torrentSummaryMetric(
-                    label: L10n.string(
-                        "add_torrent.review.summary.selected_files",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "Files selected"
-                    ),
-                    value: L10n.format(
-                        "add_torrent.review.summary.selected_count",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "%lld of %lld",
-                        Int64(selectedFileCount),
-                        Int64(summaryCounts.totalFileCount)
-                    ),
-                    expands: true
-                )
-                .transition(torrentSummarySupplementaryTransition)
-
-                torrentSummaryDivider
-                    .transition(.opacity)
-
-                torrentSummaryMetric(
-                    label: L10n.string(
-                        "add_torrent.review.summary.size",
-                        localeOverride: store.preferences.localeOverride,
-                        defaultValue: "Size"
-                    ),
-                    value: AddTorrentSummaryByteFormatter.format(
-                        selectedBytes,
-                        mode: store.preferences.metricsMode,
-                        rounding: .up,
-                        localeOverride: store.preferences.localeOverride
-                    ),
-                    expands: false
-                )
-                .transition(torrentSummarySupplementaryTransition)
-
-                torrentSummaryDivider
-                    .transition(.opacity)
-            }
-
-            torrentSummaryMetric(
-                label: L10n.string(
-                    "add_torrent.review.summary.free_space",
-                    localeOverride: store.preferences.localeOverride,
-                    defaultValue: "Available"
-                ),
-                value: availableCapacityText,
-                expands: true
-            )
-        }
-        .padding(.horizontal, AddTorrentReviewLayout.summaryHorizontalPadding)
-        .padding(.vertical, AddTorrentReviewLayout.summaryVerticalPadding)
-        .frame(maxWidth: .infinity)
-        .animation(
-            ShatlMotion.metricResize,
-            value: "\(selectedFileCount)-\(selectedBytes)-\(availableCapacityText)-\(store.preferences.metricsMode)"
-        )
+        let metrics = AddTorrentSummaryMetrics(groups: summaryGroups)
+            .padding(AddTorrentReviewLayout.summaryContentInset + AddTorrentReviewLayout.summaryMetricsPadding)
+            .frame(maxWidth: .infinity)
 
         // The numbers are what the summary is laid out by, and they never
-        // move. The plate behind them grows upward for the low-space message
+        // move. The card behind them grows upward for a message
         // the way a card grows for its expanded metrics: the height changes
         // smoothly while the message scales up and fades in, cut by the
-        // plate's shape. Stacked above the numbers, the message made the
-        // plate jump to its new height while the labels slid after it.
-        metrics
+        // card's shape. Stacked above the numbers, the message made the
+        // card jump to its new height while the labels slid after it.
+        return metrics
             .background {
-                Color.clear
-                    .glassEffect(
-                        .regular.interactive(false),
-                        in: torrentSummaryShape
-                    )
-                    .padding(.top, -lowSpaceExtraHeight)
-                    .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
+                summaryCard
+                    .padding(.top, -summaryExtraHeight)
+                    .animation(ShatlMotion.cardLayout, value: summaryMessage != nil)
+                    .animation(ShatlMotion.cardLayout, value: summaryExtraHeight)
             }
             .overlay(alignment: .bottom) {
-                lowSpaceMessageLayer
+                summaryMessageLayer
             }
+            // The card and its message stop growing here; the files' side
+            // keeps the card in its middle.
+            .frame(maxWidth: AddTorrentReviewLayout.summaryMaximumWidth)
     }
 
-    /// The message in a box as tall as the plate at its fullest, standing on
+    /// A download card's outline and corner, with a shadow of its own seen
+    /// only around it. Its fill is solid in both themes: the files scroll
+    /// under it, and through a card's nearly clear dark fill they showed
+    /// (the owner's check, November 2026).
+    private var summaryCard: some View {
+        summaryShape
+            .fill(ShatlColor.cardBackgroundSolid)
+            .overlay {
+                summaryShape
+                    .strokeBorder(
+                        ShatlColor.cardOutlineDefault,
+                        lineWidth: AddTorrentReviewLayout.summaryOutlineWidth
+                    )
+            }
+            .shatlOutsideShadow(ShatlShadow.summary, in: summaryShape)
+    }
+
+    /// The numbers held for the download on screen (`followSummary`), and
+    /// the free space as last read.
+    private var summaryGroups: AddTorrentSummaryGroups {
+        AddTorrentSummaryPresentation.groups(
+            selectedFileCount: summaryCounts.selectedFileCount,
+            totalFileCount: summaryCounts.totalFileCount,
+            selectedBytes: summaryCounts.selectedBytes,
+            freeSpace: shownFreeSpace,
+            mode: store.preferences.metricsMode,
+            localeOverride: store.preferences.localeOverride
+        )
+    }
+
+    /// A new reading shows at once. While another folder's disk is read the
+    /// summary keeps its number and rolls to the new one, and shows a
+    /// spinner only if the reading takes a while
+    /// (`ShatlMotion.freeSpaceSpinnerDelay`). The low-space message and the
+    /// button follow `availableCapacity` itself, never this.
+    private func followFreeSpace(_ capacity: AddTorrentAvailableCapacity) {
+        freeSpaceSpinnerTask?.cancel()
+        freeSpaceSpinnerTask = nil
+
+        switch capacity {
+        case .loading:
+            guard shownFreeSpace != .reading else { return }
+            freeSpaceSpinnerTask = Task { @MainActor in
+                try? await Task.sleep(for: ShatlMotion.freeSpaceSpinnerDelay)
+                guard !Task.isCancelled else { return }
+                shownFreeSpace = .reading
+            }
+        case let .available(info):
+            shownFreeSpace = .available(info.availableBytes)
+        case .unavailable:
+            shownFreeSpace = .unavailable
+        }
+    }
+
+    /// The message in a box as tall as the card at its fullest, standing on
     /// the summary's bottom edge. The box keeps its size as the message comes
     /// and goes, so a message on its way out stays where it was; inside the
-    /// plate itself it rode the plate's falling top edge down over the
-    /// numbers. A mask the shape of the plate cuts the message as the plate
+    /// card itself it rode the card's falling top edge down over the
+    /// numbers. A mask the shape of the card cuts the message as the card
     /// grows and shrinks.
-    private var lowSpaceMessageLayer: some View {
+    private var summaryMessageLayer: some View {
         let rowHeight = AddTorrentReviewLayout.summaryRowHeight(for: typographyProfile)
 
         return Color.clear
             .frame(
                 height: rowHeight
-                    + lowSpaceMessageHeight
-                    + AddTorrentReviewLayout.summaryMessageInset
+                    + summaryMessageHeight
+                    + AddTorrentReviewLayout.summaryMessageGap
             )
             .overlay(alignment: .bottom) {
-                if let lowSpaceMessage {
-                    lowSpaceMessageBlock(lowSpaceMessage)
-                        .onGeometryChange(for: CGFloat.self) { geometry in
-                            geometry.size.height
-                        } action: { height in
-                            lowSpaceMessageHeight = height
-                        }
-                        .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
-                        // Right above the numbers.
-                        .padding(.bottom, rowHeight)
-                        .transition(ShatlMotion.appearFromTop)
+                if let summaryMessage {
+                    ShatlMessageBlockPrimary(
+                        title: summaryMessage.title,
+                        paragraphs: summaryMessage.paragraphs,
+                        tone: .error,
+                        width: nil,
+                        changesPartsInTurn: true
+                    )
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        summaryMessageHeight = height
+                    }
+                    .padding(.horizontal, AddTorrentReviewLayout.summaryMessageInset)
+                    // Above the numbers' row, a gap apart.
+                    .padding(
+                        .bottom,
+                        rowHeight
+                            - AddTorrentReviewLayout.summaryContentInset
+                            + AddTorrentReviewLayout.summaryMessageGap
+                    )
+                    .transition(ShatlMotion.appearFromTop)
                 }
             }
             .mask(alignment: .bottom) {
-                torrentSummaryShape
-                    .frame(height: rowHeight + lowSpaceExtraHeight)
+                summaryShape
+                    .frame(height: rowHeight + summaryExtraHeight)
             }
             .allowsHitTesting(false)
-            .animation(ShatlMotion.cardLayout, value: lowSpaceMessage != nil)
-            .animation(ShatlMotion.cardLayout, value: lowSpaceExtraHeight)
+            .animation(ShatlMotion.cardLayout, value: summaryMessage != nil)
+            .animation(ShatlMotion.cardLayout, value: summaryExtraHeight)
     }
 
-    /// How far the plate reaches above the numbers: the message and the gap
-    /// between it and the plate's top edge.
-    private var lowSpaceExtraHeight: CGFloat {
-        lowSpaceMessage == nil
+    /// How far the card reaches above the numbers: the message and the gap
+    /// under it; the card's own room above the message is in the row.
+    private var summaryExtraHeight: CGFloat {
+        summaryMessage == nil
             ? 0
-            : lowSpaceMessageHeight + AddTorrentReviewLayout.summaryMessageInset
+            : summaryMessageHeight + AddTorrentReviewLayout.summaryMessageGap
     }
 
     /// The selected files do not fit on the disk they are to be saved to.
@@ -2229,170 +2212,102 @@ private struct AddTorrentReviewContent: View {
         return store.promisedBytes(inFolders: sameDiskFolders.union([PromisedDiskSpace.folderKey(path)]))
     }
 
+    /// What stands in the way of "Скачать", said in the summary.
+    private var summaryMessage: AddTorrentSummaryMessage? {
+        lowSpaceMessage ?? folderUnavailableMessage
+    }
+
+    /// The folder to save to cannot be reached: its disk gives no answer,
+    /// as when the disk is off or the folder has moved. Only once that is
+    /// known, never while the disk is read, so the button does not blink as
+    /// folders change.
+    private var isFolderUnavailable: Bool {
+        guard areSettingsControlsEnabled, availableCapacity == .unavailable else { return false }
+        let path = draft?.suggestedSavePath.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !path.isEmpty
+    }
+
+    /// Names the folder as the window does above its path, then the likely
+    /// causes and every way out.
+    private var folderUnavailableMessage: AddTorrentSummaryMessage? {
+        guard isFolderUnavailable else { return nil }
+        let localeOverride = store.preferences.localeOverride
+        return AddTorrentSummaryMessage(
+            title: L10n.format(
+                "add_torrent.review.folder_unavailable.title",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                ShatlErrorCatalog.shortenedTorrentName(displayedFolderName)
+            ),
+            paragraphs: [
+                L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: localeOverride),
+                L10n.string("add_torrent.review.folder_unavailable.save_for_later", localeOverride: localeOverride),
+            ]
+        )
+    }
+
     /// Names the disk and what it lacks, and what downloads writing to it
     /// will take, then every way out; unticking files is one of them only
     /// when more than one is ticked, stopping downloads only when some write.
-    private var lowSpaceMessage: String? {
+    /// Each a part of its own, so they change one after another.
+    private var lowSpaceMessage: AddTorrentSummaryMessage? {
         guard let spaceShortfall = shownSpaceShortfall else { return nil }
         let localeOverride = store.preferences.localeOverride
         let mode = store.preferences.metricsMode
         let volumeName = ShatlErrorCatalog.shortenedTorrentName(spaceShortfall.volumeName)
         let shortfall = spaceShortfall.shortfallText(mode: mode, localeOverride: localeOverride)
         let severalFiles = summaryCounts.selectedFileCount > 1
+        let isPromised = spaceShortfall.promisedBytes != nil
 
-        guard spaceShortfall.promisedBytes != nil else {
-            return L10n.format(
-                severalFiles
-                    ? "add_torrent.review.low_space.message.many_files"
-                    : "add_torrent.review.low_space.message.one_file",
+        let title = isPromised
+            ? L10n.format(
+                "add_torrent.review.low_space.title.promised",
+                localeOverride: localeOverride,
+                defaultValue: "",
+                volumeName,
+                shortfall,
+                spaceShortfall.promisedText(mode: mode, localeOverride: localeOverride)
+            )
+            : L10n.format(
+                "add_torrent.review.low_space.title",
                 localeOverride: localeOverride,
                 defaultValue: "",
                 volumeName,
                 shortfall
             )
+        let fix = switch (isPromised, severalFiles) {
+        case (false, false):
+            L10n.string("add_torrent.review.low_space.fix.one_file", localeOverride: localeOverride)
+        case (false, true):
+            L10n.string("add_torrent.review.low_space.fix.many_files", localeOverride: localeOverride)
+        case (true, false):
+            L10n.string("add_torrent.review.low_space.fix.one_file.promised", localeOverride: localeOverride)
+        case (true, true):
+            L10n.string("add_torrent.review.low_space.fix.many_files.promised", localeOverride: localeOverride)
         }
-        return L10n.format(
-            severalFiles
-                ? "add_torrent.review.low_space.message.many_files.promised"
-                : "add_torrent.review.low_space.message.one_file.promised",
-            localeOverride: localeOverride,
-            defaultValue: "",
-            volumeName,
-            shortfall,
-            spaceShortfall.promisedText(mode: mode, localeOverride: localeOverride)
+
+        return AddTorrentSummaryMessage(
+            title: title,
+            paragraphs: [
+                fix,
+                L10n.string("add_torrent.review.low_space.save_for_later", localeOverride: localeOverride),
+            ]
         )
     }
 
-    private func lowSpaceMessageBlock(_ message: String) -> some View {
-        Text(message)
-            .shatlTypography(ShatlTypography.captionRegular)
-            .foregroundStyle(Color.white)
-            .contentTransition(.numericText())
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(AddTorrentReviewLayout.summaryMessagePadding)
-            .background(ShatlColor.errorSolidBackground)
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: AddTorrentReviewLayout.summaryMessageCornerRadius,
-                    style: .continuous
-                )
-            )
-            .animation(ShatlMotion.metricResize, value: message)
-            .accessibilityAddTraits(.isStaticText)
-    }
-
-    private var torrentSummarySupplementaryTransition: AnyTransition {
-        .asymmetric(
-            insertion: .move(edge: .leading).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        )
-    }
-
-    private func torrentSummaryMetric(
-        label: String,
-        value: String,
-        expands: Bool
-    ) -> some View {
-        VStack(spacing: 0) {
-            Text(label)
-                .shatlTypography(ShatlTypography.groupSemibold)
-                .foregroundStyle(ShatlColor.typographySecondary)
-                .lineLimit(1)
-
-            numericText(value)
-                .shatlTypography(ShatlTypography.bodySemibold)
-                .foregroundStyle(ShatlColor.typographyPrimary)
-                .lineLimit(1)
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: expands ? .infinity : nil, alignment: .center)
-        .fixedSize(horizontal: !expands, vertical: true)
-        .animation(ShatlMotion.metricResize, value: value)
-    }
-
-    private var torrentSummaryDivider: some View {
-        Rectangle()
-            .fill(ShatlColor.outlinePrimary)
-            .frame(
-                width: 1,
-                height: AddTorrentReviewLayout.summaryContentHeight(for: typographyProfile)
-            )
-    }
-
-    private var torrentSummaryShape: RoundedRectangle {
-        RoundedRectangle(
-            cornerRadius: AddTorrentReviewLayout.summaryCornerRadius,
+    /// Rounded as a download card is; with a message, its top corners
+    /// follow the message's, the card's room around it apart.
+    private var summaryShape: UnevenRoundedRectangle {
+        let top = summaryMessage == nil
+            ? AddTorrentReviewLayout.summaryCornerRadius
+            : AddTorrentReviewLayout.summaryCornerRadiusAboveMessage
+        return UnevenRoundedRectangle(
+            topLeadingRadius: top,
+            bottomLeadingRadius: AddTorrentReviewLayout.summaryCornerRadius,
+            bottomTrailingRadius: AddTorrentReviewLayout.summaryCornerRadius,
+            topTrailingRadius: top,
             style: .continuous
         )
-    }
-
-    private var availableCapacityText: String {
-        switch availableCapacity {
-        case .loading:
-            "…"
-        case let .available(info):
-            AddTorrentSummaryByteFormatter.format(
-                info.availableBytes,
-                mode: store.preferences.metricsMode,
-                rounding: .down,
-                localeOverride: store.preferences.localeOverride
-            )
-        case .unavailable:
-            L10n.string(
-                "add_torrent.review.summary.unavailable",
-                localeOverride: store.preferences.localeOverride,
-                defaultValue: "Unavailable"
-            )
-        }
-    }
-
-    private func numericText(_ value: String) -> some View {
-        HStack(spacing: 0) {
-            ForEach(AddTorrentNumericTextSegmentation.segments(in: value)) { segment in
-                Text(segment.value)
-                    .contentTransition(
-                        segment.animatesNumericChange
-                            ? .numericText()
-                            : .identity
-                    )
-                    .id(numericTextSegmentIdentity(segment))
-                    .transition(numericTextSegmentTransition(for: segment))
-                    .animation(
-                        segment.animatesNumericChange
-                            ? ShatlMotion.metricResize
-                            : nil,
-                        value: segment.value
-                    )
-            }
-        }
-        // Digits of one width, as the card's metrics: "732" becoming "733"
-        // keeps the summary's length.
-        .monospacedDigit()
-        .accessibilityElement(children: .combine)
-    }
-
-    private func numericTextSegmentIdentity(_ segment: AddTorrentTextSegment) -> String {
-        switch segment.kind {
-        case .number:
-            segment.id
-        case .text:
-            "\(segment.id)-\(segment.value)"
-        }
-    }
-
-    private func numericTextSegmentTransition(
-        for segment: AddTorrentTextSegment
-    ) -> AnyTransition {
-        switch segment.kind {
-        case .number:
-            .identity
-        case .text:
-            .asymmetric(
-                insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal: .move(edge: .leading).combined(with: .opacity)
-            )
-        }
     }
 
     private func localizedTemplateSegments(
@@ -2956,11 +2871,17 @@ private struct AddTorrentReviewContent: View {
         .keyboardShortcut(.cancelAction)
     }
 
-    /// "Не скачивать" among several downloads asks first; see
-    /// `AddTorrentSkipQuestion`. A download with no file ticked cannot be
-    /// kept in the list, so it is only asked whether to let it go.
+    /// "Не скачивать" among several downloads asks first when there is work
+    /// in the download on screen (`asksBeforeSkippingCurrent`); see
+    /// `AddTorrentSkipQuestion`. An untouched one leaves at once. A download
+    /// with no file ticked cannot be kept in the list, so it is only asked
+    /// whether to let it go.
     private func askToSkipCurrentDownload() {
         guard let draft = review.draft else { return }
+        guard review.asksBeforeSkippingCurrent else {
+            skipCurrentDownload()
+            return
+        }
         let canSave = draft.canConfirmDownload
         isAliasFocused = false
         windowFocus.release()
@@ -2985,10 +2906,15 @@ private struct AddTorrentReviewContent: View {
         }
     }
 
-    /// With no room for the download the button saves it to the list
-    /// instead of starting it, so the window is never a dead end.
+    /// With no room for the download, or no folder to put it in, the button
+    /// saves it to the list instead of starting it, so the window is never a
+    /// dead end.
     private var confirmButton: some View {
-        let savesToList = spaceShortfall != nil
+        let confirmation = AddTorrentConfirmation.decide(
+            lacksSpace: spaceShortfall != nil,
+            folderIsUnavailable: isFolderUnavailable
+        )
+        let savesToList = confirmation != .download
         return ShatlButton(
             title: L10n.string(
                 savesToList ? "add_torrent.review.save_to_list" : "add_torrent.review.confirm",
@@ -3000,10 +2926,11 @@ private struct AddTorrentReviewContent: View {
         ) {
             isAliasFocused = false
             windowFocus.release()
-            if savesToList {
-                store.saveDraftToList()
-            } else {
+            switch confirmation {
+            case .download:
                 store.confirmDraft()
+            case let .saveToList(byChoice):
+                store.saveDraftToList(byChoice: byChoice)
             }
         }
     }

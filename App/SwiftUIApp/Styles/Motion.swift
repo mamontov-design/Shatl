@@ -96,6 +96,12 @@ enum ShatlMotion {
     /// long: a `.torrent` file is read at once.
     static let addTorrentWaitingMessageDelay = Duration.milliseconds(300)
 
+    /// The summary's free space keeps the number it shows while another
+    /// folder's disk is read, and gives its place to a spinner only if the
+    /// reading takes this long: a disk answers at once, and a spinner for a
+    /// moment on every change of folder would blink.
+    static let freeSpaceSpinnerDelay = Duration.milliseconds(300)
+
     /// The add window's files are put into the window unseen and shown this
     /// long after: time for their rows to be built and for all of it to be
     /// drawn, so that they come as one and not in pieces.

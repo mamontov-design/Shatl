@@ -43,7 +43,7 @@ final class AddTorrentAliasFocusTests: XCTestCase {
     }
 
     private func makeWindow(store: AppStore) -> NSWindow {
-        let size = NSSize(width: 780, height: 570)
+        let size = NSSize(width: AddTorrentReviewLayout.minimumWindowWidth, height: AddTorrentReviewLayout.minimumWindowHeight)
         let hosting = NSHostingView(
             rootView: AddTorrentReviewView()
                 .environmentObject(store)

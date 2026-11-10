@@ -76,47 +76,6 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         )
     }
 
-    func testSelectedCountSegmentationPreservesSpacingForEverySupportedLocale() {
-        let locales: [AppLocaleOverride] = [
-            .english,
-            .russian,
-            .german,
-            .spanish,
-            .french,
-            .japanese,
-            .simplifiedChinese,
-        ]
-
-        for locale in locales {
-            let value = L10n.format(
-                "add_torrent.review.summary.selected_count",
-                localeOverride: locale,
-                defaultValue: "%lld of %lld",
-                Int64(8_955),
-                Int64(8_955)
-            )
-            let segments = AddTorrentNumericTextSegmentation.segments(in: value)
-
-            XCTAssertEqual(
-                segments.map(\.value).joined(),
-                value,
-                "Segmentation changed the localized value for \(locale.rawValue)"
-            )
-
-            for (segment, followingSegment) in zip(segments, segments.dropFirst()) {
-                let containsNonWhitespace = segment.value.contains { !$0.isWhitespace }
-                if segment.kind == .text,
-                   followingSegment.kind == .number,
-                   containsNonWhitespace {
-                    XCTAssertFalse(
-                        segment.value.last?.isWhitespace == true,
-                        "A visible text segment keeps trailing whitespace for \(locale.rawValue)"
-                    )
-                }
-            }
-        }
-    }
-
     func testSelectionIndicatorUsesConstantSizeSourcesForEveryTreeState() {
         XCTAssertEqual(
             AddTorrentReviewSelectionIndicator.sourceValues(for: .selected),
@@ -157,85 +116,78 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             AddTorrentReviewLayout.fileTypeIconWidth(for: .cjk),
             20
         )
+        // A group's title (13 pt, 15 pt in CJK), 4 pt and a 27 pt plate.
         XCTAssertEqual(
-            AddTorrentReviewLayout.summaryContentHeight(for: .standard),
-            29
+            AddTorrentReviewLayout.summaryMetricsHeight(for: .standard),
+            44
         )
         XCTAssertEqual(
-            AddTorrentReviewLayout.summaryContentHeight(for: .cjk),
-            33
+            AddTorrentReviewLayout.summaryMetricsHeight(for: .cjk),
+            46
+        )
+        // With the card's 6 pt and the row's 6 pt above and below: Figma's
+        // 68 pt card.
+        XCTAssertEqual(
+            AddTorrentReviewLayout.summaryRowHeight(for: .standard),
+            68
+        )
+        XCTAssertEqual(
+            AddTorrentReviewLayout.summaryRowHeight(for: .cjk),
+            70
         )
         XCTAssertEqual(
             AddTorrentReviewLayout.summaryOverlayHeight(for: .standard),
-            59
-        )
-        XCTAssertEqual(
-            AddTorrentReviewLayout.summaryOverlayHeight(for: .cjk),
-            63
+            68 + AddTorrentReviewLayout.summaryInset
         )
     }
 
     /// Nested corners keep one gap all the way round: the outer radius is
-    /// the inner one plus the distance between the two shapes. It holds on
-    /// macOS 26 as well, where the summary's corner is rounder.
+    /// the inner one plus the distance between the two shapes. The summary
+    /// is rounded as a download card is; on macOS 26 it stands where the
+    /// window's corner nests it, on macOS 27 it is rounder than the window,
+    /// as the cards in the list are.
     func testNestedCornersFollowTheWindowCorner() {
+        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, TorrentCardLayout.cornerRadius)
         XCTAssertEqual(AddTorrentReviewLayout.summaryMessageInset, 6)
+        // Above a message the card's top corners follow the message's.
         XCTAssertEqual(
-            AddTorrentReviewLayout.summaryCornerRadius + AddTorrentReviewLayout.summaryContainerHorizontalPadding,
-            ShatlCornerRadius.window
+            AddTorrentReviewLayout.summaryCornerRadiusAboveMessage,
+            ShatlMessageBlockPrimary.cornerRadius + AddTorrentReviewLayout.summaryMessageInset
         )
-        XCTAssertEqual(
-            AddTorrentReviewLayout.summaryMessageCornerRadius + AddTorrentReviewLayout.summaryMessageInset,
-            AddTorrentReviewLayout.summaryCornerRadius
-        )
-        XCTAssertGreaterThan(AddTorrentReviewLayout.summaryMessageCornerRadius, 0)
+        if #unavailable(macOS 27.0) {
+            XCTAssertEqual(
+                AddTorrentReviewLayout.summaryCornerRadius + AddTorrentReviewLayout.summaryInset,
+                ShatlCornerRadius.window
+            )
+        }
         XCTAssertEqual(ShatlCornerRadius.nested(in: 26, inset: 8), 18)
         XCTAssertEqual(ShatlCornerRadius.nested(in: 4, inset: 8), 0)
     }
 
     func testWindowAndSplitLayoutMetricsMatchReviewDesign() {
-        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 780)
+        XCTAssertEqual(AddTorrentReviewLayout.minimumWindowWidth, 800)
         XCTAssertEqual(AddTorrentReviewLayout.minimumWindowHeight, 570)
         XCTAssertEqual(AddTorrentReviewLayout.settingsColumnWidth, 380)
-        // macOS 26 rounds window corners more: the column and the summary
-        // keep more room and a rounder corner there.
+        // macOS 26 rounds window corners more: the column keeps more room
+        // there, and the summary card comes closer to the edges.
         if #available(macOS 27.0, *) {
             XCTAssertEqual(ShatlCornerRadius.window, 16)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 12)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 10)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 4)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryInset, 12)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 396)
         } else {
             XCTAssertEqual(ShatlCornerRadius.window, 26)
             XCTAssertEqual(AddTorrentReviewLayout.settingsColumnPadding, 18)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 20)
-            XCTAssertEqual(AddTorrentReviewLayout.summaryMessageCornerRadius, 14)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryInset, 8)
+            XCTAssertEqual(AddTorrentReviewLayout.summaryMaximumWidth, 404)
         }
+        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadius, 18)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryCornerRadiusAboveMessage, 24)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryMessageGap, 10)
         XCTAssertEqual(AddTorrentReviewLayout.leftColumnOutlineWidth, 1)
-        XCTAssertEqual(AddTorrentReviewLayout.summaryContainerHorizontalPadding, 6)
-        XCTAssertEqual(AddTorrentReviewLayout.summaryContainerBottomPadding, 6)
-        XCTAssertEqual(AddTorrentReviewLayout.summarySpacing, 24)
-        XCTAssertEqual(AddTorrentReviewLayout.summaryVerticalPadding, 12)
-    }
-
-    func testSummaryShowsSelectionMetricsOnlyFromFourSelectedFiles() {
-        for count in 0...3 {
-            XCTAssertFalse(
-                AddTorrentSummaryPresentation.showsSelectionMetrics(
-                    selectedFileCount: count
-                )
-            )
-        }
-
-        XCTAssertTrue(
-            AddTorrentSummaryPresentation.showsSelectionMetrics(
-                selectedFileCount: 4
-            )
-        )
-        XCTAssertTrue(
-            AddTorrentSummaryPresentation.showsSelectionMetrics(
-                selectedFileCount: 8_955
-            )
-        )
+        XCTAssertEqual(AddTorrentReviewLayout.summaryOutlineWidth, 0.5)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryContentInset, 6)
+        XCTAssertEqual(AddTorrentReviewLayout.summaryMetricsPadding, 6)
     }
 
     func testSearchProjectionIncludesMatchesAndTheirAncestorChain() throws {
@@ -391,34 +343,18 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
         )
     }
 
+    /// A size to the nearest whole number, free space down; a value that
+    /// rounds to 1 000 of its unit is 1 of the next one.
     func testSummaryByteFormatterRoundsSimplifiedValuesByContext() {
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                1_200_000_000,
-                mode: .simplified,
-                rounding: .up,
-                localeOverride: .russian
-            ),
-            "2 ГБ"
-        )
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                1_200_000_000,
-                mode: .simplified,
-                rounding: .down,
-                localeOverride: .russian
-            ),
-            "1 ГБ"
-        )
-        XCTAssertEqual(
-            AddTorrentSummaryByteFormatter.format(
-                512,
-                mode: .simplified,
-                rounding: .up,
-                localeOverride: .russian
-            ),
-            "512 Б"
-        )
+        func format(_ bytes: Int64, _ rounding: AddTorrentSummaryByteRounding) -> String {
+            AddTorrentSummaryByteFormatter.format(bytes, mode: .simplified, rounding: rounding, localeOverride: .russian)
+        }
+        XCTAssertEqual(format(1_200_000_000, .nearest), "1 ГБ")
+        XCTAssertEqual(format(1_600_000_000, .nearest), "2 ГБ")
+        XCTAssertEqual(format(1_600_000_000, .down), "1 ГБ")
+        XCTAssertEqual(format(999_600_000, .nearest), "1 ГБ")
+        XCTAssertEqual(format(999_600_000, .down), "999 МБ")
+        XCTAssertEqual(format(512, .nearest), "512 Б")
     }
 
     func testSummaryByteFormatterKeepsDetailedModePrecision() {
@@ -428,7 +364,7 @@ final class AddTorrentReviewLayoutTests: XCTestCase {
             AddTorrentSummaryByteFormatter.format(
                 bytes,
                 mode: .detailed,
-                rounding: .up,
+                rounding: .nearest,
                 localeOverride: .russian
             ),
             Metrics.formatBytes(bytes, mode: .detailed, localeOverride: .russian)

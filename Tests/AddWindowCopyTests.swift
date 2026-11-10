@@ -35,37 +35,59 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertTrue(several.hasSuffix("а ссылку скопируйте ещё раз целиком и вставьте в это окно."), several)
     }
 
-    /// The low-space messages promise the button back by the name it wears,
-    /// in every language; the ones about downloads in progress name what
-    /// they take and offer to stop some of them.
+    /// The low-space message is a title and two paragraphs, each its own
+    /// text: what happened, how to fix it, the way to wait. The way to fix
+    /// it promises the button back by the name it wears, in every language;
+    /// the title about downloads in progress names what they take, and its
+    /// fixes offer to stop some of them. Numbers are in the title alone.
     func testLowSpaceMessagesPromiseTheDownloadButtonBack() {
-        let plainKeys = [
-            "add_torrent.review.low_space.message.one_file",
-            "add_torrent.review.low_space.message.many_files",
-        ]
-        let promisedKeys = [
-            "add_torrent.review.low_space.message.one_file.promised",
-            "add_torrent.review.low_space.message.many_files.promised",
+        let fixes = [
+            "add_torrent.review.low_space.fix.one_file",
+            "add_torrent.review.low_space.fix.many_files",
+            "add_torrent.review.low_space.fix.one_file.promised",
+            "add_torrent.review.low_space.fix.many_files.promised",
         ]
         for locale in AppLocaleOverride.allCases where locale != .system {
             let button = L10n.string("add_torrent.review.confirm", localeOverride: locale)
-            for key in plainKeys + promisedKeys {
+            for key in fixes {
                 let text = L10n.string(key, localeOverride: locale)
                 XCTAssertTrue(text.contains(button), "\(locale) \(key): \(text)")
-                XCTAssertEqual(text.contains("%3$@"), promisedKeys.contains(key), "\(locale) \(key)")
-                // What happened, how to fix it, the way to wait: as the
-                // numbers in the first change, the other two stay still.
-                let paragraphs = text.components(separatedBy: "\n")
-                XCTAssertEqual(paragraphs.count, 3, "\(locale) \(key): \(text)")
-                XCTAssertTrue(paragraphs[1].contains(button), "\(locale) \(key): \(text)")
-                XCTAssertFalse(paragraphs[1].contains("%2$@"), "\(locale) \(key): \(text)")
+                XCTAssertFalse(text.contains("%"), "\(locale) \(key): \(text)")
+                XCTAssertFalse(text.contains("\n"), "\(locale) \(key): \(text)")
             }
+            let title = L10n.string("add_torrent.review.low_space.title", localeOverride: locale)
+            let promisedTitle = L10n.string("add_torrent.review.low_space.title.promised", localeOverride: locale)
+            let wait = L10n.string("add_torrent.review.low_space.save_for_later", localeOverride: locale)
+            XCTAssertTrue(title.contains("%2$@") && !title.contains("%3$@"), "\(locale): \(title)")
+            XCTAssertTrue(promisedTitle.contains("%3$@"), "\(locale): \(promisedTitle)")
+            XCTAssertFalse(wait.contains("%") || wait.contains("\n"), "\(locale): \(wait)")
         }
 
-        let promised = plain(L10n.string("add_torrent.review.low_space.message.one_file.promised", localeOverride: .russian))
+        let promised = plain(L10n.string("add_torrent.review.low_space.title.promised", localeOverride: .russian))
         XCTAssertTrue(promised.contains("займут загрузки, которые сейчас скачиваются"), promised)
-        XCTAssertTrue(promised.contains("остановите часть из них"), promised)
-        XCTAssertTrue(promised.contains("кнопка «Скачать» вернётся в этом же окне"), promised)
+        let fix = plain(L10n.string("add_torrent.review.low_space.fix.one_file.promised", localeOverride: .russian))
+        XCTAssertTrue(fix.contains("остановите часть из них"), fix)
+        XCTAssertTrue(fix.contains("кнопка «Скачать» вернётся в этом же окне"), fix)
+    }
+
+    /// A folder out of reach is named in the title; the way to fix it
+    /// promises the button back by the name it wears, in every language.
+    func testUnavailableFolderMessagePromisesTheDownloadButtonBack() {
+        for locale in AppLocaleOverride.allCases where locale != .system {
+            let button = L10n.string("add_torrent.review.confirm", localeOverride: locale)
+            let title = L10n.string("add_torrent.review.folder_unavailable.title", localeOverride: locale)
+            let fix = L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: locale)
+            let wait = L10n.string("add_torrent.review.folder_unavailable.save_for_later", localeOverride: locale)
+            XCTAssertTrue(title.contains("%@"), "\(locale): \(title)")
+            XCTAssertTrue(fix.contains(button), "\(locale): \(fix)")
+            XCTAssertFalse(fix.contains("%") || wait.contains("%"), "\(locale)")
+        }
+        let fix = plain(L10n.string("add_torrent.review.folder_unavailable.fix", localeOverride: .russian))
+        XCTAssertTrue(fix.contains("кнопка «Скачать» вернётся в этом же окне"), fix)
+        XCTAssertEqual(
+            plain(L10n.format("add_torrent.review.folder_unavailable.title", localeOverride: .russian, defaultValue: "", "Загрузки")),
+            "Папка «Загрузки» недоступна."
+        )
     }
 
     /// Each message of the add window that says to close it has a second

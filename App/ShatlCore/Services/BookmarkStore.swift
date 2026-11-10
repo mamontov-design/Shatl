@@ -43,8 +43,17 @@ actor BookmarkStore {
         }
     }
 
+    /// The folder a download is saved to, where it is now. A bookmark
+    /// follows its folder wherever it moves: a folder renamed or moved in
+    /// Finder is found there, as it should be. A folder moved to the Trash
+    /// is found there too, and a download started or restored in it went on
+    /// in the Trash (the owner's check, November 2026). A folder in a Trash
+    /// counts as unreachable, as one on a disk that is off: the download
+    /// says its folder is unavailable, and finds it again once it is put
+    /// back.
     func resolveURL(for torrentID: UUID, fallbackPath: String) async -> URL? {
         if let activeURL = activeScopedURLs[torrentID] {
+            guard !Self.isInTrash(activeURL) else { return nil }
             return fileManager.fileExists(atPath: activeURL.path) ? activeURL : nil
         }
 
@@ -58,6 +67,9 @@ actor BookmarkStore {
                 relativeTo: nil,
                 bookmarkDataIsStale: &isStale
             ) {
+                // Before access, a refreshed bookmark or the cache: nothing
+                // keeps the folder's place in the Trash.
+                guard !Self.isInTrash(resolvedURL) else { return nil }
                 guard resolvedURL.startAccessingSecurityScopedResource() else {
                     return nil
                 }
@@ -82,7 +94,15 @@ actor BookmarkStore {
         }
 
         let fallbackURL = URL(fileURLWithPath: fallbackPath)
+        guard !Self.isInTrash(fallbackURL) else { return nil }
         return fileManager.fileExists(atPath: fallbackURL.path) ? fallbackURL : nil
+    }
+
+    /// Whether a folder lies in a Trash: the home folder's `.Trash`, a
+    /// disk's `.Trashes`, iCloud Drive's `.Trash`. The system reserves
+    /// these names; no folder chosen to save to is called so.
+    nonisolated static func isInTrash(_ url: URL) -> Bool {
+        url.standardizedFileURL.pathComponents.contains { $0 == ".Trash" || $0 == ".Trashes" }
     }
 
     /// Resolves the bookmark again instead of trusting the path kept since the

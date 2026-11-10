@@ -31,22 +31,35 @@ final class DiskSpaceCheckTests: XCTestCase {
         )
     }
 
-    /// 171.3 GB needed and 16.8 GB free show as 172 and 16; the sentence
-    /// then lacks 156 GB, not the 155 the exact bytes round up to.
+    /// 171.6 GB needed and 16.8 GB free show as 172 and 16; the sentence
+    /// then lacks 156 GB, not the 155 the exact bytes round to.
     func testRoundedShortfallIsTheDifferenceOfTheNumbersShown() {
-        let space = check(needed: 171_300_000_000, available: 16_800_000_000)
+        let space = check(needed: 171_600_000_000, available: 16_800_000_000)
 
         XCTAssertEqual(space.neededText(mode: .simplified, localeOverride: .russian), "172\u{00A0}ГБ")
         XCTAssertEqual(space.availableText(mode: .simplified, localeOverride: .russian), "16\u{00A0}ГБ")
         XCTAssertEqual(space.shortfallText(mode: .simplified, localeOverride: .russian), "156\u{00A0}ГБ")
     }
 
-    func testShortfallAcrossUnitsStaysAboveZero() {
+    /// A size is rounded to the nearest whole number, as the add window's
+    /// files are: 2.1 GB is "2 ГБ", and 2 GB less 800 MB lacks about 1 GB.
+    func testShortfallAcrossUnitsIsRoundedAsASize() {
         let space = check(needed: 2_100_000_000, available: 800_000_000)
 
-        XCTAssertEqual(space.neededText(mode: .simplified, localeOverride: .russian), "3\u{00A0}ГБ")
+        XCTAssertEqual(space.neededText(mode: .simplified, localeOverride: .russian), "2\u{00A0}ГБ")
         XCTAssertEqual(space.availableText(mode: .simplified, localeOverride: .russian), "800\u{00A0}МБ")
-        XCTAssertEqual(space.shortfallText(mode: .simplified, localeOverride: .russian), "3\u{00A0}ГБ")
+        XCTAssertEqual(space.shortfallText(mode: .simplified, localeOverride: .russian), "1\u{00A0}ГБ")
+    }
+
+    /// 2.4 GB needed and 2.3 GB free both show as 2 GB: the numbers shown
+    /// leave nothing missing, so the sentence names what the bytes lack.
+    func testShortfallBetweenEqualNumbersIsTheExactOne() {
+        let space = check(needed: 2_400_000_000, available: 2_300_000_000)
+
+        XCTAssertFalse(space.fits)
+        XCTAssertEqual(space.neededText(mode: .simplified, localeOverride: .russian), "2\u{00A0}ГБ")
+        XCTAssertEqual(space.availableText(mode: .simplified, localeOverride: .russian), "2\u{00A0}ГБ")
+        XCTAssertEqual(space.shortfallText(mode: .simplified, localeOverride: .russian), "100\u{00A0}МБ")
     }
 
     func testDetailedShortfallUsesTheExactBytes() {
@@ -60,10 +73,12 @@ final class DiskSpaceCheckTests: XCTestCase {
     }
 
     func testRoundedBytesFollowTheUnitShown() {
-        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(171_300_000_000, rounding: .up), 172 * gigabyte)
+        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(171_300_000_000, rounding: .nearest), 171 * gigabyte)
+        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(171_600_000_000, rounding: .nearest), 172 * gigabyte)
+        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(999_600_000, rounding: .nearest), gigabyte)
         XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(16_800_000_000, rounding: .down), 16 * gigabyte)
         XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(800_400_000, rounding: .down), 800_000_000)
-        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(512, rounding: .up), 512)
+        XCTAssertEqual(AddTorrentSummaryByteFormatter.roundedBytes(512, rounding: .nearest), 512)
     }
 
     /// 100 GB free, 60 GB promised to downloads in progress: a download of
@@ -84,14 +99,15 @@ final class DiskSpaceCheckTests: XCTestCase {
         )
     }
 
-    /// 59.3 GB needed and 59.4 GB promised show as 60 and 60, 100.7 GB free
-    /// as 100: the sentence lacks the 20 GB they add up to.
+    /// 59.6 GB needed and 59.7 GB promised show as 60 and 60, 100.7 GB free
+    /// as 100: the sentence lacks the 20 GB they add up to, not the 19 the
+    /// exact bytes round to.
     func testRoundedShortfallAddsUpThePromisedNumberShown() {
         let space = DiskSpaceCheck(
-            neededBytes: 59_300_000_000,
+            neededBytes: 59_600_000_000,
             availableBytes: 100_700_000_000,
             volumeName: "Macintosh HD",
-            promisedBytes: 59_400_000_000
+            promisedBytes: 59_700_000_000
         )
 
         XCTAssertFalse(space.fits)
