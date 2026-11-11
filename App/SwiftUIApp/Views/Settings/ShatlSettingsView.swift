@@ -12,13 +12,17 @@ struct ShatlSettingsView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            // On a tab left, endless motion stops, whether or not the
+            // system keeps the tab's views.
             downloadsTab
+                .environment(\.shatlTabIsShown, selectedTab == .downloads)
                 .tabItem {
                     Label("settings.tab.downloads", systemImage: "arrow.up.and.down")
                 }
                 .tag(SettingsTab.downloads)
 
             appearanceTab
+                .environment(\.shatlTabIsShown, selectedTab == .appearance)
                 .tabItem {
                     Label("settings.tab.appearance", systemImage: "bubbles.and.sparkles")
                 }
@@ -988,8 +992,9 @@ struct ShatlPerformanceProfileSpeedometer: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
+    @Environment(\.shatlTabIsShown) private var tabIsShown
     @EnvironmentObject private var accentState: ShatlAccentState
-    @State private var isWiggling = false
+    @State private var windowShowsArrow = false
 
     var body: some View {
         ZStack {
@@ -999,18 +1004,34 @@ struct ShatlPerformanceProfileSpeedometer: View {
 
             progressLayer
 
-            arrow
-                .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
-                .rotationEffect(.degrees(arrowRotation), anchor: .center)
-                .animation(arrowAnimation, value: isWiggling)
+            swingingArrow
         }
         .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
-        .onAppear {
-            isWiggling = !reduceMotion
+        .background {
+            ShatlWindowVisibilityReader(isVisible: $windowShowsArrow)
+                .frame(width: 0, height: 0)
         }
-        .onChange(of: reduceMotion) { _, reduceMotion in
-            isWiggling = !reduceMotion
+    }
+
+    /// The arrow swings only while it can be seen. Out of sight it stands
+    /// where a swing starts, so it goes on from there when it comes back;
+    /// under Reduce Motion it stands upright.
+    @ViewBuilder
+    private var swingingArrow: some View {
+        if !reduceMotion, windowShowsArrow, tabIsShown {
+            ShatlEndlessSwing(animation: .easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { isSwung in
+                placedArrow
+                    .rotationEffect(.degrees(isSwung ? 6 : -6), anchor: .center)
+            }
+        } else {
+            placedArrow
+                .rotationEffect(.degrees(reduceMotion ? 0 : -6), anchor: .center)
         }
+    }
+
+    private var placedArrow: some View {
+        arrow
+            .frame(width: Layout.speedometerSize, height: Layout.speedometerSize)
     }
 
     /// In the monochrome appearance the arrow is a short one with no
@@ -1067,16 +1088,6 @@ struct ShatlPerformanceProfileSpeedometer: View {
             Gradient.Stop(color: ShatlColor.Extra.speedometerGradientStart, location: 0.08),
             Gradient.Stop(color: ShatlColor.Extra.speedometerGradientEnd, location: 0.92),
         ]
-    }
-
-    private var arrowRotation: Double {
-        guard !reduceMotion else { return 0 }
-        return isWiggling ? 6 : -6
-    }
-
-    private var arrowAnimation: Animation? {
-        guard !reduceMotion else { return nil }
-        return .easeInOut(duration: 1.1).repeatForever(autoreverses: true)
     }
 
 }

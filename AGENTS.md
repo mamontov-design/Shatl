@@ -135,6 +135,13 @@ something new shows a part listed here, add the place to its line.
   A card is a pure function of `TorrentRowInputs` and is rebuilt only when
   they change: anything new a card shows must enter through them, and the
   tick must not scan the list per card (look records up through the ID index).
+- Endless motion runs only while it can be seen. A closed Settings window is
+  hidden, not taken apart, and a `repeatForever` in it went on at 60 Hz until
+  Shatl quit (the speedometers: about a tenth of a core, measured in
+  November 2026); a change of state without an animation does not end it.
+  Such motion goes through `ShatlEndlessSwing`, shown only while
+  `ShatlWindowVisibilityReader` and, in Settings, `shatlTabIsShown` say it
+  is seen (`SettingsMotionVisibilityTests`).
 - Preserve manual Start/Stop semantics; do not enable libtorrent `auto_managed`
   or add fake cache controls.
 - Payload deletion belongs to `TorrentPayloadDeletionService` and
