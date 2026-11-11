@@ -73,7 +73,8 @@ final class ShatlWindowVisibilityView: NSView {
     var onChange: ((Bool) -> Void)?
 
     private var observation: NSObjectProtocol?
-    private var reported: Bool?
+    private var delivered: Bool?
+    private var isDeliveryScheduled = false
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -89,11 +90,24 @@ final class ShatlWindowVisibilityView: NSView {
         window?.occlusionState.contains(.visible) ?? false
     }
 
+    /// Hands the window's state over once the view update under way is
+    /// done, and only when it changed: SwiftUI forbids changing its state
+    /// while it draws, and a view moves into its window in such an update.
     private func report() {
-        let isVisible = Self.isVisible(window)
-        guard isVisible != reported else { return }
+        guard !isDeliveryScheduled else { return }
 
-        reported = isVisible
+        isDeliveryScheduled = true
+        Task { @MainActor [weak self] in
+            self?.deliver()
+        }
+    }
+
+    private func deliver() {
+        isDeliveryScheduled = false
+        let isVisible = Self.isVisible(window)
+        guard isVisible != delivered else { return }
+
+        delivered = isVisible
         onChange?(isVisible)
     }
 
