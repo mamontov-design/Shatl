@@ -35,6 +35,7 @@ struct ShatlSettingsView: View {
                 .tag(SettingsTab.data)
 
             aboutTab
+                .environment(\.shatlTabIsShown, selectedTab == .about)
                 .tabItem {
                     Label("settings.tab.about", systemImage: "info.circle")
                 }

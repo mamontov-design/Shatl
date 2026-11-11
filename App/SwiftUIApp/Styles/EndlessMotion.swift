@@ -11,7 +11,8 @@ import SwiftUI
 // (measured on 2026-11-12). A view that moves without end therefore reads
 // whether its window is on screen (`ShatlWindowVisibilityReader`) and,
 // in Settings, whether its tab is the one open (`shatlTabIsShown`), and
-// swings through `ShatlEndlessSwing` only while both hold.
+// moves only while both hold: a swing through `ShatlEndlessSwing`, the
+// wordmark's timeline paused, the logomark's loop keyed by them.
 
 /// Swings its content between two states with `animation`, an endless one,
 /// for as long as it is in the hierarchy. Taking it out is what ends the

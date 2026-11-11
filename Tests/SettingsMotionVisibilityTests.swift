@@ -71,6 +71,48 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         XCTAssertGreaterThan(shownAgain, Self.moving, "The hint did not pulse again when its window came back")
     }
 
+    /// The empty list, Settings → About and the add window show the
+    /// wordmark. In a closed window it took about 135 ms a second in a
+    /// Debug build, about as much as on screen.
+    func testTheWordmarkStandsInAClosedWindow() throws {
+        try skipUnderReduceMotion()
+        let window = makeWindow(
+            ShatlWordmark()
+                .environmentObject(ShatlAccentState()),
+            size: CGSize(width: 260, height: 120)
+        )
+        defer { window.orderOut(nil) }
+
+        let shown = show(window)
+        let closed = hide(window)
+        let shownAgain = show(window)
+
+        XCTAssertGreaterThan(shown, Self.moving, "The wordmark must move on screen for this to test anything")
+        XCTAssertLessThan(closed, Self.standing, "The wordmark went on moving in a closed window")
+        XCTAssertGreaterThan(shownAgain, Self.moving, "The wordmark did not move again when its window came back")
+    }
+
+    /// The logomark moves for 2.2 s after a pause of 2 s: on screen it is
+    /// read over a whole round, closed once the move under way is over.
+    func testTheLogomarkStandsInAClosedWindow() throws {
+        try skipUnderReduceMotion()
+        let window = makeWindow(
+            ShatlWordmark(initialSelection: .logomark)
+                .environmentObject(ShatlAccentState()),
+            size: CGSize(width: 260, height: 120)
+        )
+        defer { window.orderOut(nil) }
+
+        let round = ShatlBrandAnimation.pauseDuration + ShatlBrandAnimation.fullDuration
+        let shown = show(window, over: round + 0.3)
+        let closed = hide(window, settling: ShatlBrandAnimation.fullDuration + 0.3)
+        let shownAgain = show(window, over: round + 0.3)
+
+        XCTAssertGreaterThan(shown, Self.moving, "The logomark must move on screen for this to test anything")
+        XCTAssertLessThan(closed, Self.standing, "The logomark went on moving in a closed window")
+        XCTAssertGreaterThan(shownAgain, Self.moving, "The logomark did not move again when its window came back")
+    }
+
     // MARK: - Helpers
 
     private func skipUnderReduceMotion() throws {
@@ -98,19 +140,21 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         return window
     }
 
-    /// Main-thread milliseconds in the second after the window comes on screen.
-    private func show(_ window: NSWindow) -> Double {
+    /// Main-thread milliseconds while the window is on screen, from half a
+    /// second after it comes.
+    private func show(_ window: NSWindow, over seconds: TimeInterval = 1) -> Double {
         window.orderFrontRegardless()
         spin(for: 0.5)
-        return mainThreadMilliseconds(over: 1)
+        return mainThreadMilliseconds(over: seconds)
     }
 
     /// Main-thread milliseconds in a second once the window has been closed
-    /// for a second: a number that came just before the close still rolls
-    /// for half a second, and then nothing should move.
-    private func hide(_ window: NSWindow) -> Double {
+    /// for `settling`: a number that came just before the close still rolls
+    /// for half a second, a move of the logomark for its whole length, and
+    /// then nothing should move.
+    private func hide(_ window: NSWindow, settling: TimeInterval = 1) -> Double {
         window.orderOut(nil)
-        spin(for: 1)
+        spin(for: settling)
         return mainThreadMilliseconds(over: 1)
     }
 

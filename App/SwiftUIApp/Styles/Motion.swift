@@ -201,6 +201,9 @@ enum ShatlMotion {
     /// Under Reduce Motion the letters stand at the standard set and only
     /// the hue moves: each move takes a whole cycle and flows into the next.
     static let wordmarkStillHueMoveDuration = wordmarkRebuildDuration + wordmarkGlideDuration
+    /// A frame this long after the last one means the wordmark stood paused
+    /// out of sight: it goes on from the frame it stood at, with no jump.
+    static let wordmarkPauseGap: TimeInterval = 0.5
 
     /// The logomark and the wordmark give way to each other; the window's
     /// title over the empty list fades with them.
