@@ -1340,6 +1340,7 @@ struct TorrentCardPreviewView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.shatlTabIsShown) private var tabIsShown
 
     var localeOverride: AppLocaleOverride = .russian
     var metricsMode: MetricsPresentationMode = .simplified
@@ -1366,7 +1367,7 @@ struct TorrentCardPreviewView: View {
     @State private var demoProgress = 0.01
     @State private var demoTick = 0
     @State private var compactCardHeight: CGFloat?
-    @State private var isExpandHintAnimating = false
+    @State private var windowShowsCard = false
 
     init(
         localeOverride: AppLocaleOverride = .russian,
@@ -1434,12 +1435,19 @@ struct TorrentCardPreviewView: View {
                 compactCardHeight = height
             }
         }
-        .task {
+        .background {
+            ShatlWindowVisibilityReader(isVisible: $windowShowsCard)
+                .frame(width: 0, height: 0)
+        }
+        // Out of sight the demo stands: no new numbers, no pulse.
+        .task(id: isOnScreen) {
+            guard isOnScreen else { return }
             await runDemoProgress()
         }
-        .onAppear {
-            startExpandHintAnimationIfNeeded()
-        }
+    }
+
+    private var isOnScreen: Bool {
+        windowShowsCard && tabIsShown
     }
 
     private var demoCardContainer: some View {
@@ -1504,11 +1512,25 @@ struct TorrentCardPreviewView: View {
         )
     }
 
+    /// The hint pulses only while it can be seen, and stands small out of
+    /// sight and under Reduce Motion.
+    @ViewBuilder
     private var expandHint: some View {
+        if isOnScreen, !reduceMotion {
+            ShatlEndlessSwing(animation: .easeInOut(duration: 1.8).repeatForever(autoreverses: true)) { isSwung in
+                expandHintCircle
+                    .scaleEffect(isSwung ? 1.24 : 0.94)
+            }
+        } else {
+            expandHintCircle
+                .scaleEffect(0.94)
+        }
+    }
+
+    private var expandHintCircle: some View {
         Circle()
             .fill(expandHintColor)
             .frame(width: 34, height: 34)
-            .scaleEffect(isExpandHintAnimating && !reduceMotion ? 1.24 : 0.94)
             .blendMode(expandHintBlendMode)
     }
 
@@ -1542,14 +1564,6 @@ struct TorrentCardPreviewView: View {
                 demoProgress = demoProgress >= 0.99 ? 0.01 : min(0.99, demoProgress + 0.01)
                 demoTick += 1
             }
-        }
-    }
-
-    private func startExpandHintAnimationIfNeeded() {
-        guard !centersExpandedCard, showsExpansionToggle, !reduceMotion else { return }
-
-        withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-            isExpandHintAnimating = true
         }
     }
 

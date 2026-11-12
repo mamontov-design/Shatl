@@ -319,10 +319,15 @@ enum ShatlTypeWordmarkMotion {
             moveStart = date
         }
 
+        /// Paused for `interval`: the move goes on from where it stood.
+        mutating func delay(by interval: TimeInterval) {
+            moveStart += interval
+        }
+
         mutating func hue<R: RandomNumberGenerator>(at date: Date, using random: inout R) -> Double {
             var elapsed = max(0, date.timeIntervalSince(moveStart))
             if elapsed > Self.moveDuration * 3 {
-                // Out of sight a while: go on from where it stopped.
+                // Far ahead of the move: go on from where it stopped.
                 self = HueDrift(from: hues[1], at: date, using: &random)
                 elapsed = 0
             }
@@ -541,6 +546,8 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
     private var drift: ShatlTypeWordmarkMotion.HueDrift?
     /// The hue of the last frame: the letters stop and set off again in it.
     private var lastHue: Double
+    /// When the last frame was asked for.
+    private var lastFrame: Date?
 
     /// Tests pass a seeded `random`, so a run can be read again.
     init(random: any RandomNumberGenerator = SystemRandomNumberGenerator(), start: Date = .now) {
@@ -554,6 +561,7 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
     /// Back to the standard set in a random hue, as the wordmark comes back
     /// from the logomark.
     func restart(at date: Date) {
+        lastFrame = nil
         if drift != nil {
             let hue = Double(Int.random(in: 0..<ShatlTypeWordmarkMotion.hueCount, using: &random))
             drift = ShatlTypeWordmarkMotion.HueDrift(from: hue, at: date, using: &random)
@@ -566,6 +574,7 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
     /// `standsStill` under Reduce Motion: the letters stand at the standard
     /// set, at once when it is turned on, and only the hue moves.
     func style(at date: Date, standsStill: Bool = false) -> ShatlTypeWordmark.Style {
+        goOnAfterPause(at: date)
         if standsStill {
             if drift == nil {
                 drift = ShatlTypeWordmarkMotion.HueDrift(from: lastHue, at: date, using: &random)
@@ -583,11 +592,25 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
         return style
     }
 
+    /// A frame long after the last one: the wordmark stood paused, out of
+    /// sight, and goes on from the frame it stood at, as if no time had
+    /// passed.
+    private func goOnAfterPause(at date: Date) {
+        defer { lastFrame = date }
+        guard let lastFrame else { return }
+
+        let pause = date.timeIntervalSince(lastFrame)
+        guard pause > ShatlMotion.wordmarkPauseGap else { return }
+
+        cycleStart += pause
+        drift?.delay(by: pause)
+    }
+
     private func movingStyle(at date: Date) -> ShatlTypeWordmark.Style {
         var elapsed = max(0, date.timeIntervalSince(cycleStart))
         if elapsed > cycle.duration * 3 {
-            // The clock went on while the wordmark was out of sight: go on
-            // from where it stopped rather than play the cycles it missed.
+            // A first frame long after the player was made: go on from the
+            // next cycle rather than play the cycles before it.
             cycle = ShatlTypeWordmarkMotion.nextCycle(after: cycle, using: &random)
             cycleStart = date
             elapsed = 0
@@ -614,7 +637,8 @@ private struct ShatlAnyRandom: RandomNumberGenerator {
 /// app's own accent through four hues, in the monochrome appearance in grey,
 /// with the accent of macOS in that colour. It moves only while it is the
 /// mark shown, and under Reduce Motion it stands at the standard set and
-/// changes only its hue.
+/// changes only its hue. Unwatched, out of sight or behind the window the
+/// user works in, it stands paused and goes on from the same frame.
 struct ShatlTypeWordmarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
@@ -623,9 +647,10 @@ struct ShatlTypeWordmarkArtwork: View {
     @StateObject private var player = ShatlTypeWordmarkPlayer()
 
     let isAnimating: Bool
+    let isWatched: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: !isAnimating || standsStillInOneColour)) { context in
+        TimelineView(.animation(minimumInterval: nil, paused: !isAnimating || !isWatched || standsStillInOneColour)) { context in
             let style = player.style(at: context.date, standsStill: reduceMotion)
             ShatlTypeWordmarkShape(axes: style.axes)
                 .fill(fillColor(for: style))

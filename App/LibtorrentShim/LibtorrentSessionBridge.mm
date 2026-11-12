@@ -6,6 +6,7 @@
 #include <ifaddrs.h>
 #include <libproc.h>
 #include <netinet/in.h>
+#include <pthread/qos.h>
 #include <sys/resource.h>
 #include <sys/syslimits.h>
 #include <sys/sysctl.h>
@@ -1252,7 +1253,15 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 #endif
 
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
-    std::thread([proxy = std::move(proxy), finished]() mutable {
+    // The thread that lets go of the proxy runs at the priority of the one
+    // waiting for it below: a semaphore lends a waiter's priority to no
+    // one, and on a busy Mac the quit could wait on a thread the system put
+    // off (Xcode's Hang Risk).
+    qos_class_t const waiterPriority = qos_class_self();
+    std::thread([proxy = std::move(proxy), finished, waiterPriority]() mutable {
+        if (waiterPriority != QOS_CLASS_UNSPECIFIED) {
+            pthread_set_qos_class_self_np(waiterPriority, 0);
+        }
         {
             lt::session_proxy lastReference = std::move(proxy);
         }

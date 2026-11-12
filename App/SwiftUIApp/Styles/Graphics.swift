@@ -21,6 +21,8 @@ struct ShatlWordmark: View {
     private let selection: Binding<ShatlBrandMark>?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlTabIsShown) private var tabIsShown
+    @Environment(\.appearsActive) private var appearsActive
 
     @StateObject private var logomarkAnimationState = ShatlBrandAnimationState(
         originalStrokeWidth: ShatlBrandAnimation.logomarkOriginalStrokeWidth,
@@ -35,6 +37,7 @@ struct ShatlWordmark: View {
     @State private var boxFitsWordmark: Bool
     @State private var isHovering = false
     @State private var bounceTask: Task<Void, Never>?
+    @State private var windowShowsMark = false
 
     init(
         selection: Binding<ShatlBrandMark>,
@@ -86,7 +89,7 @@ struct ShatlWordmark: View {
 
     var body: some View {
         ZStack(alignment: artworkAlignment) {
-            ShatlTypeWordmarkArtwork(isAnimating: selectedBrandMark == .wordmark)
+            ShatlTypeWordmarkArtwork(isAnimating: selectedBrandMark == .wordmark, isWatched: isWatched)
                 .compositingGroup()
                 .opacity(Double(1 - logomarkProgress))
                 .blur(radius: logomarkProgress * ShatlBrandTransition.blurRadius)
@@ -134,10 +137,30 @@ struct ShatlWordmark: View {
         .onDisappear {
             resetInteractionState()
         }
-        .task(id: ShatlBrandMarkMotion(brandMark: selectedBrandMark, standsStill: reduceMotion)) {
-            resetAnimation(for: selectedBrandMark)
+        .background {
+            ShatlWindowVisibilityReader(isVisible: $windowShowsMark)
+                .frame(width: 0, height: 0)
+        }
+        .onChange(of: motion, initial: true) { _, motion in
+            resetAnimation(for: motion.brandMark)
+        }
+        // Unwatched the logomark stands paused: the move under way ends, and
+        // the next one waits until it is watched again, from where it stood.
+        .task(id: ShatlBrandMarkLoop(motion: motion, isWatched: isWatched)) {
+            guard isWatched else { return }
             await runAnimation(for: selectedBrandMark)
         }
+    }
+
+    private var motion: ShatlBrandMarkMotion {
+        ShatlBrandMarkMotion(brandMark: selectedBrandMark, standsStill: reduceMotion)
+    }
+
+    /// The marks move only while they are watched: in sight, in the window
+    /// the user works in. Out of sight they would draw for no one; behind
+    /// another window they stand, as the inactive look will have them.
+    private var isWatched: Bool {
+        windowShowsMark && tabIsShown && appearsActive
     }
 
     private var boxHeight: CGFloat {
@@ -223,6 +246,13 @@ struct ShatlWordmark: View {
 private struct ShatlBrandMarkMotion: Equatable {
     let brandMark: ShatlBrandMark
     let standsStill: Bool
+}
+
+/// What the logomark's moves stop and go on with: being watched again goes
+/// on from where the star stood, unlike a change of the motion.
+private struct ShatlBrandMarkLoop: Equatable {
+    let motion: ShatlBrandMarkMotion
+    let isWatched: Bool
 }
 
 /// The logomark's star in the monochrome appearance: no glass and no

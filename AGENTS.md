@@ -103,7 +103,9 @@ something new shows a part listed here, add the place to its line.
   onboarding, the logomark alone. The wordmark's colours
   (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
   mixed by weight) and timings (`ShatlMotion.wordmark*`,
-  `brandMarkChangeDuration`); under Reduce Motion both marks stand still.
+  `brandMarkChangeDuration`); under Reduce Motion both marks stand still,
+  and unwatched (out of sight, or in a window that is not active) both
+  stand paused and go on from where they stood.
   Its four hues also tint the Settings option cards' wink
   (`ShatlColor.InputCardActivationPulse`).
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"
@@ -135,6 +137,15 @@ something new shows a part listed here, add the place to its line.
   A card is a pure function of `TorrentRowInputs` and is rebuilt only when
   they change: anything new a card shows must enter through them, and the
   tick must not scan the list per card (look records up through the ID index).
+- Endless motion runs only while it can be seen. A closed window is often
+  hidden, not taken apart (Settings, the main window with an empty list),
+  and motion in it went on at 60 Hz until Shatl quit: the speedometers took
+  about a tenth of a core, the wordmark more (measured in November 2026).
+  `ShatlWindowVisibilityReader` and, in Settings, `shatlTabIsShown` say
+  whether a view is seen. A `repeatForever` goes through `ShatlEndlessSwing`,
+  shown only then, since a change of state without an animation does not
+  end it; a `TimelineView` is paused and a loop task keyed by it
+  (`SettingsMotionVisibilityTests`).
 - Preserve manual Start/Stop semantics; do not enable libtorrent `auto_managed`
   or add fake cache controls.
 - Payload deletion belongs to `TorrentPayloadDeletionService` and

@@ -196,6 +196,34 @@ final class ShatlTypeWordmarkTests: XCTestCase {
         XCTAssertGreaterThan(stillest, 2, "the weight stood almost still for half a second")
     }
 
+    /// Out of sight the wordmark stands paused: the first frame after a
+    /// long gap shows the letters and the hue it stood at, and the next one
+    /// goes on from there without a jump, under Reduce Motion too.
+    func testOutOfSightTheWordmarkGoesOnFromTheFrameItStoodAt() {
+        for standsStill in [false, true] {
+            let start = Date(timeIntervalSinceReferenceDate: 0)
+            let player = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+            let frame = 1.0 / 60
+            var date = start
+            var last = player.style(at: date, standsStill: standsStill)
+            for _ in 0..<(60 * 7) {
+                date += frame
+                last = player.style(at: date, standsStill: standsStill)
+            }
+
+            date += 90
+            let back = player.style(at: date, standsStill: standsStill)
+            XCTAssertEqual(back.weight, last.weight, accuracy: 0.001, "standsStill: \(standsStill)")
+            XCTAssertEqual(back.width, last.width, accuracy: 0.001, "standsStill: \(standsStill)")
+            XCTAssertEqual(back.hue, last.hue, accuracy: 0.001, "standsStill: \(standsStill)")
+
+            date += frame
+            let next = player.style(at: date, standsStill: standsStill)
+            XCTAssertLessThan(abs(next.weight - back.weight), 25, "standsStill: \(standsStill)")
+            XCTAssertLessThan(abs(next.hue - back.hue), 0.1, "standsStill: \(standsStill)")
+        }
+    }
+
     /// The step follows the weight: thin letters solid, the standard set on
     /// the pastel step, bold letters pale; the dark theme takes the step one
     /// up at the thin end, as `accentColored` does.

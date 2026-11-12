@@ -161,7 +161,6 @@ private struct ShatlWindowBackingScaleReader: NSViewRepresentable {
 
     func updateNSView(_ nsView: ShatlWindowBackingScaleView, context: Context) {
         nsView.onScaleChange = { backingScaleFactor = $0 }
-        nsView.reportBackingScaleFactor()
     }
 }
 
@@ -169,6 +168,8 @@ private final class ShatlWindowBackingScaleView: NSView {
     var onScaleChange: ((CGFloat) -> Void)?
 
     private var observations: [NSObjectProtocol] = []
+    private var deliveredScale: CGFloat?
+    private var isDeliveryScheduled = false
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -180,8 +181,25 @@ private final class ShatlWindowBackingScaleView: NSView {
         removeWindowObservers()
     }
 
-    func reportBackingScaleFactor() {
-        onScaleChange?(window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2)
+    /// Hands the scale over once the view update under way is done, and
+    /// only when it changed: SwiftUI forbids changing its state while it
+    /// draws, and the scale changes only with the screen.
+    private func reportBackingScaleFactor() {
+        guard !isDeliveryScheduled else { return }
+
+        isDeliveryScheduled = true
+        Task { @MainActor [weak self] in
+            self?.deliverBackingScaleFactor()
+        }
+    }
+
+    private func deliverBackingScaleFactor() {
+        isDeliveryScheduled = false
+        let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+        guard scale != deliveredScale else { return }
+
+        deliveredScale = scale
+        onScaleChange?(scale)
     }
 
     private func updateWindowObservers() {
