@@ -104,7 +104,8 @@ something new shows a part listed here, add the place to its line.
   (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
   mixed by weight) and timings (`ShatlMotion.wordmark*`,
   `brandMarkChangeDuration`); under Reduce Motion both marks stand still,
-  and out of sight both stand paused and go on from where they stood.
+  and unwatched (out of sight, or in a window that is not active) both
+  stand paused and go on from where they stood.
   Its four hues also tint the Settings option cards' wink
   (`ShatlColor.InputCardActivationPulse`).
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"

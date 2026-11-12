@@ -637,8 +637,8 @@ private struct ShatlAnyRandom: RandomNumberGenerator {
 /// app's own accent through four hues, in the monochrome appearance in grey,
 /// with the accent of macOS in that colour. It moves only while it is the
 /// mark shown, and under Reduce Motion it stands at the standard set and
-/// changes only its hue. Out of sight it stands paused and goes on from
-/// the same frame.
+/// changes only its hue. Unwatched, out of sight or behind the window the
+/// user works in, it stands paused and goes on from the same frame.
 struct ShatlTypeWordmarkArtwork: View {
     @EnvironmentObject private var accentState: ShatlAccentState
     @Environment(\.shatlUsesMonochromeAppearance) private var usesMonochrome
@@ -647,10 +647,10 @@ struct ShatlTypeWordmarkArtwork: View {
     @StateObject private var player = ShatlTypeWordmarkPlayer()
 
     let isAnimating: Bool
-    let isOnScreen: Bool
+    let isWatched: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: !isAnimating || !isOnScreen || standsStillInOneColour)) { context in
+        TimelineView(.animation(minimumInterval: nil, paused: !isAnimating || !isWatched || standsStillInOneColour)) { context in
             let style = player.style(at: context.date, standsStill: reduceMotion)
             ShatlTypeWordmarkShape(axes: style.axes)
                 .fill(fillColor(for: style))

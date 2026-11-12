@@ -78,6 +78,7 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         try skipUnderReduceMotion()
         let window = makeWindow(
             ShatlWordmark()
+                .environment(\.appearsActive, true)
                 .environmentObject(ShatlAccentState()),
             size: CGSize(width: 260, height: 120)
         )
@@ -98,6 +99,7 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         try skipUnderReduceMotion()
         let window = makeWindow(
             ShatlWordmark(initialSelection: .logomark)
+                .environment(\.appearsActive, true)
                 .environmentObject(ShatlAccentState()),
             size: CGSize(width: 260, height: 120)
         )
@@ -111,6 +113,32 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         XCTAssertGreaterThan(shown, Self.moving, "The logomark must move on screen for this to test anything")
         XCTAssertLessThan(closed, Self.standing, "The logomark went on moving in a closed window")
         XCTAssertGreaterThan(shownAgain, Self.moving, "The logomark did not move again when its window came back")
+    }
+
+    /// Behind the window the user works in, the wordmark stands, as the
+    /// inactive look will have it, and moves again once its window is
+    /// worked in. On the empty list it took about a quarter of a core,
+    /// inactive as active (measured on 2026-11-12).
+    func testTheWordmarkStandsInAWindowThatIsNotWorkedIn() throws {
+        try skipUnderReduceMotion()
+        let focus = MotionFocusModel()
+        let window = makeWindow(
+            MotionFocusRoot(focus: focus, content: ShatlWordmark().environmentObject(ShatlAccentState())),
+            size: CGSize(width: 260, height: 120)
+        )
+        defer { window.orderOut(nil) }
+
+        let active = show(window)
+        focus.isActive = false
+        spin(for: 0.3)
+        let inactive = mainThreadMilliseconds(over: 1)
+        focus.isActive = true
+        spin(for: 0.3)
+        let activeAgain = mainThreadMilliseconds(over: 1)
+
+        XCTAssertGreaterThan(active, Self.moving, "The wordmark must move in an active window for this to test anything")
+        XCTAssertLessThan(inactive, Self.standing, "The wordmark went on moving in an inactive window")
+        XCTAssertGreaterThan(activeAgain, Self.moving, "The wordmark did not move again when its window was active again")
     }
 
     // MARK: - Helpers
@@ -166,5 +194,20 @@ final class SettingsMotionVisibilityTests: XCTestCase {
         let start = clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
         spin(for: seconds)
         return Double(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID) - start) / 1_000_000
+    }
+}
+
+/// Whether the window is the one the user works in, set by a test in place
+/// of the system.
+private final class MotionFocusModel: ObservableObject {
+    @Published var isActive = true
+}
+
+private struct MotionFocusRoot<Content: View>: View {
+    @ObservedObject var focus: MotionFocusModel
+    let content: Content
+
+    var body: some View {
+        content.environment(\.appearsActive, focus.isActive)
     }
 }
