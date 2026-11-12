@@ -167,7 +167,11 @@ something new shows a part listed here, add the place to its line.
   with hysteresis (`TransferSpeedLevel`) and change it quietly, a badge
   loses its fill for "Простаивает" only after a spell without speed and
   takes it back on held speed (`TransferActivity`), never second by second,
-  and metric shadows sit under the plate so changing digits leave the blur alone.
+  the speed set comes and goes with that fill, keeping its last speed and
+  time left through the spell (`TransferSpeedLevels.shownDownload`: a
+  second of zero, common with many downloads, made it leave and come back
+  on several cards each second, about a third of a core with 26), and
+  metric shadows sit under the plate so changing digits leave the blur alone.
   A status badge is filled only while the download works ("Скачивается",
   "Проверяется", "Раздаётся"); one that stands, has finished ("Скачана") or
   failed ("Ошибка") wears an outline without a fill, and the error's

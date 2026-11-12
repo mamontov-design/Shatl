@@ -570,6 +570,40 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(try apply(megabytesPerSecond: 1.85), "figure.walk")
     }
 
+    /// A second without speed, which the engine often reports with many
+    /// downloads on one line, leaves the card as it was: the speed set does
+    /// not leave and come back, and the card is not even redrawn.
+    func testASecondWithoutSpeedLeavesTheCardAsItWas() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.4)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        func apply(bytesPerSecond: Int64, eta: Int?) {
+            var metrics = record.metrics
+            metrics.downloadSpeedBytesPerSecond = bytesPerSecond
+            metrics.etaSeconds = eta
+            bundle.store.applySnapshotsForTesting([
+                EngineTorrentSnapshot(id: record.id, status: .downloading, progress: 0.4, metrics: metrics, errorState: nil),
+            ])
+        }
+
+        apply(bytesPerSecond: 2 * 1_024 * 1_024, eta: 600)
+        let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: record.id))
+        let moving = try XCTUnwrap(rowModel.state.compactTransferMetricSet)
+        var rowPublicationCount = 0
+        let observation = rowModel.objectWillChange.sink { _ in
+            rowPublicationCount += 1
+        }
+        defer { observation.cancel() }
+
+        apply(bytesPerSecond: 0, eta: nil)
+
+        XCTAssertEqual(rowModel.state.compactTransferMetricSet, moving)
+        XCTAssertFalse(rowModel.state.isIdle)
+        XCTAssertEqual(rowPublicationCount, 0)
+    }
+
     func testCompactRowIgnoresRuntimeValuesThatDoNotChangePresentation() throws {
         var record = makeTestRecord(status: .downloading, progress: 0.401)
         record.metrics = TorrentMetrics(
