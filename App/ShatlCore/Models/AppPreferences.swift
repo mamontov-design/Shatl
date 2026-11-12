@@ -123,7 +123,17 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var usesUnrestrictedPerformanceMode: Bool
     var theme: AppTheme
     var metricsMode: MetricsPresentationMode
-    var colorizesDownloadSpeed: Bool = false
+    /// On by default since 1.0.6. See `hasAppliedSpeedColorsDefault`.
+    var colorizesDownloadSpeed: Bool = true
+    /// Speed colours came on by default in 1.0.6. Preferences saved before
+    /// had them off whether or not anyone chose it, since they are saved
+    /// whole; they were turned on once, unless the monochrome appearance had
+    /// them off by its rule. True once that is done, and from the start in
+    /// preferences made since.
+    var hasAppliedSpeedColorsDefault = true
+    /// Digits roll into place when a number changes, in the cards and the
+    /// speed chips under the list. Off, they change at once.
+    var animatesNumberChanges = true
     /// Statuses and the speed set in greys. See `setUsesMonochromeAppearance`.
     var usesMonochromeAppearance: Bool = false
     var localeOverride: AppLocaleOverride
@@ -166,6 +176,8 @@ extension AppPreferences {
         case theme
         case metricsMode
         case colorizesDownloadSpeed
+        case hasAppliedSpeedColorsDefault
+        case animatesNumberChanges
         case usesMonochromeAppearance
         case localeOverride
         case sendsAnonymousUsageStatistics
@@ -218,8 +230,15 @@ extension AppPreferences {
         usesUnrestrictedPerformanceMode = false
         theme = try container.decode(AppTheme.self, forKey: .theme)
         metricsMode = try container.decode(MetricsPresentationMode.self, forKey: .metricsMode)
-        colorizesDownloadSpeed = try container.decodeIfPresent(Bool.self, forKey: .colorizesDownloadSpeed) ?? false
         usesMonochromeAppearance = try container.decodeIfPresent(Bool.self, forKey: .usesMonochromeAppearance) ?? false
+        let savedColorizesDownloadSpeed = try container.decodeIfPresent(Bool.self, forKey: .colorizesDownloadSpeed) ?? true
+        if try container.decodeIfPresent(Bool.self, forKey: .hasAppliedSpeedColorsDefault) ?? false {
+            colorizesDownloadSpeed = savedColorizesDownloadSpeed
+        } else {
+            colorizesDownloadSpeed = !usesMonochromeAppearance
+        }
+        hasAppliedSpeedColorsDefault = true
+        animatesNumberChanges = try container.decodeIfPresent(Bool.self, forKey: .animatesNumberChanges) ?? true
         localeOverride = try container.decodeIfPresent(
             AppLocaleOverride.self,
             forKey: .localeOverride

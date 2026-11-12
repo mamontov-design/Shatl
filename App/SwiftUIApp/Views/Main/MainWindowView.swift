@@ -209,7 +209,10 @@ struct MainWindowView: View {
             .animation(ShatlMotion.sessionRestoreStatusBar, value: store.selectionCountShownInBar != nil)
 
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
-                .environment(\.shatlRollsMetricDigits, store.cardSimplification < .lightest)
+                .environment(
+                    \.shatlRollsMetricDigits,
+                    store.preferences.animatesNumberChanges && store.cardSimplification < .lightest
+                )
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)
         }

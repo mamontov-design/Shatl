@@ -71,13 +71,12 @@ final class AppPreferencesStoreTests: XCTestCase {
 
     /// Turning the monochrome appearance on takes the speed colours off. They
     /// may be turned on again and stay on; turning monochrome off gives
-    /// nothing back.
+    /// nothing back. Speed colours are on by default since 1.0.6.
     func testMonochromeAppearanceTakesTheSpeedColoursOffOnce() {
         var preferences = AppPreferences.defaultValue
         XCTAssertFalse(preferences.usesMonochromeAppearance)
-        XCTAssertFalse(preferences.colorizesDownloadSpeed)
+        XCTAssertTrue(preferences.colorizesDownloadSpeed)
 
-        preferences.colorizesDownloadSpeed = true
         preferences.setUsesMonochromeAppearance(true)
         XCTAssertTrue(preferences.usesMonochromeAppearance)
         XCTAssertFalse(preferences.colorizesDownloadSpeed)
@@ -90,6 +89,44 @@ final class AppPreferencesStoreTests: XCTestCase {
         preferences.setUsesMonochromeAppearance(false)
         XCTAssertFalse(preferences.usesMonochromeAppearance)
         XCTAssertFalse(preferences.colorizesDownloadSpeed)
+    }
+
+    /// Speed colours came on by default in 1.0.6. Preferences saved before
+    /// had them off whether anyone chose it or not: they come on once, but
+    /// not under the monochrome appearance, which had them off by its rule.
+    /// After that a choice to turn them off holds.
+    func testSpeedColoursComeOnOnceForPreferencesSavedBefore106() throws {
+        func decodedBefore106(monochrome: Bool) throws -> AppPreferences {
+            var saved = AppPreferences.defaultValue
+            saved.colorizesDownloadSpeed = false
+            saved.usesMonochromeAppearance = monochrome
+            let data = try JSONEncoder().encode(saved)
+            var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            XCTAssertNotNil(object.removeValue(forKey: "hasAppliedSpeedColorsDefault"))
+            XCTAssertNotNil(object.removeValue(forKey: "animatesNumberChanges"))
+            return try JSONDecoder().decode(AppPreferences.self, from: JSONSerialization.data(withJSONObject: object))
+        }
+
+        var colours = try decodedBefore106(monochrome: false)
+        XCTAssertTrue(colours.colorizesDownloadSpeed)
+        XCTAssertTrue(colours.hasAppliedSpeedColorsDefault)
+        XCTAssertTrue(colours.animatesNumberChanges)
+
+        let monochrome = try decodedBefore106(monochrome: true)
+        XCTAssertFalse(monochrome.colorizesDownloadSpeed)
+        XCTAssertTrue(monochrome.hasAppliedSpeedColorsDefault)
+
+        colours.colorizesDownloadSpeed = false
+        let resaved = try JSONDecoder().decode(AppPreferences.self, from: JSONEncoder().encode(colours))
+        XCTAssertFalse(resaved.colorizesDownloadSpeed, "a choice made after 1.0.6 holds")
+    }
+
+    func testNumberChangesAreAnimatedByDefaultAndTheChoiceIsSaved() throws {
+        var preferences = AppPreferences.defaultValue
+        XCTAssertTrue(preferences.animatesNumberChanges)
+        preferences.animatesNumberChanges = false
+        let decoded = try JSONDecoder().decode(AppPreferences.self, from: JSONEncoder().encode(preferences))
+        XCTAssertFalse(decoded.animatesNumberChanges)
     }
 
     /// Preferences saved before the monochrome appearance read it as off.

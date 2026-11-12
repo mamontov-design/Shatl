@@ -150,6 +150,8 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
     /// Statuses and the speed set in greys; the speed icon keeps its colour
     /// while `colorizesDownloadSpeed` is on.
     var usesMonochromeAppearance: Bool = false
+    /// "Анимировать смену чисел": digits roll into place. See `rollsDigits`.
+    var animatesNumberChanges: Bool = true
     #if DEBUG
     var enablesCardLayoutDiagnostics: Bool = false
     var enablesMetricAnimationDiagnostics: Bool = false
@@ -184,6 +186,18 @@ nonisolated struct TorrentRowState: Identifiable, Equatable, Sendable {
 }
 
 extension TorrentRowState {
+    /// Digits roll into place when a number changes: the setting is on and
+    /// the card has not left rolling out for many downloads.
+    var rollsDigits: Bool {
+        animatesNumberChanges && simplification < .lightest
+    }
+
+    /// With many downloads the speed shows its level icon alone, but not on
+    /// the expanded card: whoever opened it is watching that download.
+    var foldsDownloadSpeed: Bool {
+        simplification.foldsDownloadSpeed && !isExpanded
+    }
+
     /// A finished download shows on one line: its status badge beside the
     /// title, without the progress bar; the badge names the status under the
     /// pointer. A check of a finished download keeps it

@@ -1346,6 +1346,7 @@ struct TorrentCardPreviewView: View {
     var metricsMode: MetricsPresentationMode = .simplified
     var colorizesDownloadSpeed = false
     var usesMonochromeAppearance = false
+    var animatesNumberChanges = true
     var downloadSpeedOutlineFlashTrigger = 0
     var initiallyExpanded = false
     var centersExpandedCard = false
@@ -1374,6 +1375,7 @@ struct TorrentCardPreviewView: View {
         metricsMode: MetricsPresentationMode = .simplified,
         colorizesDownloadSpeed: Bool = false,
         usesMonochromeAppearance: Bool = false,
+        animatesNumberChanges: Bool = true,
         downloadSpeedOutlineFlashTrigger: Int = 0,
         initiallyExpanded: Bool = false,
         centersExpandedCard: Bool = false,
@@ -1394,6 +1396,7 @@ struct TorrentCardPreviewView: View {
         self.metricsMode = metricsMode
         self.colorizesDownloadSpeed = colorizesDownloadSpeed
         self.usesMonochromeAppearance = usesMonochromeAppearance
+        self.animatesNumberChanges = animatesNumberChanges
         self.downloadSpeedOutlineFlashTrigger = downloadSpeedOutlineFlashTrigger
         self.initiallyExpanded = initiallyExpanded
         self.centersExpandedCard = centersExpandedCard
@@ -1488,6 +1491,7 @@ struct TorrentCardPreviewView: View {
                 metricsMode: metricsMode,
                 colorizesDownloadSpeed: colorizesDownloadSpeed,
                 usesMonochromeAppearance: usesMonochromeAppearance,
+                animatesNumberChanges: animatesNumberChanges,
                 localeOverride: localeOverride
             ),
             resolvePrimaryLocation: { nil },
@@ -1583,6 +1587,7 @@ private extension TorrentRowState {
         metricsMode: MetricsPresentationMode,
         colorizesDownloadSpeed: Bool = false,
         usesMonochromeAppearance: Bool = false,
+        animatesNumberChanges: Bool = true,
         localeOverride: AppLocaleOverride
     ) -> TorrentRowState {
         let record = TorrentRecord.previewDemo(progress: progress, tick: tick)
@@ -1617,6 +1622,7 @@ private extension TorrentRowState {
             metricsMode: metricsMode,
             colorizesDownloadSpeed: colorizesDownloadSpeed,
             usesMonochromeAppearance: usesMonochromeAppearance,
+            animatesNumberChanges: animatesNumberChanges,
             errorState: nil,
             isSelected: false,
             isExpanded: isExpanded,

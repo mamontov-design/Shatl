@@ -179,9 +179,13 @@ something new shows a part listed here, add the place to its line.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
-  its number under the pointer, `foldsDownloadSpeed`; from 25, digits also
+  its number under the pointer, `TorrentRowState.foldsDownloadSpeed`, except
+  on the expanded card, whose download is watched; from 25, digits also
   stop rolling and the bar steps 10 %); the level enters each card through
-  its row inputs. A finished
+  its row inputs. Digits roll only while "Анимировать смену чисел" is on
+  (`AppPreferences.animatesNumberChanges`, `TorrentRowState.rollsDigits`;
+  the speed chips follow it too), and its "i" names the count of 25
+  (`CopyPromiseTests`). A finished
   download's card is one line, the status badge beside the title naming the
   status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
   built for finished downloads, at launch too, start on one line without

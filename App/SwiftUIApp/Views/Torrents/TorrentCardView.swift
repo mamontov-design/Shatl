@@ -317,7 +317,7 @@ struct TorrentCardView: View, Equatable {
             }
         }
         // With the most downloads running, digits stop rolling.
-        .environment(\.shatlRollsMetricDigits, row.simplification < .lightest)
+        .environment(\.shatlRollsMetricDigits, row.rollsDigits)
     }
 
     @ViewBuilder
@@ -853,7 +853,7 @@ struct TorrentCardView: View, Equatable {
     /// Only in the list: the onboarding and the settings preview have no
     /// pointer to unfold it.
     private var foldsDownloadSpeed: Bool {
-        presentationMode == .normal && row.simplification.foldsDownloadSpeed
+        presentationMode == .normal && row.foldsDownloadSpeed
     }
 
     /// Off from the first card simplification.
