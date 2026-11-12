@@ -83,6 +83,17 @@ final class CopyPromiseTests: XCTestCase {
         }
     }
 
+    /// Settings → Appearance → "i" by "Анимировать смену чисел": from the
+    /// count it names, the cards stop rolling their digits whatever the
+    /// setting says.
+    func testTheNumberAnimationPopoverNamesTheCountThatStopsRolling() {
+        let count = CardSimplificationLevel.lightest.threshold
+        for locale in [AppLocaleOverride.russian, .english, .german, .spanish, .french, .japanese, .simplifiedChinese] {
+            let text = plain(L10n.string("settings.appearance.number_changes.popover.many", localeOverride: locale))
+            XCTAssertTrue(text.contains("\(count)"), "\(locale) should name \(count): \(text)")
+        }
+    }
+
     // MARK: - Helpers
 
     private func russian(_ key: String) -> String {

@@ -312,6 +312,12 @@ nonisolated struct PeerGroupTitle: Equatable, Sendable {
     }
 }
 
+/// The download speed and time left a card shows.
+nonisolated struct ShownDownload: Equatable, Sendable {
+    var bytesPerSecond: Int64
+    var etaSeconds: Int?
+}
+
 /// The download speed level its icon shows, whether each way stands, and
 /// whom the title over seeds and peers names, kept from one update to the
 /// next.
@@ -320,20 +326,39 @@ nonisolated struct TransferSpeedLevels: Equatable, Sendable {
     var downloadActivity = TransferActivity()
     var uploadActivity = TransferActivity()
     var peerGroupTitle = PeerGroupTitle()
+    /// The speed set comes and goes with the badge's fill, not with each
+    /// second of speed: through a spell without speed it keeps the last
+    /// speed, time left and level, and it leaves once the download stands
+    /// ("Простаивает"). With many downloads on one line the engine often
+    /// reports a second of zero, and the set left and came back on several
+    /// cards every second: the window never stopped animating, about a
+    /// third of a core with 26 downloads (measured 2026-11-12).
+    var shownDownload: ShownDownload?
 
-    /// The levels for new metrics that follow these. A speed of zero shows no
-    /// icon, and the next speed starts afresh.
+    /// The levels for new metrics that follow these. A download that stands
+    /// shows no speed, and its next speed starts afresh.
     func following(_ metrics: TorrentMetrics, at now: ContinuousClock.Instant) -> TransferSpeedLevels {
-        TransferSpeedLevels(
-            download: Self.level(metrics.downloadSpeedBytesPerSecond, after: download),
-            downloadActivity: downloadActivity.following(bytesPerSecond: metrics.downloadSpeedBytesPerSecond, at: now),
+        let speed = metrics.downloadSpeedBytesPerSecond
+        let activity = downloadActivity.following(bytesPerSecond: speed, at: now)
+        let level: TransferSpeedLevel?
+        let shown: ShownDownload?
+        if activity.isIdle {
+            level = nil
+            shown = nil
+        } else if speed > 0 {
+            level = TransferSpeedLevel(bytesPerSecond: speed, after: download)
+            shown = ShownDownload(bytesPerSecond: speed, etaSeconds: metrics.etaSeconds)
+        } else {
+            level = download
+            shown = shownDownload
+        }
+        return TransferSpeedLevels(
+            download: level,
+            downloadActivity: activity,
             uploadActivity: uploadActivity.following(bytesPerSecond: metrics.uploadSpeedBytesPerSecond, at: now),
-            peerGroupTitle: peerGroupTitle.following(seeds: metrics.seeds ?? 0, peers: metrics.peers ?? 0, at: now)
+            peerGroupTitle: peerGroupTitle.following(seeds: metrics.seeds ?? 0, peers: metrics.peers ?? 0, at: now),
+            shownDownload: shown
         )
-    }
-
-    private static func level(_ bytesPerSecond: Int64, after previous: TransferSpeedLevel?) -> TransferSpeedLevel? {
-        bytesPerSecond > 0 ? TransferSpeedLevel(bytesPerSecond: bytesPerSecond, after: previous) : nil
     }
 }
 
@@ -347,8 +372,15 @@ nonisolated enum TorrentPresentation {
     ) -> CompactTransferMetricSet? {
         guard record.status == .downloading else { return nil }
 
-        let speed = record.metrics.downloadSpeedBytesPerSecond
-        guard speed > 0 else { return nil }
+        // Kept from one update to the next, the set follows the badge
+        // (`TransferSpeedLevels.shownDownload`); a card without them, the
+        // demo one, shows the record as it is.
+        let shown = speedLevels.map(\.shownDownload) ?? ShownDownload(
+            bytesPerSecond: record.metrics.downloadSpeedBytesPerSecond,
+            etaSeconds: record.metrics.etaSeconds
+        )
+        guard let shown, shown.bytesPerSecond > 0 else { return nil }
+        let speed = shown.bytesPerSecond
 
         let speedComponents = splitMetricValue(Metrics.formatSpeed(speed, mode: mode, localeOverride: localeOverride))
         let speedLevel = speedLevels?.download ?? TransferSpeedLevel(bytesPerSecond: speed)
@@ -362,7 +394,7 @@ nonisolated enum TorrentPresentation {
             ),
         ]
 
-        if let etaSeconds = record.metrics.etaSeconds, etaSeconds > 0 {
+        if let etaSeconds = shown.etaSeconds, etaSeconds > 0 {
             let etaComponents = splitMetricValue(Metrics.formatETA(etaSeconds, mode: mode, localeOverride: localeOverride))
             items.append(
                 MetricItemPresentation(

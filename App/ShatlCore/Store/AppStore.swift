@@ -494,6 +494,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             usesMonochromeAppearance: preferences.usesMonochromeAppearance,
+            animatesNumberChanges: preferences.animatesNumberChanges,
             errorState: nil,
             isSelected: selection.contains(addition.id),
             isExpanded: false,
@@ -531,6 +532,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             var metricsMode: MetricsPresentationMode
             var colorizesDownloadSpeed: Bool
             var usesMonochromeAppearance: Bool
+            var animatesNumberChanges: Bool
             var localeOverride: AppLocaleOverride
             var isRestoringSession: Bool
             var simplification: CardSimplificationLevel
@@ -556,6 +558,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             usesMonochromeAppearance: preferences.usesMonochromeAppearance,
+            animatesNumberChanges: preferences.animatesNumberChanges,
             localeOverride: preferences.localeOverride,
             isRestoringSession: isRestoringSession,
             simplification: cardSimplification
@@ -674,6 +677,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: shared.metricsMode,
             colorizesDownloadSpeed: shared.colorizesDownloadSpeed,
             usesMonochromeAppearance: shared.usesMonochromeAppearance,
+            animatesNumberChanges: shared.animatesNumberChanges,
             errorState: errorState,
             isSelected: inputs.isSelected,
             isSelectedWithOthers: inputs.isSelectedWithOthers,

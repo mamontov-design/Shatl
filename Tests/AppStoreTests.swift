@@ -570,6 +570,40 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(try apply(megabytesPerSecond: 1.85), "figure.walk")
     }
 
+    /// A second without speed, which the engine often reports with many
+    /// downloads on one line, leaves the card as it was: the speed set does
+    /// not leave and come back, and the card is not even redrawn.
+    func testASecondWithoutSpeedLeavesTheCardAsItWas() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.4)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: bundle.rootURL)
+        }
+        func apply(bytesPerSecond: Int64, eta: Int?) {
+            var metrics = record.metrics
+            metrics.downloadSpeedBytesPerSecond = bytesPerSecond
+            metrics.etaSeconds = eta
+            bundle.store.applySnapshotsForTesting([
+                EngineTorrentSnapshot(id: record.id, status: .downloading, progress: 0.4, metrics: metrics, errorState: nil),
+            ])
+        }
+
+        apply(bytesPerSecond: 2 * 1_024 * 1_024, eta: 600)
+        let rowModel = try XCTUnwrap(bundle.store.torrentRowPresentationModel(for: record.id))
+        let moving = try XCTUnwrap(rowModel.state.compactTransferMetricSet)
+        var rowPublicationCount = 0
+        let observation = rowModel.objectWillChange.sink { _ in
+            rowPublicationCount += 1
+        }
+        defer { observation.cancel() }
+
+        apply(bytesPerSecond: 0, eta: nil)
+
+        XCTAssertEqual(rowModel.state.compactTransferMetricSet, moving)
+        XCTAssertFalse(rowModel.state.isIdle)
+        XCTAssertEqual(rowPublicationCount, 0)
+    }
+
     func testCompactRowIgnoresRuntimeValuesThatDoNotChangePresentation() throws {
         var record = makeTestRecord(status: .downloading, progress: 0.401)
         record.metrics = TorrentMetrics(
@@ -1265,14 +1299,51 @@ final class AppStoreTests: XCTestCase {
         let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
         defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
         let before = try XCTUnwrap(bundle.store.rowState(for: record.id))
-        bundle.store.preferences.colorizesDownloadSpeed = true
+        bundle.store.preferences.colorizesDownloadSpeed = false
         let after = try XCTUnwrap(bundle.store.rowState(for: record.id))
-        XCTAssertFalse(before.colorizesDownloadSpeed)
-        XCTAssertTrue(after.colorizesDownloadSpeed)
+        XCTAssertTrue(before.colorizesDownloadSpeed)
+        XCTAssertFalse(after.colorizesDownloadSpeed)
         XCTAssertNotEqual(before, after)
         XCTAssertEqual(before.compactTransferMetricSet, after.compactTransferMetricSet)
-        bundle.store.preferences.colorizesDownloadSpeed = false
+        bundle.store.preferences.colorizesDownloadSpeed = true
         XCTAssertEqual(bundle.store.rowState(for: record.id), before)
+    }
+
+    /// "Анимировать смену чисел" reaches every card through its row; from
+    /// 25 downloads the cards stop rolling whatever it says.
+    func testTheNumberAnimationSettingDecidesWhetherCardsRollTheirDigits() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.5)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        XCTAssertTrue(try XCTUnwrap(bundle.store.rowState(for: record.id)).rollsDigits)
+        bundle.store.preferences.animatesNumberChanges = false
+        XCTAssertFalse(try XCTUnwrap(bundle.store.rowState(for: record.id)).rollsDigits)
+        bundle.store.preferences.animatesNumberChanges = true
+
+        var row = try XCTUnwrap(bundle.store.rowState(for: record.id))
+        row.simplification = .lighter
+        XCTAssertTrue(row.rollsDigits)
+        row.simplification = .lightest
+        XCTAssertFalse(row.rollsDigits)
+    }
+
+    /// With many downloads the speed folds to its icon, but not on the
+    /// expanded card: whoever opened it watches that download.
+    func testAnExpandedCardKeepsItsDownloadSpeedUnfolded() throws {
+        let record = makeTestRecord(status: .downloading, progress: 0.5)
+        let bundle = makeTestStoreBundle(engine: FakeTorrentEngine(), torrents: [record])
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        var row = try XCTUnwrap(bundle.store.rowState(for: record.id))
+        XCTAssertFalse(row.foldsDownloadSpeed)
+        for level in [CardSimplificationLevel.lighter, .lightest] {
+            row.simplification = level
+            row.isExpanded = false
+            XCTAssertTrue(row.foldsDownloadSpeed, "\(level)")
+            row.isExpanded = true
+            XCTAssertFalse(row.foldsDownloadSpeed, "\(level), expanded")
+        }
     }
 
     func testRowStateCarriesMetricsModePreference() async {

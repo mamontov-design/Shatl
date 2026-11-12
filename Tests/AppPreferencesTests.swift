@@ -15,11 +15,15 @@ final class AppPreferencesTests: XCTestCase {
         XCTAssertFalse(AppPreferences.defaultValue.defaultDownloadPath.contains("/Library/Containers/"))
     }
 
-    func testSpeedColorsDefaultToOffForNewAndExistingPreferences() throws {
-        XCTAssertFalse(AppPreferences.defaultValue.colorizesDownloadSpeed)
+    /// Speed colours are on by default since 1.0.6, for new preferences and
+    /// for those saved before that knew nothing of them. The once-only turn
+    /// for preferences that had them off is in `AppPreferencesStoreTests`.
+    func testSpeedColorsDefaultToOnForNewAndExistingPreferences() throws {
+        XCTAssertTrue(AppPreferences.defaultValue.colorizesDownloadSpeed)
         let data = try JSONEncoder().encode(AppPreferences.defaultValue)
         var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         legacy.removeValue(forKey: "colorizesDownloadSpeed")
+        legacy.removeValue(forKey: "hasAppliedSpeedColorsDefault")
         let decoded = try JSONDecoder().decode(
             AppPreferences.self,
             from: JSONSerialization.data(withJSONObject: legacy)

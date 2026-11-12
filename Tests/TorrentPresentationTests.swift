@@ -155,7 +155,7 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(TransferSpeedLevel(bytesPerSecond: 22 * megabyte, after: .bolt), .hare)
     }
 
-    func testSpeedLevelsStartAfreshAfterAStop() {
+    func testSpeedLevelsStartAfreshOnceTheDownloadStands() {
         let now = ContinuousClock.now
         var metrics = TorrentMetrics()
         metrics.downloadSpeedBytesPerSecond = 3 * 1_024 * 1_024
@@ -164,8 +164,47 @@ final class TorrentPresentationTests: XCTestCase {
         XCTAssertEqual(levels.download, .run)
 
         metrics.downloadSpeedBytesPerSecond = 0
-        let next = levels.following(metrics, at: now + .seconds(1))
+        var next = levels.following(metrics, at: now + .seconds(1))
+        XCTAssertEqual(next.download, .run, "A second without speed keeps the level")
+        next = next.following(metrics, at: now + .seconds(6))
+        XCTAssertTrue(next.downloadActivity.isIdle)
         XCTAssertNil(next.download)
+    }
+
+    /// With many downloads on one line the engine often reports a second of
+    /// zero. The speed set stays through it with the last speed and time
+    /// left, leaves with "Простаивает", and comes back with the badge's
+    /// fill, not with the first second of speed.
+    func testTheSpeedSetComesAndGoesWithTheBadgeNotWithEachSecond() throws {
+        let start = ContinuousClock.now
+        var record = makeTestRecord(status: .downloading, progress: 0.5)
+        var levels = TransferSpeedLevels()
+        func set(after seconds: Int, speed: Int64, eta: Int?) -> CompactTransferMetricSet? {
+            record.metrics.downloadSpeedBytesPerSecond = speed
+            record.metrics.etaSeconds = eta
+            levels = levels.following(record.metrics, at: start + .seconds(seconds))
+            return TorrentPresentation.compactTransferMetricSet(for: record, mode: .simplified, speedLevels: levels)
+        }
+
+        let moving = try XCTUnwrap(set(after: 0, speed: bytes(forMegabytes: 2), eta: 600))
+        XCTAssertEqual(moving.items.map(\.id), ["download-speed", "eta"])
+
+        // A spell without speed: the set stands as it was.
+        XCTAssertEqual(set(after: 1, speed: 0, eta: nil), moving)
+        XCTAssertEqual(set(after: 4, speed: 0, eta: nil), moving)
+        XCTAssertFalse(levels.downloadActivity.isIdle)
+
+        // "Простаивает": the set leaves with the badge's fill.
+        XCTAssertNil(set(after: 6, speed: 0, eta: nil))
+        XCTAssertTrue(levels.downloadActivity.isIdle)
+
+        // A second of speed does not bring it back; held speed does.
+        XCTAssertNil(set(after: 7, speed: bytes(forMegabytes: 1), eta: 900))
+        XCTAssertNil(set(after: 8, speed: 0, eta: nil))
+        XCTAssertNil(set(after: 9, speed: bytes(forMegabytes: 1), eta: 900))
+        let back = try XCTUnwrap(set(after: 12, speed: bytes(forMegabytes: 1), eta: 900))
+        XCTAssertFalse(levels.downloadActivity.isIdle)
+        XCTAssertEqual(back.items.last?.number, "15")
     }
 
     /// The legend of speed colours in Settings names each level, fastest

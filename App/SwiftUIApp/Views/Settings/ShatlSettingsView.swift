@@ -867,7 +867,7 @@ private struct AboutSettingsTab: View {
             ) {
                 isLicensesPopoverPresented = true
             }
-            .popover(isPresented: $isLicensesPopoverPresented) {
+            .shatlPopover(isPresented: $isLicensesPopoverPresented) {
                 LicensesInfoPopover(localeOverride: store.preferences.localeOverride)
             }
         }
@@ -1128,6 +1128,7 @@ private struct AppearanceSettingsTab: View {
                 metricsMode: store.preferences.metricsMode,
                 colorizesDownloadSpeed: store.preferences.colorizesDownloadSpeed,
                 usesMonochromeAppearance: store.preferences.usesMonochromeAppearance,
+                animatesNumberChanges: store.preferences.animatesNumberChanges,
                 downloadSpeedOutlineFlashTrigger: downloadSpeedPreviewPulseTrigger,
                 initiallyExpanded: true,
                 centersExpandedCard: true,
@@ -1165,6 +1166,23 @@ private struct AppearanceSettingsTab: View {
                     )
                 ) {
                     SpeedColorsInfoPopover(localeOverride: store.preferences.localeOverride)
+                }
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsInfoToggleRow(
+                    localizedTitle: "settings.appearance.number_changes.toggle",
+                    localizedHelp: "settings.appearance.number_changes.info.help",
+                    isOn: Binding(
+                        get: { store.preferences.animatesNumberChanges },
+                        set: {
+                            store.preferences.animatesNumberChanges = $0
+                            metricPreviewPulseTrigger += 1
+                            focusPreview(on: .metrics)
+                        }
+                    )
+                ) {
+                    NumberChangesInfoPopover()
                 }
 
                 ShatlSettingsParameterDivider()
@@ -1304,7 +1322,7 @@ private struct ShatlSettingsInfoToggleRow<Popover: View>: View {
                 .buttonStyle(.plain)
                 .help(help.text)
                 .accessibilityLabel(help.text)
-                .popover(isPresented: $isPopoverPresented, content: popover)
+                .shatlPopover(isPresented: $isPopoverPresented, content: popover)
 
                 ShatlSettingsControlVerticalDivider()
 
@@ -1525,6 +1543,34 @@ private struct LicensesInfoPopover: View {
         .padding(.vertical, ShatlInfoPopoverLayout.verticalPadding)
         .padding(.horizontal, ShatlInfoPopoverLayout.sidePadding)
         .frame(width: ShatlInfoPopoverLayout.width, alignment: .leading)
+    }
+}
+
+/// "Анимировать смену чисел": what the animation is, what turning it off
+/// gives, and when the cards leave it out anyway (the third paragraph names
+/// `CardSimplificationLevel.lightest`'s threshold; `CopyPromiseTests`).
+private struct NumberChangesInfoPopover: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("settings.appearance.number_changes.popover.title")
+                .shatlTypography(ShatlTypography.subheadlineBold)
+                .foregroundStyle(ShatlColor.typographyPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            popoverText("settings.appearance.number_changes.popover.rolling")
+            popoverText("settings.appearance.number_changes.popover.off")
+            popoverText("settings.appearance.number_changes.popover.many")
+        }
+        .padding(16)
+        .frame(width: 340, alignment: .leading)
+    }
+
+    private func popoverText(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .shatlTypography(ShatlTypography.bodyRegular)
+            .foregroundStyle(ShatlColor.typographyPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -53,6 +53,10 @@ persistence, deletion, restore, or shared UI state.
   `Scripts/typograph.sh`, which applies the per-language rules in
   `Tests/Typography/ShatlTypograph.swift`; the tests fail on an untypeset
   string. Counts take plural keys through `L10n.pluralKey`, never "file(s)".
+- A popover goes through `shatlPopover`, never a plain `.popover`: macOS
+  gives a popover the system's locale, not its window's, and with the
+  language chosen in Debug its texts stayed in the system's language
+  (`PopoverLocaleTests`).
 
 ## What shows what
 
@@ -163,7 +167,11 @@ something new shows a part listed here, add the place to its line.
   with hysteresis (`TransferSpeedLevel`) and change it quietly, a badge
   loses its fill for "Простаивает" only after a spell without speed and
   takes it back on held speed (`TransferActivity`), never second by second,
-  and metric shadows sit under the plate so changing digits leave the blur alone.
+  the speed set comes and goes with that fill, keeping its last speed and
+  time left through the spell (`TransferSpeedLevels.shownDownload`: a
+  second of zero, common with many downloads, made it leave and come back
+  on several cards each second, about a third of a core with 26), and
+  metric shadows sit under the plate so changing digits leave the blur alone.
   A status badge is filled only while the download works ("Скачивается",
   "Проверяется", "Раздаётся"); one that stands, has finished ("Скачана") or
   failed ("Ошибка") wears an outline without a fill, and the error's
@@ -179,9 +187,13 @@ something new shows a part listed here, add the place to its line.
   With many active downloads the cards leave out their costliest motion
   (`CardSimplificationLevel`: from 10, no metric shadows, a
   bar that steps 5 % and a download speed that shows its level icon alone,
-  its number under the pointer, `foldsDownloadSpeed`; from 25, digits also
+  its number under the pointer, `TorrentRowState.foldsDownloadSpeed`, except
+  on the expanded card, whose download is watched; from 25, digits also
   stop rolling and the bar steps 10 %); the level enters each card through
-  its row inputs. A finished
+  its row inputs. Digits roll only while "Анимировать смену чисел" is on
+  (`AppPreferences.animatesNumberChanges`, `TorrentRowState.rollsDigits`;
+  the speed chips follow it too), and its "i" names the count of 25
+  (`CopyPromiseTests`). A finished
   download's card is one line, the status badge beside the title naming the
   status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
   built for finished downloads, at launch too, start on one line without
