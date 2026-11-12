@@ -768,7 +768,7 @@ struct TorrentCardView: View, Equatable {
         .onChange(of: savedInfoAnswerCount) { _, _ in
             isSavedInfoPresented = true
         }
-        .popover(isPresented: $isSavedInfoPresented) {
+        .shatlPopover(isPresented: $isSavedInfoPresented) {
             SavedDownloadInfoPopover(
                 status: savedInfoStatus,
                 isSavedByChoice: row.isSavedByChoice,

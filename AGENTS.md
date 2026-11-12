@@ -53,6 +53,10 @@ persistence, deletion, restore, or shared UI state.
   `Scripts/typograph.sh`, which applies the per-language rules in
   `Tests/Typography/ShatlTypograph.swift`; the tests fail on an untypeset
   string. Counts take plural keys through `L10n.pluralKey`, never "file(s)".
+- A popover goes through `shatlPopover`, never a plain `.popover`: macOS
+  gives a popover the system's locale, not its window's, and with the
+  language chosen in Debug its texts stayed in the system's language
+  (`PopoverLocaleTests`).
 
 ## What shows what
 

@@ -867,7 +867,7 @@ private struct AboutSettingsTab: View {
             ) {
                 isLicensesPopoverPresented = true
             }
-            .popover(isPresented: $isLicensesPopoverPresented) {
+            .shatlPopover(isPresented: $isLicensesPopoverPresented) {
                 LicensesInfoPopover(localeOverride: store.preferences.localeOverride)
             }
         }
@@ -1322,7 +1322,7 @@ private struct ShatlSettingsInfoToggleRow<Popover: View>: View {
                 .buttonStyle(.plain)
                 .help(help.text)
                 .accessibilityLabel(help.text)
-                .popover(isPresented: $isPopoverPresented, content: popover)
+                .shatlPopover(isPresented: $isPopoverPresented, content: popover)
 
                 ShatlSettingsControlVerticalDivider()
 
