@@ -34,6 +34,10 @@ again to the union of the build's dependency files (`ninja -t deps` in
 `.build/vendor-build/libtorrent-rasterbar-2.0.14` and the bridge's `.d`
 files in DerivedData).
 
+The build applies `Patches/libtorrent-metadata-progress.patch` to expose
+accepted metadata progress through `torrent_status::progress_ppm` while
+the torrent is still waiting for metadata.
+
 Rebuild scripts:
 
 - `Scripts/build-openssl.sh`

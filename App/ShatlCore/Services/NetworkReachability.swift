@@ -5,10 +5,20 @@ import Foundation
 import Network
 import Synchronization
 
-/// Whether the Mac has no network path at all: Wi-Fi off, cable out. Asked
-/// once, when a wait for a magnet link's file list runs out, so the message
-/// can name the real cause. A network that is up but slow counts as online.
+/// Whether the Mac has no network path at all: Wi-Fi off, cable out.
+/// A network path that is up but slow counts as online.
 nonisolated enum NetworkReachability {
+    static func changes() -> AsyncStream<Bool> {
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let monitor = NWPathMonitor()
+            continuation.onTermination = { _ in monitor.cancel() }
+            monitor.pathUpdateHandler = { path in
+                continuation.yield(path.status == .unsatisfied)
+            }
+            monitor.start(queue: DispatchQueue(label: "Shatl.MagnetNetworkReachability"))
+        }
+    }
+
     /// Waits for the system's first answer, at most `timeoutSeconds`. No
     /// answer counts as online, so a slow answer never blames the network.
     static func isOffline(timeoutSeconds: Double = 1) async -> Bool {

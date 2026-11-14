@@ -1305,24 +1305,7 @@ struct TorrentCardView: View, Equatable {
     }
 
     private var progressBar: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .fill(ShatlColor.progressBarTrack)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .strokeBorder(ShatlColor.outlinePrimary, lineWidth: 1)
-                }
-
-            TorrentProgressFillShape(progress: CGFloat(displayedBarProgress))
-                .fill(progressBarFillColor)
-                .animation(ShatlMotion.progressBarFill, value: displayedBarProgress)
-                .animation(ShatlMotion.progressBarFill, value: isProgressBarComplete)
-        }
-        .frame(height: 10)
-    }
-
-    private var progressBarFillColor: Color {
-        isProgressBarComplete ? ShatlColor.outlinePrimary : ShatlColor.typographyPrimary
+        ShatlDownloadProgressBar(progress: displayedBarProgress, isComplete: isProgressBarComplete)
     }
 
     private var isProgressBarComplete: Bool {
@@ -1595,3 +1578,30 @@ private func escapedLayoutValue(_ value: String) -> String {
         .replacingOccurrences(of: "\"", with: "\\\"")
 }
 #endif
+
+struct ShatlDownloadProgressBar: View {
+    let progress: Double
+    let isComplete: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(ShatlColor.progressBarTrack)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(ShatlColor.outlinePrimary, lineWidth: 1)
+                }
+
+            TorrentProgressFillShape(progress: CGFloat(progress))
+                .fill(progressBarFillColor)
+                .animation(ShatlMotion.progressBarFill, value: progress)
+                .animation(ShatlMotion.progressBarFill, value: isComplete)
+        }
+        .frame(height: 10)
+    }
+
+    private var progressBarFillColor: Color {
+        isComplete ? ShatlColor.outlinePrimary : ShatlColor.typographyPrimary
+    }
+
+}

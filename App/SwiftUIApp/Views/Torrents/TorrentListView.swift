@@ -63,6 +63,7 @@ struct TorrentListView: View {
                     if showsUpdateMessage {
                         ShatlUpdateMessageView(fillsWidth: true)
                             .transition(reduceMotion ? .opacity : ShatlMotion.cardListItem)
+                            .zIndex(1)
                     }
 
                     ForEach(visibleTorrentIDs, id: \.self) { torrentID in
@@ -151,6 +152,7 @@ struct TorrentListView: View {
                                     .transition(.identity)
                                 }
                             }
+                            .geometryGroup()
                             .transition(ShatlMotion.cardListItem)
                         }
                     }

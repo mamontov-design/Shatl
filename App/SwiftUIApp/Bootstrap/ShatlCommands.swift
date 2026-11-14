@@ -5,6 +5,9 @@ import SwiftUI
 
 struct ShatlCommands: Commands {
     @ObservedObject var store: AppStore
+    #if DEBUG
+    @Environment(\.openWindow) private var openWindow
+    #endif
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) { }
@@ -15,6 +18,10 @@ struct ShatlCommands: Commands {
 
         #if DEBUG
         CommandMenu("settings.tab.debug") {
+            Button("menu.debug.message_block") {
+                openWindow(id: "debug-message-block")
+            }
+
             Button("menu.debug.show_onboarding") {
                 store.presentDebugOnboarding()
             }

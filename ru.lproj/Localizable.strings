@@ -488,3 +488,18 @@
 "update_message.1_0_6.downloads" = "Теперь можно добавить несколько загрузок за раз. Перетащите .torrent‑файлы или magnet‑ссылки в окно Shatl.";
 "menu.debug.preview_update_message" = "Показать сообщение после обновления";
 "update_message.close" = "Закрыть";
+
+"add_torrent.review.metadata.connecting.title" = "Подключение к участникам раздачи.";
+"add_torrent.review.metadata.connecting.message" = "Список файлов хранится у участников раздачи. Если их мало, подключение может занять больше времени.";
+"add_torrent.review.metadata.receiving.title" = "Список файлов загружается.";
+"add_torrent.review.metadata.receiving.message" = "Когда список будет готов, можно приступить к скачиванию.";
+"add_torrent.review.metadata.received.title" = "Список файлов получен.";
+"add_torrent.review.metadata.offline.title" = "Соединение прервалось.";
+"add_torrent.review.metadata.offline.message" = "Подключитесь к интернету, чтобы продолжить получение списка файлов.";
+"add_torrent.review.metadata.timeout.message" = "Участники раздачи не ответили вовремя. Так бывает с редкими торрентами или при слабом подключении.";
+"add_torrent.review.metadata.stalled.message" = "Список файлов пришёл не полностью. Возможно, соединение с участниками раздачи прервалось.";
+"add_torrent.review.metadata.retry.message" = "Нажмите «Повторить», чтобы снова запросить список файлов.";
+"add_torrent.review.metadata.reconnect.message" = "Подключитесь к интернету и нажмите «Повторить», чтобы снова запросить список файлов.";
+"add_torrent.review.metadata.stop" = "Остановить и закрыть окно";
+
+"menu.debug.message_block" = "Проверить блок сообщения";

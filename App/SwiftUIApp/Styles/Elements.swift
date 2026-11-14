@@ -517,16 +517,13 @@ struct ShatlMessageBlockPrimary: View {
     var tone: Tone = .neutral
     /// The block's width; `nil` takes its container's.
     var width: CGFloat? = 340
-    /// The title and each paragraph change one after another, not all at
-    /// once; see `ShatlMessageParts`. Off, the whole text blurs into the new
-    /// one, as a message that changes as a whole does.
-    var changesPartsInTurn = false
+    var progress: Double?
+    var onSymbolSettled: (String) -> Void = { _ in }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The icon on screen: it follows `systemImage` once the block has
-    /// settled; see `followSystemImage`.
-    @State private var displayedSystemImage: String?
-    @State private var systemImageTask: Task<Void, Never>?
+    @State private var shown: Presentation?
+    @State private var target: Presentation?
+    @State private var transitionTask: Task<Void, Never>?
 
     static let cornerRadius: CGFloat = 18
     /// The room the icon is laid out in, whatever its own height.
@@ -536,18 +533,12 @@ struct ShatlMessageBlockPrimary: View {
         VStack(alignment: .leading, spacing: 12) {
             labelGroup
 
-            if primaryButton != nil || !secondaryButtons.isEmpty {
-                // Old and new buttons overlap while one set replaces the
-                // other, as the text does: nothing slides or stretches from
-                // one into the other.
-                ZStack(alignment: .topLeading) {
-                    buttonStack
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .id(buttonsIdentity)
-                        .transition(contentReplace)
-                }
+            if !presentation.buttons.isEmpty {
+                buttonGroup
+                    .transition(contentReplace)
             }
         }
+        .geometryGroup()
         .padding(10)
         .frame(width: width, alignment: .leading)
         .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
@@ -557,27 +548,25 @@ struct ShatlMessageBlockPrimary: View {
             messageBlockShape
                 .strokeBorder(outlineColor, lineWidth: 0.5)
         }
-        // Held from the start, so a new `systemImage` never shows before
-        // its turn.
         .onAppear {
-            if displayedSystemImage == nil {
-                displayedSystemImage = systemImage
-            }
+            shown = requested
+            target = requested
+            onSymbolSettled(systemImage)
         }
-        .onChange(of: contentSignature) { old, new in
-            followSystemImage(from: old, to: new)
+        .onChange(of: requested.signature) { _, _ in
+            target = requested
+            startTransition()
         }
         .onDisappear {
-            systemImageTask?.cancel()
+            transitionTask?.cancel()
+            transitionTask = nil
+            target = nil
+            shown = nil
         }
     }
 
     private var contentReplace: AnyTransition {
         reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace)
-    }
-
-    private var textIdentity: String {
-        ([title] + details).joined(separator: "\n")
     }
 
     /// The message and the paragraphs after it.
@@ -600,48 +589,74 @@ struct ShatlMessageBlockPrimary: View {
     }
 
 
-    private var buttonsIdentity: String {
-        (primaryButton?.title ?? "") + "\n" + secondaryButtons.map(\.title).joined(separator: "\n")
-    }
+    private struct Presentation {
+        var symbol: String
+        var parts: [String]
+        var buttons: [ShatlMessageBlockPrimaryButton]
+        var progress: Double?
+        var hasProgress: Bool { progress != nil }
 
-    private struct ContentSignature: Equatable {
-        var systemImage: String
-        var text: String
-        var buttons: String
-    }
-
-    private var contentSignature: ContentSignature {
-        ContentSignature(systemImage: systemImage, text: textIdentity, buttons: buttonsIdentity)
-    }
-
-    /// SF Symbols' replace looks right only while the icon stands still. A
-    /// new text or new buttons change the block's height, and the block is
-    /// centred, so the icon moves with its top edge: the icon then waits for
-    /// the block to settle. Alone, it changes at once.
-    private func followSystemImage(from old: ContentSignature, to new: ContentSignature) {
-        guard old.systemImage != new.systemImage else { return }
-
-        systemImageTask?.cancel()
-        let resizes = old.text != new.text || old.buttons != new.buttons
-        guard resizes, !reduceMotion else {
-            displayedSystemImage = new.systemImage
-            return
+        var signature: Signature {
+            Signature(symbol: symbol, parts: parts, buttons: buttons.map(\.title), hasProgress: hasProgress)
         }
+    }
 
-        systemImageTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(ShatlMotion.messageBlockContentDuration))
-            guard !Task.isCancelled else { return }
-            displayedSystemImage = new.systemImage
+    private struct Signature: Equatable {
+        var symbol: String
+        var parts: [String]
+        var buttons: [String]
+        var hasProgress: Bool
+    }
+
+    private var requested: Presentation {
+        Presentation(
+            symbol: systemImage, parts: [title] + details,
+            buttons: [primaryButton].compactMap { $0 } + secondaryButtons,
+            progress: progress
+        )
+    }
+
+    private var presentation: Presentation { shown ?? requested }
+
+    /// One worker finishes each animation before starting the next. New
+    /// requests replace its destination, without interrupting a step.
+    private func startTransition() {
+        guard transitionTask == nil else { return }
+        transitionTask = Task { @MainActor in
+            while !Task.isCancelled, var current = shown, let target,
+                  current.signature != target.signature {
+                if let next = ShatlMessagePartsSequence.nextStep(from: current.parts, to: target.parts) {
+                    current.parts = next
+                } else if current.hasProgress != target.hasProgress {
+                    current.progress = target.progress
+                } else if current.signature.buttons != target.signature.buttons {
+                    current.buttons = target.buttons
+                } else {
+                    current.symbol = target.symbol
+                }
+                let previousSymbol = shown?.symbol
+                await withCheckedContinuation { continuation in
+                    withAnimation(ShatlMotion.messageBlockContent, completionCriteria: .removed) {
+                        shown = current
+                    } completion: {
+                        continuation.resume()
+                    }
+                }
+                guard !Task.isCancelled else { return }
+                if previousSymbol != current.symbol, current.symbol == self.target?.symbol {
+                    onSymbolSettled(current.symbol)
+                }
+            }
+            if !Task.isCancelled { transitionTask = nil }
         }
     }
 
     private var labelGroup: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: displayedSystemImage ?? systemImage)
+            Image(systemName: presentation.symbol)
                 .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(iconColor)
                 .contentTransition(.symbolEffect(.replace))
-                .animation(ShatlMotion.messageBlockContent, value: displayedSystemImage ?? systemImage)
                 // One height for every icon. Symbols of one font size differ
                 // in height, from 25 to 34 pt here: laid out by its own
                 // height, a new icon changed the block's height in one frame,
@@ -649,48 +664,36 @@ struct ShatlMessageBlockPrimary: View {
                 // two past the cell, into the room around it.
                 .frame(height: Self.iconCellHeight)
 
-            if changesPartsInTurn {
-                ShatlMessageParts(parts: [title] + details)
-            } else {
-                // Old and new text overlap while one replaces the other.
-                ZStack(alignment: .topLeading) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(title)
-                            .shatlTypography(ShatlTypography.bodySemibold)
-                            .foregroundStyle(ShatlColor.typographyPrimary)
-
-                        ForEach(Array(details.enumerated()), id: \.offset) { _, paragraph in
-                            Text(paragraph)
-                                .shatlTypography(ShatlTypography.bodyRegular)
-                                .foregroundStyle(ShatlColor.typographySecondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .id(textIdentity)
+            ShatlMessageParts(parts: presentation.parts)
+                .geometryGroup()
+            if presentation.hasProgress {
+                ShatlDownloadProgressBar(progress: progress ?? presentation.progress ?? 0, isComplete: false)
+                    .accessibilityLabel(Text("add_torrent.review.metadata.receiving.title"))
                     .transition(contentReplace)
-                }
             }
         }
         .padding(8)
+        // Move the symbol and labels in the same coordinate space when
+        // the buttons change the height of this centred block.
+        .geometryGroup()
     }
 
-    @ViewBuilder
-    private var buttonStack: some View {
-        if !secondaryButtons.isEmpty {
-            VStack(spacing: 6) {
-                if let primaryButton {
-                    button(primaryButton, role: .borderedColored, fillsWidth: true)
-                }
-                ForEach(secondaryButtons.indices, id: \.self) { index in
-                    button(secondaryButtons[index], role: .borderedNeutral, fillsWidth: true)
-                }
-            }
-        } else if let primaryButton {
-            HStack {
-                button(primaryButton, role: .borderedColored, fillsWidth: false)
-                Spacer(minLength: 0)
+    private var buttonGroup: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(presentation.buttons.indices, id: \.self) { index in
+                let staged = presentation.buttons[index]
+                let live = requested.buttons
+                let matches = live.indices.contains(index) && live[index].title == staged.title
+                button(
+                    matches ? live[index] : staged,
+                    role: index == 0 ? .borderedColored : .borderedNeutral,
+                    fillsWidth: presentation.buttons.count > 1
+                )
+                .disabled(!matches)
+                .transition(contentReplace)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func button(
@@ -719,7 +722,7 @@ struct ShatlMessageBlockPrimary: View {
 nonisolated enum ShatlMessagePartsSequence {
     /// The parts shown after one more step towards `target`: the first part
     /// that differs takes its new text, a missing one is added at the end,
-    /// and parts past the target's count go together. `nil` once they are
+    /// and extra parts leave one at a time. `nil` once they are
     /// the same.
     static func nextStep(from shown: [String], to target: [String]) -> [String]? {
         guard shown != target else { return nil }
@@ -727,7 +730,7 @@ nonisolated enum ShatlMessagePartsSequence {
             let old = index < shown.count ? shown[index] : nil
             let new = index < target.count ? target[index] : nil
             guard old != new else { continue }
-            guard let new else { return Array(shown.prefix(target.count)) }
+            guard let new else { return Array(shown.dropLast()) }
             var next = shown
             if index < next.count {
                 next[index] = new
@@ -771,77 +774,31 @@ nonisolated enum ShatlMessagePartsSequence {
     }
 }
 
-/// The title and the paragraphs of a message, each a text of its own. When
-/// several change at once they change one after another, a blur apart
-/// (`ShatlMotion.messageBlockContentDuration`): blurred all at once, the
-/// parts of the add window's low-space message turned into a mess (the
-/// owner's plan, November 2026). New digits in an unchanged part roll in
-/// place; new words blur in. Under Reduce Motion every part changes at
-/// once, without a blur.
-struct ShatlMessageParts: View {
+/// Each label keeps its own identity. Numeric updates keep the text view;
+/// wording changes replace it inside the same row.
+private struct ShatlMessageParts: View {
     let parts: [String]
-
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The parts on screen, while they follow `parts`; `nil` shows `parts`.
-    @State private var shownParts: [String]?
-    @State private var followTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array((shownParts ?? parts).enumerated()), id: \.offset) { index, part in
-                partText(part, isTitle: index == 0)
-                    .transition(partReplace)
+            ForEach(Array(parts.enumerated()), id: \.offset) { index, part in
+                ZStack(alignment: .topLeading) {
+                    Text(part)
+                        .shatlTypography(index == 0 ? ShatlTypography.bodySemibold : ShatlTypography.bodyRegular)
+                        .foregroundStyle(index == 0 ? ShatlColor.typographyPrimary : ShatlColor.typographySecondary)
+                        .monospacedDigit()
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .id(ShatlMessagePartsSequence.identity(of: part))
+                        .transition(reduceMotion ? .opacity : AnyTransition(.blurReplace))
+                }
+                .geometryGroup()
+                .transition(reduceMotion ? .opacity : AnyTransition(.blurReplace))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: parts) { old, new in
-            follow(from: shownParts ?? old, to: new)
-        }
-        .onDisappear {
-            followTask?.cancel()
-        }
-    }
-
-    /// Old and new text overlap while one replaces the other.
-    private func partText(_ part: String, isTitle: Bool) -> some View {
-        ZStack(alignment: .topLeading) {
-            Text(part)
-                .shatlTypography(isTitle ? ShatlTypography.bodySemibold : ShatlTypography.bodyRegular)
-                .foregroundStyle(isTitle ? ShatlColor.typographyPrimary : ShatlColor.typographySecondary)
-                .monospacedDigit()
-                .contentTransition(reduceMotion ? .identity : .numericText())
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .id(ShatlMessagePartsSequence.identity(of: part))
-                .transition(partReplace)
-        }
-    }
-
-    private var partReplace: AnyTransition {
-        reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace)
-    }
-
-    private func follow(from shown: [String], to target: [String]) {
-        followTask?.cancel()
-        guard !reduceMotion else {
-            withAnimation(ShatlMotion.messageBlockContent) {
-                shownParts = target
-            }
-            return
-        }
-
-        shownParts = shown
-        followTask = Task { @MainActor in
-            var current = shown
-            while let next = ShatlMessagePartsSequence.nextStep(from: current, to: target) {
-                withAnimation(ShatlMotion.messageBlockContent) {
-                    shownParts = next
-                }
-                current = next
-                try? await Task.sleep(for: .seconds(ShatlMotion.messageBlockContentDuration))
-                guard !Task.isCancelled else { return }
-            }
-        }
     }
 }
 
@@ -2579,3 +2536,70 @@ struct ShatlPressedButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.78 : 1)
     }
 }
+
+#if DEBUG
+struct ShatlMessageBlockDebugView: View {
+    private struct Options: Equatable {
+        var buttons = 1
+        var paragraphs = 2
+        var longRows = [true, true, true]
+        var longTitle = false
+        var showsProgress = false
+        var alternateSymbol = false
+        var value = 42
+
+        static func random() -> Self {
+            Self(buttons: .random(in: 0...2), paragraphs: .random(in: 1...3),
+                 longRows: (0..<3).map { _ in Bool.random() }, longTitle: .random(),
+                 showsProgress: .random(), alternateSymbol: .random(), value: .random(in: 10...99))
+        }
+    }
+
+    @State private var options = Options()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ShatlMessageBlockPrimary(
+                systemImage: options.alternateSymbol ? "checkmark.circle" : "doc.text.magnifyingglass",
+                title: options.longTitle ? "Список файлов\nготов к просмотру." : "Список файлов готов.",
+                paragraphs: (0..<options.paragraphs).map { index in
+                    let first = index == 0 ? "Получено \(options.value) из 99 блоков." : "Абзац \(index + 1) сообщения."
+                    return first + "\nМожно продолжить проверку." + (options.longRows[index] ? "\nТретья строка абзаца." : "")
+                },
+                primaryButton: options.buttons >= 1 ? .init(title: "Повторить") {} : nil,
+                secondaryButtons: options.buttons == 2 ? [.init(title: "Закрыть окно") {}] : [],
+                progress: options.showsProgress ? 0.42 : nil
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(16)
+
+            Divider()
+            Form {
+                Picker("Кнопки", selection: $options.buttons) {
+                    ForEach(0...2, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Picker("Абзацы", selection: $options.paragraphs) {
+                    ForEach(1...3, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.segmented)
+                ForEach(0..<3, id: \.self) { index in
+                    Toggle("Три строки в абзаце \(index + 1)", isOn: $options.longRows[index])
+                }
+                Toggle("Две строки заголовка", isOn: $options.longTitle)
+                Toggle("Полоса прогресса", isOn: $options.showsProgress)
+                Toggle("Иконка с галочкой", isOn: $options.alternateSymbol)
+                Stepper("Число в первом абзаце: \(options.value)", value: $options.value, in: 10...99)
+                Button("Случайная комбинация") {
+                    var next = Options.random()
+                    while next == options { next = .random() }
+                    options = next
+                }
+            }
+            .padding(16)
+        }
+        .frame(minWidth: 400, minHeight: 620)
+        .background(ShatlColor.backgroundWindow)
+    }
+}
+#endif

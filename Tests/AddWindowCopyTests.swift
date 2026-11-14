@@ -347,6 +347,36 @@ final class AddWindowCopyTests: XCTestCase {
         XCTAssertEqual(AddTorrentCloseQuestion.answer(for: .alertThirdButtonReturn, canSave: true), .close)
     }
 
+    func testRetryAfterMagnetTimeoutKeepsTheSamePageAndItsSettings() async throws {
+        let engine = FakeTorrentEngine()
+        await engine.setPrepareError(TorrentEngineError(kind: .metadataTimeout))
+        let bundle = makeTestStoreBundle(engine: engine)
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+        bundle.store.networkIsOffline = { false }
+        let review = bundle.store.addTorrentReview
+        let source = AddTorrentSource(kind: .magnet, rawValue: "magnet:?xt=urn:btih:test")
+        review.prepare(
+            source, suggestedSavePath: NSTemporaryDirectory(), stopAfterDownload: true,
+            alias: "Northstar", savePathBookmarkData: nil
+        )
+        let page = try XCTUnwrap(review.currentItemID)
+        let failed = await waitForCondition { review.draft?.errorState?.kind == .metadataTimeout }
+        XCTAssertTrue(failed)
+        await engine.setPrepareError(nil)
+
+        review.retryCurrentMagnet()
+
+        let ready = await waitForCondition { review.draft?.reviewState == .ready }
+        XCTAssertTrue(ready)
+        XCTAssertEqual(review.currentItemID, page)
+        XCTAssertEqual(review.count, 1)
+        XCTAssertEqual(review.draft?.source, source)
+        XCTAssertEqual(review.draft?.alias, "Northstar")
+        XCTAssertEqual(review.draft?.stopAfterDownload, true)
+        let requests = await engine.recordedPrepareSources()
+        XCTAssertEqual(requests, [source, source])
+    }
+
     private func reviewErrorTitle(afterTimeoutWhileOffline isOffline: Bool) async -> String? {
         let engine = FakeTorrentEngine()
         await engine.setPrepareError(TorrentEngineError(kind: .metadataTimeout))

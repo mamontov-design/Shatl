@@ -60,6 +60,7 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 @property (nonatomic, readonly) NSArray<LTPreparedFile *> *files;
 @property (nonatomic, readonly) LTTorrentDraftState reviewState;
 @property (nonatomic, readonly, nullable) NSString *invalidMessage;
+@property (nonatomic) NSInteger metadataProgressPPM;
 
 - (instancetype)initWithOriginalName:(NSString *)originalName
                             infoHash:(nullable NSString *)infoHash

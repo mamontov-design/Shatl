@@ -34,11 +34,11 @@ final class MessagePartsSequenceTests: XCTestCase {
         XCTAssertNil(ShatlMessagePartsSequence.nextStep(from: ["A", "B"], to: ["A", "B"]))
     }
 
-    /// A part that comes is added at the end; parts that go leave together.
-    func testPartsComeAtTheEndAndGoTogether() {
+    /// A part that comes is added at the end; parts that go leave one at a time.
+    func testPartsComeAndGoOneAtATime() {
         XCTAssertEqual(steps(from: ["A"], to: ["A", "B", "C"]), [["A", "B"], ["A", "B", "C"]])
-        XCTAssertEqual(steps(from: ["A", "B", "C"], to: ["A"]), [["A"]])
-        XCTAssertEqual(steps(from: ["A", "B", "C"], to: ["X"]), [["X", "B", "C"], ["X"]])
+        XCTAssertEqual(steps(from: ["A", "B", "C"], to: ["A"]), [["A", "B"], ["A"]])
+        XCTAssertEqual(steps(from: ["A", "B", "C"], to: ["X"]), [["X", "B", "C"], ["X", "B"], ["X"]])
     }
 
     /// The disk lacks 156 GB, then 155 GB: the same part, its digits roll.

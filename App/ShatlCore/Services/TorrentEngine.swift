@@ -123,6 +123,12 @@ nonisolated protocol TorrentEngine: Sendable {
         suggestedSavePath: String,
         stopAfterDownload: Bool
     ) async throws -> AddTorrentDraft
+    func prepareDraft(
+        from source: AddTorrentSource,
+        suggestedSavePath: String,
+        stopAfterDownload: Bool,
+        onMetadataProgress: @escaping @Sendable (Double) async -> Void
+    ) async throws -> AddTorrentDraft
     func inspectTorrentContents(at torrentFilePath: String) async throws -> [TorrentContentFileDescriptor]
     /// `prepareDraft` keeps the metadata of each draft under the draft `id`;
     /// `addTorrent` and this export read it until `releasePreparedDraft` drops it.
@@ -201,3 +207,14 @@ nonisolated struct EngineTrackerScrape: Equatable, Sendable {
     }
 }
 #endif
+
+extension TorrentEngine {
+    func prepareDraft(
+        from source: AddTorrentSource,
+        suggestedSavePath: String,
+        stopAfterDownload: Bool,
+        onMetadataProgress: @escaping @Sendable (Double) async -> Void
+    ) async throws -> AddTorrentDraft {
+        try await prepareDraft(from: source, suggestedSavePath: suggestedSavePath, stopAfterDownload: stopAfterDownload)
+    }
+}

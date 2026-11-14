@@ -116,6 +116,7 @@ extract_sources() {
   rm -rf "${SOURCE_DIR}" "${BUILD_DIR}"
   mkdir -p "${SOURCE_ROOT_DIR}" "${ROOT_DIR}/.build/vendor-build"
   tar -xzf "${SOURCE_ARCHIVE_PATH}" -C "${SOURCE_ROOT_DIR}"
+  patch -d "${SOURCE_DIR}" -p1 < "${ROOT_DIR}/Vendor/Patches/libtorrent-metadata-progress.patch"
 }
 
 configure_and_build() {

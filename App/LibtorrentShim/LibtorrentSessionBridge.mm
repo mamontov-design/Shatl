@@ -1692,12 +1692,14 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     NSString *suggestedSavePath = LTToNSString(fetch.suggestedSavePath);
     auto torrentInfo = status.torrent_file.lock();
     if (!status.has_metadata || !torrentInfo) {
-        return [[LTPreparedDraft alloc] initWithOriginalName:@""
+        LTPreparedDraft *pending = [[LTPreparedDraft alloc] initWithOriginalName:@""
                                                     infoHash:nil
                                            suggestedSavePath:suggestedSavePath
                                                        files:@[]
                                                  reviewState:LTTorrentDraftStateLoadingMetadata
                                               invalidMessage:nil];
+        pending.metadataProgressPPM = status.progress_ppm;
+        return pending;
     }
 
     self->_preparedTorrentInfoByDraftID[fetch.draftIdentifier] = torrentInfo;

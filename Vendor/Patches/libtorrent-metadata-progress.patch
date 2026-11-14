@@ -1,0 +1,38 @@
+--- a/src/ut_metadata.cpp
++++ b/src/ut_metadata.cpp
+@@ -571,7 +571,7 @@
+ 			return false;
+ 		}
+ 
+-		if (piece * 16 * 1024 + buf.size() > metadata().size())
++		if (buf.size() != std::min(16 * 1024, int(m_metadata.size()) - piece * 16 * 1024))
+ 		{
+ 			// this piece is invalid
+ 			return false;
+@@ -585,12 +585,25 @@
+ 		bool have_all = std::all_of(m_requested_metadata.begin(), m_requested_metadata.end()
+ 			, [](metadata_piece const& mp) { return mp.num_requests == std::numeric_limits<int>::max(); });
+ 
+-		if (!have_all) return false;
++		// Expose the accepted metadata fraction through the status progress
++		// while the torrent has no metadata. Count each piece only once.
++		if (!have_all)
++		{
++			int received = 0;
++			for (int i = 0; i < int(m_requested_metadata.size()); ++i)
++			{
++				if (m_requested_metadata[i].num_requests == std::numeric_limits<int>::max())
++					received += std::min(16 * 1024, int(m_metadata.size()) - i * 16 * 1024);
++			}
++			m_torrent.set_progress_ppm(int(std::int64_t(received) * 1000000 / m_metadata.size()));
++			return false;
++		}
+ 
+ 		if (!m_torrent.set_metadata(m_metadata))
+ 		{
+ 			if (!m_torrent.valid_metadata())
+ 			{
++				m_torrent.set_progress_ppm(0);
+ 				time_point const now = aux::time_now();
+ 				// any peer that we downloaded metadata from gets a random time
+ 				// penalty, from 5 to 30 seconds or so. During this time we don't

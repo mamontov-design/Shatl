@@ -472,3 +472,18 @@
 "update_message.1_0_6.downloads" = "Ahora puedes añadir varias descargas a la vez. Arrastra archivos .torrent o enlaces magnet a la ventana de Shatl.";
 "menu.debug.preview_update_message" = "Mostrar mensaje de actualización";
 "update_message.close" = "Cerrar";
+
+"add_torrent.review.metadata.connecting.title" = "Conectando con los participantes.";
+"add_torrent.review.metadata.connecting.message" = "Los participantes tienen la lista de archivos. Si hay pocos, la conexión puede tardar más.";
+"add_torrent.review.metadata.receiving.title" = "Recibiendo la lista de archivos.";
+"add_torrent.review.metadata.receiving.message" = "Cuando la lista esté lista, podrás iniciar la descarga.";
+"add_torrent.review.metadata.received.title" = "Lista de archivos recibida.";
+"add_torrent.review.metadata.offline.title" = "Se ha interrumpido la conexión.";
+"add_torrent.review.metadata.offline.message" = "Conéctate a internet para seguir recibiendo la lista de archivos.";
+"add_torrent.review.metadata.timeout.message" = "Los participantes no han respondido a tiempo. Puede ocurrir con torrents poco comunes o una conexión lenta.";
+"add_torrent.review.metadata.stalled.message" = "Solo se ha recibido parte de la lista de archivos. Puede que se haya interrumpido la conexión con los participantes.";
+"add_torrent.review.metadata.retry.message" = "Pulsa «Reintentar» para volver a solicitar la lista de archivos.";
+"add_torrent.review.metadata.reconnect.message" = "Conéctate a internet y pulsa «Reintentar» para volver a solicitar la lista de archivos.";
+"add_torrent.review.metadata.stop" = "Detener y cerrar la ventana";
+
+"menu.debug.message_block" = "Probar el bloque de mensajes";

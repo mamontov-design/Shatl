@@ -55,6 +55,8 @@ final class AddTorrentReviewModel: ObservableObject {
         /// The download in the list this one repeats, so the window can show
         /// it there rather than leave it to be found.
         var duplicateID: UUID?
+        var metadataProgress: Double = 0
+        var firstMetadataBlockAt: ContinuousClock.Instant?
         /// The draft as it came, before anything was changed here.
         private(set) var arrived: AddTorrentDraft
 
@@ -135,6 +137,45 @@ final class AddTorrentReviewModel: ObservableObject {
             } else {
                 publish { items = [Item(id: UUID(), draft: newValue)] }
             }
+        }
+    }
+
+    var currentItemID: UUID? { currentItem?.id }
+    var metadataProgress: Double { currentItem?.metadataProgress ?? 0 }
+    var firstMetadataBlockAt: ContinuousClock.Instant? { currentItem?.firstMetadataBlockAt }
+    var startedReceivingMetadata: Bool { firstMetadataBlockAt != nil }
+
+    func retryCurrentMagnet() {
+        guard let item = currentItem, item.draft.source.kind == .magnet,
+              let kind = item.draft.errorState?.kind,
+              kind == .metadataTimeout || kind == .noConnection,
+              preparationTasks[item.id] == nil else { return }
+        let draft = item.draft
+        publish {
+            items[currentIndex].metadataProgress = 0
+            items[currentIndex].firstMetadataBlockAt = nil
+        }
+        setDraft(makeLoadingDraft(
+            for: draft.source,
+            suggestedSavePath: draft.suggestedSavePath,
+            stopAfterDownload: draft.stopAfterDownload,
+            alias: draft.alias,
+            savePathBookmarkData: draft.savePathBookmarkData
+        ), forItem: item.id)
+        startPreparation(
+            of: item.id, source: draft.source, suggestedSavePath: draft.suggestedSavePath,
+            stopAfterDownload: draft.stopAfterDownload, alias: draft.alias,
+            savePathBookmarkData: draft.savePathBookmarkData
+        )
+    }
+
+    private func updateMetadataProgress(_ progress: Double, for itemID: UUID) {
+        guard let index = items.firstIndex(where: { $0.id == itemID }),
+              items[index].metadataProgress != progress else { return }
+        if index == currentIndex { objectWillChange.send() }
+        items[index].metadataProgress = progress
+        if items[index].firstMetadataBlockAt == nil {
+            items[index].firstMetadataBlockAt = .now
         }
     }
 
@@ -379,7 +420,10 @@ final class AddTorrentReviewModel: ObservableObject {
                     from: source,
                     suggestedSavePath: suggestedSavePath,
                     stopAfterDownload: stopAfterDownload
-                )
+                ) { [weak self] progress in
+                    guard !Task.isCancelled else { return }
+                    await self?.updateMetadataProgress(progress, for: itemID)
+                }
 
                 guard !Task.isCancelled, self.contains(itemID) else {
                     // The window closed, or the download left it, while it was read.

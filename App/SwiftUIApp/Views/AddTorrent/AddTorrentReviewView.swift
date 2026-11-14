@@ -1060,6 +1060,80 @@ private struct AddTorrentReviewContent: View {
     /// Set once waiting has lasted long enough to be worth a message; see
     /// `AddTorrentReviewStage`.
     @State private var showsWaitingMessage = false
+    @State private var magnetPresentation: MagnetPresentation?
+    @State private var presentedMagnetID: UUID?
+    @State private var confirmationTask: Task<Void, Never>?
+    @State private var magnetPhaseStarted = ContinuousClock.now
+    private static let minimumMagnetConnectionTime: Duration = .seconds(2)
+    private static let minimumMagnetTransferTime: Duration = .seconds(1)
+    @State private var networkOffline = false
+
+    private enum MagnetPresentation {
+        case connecting, receiving, received
+    }
+
+    private struct MagnetPresentationInput: Equatable {
+        let itemID: UUID?
+        let isLoading: Bool
+        let isReady: Bool
+        let firstBlockAt: ContinuousClock.Instant?
+        let showsWaiting: Bool
+    }
+
+    private var magnetInput: MagnetPresentationInput {
+        let isMagnet = draft?.source.kind == .magnet
+        return MagnetPresentationInput(
+            itemID: isMagnet ? review.currentItemID : nil,
+            isLoading: isMagnet && draft?.reviewState == .loadingMetadata,
+            isReady: isMagnet && draft?.reviewState == .ready && draft?.files.isEmpty == false,
+            firstBlockAt: review.firstMetadataBlockAt,
+            showsWaiting: showsWaitingMessage
+        )
+    }
+
+    private func followMagnet(_ input: MagnetPresentationInput) async {
+        if input.itemID != presentedMagnetID {
+            confirmationTask?.cancel()
+            presentedMagnetID = input.itemID
+            magnetPresentation = nil
+        }
+        guard input.itemID != nil else { return }
+        if input.isReady, let phase = magnetPresentation {
+            let minimum = phase == .connecting
+                ? Self.minimumMagnetConnectionTime : Self.minimumMagnetTransferTime
+            do {
+                try await ContinuousClock().sleep(until: magnetPhaseStarted + minimum)
+                magnetPresentation = .received
+            } catch {}
+        } else if input.isLoading, input.showsWaiting {
+            if magnetPresentation == nil {
+                magnetPresentation = .connecting
+                magnetPhaseStarted = .now
+            }
+            if let firstBlockAt = input.firstBlockAt, magnetPresentation == .connecting {
+                let showAfter = max(
+                    magnetPhaseStarted + Self.minimumMagnetConnectionTime,
+                    firstBlockAt + Self.minimumMagnetTransferTime
+                )
+                do {
+                    try await ContinuousClock().sleep(until: showAfter)
+                    try Task.checkCancellation()
+                    magnetPresentation = .receiving
+                    magnetPhaseStarted = .now
+                } catch {}
+            }
+        } else {
+            magnetPresentation = nil
+        }
+    }
+
+    private var monitorsMagnetNetwork: Bool {
+        draft?.source.kind == .magnet && (
+            draft?.reviewState == .loadingMetadata
+                || draft?.errorState?.kind == .noConnection
+                || draft?.errorState?.kind == .metadataTimeout
+        )
+    }
     @State private var waitingMessageTask: Task<Void, Never>?
     /// The stage that was on screen last, kept while the files are being
     /// prepared; see `shownStage` and `followStage`.
@@ -1156,6 +1230,20 @@ private struct AddTorrentReviewContent: View {
         .onPasteCommand(of: MainWindowDropLayout.draggedTypes) { providers in
             store.addPastedDownloads(from: providers)
         }
+        .task(id: magnetInput) {
+            await followMagnet(magnetInput)
+        }
+        .task(id: monitorsMagnetNetwork) {
+            guard monitorsMagnetNetwork else {
+                networkOffline = false
+                return
+            }
+            if draft?.errorState?.kind == .noConnection { networkOffline = true }
+            for await offline in NetworkReachability.changes() {
+                guard !Task.isCancelled else { return }
+                networkOffline = offline
+            }
+        }
         .onChange(of: waitingKey, initial: true) { _, key in
             followWaiting(key)
         }
@@ -1174,6 +1262,7 @@ private struct AddTorrentReviewContent: View {
         }
         .onDisappear {
             waitingMessageTask?.cancel()
+            confirmationTask?.cancel()
             stageTask?.cancel()
             summarySettleTask?.cancel()
             freeSpaceSpinnerTask?.cancel()
@@ -1263,7 +1352,10 @@ private struct AddTorrentReviewContent: View {
     }
 
     private var stage: AddTorrentReviewStage {
-        AddTorrentReviewStage.current(
+        if magnetInput.isReady, magnetPresentation != nil, magnetInput.itemID == presentedMagnetID {
+            return .message
+        }
+        return AddTorrentReviewStage.current(
             reviewState: draft?.reviewState,
             hasFiles: draft?.files.isEmpty == false,
             showsWaiting: showsWaitingMessage
@@ -1287,6 +1379,7 @@ private struct AddTorrentReviewContent: View {
     /// the same one going from waiting to its result.
     private struct WaitingKey: Equatable {
         var draftID: UUID?
+        var itemID: UUID?
         var isWaiting: Bool
     }
 
@@ -1298,7 +1391,7 @@ private struct AddTorrentReviewContent: View {
         case .ready?, .invalid?:
             isWaiting = false
         }
-        return WaitingKey(draftID: draft?.id, isWaiting: isWaiting)
+        return WaitingKey(draftID: draft?.id, itemID: review.currentItemID, isWaiting: isWaiting)
     }
 
     /// The waiting message comes only once waiting has lasted: a `.torrent`
@@ -1307,6 +1400,12 @@ private struct AddTorrentReviewContent: View {
     private func followWaiting(_ key: WaitingKey) {
         waitingMessageTask?.cancel()
         waitingMessageTask = nil
+
+        if key.isWaiting, lastMessage?.canRetry == true,
+           key.itemID == lastMessage?.itemID {
+            showsWaitingMessage = true
+            return
+        }
 
         if showsWaitingMessage {
             // A new wait starts from an empty window, not from the message
@@ -1364,13 +1463,25 @@ private struct AddTorrentReviewContent: View {
             systemImage: message.systemImage,
             title: message.title,
             message: message.message,
-            primaryButton: primaryMessageButton(for: message.actions, leadsForward: message.leadsForward),
-            secondaryButtons: secondaryMessageButtons(for: message.actions, leadsForward: message.leadsForward)
+            paragraphs: message.paragraphs,
+            primaryButton: message.isMagnet ? magnetPrimaryButton(message) : primaryMessageButton(for: message.actions, leadsForward: message.leadsForward),
+            secondaryButtons: message.canRetry
+                ? [review.count > 1 ? nextDownloadButton(leadsForward: message.leadsForward) : closeWindowButton]
+                : secondaryMessageButtons(for: message.actions, leadsForward: message.leadsForward),
+            progress: message.showsProgress ? review.metadataProgress : nil,
+            onSymbolSettled: { symbol in
+                guard symbol == "checkmark.circle", magnetPresentation == .received else { return }
+                confirmationTask?.cancel()
+                confirmationTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    guard !Task.isCancelled else { return }
+                    magnetPresentation = nil
+                }
+            }
         )
         // The window is disabled outside the review, for its search; the
         // message's own actions stay pressable.
         .environment(\.isEnabled, true)
-        .animation(ShatlMotion.messageBlockContent, value: message)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
@@ -1539,6 +1650,12 @@ private struct AddTorrentReviewContent: View {
         var systemImage: String
         var title: String
         var message: String?
+        var paragraphs: [String] = []
+        var isMagnet = false
+        var showsProgress = false
+        var canRetry = false
+        var itemID: UUID?
+        var isConfirmation = false
         var actions: AddTorrentReviewMessageActions
         /// Where "Следующая загрузка" / "Предыдущая загрузка" leads, taken
         /// as the message is made: a message on its way out keeps the label
@@ -1556,6 +1673,47 @@ private struct AddTorrentReviewContent: View {
             isKnownDuplicate: isKnownDuplicate,
             othersWait: review.count > 1
         )
+
+        if draft?.source.kind == .magnet {
+            if reviewState == .loadingMetadata {
+                let receiving = magnetPresentation == .receiving
+                let phase = networkOffline ? "offline" : receiving ? "receiving" : "connecting"
+                return ReviewMessage(
+                    systemImage: networkOffline ? "wifi.slash" : "doc.text.magnifyingglass",
+                    title: L10n.string("add_torrent.review.metadata.\(phase).title", localeOverride: locale),
+                    message: L10n.string("add_torrent.review.metadata.\(phase).message", localeOverride: locale),
+                    isMagnet: true, showsProgress: receiving,
+                    actions: actions, leadsForward: review.hasNext
+                )
+            }
+            if reviewState == .ready, magnetPresentation != nil, magnetInput.itemID == presentedMagnetID {
+                if magnetPresentation == .received {
+                    return ReviewMessage(
+                        systemImage: "checkmark.circle",
+                        title: L10n.string("add_torrent.review.metadata.received.title", localeOverride: locale),
+                        isMagnet: true, isConfirmation: true,
+                        actions: actions, leadsForward: review.hasNext
+                    )
+                }
+                return lastMessage
+            }
+            if let error = draft?.errorState, error.kind == .metadataTimeout || error.kind == .noConnection {
+                let phase = error.kind == .noConnection ? "offline_error"
+                    : review.startedReceivingMetadata ? "stalled" : "timeout"
+                return ReviewMessage(
+                    systemImage: error.kind == .noConnection ? "wifi.slash" : "exclamationmark.circle",
+                    title: (review.count > 1 ? error.titleAmongSeveral : nil) ?? error.title,
+                    message: phase == "offline_error" ? nil
+                        : L10n.string("add_torrent.review.metadata.\(phase).message", localeOverride: locale),
+                    paragraphs: [L10n.string(
+                        "add_torrent.review.metadata.\(phase == "offline_error" ? "reconnect" : "retry").message",
+                        localeOverride: locale
+                    )],
+                    isMagnet: true, canRetry: true, itemID: review.currentItemID,
+                    actions: actions, leadsForward: review.hasNext
+                )
+            }
+        }
 
         switch reviewState {
         case .ready?:
@@ -1609,6 +1767,28 @@ private struct AddTorrentReviewContent: View {
                 actions: actions,
                 leadsForward: review.hasNext
             )
+        }
+    }
+
+    private func magnetPrimaryButton(_ message: ReviewMessage) -> ShatlMessageBlockPrimaryButton? {
+        if message.isConfirmation { return nil }
+        let locale = store.preferences.localeOverride
+        if message.canRetry {
+            return ShatlMessageBlockPrimaryButton(
+                title: L10n.string("torrent.action.retry", localeOverride: locale),
+                isDisabled: networkOffline
+            ) {
+                review.retryCurrentMagnet()
+            }
+        }
+        return ShatlMessageBlockPrimaryButton(
+            title: L10n.string(
+                review.isBatch ? "common.cancel" : "add_torrent.review.metadata.stop",
+                localeOverride: locale
+            ),
+            keyboardShortcut: .cancelAction
+        ) {
+            if review.isBatch { skipCurrentDownload() } else { closeWindow() }
         }
     }
 
@@ -2149,8 +2329,7 @@ private struct AddTorrentReviewContent: View {
                         title: summaryMessage.title,
                         paragraphs: summaryMessage.paragraphs,
                         tone: .error,
-                        width: nil,
-                        changesPartsInTurn: true
+                        width: nil
                     )
                     .onGeometryChange(for: CGFloat.self) { geometry in
                         geometry.size.height

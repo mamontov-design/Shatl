@@ -388,15 +388,12 @@ struct MainWindowView: View {
     private var contentView: some View {
         ZStack(alignment: .topLeading) {
             switch stage {
-            case .loadingSession:
-                SessionLoadBlockingView(issue: nil, localeOverride: store.preferences.localeOverride)
-                    .transition(stageTransition)
-            case .sessionLoadFailure(let issue):
+            case .loadingSession, .sessionLoadFailure:
                 SessionLoadBlockingView(
-                    issue: issue,
+                    issue: displayedSessionLoadIssue,
                     localeOverride: store.preferences.localeOverride
                 )
-                    .transition(stageTransition)
+                .transition(stageTransition)
             case .empty:
                 ZStack {
                     // Keep the empty view mounted so its native text field
@@ -1000,7 +997,7 @@ struct ShatlUpdateMessageView: View {
     }
 }
 
-private struct SessionLoadBlockingView: View {
+struct SessionLoadBlockingView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var updaterController: ShatlUpdaterController
 
@@ -1012,17 +1009,15 @@ private struct SessionLoadBlockingView: View {
 
     var body: some View {
         ZStack {
-            if issue != nil {
-                recoveryCard
-            } else if showsLoadingMessage {
+            if issue != nil || showsLoadingMessage {
                 ShatlMessageBlockPrimary(
-                    systemImage: "clock.arrow.trianglehead.2.counterclockwise.rotate.90",
+                    systemImage: issue == nil
+                        ? "clock.arrow.trianglehead.2.counterclockwise.rotate.90"
+                        : "exclamationmark.circle",
                     title: title,
-                    message: L10n.string(
-                        "session.load.in_progress.message",
-                        localeOverride: localeOverride,
-                        defaultValue: "Загрузки возвращаются к состоянию на момент закрытия. Подождите, пожалуйста."
-                    )
+                    message: message,
+                    primaryButton: recoveryPrimaryButton,
+                    secondaryButtons: recoverySecondaryButtons
                 )
                 .transition(.opacity)
             }
@@ -1042,46 +1037,31 @@ private struct SessionLoadBlockingView: View {
         }
     }
 
-    @ViewBuilder
-    private var recoveryCard: some View {
-        if case .unsupportedVersion = issue {
-            // The list opens in the latest version: offer it first, from
-            // the updater or the site, and the empty list only after it.
-            ShatlMessageBlockPrimary(
-                title: title,
-                message: message,
-                primaryButton: ShatlMessageBlockPrimaryButton(
-                    title: L10n.string(
-                        "settings.about.check_updates",
-                        localeOverride: localeOverride,
-                        defaultValue: "Проверить обновления…"
-                    ),
-                    isDisabled: !updaterController.canCheckForUpdates,
-                    lineLimit: nil
-                ) {
-                    updaterController.checkForUpdates()
-                },
-                secondaryButtons: [
-                    ShatlMessageBlockPrimaryButton(
-                        title: L10n.string(
-                            "session.recovery.open_site",
-                            localeOverride: localeOverride,
-                            defaultValue: "Скачать с сайта…"
-                        ),
-                        lineLimit: nil
-                    ) {
-                        NSWorkspace.shared.open(ShatlLinks.website)
-                    },
-                    openEmptyListButton,
-                ]
-            )
-        } else {
-            ShatlMessageBlockPrimary(
-                title: title,
-                message: message,
-                primaryButton: openEmptyListButton
-            )
+    private var recoveryPrimaryButton: ShatlMessageBlockPrimaryButton? {
+        guard let issue else { return nil }
+        guard case .unsupportedVersion = issue else { return openEmptyListButton }
+
+        return ShatlMessageBlockPrimaryButton(
+            title: L10n.string("settings.about.check_updates", localeOverride: localeOverride),
+            isDisabled: !updaterController.canCheckForUpdates,
+            lineLimit: nil
+        ) {
+            updaterController.checkForUpdates()
         }
+    }
+
+    private var recoverySecondaryButtons: [ShatlMessageBlockPrimaryButton] {
+        guard case .unsupportedVersion = issue else { return [] }
+
+        return [
+            ShatlMessageBlockPrimaryButton(
+                title: L10n.string("session.recovery.open_site", localeOverride: localeOverride),
+                lineLimit: nil
+            ) {
+                NSWorkspace.shared.open(ShatlLinks.website)
+            },
+            openEmptyListButton,
+        ]
     }
 
     private var openEmptyListButton: ShatlMessageBlockPrimaryButton {
@@ -1124,7 +1104,9 @@ private struct SessionLoadBlockingView: View {
     }
 
     private var message: String? {
-        guard let issue else { return nil }
+        guard let issue else {
+            return L10n.string("session.load.in_progress.message", localeOverride: localeOverride)
+        }
 
         switch issue {
         case .unreadable, .missingWithRecoveryArtifacts:

@@ -100,11 +100,18 @@ something new shows a part listed here, add the place to its line.
   Settings → Data and in the onboarding's statistics step, the inspectable
   payload, README "Privacy", the privacy policy on the site, the Privacy
   Manifest. Any change to what is sent goes into all of them.
-- Message in the middle of a window (`ShatlMessageBlockPrimary`): session
-  load and its errors, the empty search, the drop screen, the add window's
-  messages, the 1.0.6 update message (above the list or centred in the empty
-  window), and in the add window's summary the low-space message (`tone:
-  .error`, full width, parts changing in turn, `ShatlMessageParts`).
+- Message block (`ShatlMessageBlockPrimary` in `Elements.swift`): session
+  loading and recovery, both empty searches, the drop screen, the 1.0.6
+  update message, the add window's messages and its summary. Callers supply
+  content, actions, tone and width. The block owns the layout and motion:
+  the symbol and labels move together. Each text row finishes its native
+  blur replacement or numeric transition before the next row changes.
+  Then the optional progress bar below the labels and the button group
+  take their turns. A single button fits its title and a group fills the
+  width. The native symbol replacement runs after layout has settled.
+  Debug → Test Message Block exercises these changes individually and in
+  random combinations.
+  Screens own the transition that brings the whole block into their layout.
 - Brand marks (`ShatlWordmark`: the type wordmark `ShatlTypeWordmark` and
   the logomark): the empty list, where the box follows the mark shown
   (`heightFollowsMark`) and the window's title fades with the wordmark

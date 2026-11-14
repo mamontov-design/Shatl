@@ -464,3 +464,18 @@
 "update_message.1_0_6.downloads" = "现在可以一次添加多个下载任务。将 .torrent 文件或磁力链接拖入 Shatl 窗口即可。";
 "menu.debug.preview_update_message" = "显示更新后的消息";
 "update_message.close" = "关闭";
+
+"add_torrent.review.metadata.connecting.title" = "正在连接到做种参与者。";
+"add_torrent.review.metadata.connecting.message" = "文件列表由参与者保存。参与者较少时，连接可能需要更长时间。";
+"add_torrent.review.metadata.receiving.title" = "正在接收文件列表。";
+"add_torrent.review.metadata.receiving.message" = "列表准备就绪后，即可开始下载。";
+"add_torrent.review.metadata.received.title" = "已收到文件列表。";
+"add_torrent.review.metadata.offline.title" = "连接已中断。";
+"add_torrent.review.metadata.offline.message" = "连接到互联网后即可继续接收文件列表。";
+"add_torrent.review.metadata.timeout.message" = "参与者未及时响应。种子较冷门或连接较慢时可能会出现这种情况。";
+"add_torrent.review.metadata.stalled.message" = "只收到部分文件列表。与参与者的连接可能已中断。";
+"add_torrent.review.metadata.retry.message" = "点按“重试”以重新请求文件列表。";
+"add_torrent.review.metadata.reconnect.message" = "连接到互联网，然后点按“重试”以重新请求文件列表。";
+"add_torrent.review.metadata.stop" = "停止并关闭窗口";
+
+"menu.debug.message_block" = "测试消息块";

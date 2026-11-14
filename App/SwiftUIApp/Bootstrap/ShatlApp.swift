@@ -97,6 +97,19 @@ struct ShatlApp: App {
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified(showsTitle: true))
 
+        #if DEBUG
+        Window("menu.debug.message_block", id: "debug-message-block") {
+            ShatlMessageBlockDebugView()
+                .environment(\.locale, store.preferences.localeOverride.swiftUILocale)
+                .modifier(ShatlApplicationAppearanceModifier(theme: store.preferences.theme))
+                .shatlMonochromeAppearance(store.preferences.usesMonochromeAppearance)
+        }
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
+        .defaultSize(width: 520, height: 700)
+        #endif
+
         Settings {
             ShatlSettingsView()
                 .environmentObject(store)

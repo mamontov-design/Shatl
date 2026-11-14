@@ -126,7 +126,17 @@ actor LibtorrentEngine: TorrentEngine {
         suggestedSavePath: String,
         stopAfterDownload: Bool
     ) async throws -> AddTorrentDraft {
-        _ = stopAfterDownload
+        try await prepareDraft(
+            from: source, suggestedSavePath: suggestedSavePath, stopAfterDownload: stopAfterDownload
+        ) { _ in }
+    }
+
+    func prepareDraft(
+        from source: AddTorrentSource,
+        suggestedSavePath: String,
+        stopAfterDownload: Bool,
+        onMetadataProgress: @escaping @Sendable (Double) async -> Void
+    ) async throws -> AddTorrentDraft {
 
         // The bridge keeps the metadata under this ID until the draft is released.
         let draftID = UUID()
@@ -135,7 +145,8 @@ actor LibtorrentEngine: TorrentEngine {
             preparedDraft = try await fetchMagnetMetadata(
                 rawValue: source.rawValue,
                 draftID: draftID,
-                suggestedSavePath: suggestedSavePath
+                suggestedSavePath: suggestedSavePath,
+                onProgress: onMetadataProgress
             )
         } else {
             do {
@@ -177,7 +188,8 @@ actor LibtorrentEngine: TorrentEngine {
     private func fetchMagnetMetadata(
         rawValue: String,
         draftID: UUID,
-        suggestedSavePath: String
+        suggestedSavePath: String,
+        onProgress: @Sendable (Double) async -> Void
     ) async throws -> LTPreparedDraft {
         try Task.checkCancellation()
 
@@ -192,7 +204,8 @@ actor LibtorrentEngine: TorrentEngine {
             throw mapBridgeError(error)
         }
 
-        let deadline = ContinuousClock.now + metadataTimeout
+        var deadline = ContinuousClock.now + metadataTimeout
+        var progressPPM = 0
         while true {
             let polledDraft: LTPreparedDraft
             do {
@@ -205,6 +218,19 @@ actor LibtorrentEngine: TorrentEngine {
 
             if polledDraft.reviewState != .loadingMetadata {
                 return polledDraft
+            }
+
+            let nextProgress = polledDraft.metadataProgressPPM
+            if nextProgress > progressPPM {
+                deadline = ContinuousClock.now + metadataTimeout
+            }
+            if nextProgress != progressPPM {
+                progressPPM = nextProgress
+                await onProgress(Double(nextProgress) / 1_000_000)
+                if Task.isCancelled {
+                    bridge.cancelMagnetMetadataFetch(withToken: token)
+                    throw CancellationError()
+                }
             }
 
             guard ContinuousClock.now < deadline else {
