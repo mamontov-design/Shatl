@@ -91,7 +91,11 @@ something new shows a part listed here, add the place to its line.
   cards (`ShatlSettingsInputCard`: performance modes, themes).
 - Performance profiles (`LTMakePerformanceSettingsPack`): Halo's limits are
   named in `settings.downloads.performance.caption.economical` and
-  `halo_notice.message`; the speedometers; README.
+  `halo_notice.message`; the speedometers; README. Orbit (500 connections,
+  50 new a second, TCP before uTP) also holds each torrent to 120
+  connections (`LTConnectionsPerTorrent`), which libtorrent takes per
+  torrent: as each is added or restored and on every switch of profile
+  (`OrbitConnectionsTests`).
 - Usage statistics (`UsageTelemetryPayload`): `DataCollectionInfo` in
   Settings → Data and in the onboarding's statistics step, the inspectable
   payload, README "Privacy", the privacy policy on the site, the Privacy

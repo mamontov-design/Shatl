@@ -246,6 +246,14 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 /// from libtorrent; NO before boot.
 @property (nonatomic, readonly) BOOL writesPayloadThroughWriteCalls;
 
+/// Whether the running session lets TCP go first and uTP yield to it, as
+/// Orbit asks. Read back from libtorrent; NO before boot.
+@property (nonatomic, readonly) BOOL prefersTCPOverUTP;
+
+/// How many connections the torrent may hold, read back from libtorrent:
+/// -1 for as many as the session allows; nil for a torrent it does not hold.
+- (nullable NSNumber *)maxConnectionsForTorrentWithIdentifier:(NSString *)recordIdentifier;
+
 /// Descriptors the process has open right now.
 + (NSInteger)openFileDescriptorCount;
 
