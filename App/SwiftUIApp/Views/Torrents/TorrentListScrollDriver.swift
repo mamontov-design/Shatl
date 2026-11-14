@@ -662,18 +662,41 @@ private final class TorrentListScrollTicker: NSObject {
 }
 
 /// The view through which `TorrentListScrollDriver` finds the list's scroll
-/// view. It sits in the scrolled content, at its top left corner, takes no
-/// room and draws nothing.
+/// view, and `TorrentListScrollSpeedometer` the clip view it watches. It
+/// sits in the scrolled content, at its top left corner, takes no room and
+/// draws nothing.
 struct TorrentListScrollAnchor: NSViewRepresentable {
     let driver: TorrentListScrollDriver
+    let speedometer: TorrentListScrollSpeedometer
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
+    func makeNSView(context: Context) -> TorrentListScrollAnchorView {
+        let view = TorrentListScrollAnchorView(frame: .zero)
+        view.speedometer = speedometer
         driver.anchorView = view
         return view
     }
 
-    func updateNSView(_ view: NSView, context: Context) {
+    func updateNSView(_ view: TorrentListScrollAnchorView, context: Context) {
+        view.speedometer = speedometer
         driver.anchorView = view
+    }
+
+    static func dismantleNSView(_ view: TorrentListScrollAnchorView, coordinator: ()) {
+        view.speedometer?.watch(nil)
+    }
+}
+
+final class TorrentListScrollAnchorView: NSView {
+    weak var speedometer: TorrentListScrollSpeedometer? {
+        didSet {
+            guard speedometer !== oldValue else { return }
+            oldValue?.watch(nil)
+            speedometer?.watch(window == nil ? nil : enclosingScrollView)
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        speedometer?.watch(window == nil ? nil : enclosingScrollView)
     }
 }

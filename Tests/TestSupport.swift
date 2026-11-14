@@ -597,7 +597,10 @@ func makeTestStoreBundle(
         try data.write(to: url, options: .atomic)
     },
     progressSaveInterval: Duration = .seconds(30),
-    usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
+    usageTelemetryWeekCheckInterval: Duration = .seconds(3600),
+    /// Off, cards show new numbers at once, so a test reads them right
+    /// after the snapshot; see `TorrentRowUpdateConductor`.
+    spreadsCardNumbers: Bool = false
 ) -> TestStoreBundle {
     let rootURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("ShatlTests-\(UUID().uuidString)", isDirectory: true)
@@ -656,7 +659,8 @@ func makeTestStoreBundle(
         preferences: preferences,
         hasLoadedInitialSession: sessionStoreStartupMode == .alreadyInitialized,
         progressSaveInterval: progressSaveInterval,
-        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval
+        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval,
+        rowUpdateConductor: TorrentRowUpdateConductor(spreadsNumbers: spreadsCardNumbers)
     )
 
     return TestStoreBundle(
@@ -693,7 +697,10 @@ func makeTestStoreBundle(
         try data.write(to: url, options: .atomic)
     },
     progressSaveInterval: Duration = .seconds(30),
-    usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
+    usageTelemetryWeekCheckInterval: Duration = .seconds(3600),
+    /// Off, cards show new numbers at once, so a test reads them right
+    /// after the snapshot; see `TorrentRowUpdateConductor`.
+    spreadsCardNumbers: Bool = false
 ) -> TestStoreBundle {
     makeTestStoreBundle(
         engine: engine,
@@ -710,7 +717,8 @@ func makeTestStoreBundle(
         sessionReadData: sessionReadData,
         sessionWriteData: sessionWriteData,
         progressSaveInterval: progressSaveInterval,
-        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval
+        usageTelemetryWeekCheckInterval: usageTelemetryWeekCheckInterval,
+        spreadsCardNumbers: spreadsCardNumbers
     )
 }
 

@@ -236,6 +236,13 @@ struct ShatlSettingsView: View {
                     localizedTitle: "settings.debug.logging.card_layout_diagnostics",
                     isOn: binding(for: \.isCardLayoutDiagnosticsLoggingEnabled)
                 )
+
+                ShatlSettingsParameterDivider()
+
+                ShatlSettingsToggleRow(
+                    localizedTitle: "settings.debug.list_scroll_readout",
+                    isOn: binding(for: \.showsListScrollReadout)
+                )
             }
         }
         .padding(.horizontal, 16)

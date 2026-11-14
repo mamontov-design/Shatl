@@ -226,6 +226,30 @@ something new shows a part listed here, add the place to its line.
   room under the speed chips goes with them, until the driver says the list
   stands at its new end. When the chips come under a list at its end, the
   driver takes it down to the new end, so the last card stays clear of them.
+- From 25 active downloads (`CardSimplificationLevel.lightest`, the
+  owner's decision of 2026-11-13; with fewer, every card takes its numbers
+  at once) cards take their new numbers through `TorrentRowUpdateConductor`
+  (in 1.0.6 as a first step, to be reworked in 1.0.7: see the type),
+  never all in one frame: on five beats a second, each card on its own beat, the
+  cards dealt to the beats evenly in an order that does not follow the
+  list (an order down it ran like a wave). Not one card at a time with
+  many cards: every separate update costs SwiftUI a pass over the whole
+  window, and 46 a second fought a scroll that had just begun (the owner's
+  check, 2026-11-13). Once the list rushes (`TorrentListScrollPace`: above
+  1 500 points a second, read from the clip view by
+  `TorrentListScrollSpeedometer`, which redraws nothing), no card starts a
+  new change until it has stood still for 1.5 s; moving slowly does not
+  calm it. Changes under way play to their end, and once the list is calm
+  each card rolls to its newest numbers on its beat of the next second.
+  Never stop a roll halfway or set held numbers at once without one: the
+  owner wants the pause unseen, as the brand marks go on from where they
+  stood (2026-11-13). Only numbers wait
+  (`differsOnlyInNumbers`: the speed set, expanded groups, progress);
+  anything else shows at once with the newest numbers. The speed chips do
+  not wait: they stand still and their pause would show. Store tests build
+  the conductor with `spreadsCardNumbers: false` so they read numbers right
+  after a snapshot. In Debug, "Показывать скорость прокрутки списка" shows
+  the speed and the waiting cards over the list.
 - Arrow keys do not select cards. Every step drew the whole list anew, and
   with 15 active downloads a held arrow gave one frame of 60-70 ms per step
   (measured in October 2026; the figures are in the owner's chronicle). ⌘A,
