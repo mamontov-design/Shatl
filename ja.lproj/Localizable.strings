@@ -458,3 +458,9 @@
 
 "session.recovery.open_empty" = "空のリストで開始";
 "session.recovery.open_site" = "Webサイトからダウンロード…";
+
+"update_message.1_0_6.title" = "Shatl をご利用いただき、ありがとうございます。";
+"update_message.1_0_6.thanks" = "初回リリース以来、温かいお言葉やご意見、ご提案をお寄せいただき、ありがとうございます。";
+"update_message.1_0_6.downloads" = "複数のダウンロードを一度に追加できるようになりました。.torrent ファイルやマグネットリンクを Shatl のウインドウにドラッグしてください。";
+"menu.debug.preview_update_message" = "アップデート後のメッセージを表示";
+"update_message.close" = "閉じる";

@@ -466,3 +466,9 @@
 
 "session.recovery.open_empty" = "Start with an Empty List";
 "session.recovery.open_site" = "Download from Website…";
+
+"update_message.1_0_6.title" = "Thank you for using Shatl.";
+"update_message.1_0_6.thanks" = "Thank you for the kind words, feedback, and suggestions since the first release.";
+"update_message.1_0_6.downloads" = "You can now add multiple downloads at once. Drag .torrent files or magnet links into the Shatl window.";
+"menu.debug.preview_update_message" = "Show Update Message";
+"update_message.close" = "Close";

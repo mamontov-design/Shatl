@@ -39,6 +39,10 @@ struct TorrentListView: View {
         ShatlSearchQueryDisplay.trimmed(searchText)
     }
 
+    private var showsUpdateMessage: Bool {
+        store.showsUpdateMessage && normalizedSearchText.isEmpty
+    }
+
     private var showsSearchEmptyState: Bool {
         !normalizedSearchText.isEmpty && visibleTorrentIDs.isEmpty
     }
@@ -56,6 +60,11 @@ struct TorrentListView: View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(spacing: 8) {
+                    if showsUpdateMessage {
+                        ShatlUpdateMessageView(fillsWidth: true)
+                            .transition(reduceMotion ? .opacity : ShatlMotion.cardListItem)
+                    }
+
                     ForEach(visibleTorrentIDs, id: \.self) { torrentID in
                         if let rowModel = store.torrentRowPresentationModel(for: torrentID) {
                             TorrentRowPresentationObserver(model: rowModel) { row in
@@ -155,6 +164,7 @@ struct TorrentListView: View {
                 .padding(.bottom, bottomContentPadding)
                 .animation(ShatlMotion.mainContentMode, value: bottomContentPadding)
                 .animation(ShatlMotion.cardListMutation, value: visibleTorrentIDs)
+                .animation(ShatlMotion.cardListMutation, value: showsUpdateMessage)
                 // Added and taken away in one step, never animated: it only
                 // holds the content's height while the content shrinks.
                 .padding(.bottom, roomWhileContentShrinks)
@@ -256,6 +266,11 @@ struct TorrentListView: View {
             }
             .onAppear {
                 store.clearHiddenSelection(visibleTorrentIDs: visibleTorrentIDs)
+            }
+            .onChange(of: showsUpdateMessage) { wasShown, isShown in
+                if wasShown && !isShown {
+                    keepListInPlaceWhileContentShrinks(over: ShatlMotion.cardListMutationDuration)
+                }
             }
             .onChange(of: visibleTorrentIDs) { oldVisibleTorrentIDs, newVisibleTorrentIDs in
                 store.clearHiddenSelection(visibleTorrentIDs: newVisibleTorrentIDs)

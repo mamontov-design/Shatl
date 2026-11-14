@@ -458,3 +458,9 @@
 
 "session.recovery.open_empty" = "以空列表开始";
 "session.recovery.open_site" = "从网站下载…";
+
+"update_message.1_0_6.title" = "感谢你使用 Shatl。";
+"update_message.1_0_6.thanks" = "感谢你在首个版本发布以来给予的鼓励、反馈和建议。";
+"update_message.1_0_6.downloads" = "现在可以一次添加多个下载任务。将 .torrent 文件或磁力链接拖入 Shatl 窗口即可。";
+"menu.debug.preview_update_message" = "显示更新后的消息";
+"update_message.close" = "关闭";

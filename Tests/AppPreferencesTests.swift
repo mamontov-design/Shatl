@@ -8,6 +8,28 @@ import XCTest
 
 @MainActor
 final class AppPreferencesTests: XCTestCase {
+    func testUpdateMessageIsForOlderPreferencesAndOnlyIn106() throws {
+        let fresh = AppPreferences.defaultValue
+        XCTAssertFalse(fresh.showsUpdateMessage106(appVersion: "1.0.6"))
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        let data = try encoder.encode(fresh)
+        var old = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        old.removeValue(forKey: "skipsUpdateMessage106")
+        var upgraded = try decoder.decode(
+            AppPreferences.self,
+            from: JSONSerialization.data(withJSONObject: old)
+        )
+        XCTAssertFalse(upgraded.showsUpdateMessage106(appVersion: "1.0.5"))
+        XCTAssertTrue(upgraded.showsUpdateMessage106(appVersion: "1.0.6"))
+        XCTAssertFalse(upgraded.showsUpdateMessage106(appVersion: "1.0.7"))
+
+        upgraded.skipsUpdateMessage106 = true
+        let reopened = try decoder.decode(AppPreferences.self, from: encoder.encode(upgraded))
+        XCTAssertFalse(reopened.showsUpdateMessage106(appVersion: "1.0.6"))
+    }
+
     func testDefaultDownloadPathUsesSystemDownloadsDirectory() {
         let expectedPath = resolvedRealUserDownloadsPath()
 

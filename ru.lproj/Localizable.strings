@@ -482,3 +482,9 @@
 
 "session.recovery.open_empty" = "Начать с пустого списка";
 "session.recovery.open_site" = "Скачать с сайта…";
+
+"update_message.1_0_6.title" = "Спасибо, что пользуетесь Shatl.";
+"update_message.1_0_6.thanks" = "Спасибо за добрые слова, отзывы и предложения после первого выпуска.";
+"update_message.1_0_6.downloads" = "Теперь можно добавить несколько загрузок за раз. Перетащите .torrent‑файлы или magnet‑ссылки в окно Shatl.";
+"menu.debug.preview_update_message" = "Показать сообщение после обновления";
+"update_message.close" = "Закрыть";

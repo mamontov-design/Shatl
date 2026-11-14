@@ -39,6 +39,10 @@ struct AddTorrentEntryView: View {
         self.onValidationError = onValidationError
     }
 
+    private var hidesMagnetField: Bool {
+        placement == .emptyState && (hidesMagnetFieldForDrag || store.showsUpdateMessage)
+    }
+
     /// The modal's padding; the window's corners are rounder on macOS 26.
     private static var modalPadding: CGFloat {
         if #available(macOS 27.0, *) { 16 } else { 18 }
@@ -63,7 +67,7 @@ struct AddTorrentEntryView: View {
             guard oldModalID != nil, newModalID == nil else { return }
             scheduleRefocus()
         }
-        .onChange(of: hidesMagnetFieldForDrag) { _, isHidden in
+        .onChange(of: hidesMagnetField) { _, isHidden in
             if isHidden {
                 blurMagnetField()
             } else {
@@ -224,7 +228,7 @@ struct AddTorrentEntryView: View {
             // Taken out for a drag and put back in one frame, whatever
             // animation the window around it is running.
             Group {
-                if hidesMagnetFieldForDrag {
+                if hidesMagnetField {
                     Color.clear
                         .frame(maxWidth: .infinity)
                         .frame(height: magnetFieldHeight)
@@ -244,7 +248,7 @@ struct AddTorrentEntryView: View {
                         .transition(.identity)
                 }
             }
-            .animation(nil, value: hidesMagnetFieldForDrag)
+            .animation(nil, value: hidesMagnetField)
 
             Button {
                 continueWithMagnet()
@@ -443,6 +447,7 @@ struct AddTorrentEntryView: View {
 
     private func focusMagnetField() {
         DispatchQueue.main.async {
+            guard !hidesMagnetField else { return }
             isMagnetFieldFocused = true
         }
     }
@@ -466,7 +471,7 @@ struct AddTorrentEntryView: View {
             }
 
             guard !Task.isCancelled else { return }
-            guard store.presentedModal == nil, store.torrents.isEmpty, !hidesMagnetFieldForDrag else { return }
+            guard store.presentedModal == nil, store.torrents.isEmpty, !hidesMagnetField else { return }
             focusMagnetField()
         }
     }

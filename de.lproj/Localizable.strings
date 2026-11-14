@@ -466,3 +466,9 @@
 
 "session.recovery.open_empty" = "Mit leerer Liste starten";
 "session.recovery.open_site" = "Von der Website laden…";
+
+"update_message.1_0_6.title" = "Vielen Dank, dass Sie Shatl nutzen.";
+"update_message.1_0_6.thanks" = "Vielen Dank für die netten Worte, Rückmeldungen und Vorschläge seit der ersten Veröffentlichung.";
+"update_message.1_0_6.downloads" = "Sie können jetzt mehrere Downloads auf einmal hinzufügen. Ziehen Sie .torrent-Dateien oder Magnet-Links in das Shatl-Fenster.";
+"menu.debug.preview_update_message" = "Update-Hinweis anzeigen";
+"update_message.close" = "Schließen";

@@ -53,5 +53,24 @@ final class SessionLoadPreviewTests: XCTestCase {
         bundle.store.toggleUnsupportedSessionPreviewForDebug()
         XCTAssertNil(bundle.store.debugSessionLoadIssuePreview)
     }
+
+    func testUpdateMessageInDebugRequiresTheMenuAndKeepsTheReleasePreference() {
+        var preferences = AppPreferences.defaultValue
+        preferences.skipsUpdateMessage106 = false
+        let bundle = makeTestStoreBundle(
+            engine: FakeTorrentEngine(),
+            torrents: [makeTestRecord()],
+            preferences: preferences
+        )
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+
+        XCTAssertTrue(bundle.store.hasLoadedInitialSession)
+        XCTAssertFalse(bundle.store.showsUpdateMessage)
+        bundle.store.previewUpdateMessageForDebug()
+        XCTAssertTrue(bundle.store.showsUpdateMessage)
+        bundle.store.dismissUpdateMessage()
+        XCTAssertFalse(bundle.store.showsUpdateMessage)
+        XCTAssertFalse(bundle.store.preferences.skipsUpdateMessage106)
+    }
 }
 #endif

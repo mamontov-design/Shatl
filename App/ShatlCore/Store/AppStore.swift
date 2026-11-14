@@ -930,6 +930,31 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         onboardingPresentation = .firstLaunch
     }
 
+    var showsUpdateMessage: Bool {
+        guard hasLoadedInitialSession, sessionLoadIssue == nil else { return false }
+        #if DEBUG
+        return previewsUpdateMessage
+        #else
+        return preferences.showsUpdateMessage106(appVersion: appVersion)
+        #endif
+    }
+
+    func dismissUpdateMessage() {
+        #if DEBUG
+        previewsUpdateMessage = false
+        #else
+        preferences.skipsUpdateMessage106 = true
+        #endif
+    }
+
+    #if DEBUG
+    @Published private(set) var previewsUpdateMessage = false
+
+    func previewUpdateMessageForDebug() {
+        previewsUpdateMessage = true
+    }
+    #endif
+
     func presentDebugOnboarding() {
         onboardingPresentation = .debug
     }

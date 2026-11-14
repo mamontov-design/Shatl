@@ -102,7 +102,8 @@ something new shows a part listed here, add the place to its line.
   Manifest. Any change to what is sent goes into all of them.
 - Message in the middle of a window (`ShatlMessageBlockPrimary`): session
   load and its errors, the empty search, the drop screen, the add window's
-  messages, and in the add window's summary the low-space message (`tone:
+  messages, the 1.0.6 update message (above the list or centred in the empty
+  window), and in the add window's summary the low-space message (`tone:
   .error`, full width, parts changing in turn, `ShatlMessageParts`).
 - Brand marks (`ShatlWordmark`: the type wordmark `ShatlTypeWordmark` and
   the logomark): the empty list, where the box follows the mark shown

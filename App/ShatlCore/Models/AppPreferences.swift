@@ -145,6 +145,13 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     var hasAnsweredUsageStatisticsOnboarding: Bool
     var lastUsageStatisticsSentAt: Date?
     var hasCompletedOnboarding: Bool
+    // New installations skip the 1.0.6 message. Older preferences have no
+    // dismissal key, so they keep showing it until their owner closes it.
+    var skipsUpdateMessage106 = true
+
+    func showsUpdateMessage106(appVersion: String) -> Bool {
+        appVersion == "1.0.6" && !skipsUpdateMessage106
+    }
     var preferredBrandMark: ShatlBrandMark = .wordmark
     /// Settings → Downloads → Network. On by default, like other torrent clients.
     var opensRouterPortAutomatically = true
@@ -202,6 +209,7 @@ extension AppPreferences {
         case hasAnsweredUsageStatisticsOnboarding
         case lastUsageStatisticsSentAt
         case hasCompletedOnboarding
+        case skipsUpdateMessage106
         case preferredBrandMark
         case opensRouterPortAutomatically
         case showsHaloSpeedNotice
@@ -281,6 +289,7 @@ extension AppPreferences {
             Bool.self,
             forKey: .hasCompletedOnboarding
         ) ?? false
+        skipsUpdateMessage106 = try container.decodeIfPresent(Bool.self, forKey: .skipsUpdateMessage106) ?? false
         preferredBrandMark = try container.decodeIfPresent(
             ShatlBrandMark.self,
             forKey: .preferredBrandMark

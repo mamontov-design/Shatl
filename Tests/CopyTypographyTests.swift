@@ -68,6 +68,8 @@ final class CopyTypographyTests: XCTestCase {
             "single_instance.already_running.message",
             "onboarding.data.description",            // supporting the project
             "settings.data.caption",
+            "update_message.1_0_6.title",             // a note of thanks from the author
+            "update_message.1_0_6.downloads",         // identifies the drop destination
             "settings.about.licenses.popover.gpl",    // the licence names the program
             // ⌘Q over the add window: "Выйти" alone could mean the window.
             "add_torrent.quit.message.single.file",

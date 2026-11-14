@@ -256,7 +256,8 @@ struct MainWindowView: View {
         .background(
             WindowChromeConfigurator(
                 isSearchEnabled: stage.allowsListActions,
-                hidesTitle: stage == .empty && store.preferences.preferredBrandMark == .wordmark
+                hidesTitle: stage == .empty && !store.showsUpdateMessage
+                    && store.preferences.preferredBrandMark == .wordmark
             )
         )
         // The same buttons and search in every stage, so the top of the window
@@ -397,12 +398,28 @@ struct MainWindowView: View {
                 )
                     .transition(stageTransition)
             case .empty:
-                EmptyStateView(
-                    isDragInProgress: displayedDropOffer != nil,
-                    onEntryValidationError: presentAddTorrentEntryAlert
-                )
-                    .transition(stageTransition)
-                    .zIndex(1)
+                ZStack {
+                    // Keep the empty view mounted so its native text field
+                    // can resign focus before the rest of the view fades.
+                    EmptyStateView(
+                        isDragInProgress: displayedDropOffer != nil,
+                        onEntryValidationError: presentAddTorrentEntryAlert
+                    )
+                    .opacity(store.showsUpdateMessage ? 0 : 1)
+                    .allowsHitTesting(!store.showsUpdateMessage)
+                    .accessibilityHidden(store.showsUpdateMessage)
+
+                    if store.showsUpdateMessage {
+                        ShatlUpdateMessageView()
+                            .padding(24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .transition(stageTransition)
+                            .zIndex(1)
+                    }
+                }
+                .animation(ShatlMotion.mainContentMode, value: store.showsUpdateMessage)
+                .transition(stageTransition)
+                .zIndex(1)
             case .list:
                 TorrentListViewport(
                     summaryVisibility: store.torrentTransferSummary.visibility,
@@ -959,6 +976,28 @@ struct ShatlLineMessageBar: View {
         .accessibilityElement(children: .contain)
     }
 
+}
+
+struct ShatlUpdateMessageView: View {
+    @EnvironmentObject private var store: AppStore
+
+    var fillsWidth = false
+
+    var body: some View {
+        let locale = store.preferences.localeOverride
+        ShatlMessageBlockPrimary(
+            systemImage: "heart.fill",
+            title: L10n.string("update_message.1_0_6.title", localeOverride: locale),
+            message: L10n.string("update_message.1_0_6.thanks", localeOverride: locale),
+            paragraphs: [L10n.string("update_message.1_0_6.downloads", localeOverride: locale)],
+            primaryButton: ShatlMessageBlockPrimaryButton(
+                title: L10n.string("update_message.close", localeOverride: locale)
+            ) {
+                store.dismissUpdateMessage()
+            },
+            width: fillsWidth ? nil : 340
+        )
+    }
 }
 
 private struct SessionLoadBlockingView: View {
