@@ -109,8 +109,9 @@ something new shows a part listed here, add the place to its line.
   the logomark): the empty list, where the box follows the mark shown
   (`heightFollowsMark`) and the window's title fades with the wordmark
   (`MainWindowTitle`); Settings → About, one box for both marks; the
-  onboarding, the logomark alone. The wordmark's colours
-  (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
+  onboarding, the logomark alone. In About, “Shatl” appears beside Licences
+  under the logomark, after the choice has held for one second. The
+  wordmark's colours (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
   mixed by weight) and timings (`ShatlMotion.wordmark*`,
   `brandMarkChangeDuration`); under Reduce Motion both marks stand still,
   and unwatched (out of sight, or in a window that is not active) both

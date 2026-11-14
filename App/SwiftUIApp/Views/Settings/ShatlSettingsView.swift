@@ -778,6 +778,9 @@ enum DataCollectionItem: CaseIterable, Identifiable {
 }
 
 private struct AboutSettingsTab: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.shatlTabIsShown) private var tabIsShown
+    @State private var showsAboutAppName: Bool?
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var updaterController: ShatlUpdaterController
     @State private var isLicensesPopoverPresented = false
@@ -860,10 +863,12 @@ private struct AboutSettingsTab: View {
         )
     }
 
-    /// The mark, and under it the licences: the GPL of Shatl and what it is
-    /// built with, in a popover like the ones in Appearance.
+    /// The logomark needs a name beside the licences; the wordmark carries its own.
     private var aboutWordmarkContainer: some View {
-        VStack(spacing: 12) {
+        let wantsAppName = store.preferences.preferredBrandMark == .logomark
+        let showsAppName = showsAboutAppName ?? wantsAppName
+
+        return VStack(spacing: 12) {
             ShatlWordmark(
                 selection: Binding(
                     get: { store.preferences.preferredBrandMark },
@@ -871,13 +876,49 @@ private struct AboutSettingsTab: View {
                 )
             )
 
-            ShatlLinkButton(
-                title: L10n.string("settings.about.licenses.button", localeOverride: store.preferences.localeOverride)
-            ) {
-                isLicensesPopoverPresented = true
+            HStack(spacing: 8) {
+                if showsAppName {
+                    Text(verbatim: "Shatl")
+                        .font(Font.system(size: 18, weight: .semibold).width(.expanded))
+                        .foregroundStyle(ShatlColor.typographyPrimary)
+                        .frame(height: 20)
+                        .transition(
+                            reduceMotion
+                                ? .opacity.animation(ShatlMotion.metricResize)
+                                : ShatlMotion.appearFromTop
+                        )
+                }
+
+                ShatlLinkButton(
+                    title: L10n.string("settings.about.licenses.button", localeOverride: store.preferences.localeOverride)
+                ) {
+                    isLicensesPopoverPresented = true
+                }
+                .shatlPopover(isPresented: $isLicensesPopoverPresented) {
+                    LicensesInfoPopover(localeOverride: store.preferences.localeOverride)
+                }
             }
-            .shatlPopover(isPresented: $isLicensesPopoverPresented) {
-                LicensesInfoPopover(localeOverride: store.preferences.localeOverride)
+            .geometryGroup()
+            .animation(reduceMotion ? nil : ShatlMotion.metricResize, value: showsAppName)
+            .task(id: tabIsShown ? wantsAppName : nil) {
+                guard tabIsShown else {
+                    showsAboutAppName = nil
+                    return
+                }
+                guard let shown = showsAboutAppName else {
+                    showsAboutAppName = wantsAppName
+                    return
+                }
+                guard shown != wantsAppName else { return }
+
+                // SwiftUI cancels the pending change when the mark changes again.
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                showsAboutAppName = wantsAppName
             }
         }
         .padding(.horizontal, 12)
