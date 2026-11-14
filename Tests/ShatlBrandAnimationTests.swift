@@ -27,6 +27,24 @@ final class ShatlBrandAnimationTests: XCTestCase {
         )
     }
 
+    func testLogomarkResumesTheSameMorphAfterBeingHidden() {
+        let player = ShatlBrandAnimationState(originalStrokeWidth: 8, strokeWidths: 4...8)
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        player.setPlaying(true)
+        XCTAssertEqual(player.phase(at: start), 1)
+        let middle = start + ShatlBrandAnimation.pauseDuration + ShatlBrandAnimation.fullDuration / 2
+        let frame = player.phase(at: middle)
+        XCTAssertLessThan(frame, 1)
+
+        let resumedAt = middle + 30
+        player.setPlaying(false)
+        XCTAssertEqual(player.phase(at: resumedAt), frame)
+        XCTAssertEqual(player.phase(at: resumedAt, reduceMotion: true), 1)
+        player.setPlaying(true)
+        XCTAssertEqual(player.phase(at: resumedAt), frame)
+        XCTAssertLessThan(player.phase(at: resumedAt + 0.1), frame)
+    }
+
     func testLogomarkNeverLeavesItsRange() {
         for _ in 0..<200 {
             let phase = ShatlBrandAnimation.randomPhase(excluding: 1, originalPhase: 1)

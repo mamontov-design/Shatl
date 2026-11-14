@@ -99,10 +99,12 @@ struct ShatlWordmark: View {
                 .blur(radius: logomarkProgress * ShatlBrandTransition.blurRadius)
                 .zIndex(selectedBrandMark == .logomark ? 0 : 1)
 
-            ShatlLogomarkArtwork(
-                animationPhase: logomarkAnimationState.phase,
-                renderingMode: renderingMode
-            )
+            TimelineView(.animation(paused: !playsLogomark)) { context in
+                ShatlLogomarkArtwork(
+                    animationPhase: logomarkAnimationState.phase(at: context.date, reduceMotion: reduceMotion),
+                    renderingMode: renderingMode
+                )
+            }
                 .frame(width: 84, height: 84)
                 .compositingGroup()
                 .opacity(Double(logomarkProgress))
@@ -118,8 +120,6 @@ struct ShatlWordmark: View {
             toggleBrandMark()
         }
         .onChange(of: selectedBrandMark) { _, brandMark in
-            resetAnimation(for: brandMark)
-
             withAnimation(ShatlBrandTransition.artworkChange) {
                 logomarkProgress = brandMark == .logomark ? 1 : 0
             }
@@ -145,19 +145,13 @@ struct ShatlWordmark: View {
             ShatlWindowVisibilityReader(isVisible: $windowShowsMark)
                 .frame(width: 0, height: 0)
         }
-        .onChange(of: motion, initial: true) { _, motion in
-            resetAnimation(for: motion.brandMark)
-        }
-        // Unwatched the logomark stands paused: the move under way ends, and
-        // the next one waits until it is watched again, from where it stood.
-        .task(id: ShatlBrandMarkLoop(motion: motion, isWatched: isWatched)) {
-            guard isWatched else { return }
-            await runAnimation(for: selectedBrandMark)
+        .onChange(of: playsLogomark, initial: true) { _, plays in
+            logomarkAnimationState.setPlaying(plays)
         }
     }
 
-    private var motion: ShatlBrandMarkMotion {
-        ShatlBrandMarkMotion(brandMark: selectedBrandMark, standsStill: reduceMotion)
+    private var playsLogomark: Bool {
+        selectedBrandMark == .logomark && isWatched && !reduceMotion
     }
 
     /// The marks move only while they are watched: in sight, in the window
@@ -185,19 +179,6 @@ struct ShatlWordmark: View {
         }
 
         bounceBrandMark()
-    }
-
-    /// The type wordmark plays its own motion while it is shown. Under
-    /// Reduce Motion the logomark rests at its standard 8 pt, and its star
-    /// at the shape that goes with it.
-    private func resetAnimation(for brandMark: ShatlBrandMark) {
-        guard brandMark == .logomark else { return }
-        logomarkAnimationState.resetToOriginal()
-    }
-
-    private func runAnimation(for brandMark: ShatlBrandMark) async {
-        guard brandMark == .logomark, !reduceMotion else { return }
-        await logomarkAnimationState.run()
     }
 
     private func bounceBrandMark() {
@@ -246,19 +227,6 @@ struct ShatlWordmark: View {
     }
 }
 
-/// What the marks' motion starts over on.
-private struct ShatlBrandMarkMotion: Equatable {
-    let brandMark: ShatlBrandMark
-    let standsStill: Bool
-}
-
-/// What the logomark's moves stop and go on with: being watched again goes
-/// on from where the star stood, unlike a change of the motion.
-private struct ShatlBrandMarkLoop: Equatable {
-    let motion: ShatlBrandMarkMotion
-    let isWatched: Bool
-}
-
 /// The logomark's star in the monochrome appearance: no glass and no
 /// fill, a 1 pt outline inside its edge in the monochrome accent, as Figma
 /// draws it. The star morphs and cannot be inset, so the outline is a 2 pt
@@ -274,52 +242,55 @@ private struct ShatlMonochromeStar<StarShape: Shape>: View {
 }
 
 @MainActor
-private final class ShatlBrandAnimationState: ObservableObject {
-    @Published private(set) var phase: CGFloat
-
+final class ShatlBrandAnimationState: ObservableObject {
     private let originalPhase: CGFloat
+    private var phaseFrom: CGFloat
+    private var phaseTo: CGFloat?
+    private var elapsed: TimeInterval = 0
+    private var lastFrame: Date?
+    private var isPlaying = false
 
     init(originalStrokeWidth: CGFloat, strokeWidths: ClosedRange<CGFloat>) {
-        let originalPhase = ShatlBrandAnimation.phase(
+        let phase = ShatlBrandAnimation.phase(
             forStrokeWidth: originalStrokeWidth,
             in: strokeWidths
         )
-        self.originalPhase = originalPhase
-        phase = originalPhase
+        originalPhase = phase
+        phaseFrom = phase
     }
 
-    func resetToOriginal() {
-        withAnimation(nil) {
-            phase = originalPhase
-        }
+    func setPlaying(_ isPlaying: Bool) {
+        self.isPlaying = isPlaying
+        lastFrame = nil
     }
 
-    func run() async {
-        while !Task.isCancelled {
-            let nextPhase = ShatlBrandAnimation.randomPhase(
-                excluding: phase,
-                originalPhase: originalPhase
-            )
-
-            guard await sleep(for: ShatlBrandAnimation.pauseDuration) else { return }
-
-            withAnimation(ShatlBrandAnimation.timing(duration: ShatlBrandAnimation.fullDuration)) {
-                phase = nextPhase
+    func phase(at date: Date, reduceMotion: Bool = false) -> CGFloat {
+        if reduceMotion { return originalPhase }
+        if isPlaying {
+            if let lastFrame, date > lastFrame {
+                elapsed += date.timeIntervalSince(lastFrame)
             }
-
-            guard await sleep(for: ShatlBrandAnimation.fullDuration) else { return }
+            lastFrame = max(lastFrame ?? date, date)
         }
-    }
 
-    private func sleep(for duration: TimeInterval) async -> Bool {
-        let nanoseconds = UInt64(duration * 1_000_000_000)
+        let pause = ShatlBrandAnimation.pauseDuration
+        let duration = ShatlBrandAnimation.fullDuration
+        guard elapsed >= pause else { return phaseFrom }
 
-        do {
-            try await Task.sleep(nanoseconds: nanoseconds)
-            return !Task.isCancelled
-        } catch {
-            return false
+        let destination = phaseTo ?? ShatlBrandAnimation.randomPhase(
+            excluding: phaseFrom,
+            originalPhase: originalPhase
+        )
+        phaseTo = destination
+        let fraction = (elapsed - pause) / duration
+        if fraction >= 1 {
+            phaseFrom = destination
+            phaseTo = nil
+            elapsed = 0
+            return destination
         }
+        let progress = ShatlBrandAnimation.curve.value(at: fraction)
+        return phaseFrom + (destination - phaseFrom) * CGFloat(progress)
     }
 }
 
@@ -382,9 +353,10 @@ enum ShatlBrandAnimation {
         return startOpacity + (endOpacity - startOpacity) * clampedPhase
     }
 
-    static func timing(duration: TimeInterval) -> Animation {
-        .timingCurve(0.85, 0.0, 0.55, 1.0, duration: duration)
-    }
+    static let curve = UnitCurve.bezier(
+        startControlPoint: UnitPoint(x: 0.85, y: 0),
+        endControlPoint: UnitPoint(x: 0.55, y: 1)
+    )
 }
 
 private enum ShatlBrandTransition {

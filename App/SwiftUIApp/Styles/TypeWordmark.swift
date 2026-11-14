@@ -604,8 +604,7 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
         lastHue = cycle.end.hue
     }
 
-    /// Back to the standard set in a random hue, as the wordmark comes back
-    /// from the logomark.
+    /// Explicitly starts a new cycle at the standard set.
     func restart(at date: Date) {
         lastFrame = nil
         if drift != nil {
@@ -715,10 +714,6 @@ struct ShatlTypeWordmarkArtwork: View {
                 .fill(fillColor(for: style))
         }
         .frame(width: ShatlTypeWordmark.frameSize.width, height: ShatlTypeWordmark.frameSize.height)
-        .onChange(of: isAnimating) { _, isAnimating in
-            guard isAnimating else { return }
-            player.restart(at: .now)
-        }
         .onChange(of: playback, initial: true) { previous, next in
             let shouldBrake = next == .braking && previous == .playing
             isBraking = shouldBrake

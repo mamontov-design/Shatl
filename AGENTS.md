@@ -125,7 +125,8 @@ something new shows a part listed here, add the place to its line.
   `brandMarkChangeDuration`); under Reduce Motion both marks stand still,
   and both pause when unwatched. The wordmark brakes for 600 ms if its
   window stays visible after losing focus and freezes when hidden. It
-  resumes from the last rendered frame.
+  resumes from the last rendered frame. Both marks keep separate cycle
+  positions per window while their selection is shared.
   Its four hues also tint the Settings option cards' wink
   (`ShatlColor.InputCardActivationPulse`).
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"

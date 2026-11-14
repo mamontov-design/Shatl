@@ -12,7 +12,7 @@ import SwiftUI
 // whether its window is on screen (`ShatlWindowVisibilityReader`) and,
 // in Settings, whether its tab is the one open (`shatlTabIsShown`), and
 // moves only while both hold: a swing through `ShatlEndlessSwing`, the
-// wordmark's timeline paused, the logomark's loop keyed by them.
+// two marks' timelines paused.
 
 /// Swings its content between two states with `animation`, an endless one,
 /// for as long as it is in the hierarchy. Taking it out is what ends the
