@@ -167,6 +167,9 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     @Published private(set) var selectedTorrentNavigationAvailability = TorrentNavigationAvailability()
 
     let torrentTransferSummary = TorrentTransferSummaryModel()
+    /// When each card shows its new numbers; the list tells it how fast it
+    /// moves. See the type.
+    let rowUpdateConductor: TorrentRowUpdateConductor
     /// What the cards leave out with many downloads running; see
     /// `CardSimplificationLevel`. The speed chips read it too.
     @Published private(set) var cardSimplification = CardSimplificationLevel.full
@@ -283,8 +286,10 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         preferences: AppPreferences? = nil,
         hasLoadedInitialSession: Bool = false,
         progressSaveInterval: Duration = .seconds(30),
-        usageTelemetryWeekCheckInterval: Duration = .seconds(3600)
+        usageTelemetryWeekCheckInterval: Duration = .seconds(3600),
+        rowUpdateConductor: TorrentRowUpdateConductor? = nil
     ) {
+        self.rowUpdateConductor = rowUpdateConductor ?? TorrentRowUpdateConductor()
         self.preferencesStore = preferencesStore
         self.engine = engine
         self.addTorrentReview = AddTorrentReviewModel(engine: engine)
@@ -494,7 +499,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             usesMonochromeAppearance: preferences.usesMonochromeAppearance,
-            animatesNumberChanges: preferences.animatesNumberChanges,
+            animatesNumberChanges: preferences.rollsNumberChanges,
             errorState: nil,
             isSelected: selection.contains(addition.id),
             isExpanded: false,
@@ -558,7 +563,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             metricsMode: preferences.metricsMode,
             colorizesDownloadSpeed: preferences.colorizesDownloadSpeed,
             usesMonochromeAppearance: preferences.usesMonochromeAppearance,
-            animatesNumberChanges: preferences.animatesNumberChanges,
+            animatesNumberChanges: preferences.rollsNumberChanges,
             localeOverride: preferences.localeOverride,
             isRestoringSession: isRestoringSession,
             simplification: cardSimplification
@@ -737,6 +742,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             }
         }
 
+        rowUpdateConductor.arrange(torrents.map(\.id))
         let sources = rowInputSources(pendingIDs: pendingIDs)
         for record in torrents {
             let inputs = sources.inputs(for: record)
@@ -753,7 +759,8 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             #endif
             let state = Self.makeRowState(inputs)
             if let model = torrentRowPresentationModelsByID[record.id] {
-                model.update(state: state)
+                // New numbers wait for the card's beat; see the conductor.
+                rowUpdateConductor.offer(state, to: model)
             } else {
                 torrentRowPresentationModelsByID[record.id] = TorrentRowPresentationModel(state: state)
             }
@@ -773,6 +780,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         if cardSimplification != automaticCardSimplification {
             cardSimplification = automaticCardSimplification
         }
+        rowUpdateConductor.setConducting(cardSimplification == .lightest)
     }
 
     private static func presentedProgress(for record: TorrentRecord) -> Double {
@@ -867,6 +875,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// Debug Settings shows whether the router opened a port.
     func enginePortMappingStatus() async -> EnginePortMappingStatus? {
         await engine.portMappingStatus()
+    }
+
+    /// Stopped downloads not finished yet, for the tracker probe in Debug.
+    var trackerProbeCandidates: [(id: UUID, name: String)] {
+        torrents
+            .filter { $0.status == .stopped && $0.progress < 1 }
+            .map { ($0.id, $0.displayName) }
+    }
+
+    func engineScrapeTrackers(id: UUID) async -> Bool {
+        await engine.scrapeTrackers(id: id)
+    }
+
+    func engineTrackerScrape(id: UUID) async -> EngineTrackerScrape? {
+        await engine.trackerScrape(id: id)
     }
     #endif
 

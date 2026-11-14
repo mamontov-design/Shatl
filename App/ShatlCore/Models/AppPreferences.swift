@@ -116,6 +116,9 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     /// A probe on every card that logs its height as it changes. It weighs
     /// on scrolling, so it has its own switch rather than riding on the log.
     var isCardLayoutDiagnosticsLoggingEnabled = false
+    /// Debug: a readout over the list with its scroll speed and the cards
+    /// that wait for their point in the second (`TorrentRowUpdateConductor`).
+    var showsListScrollReadout = false
     var defaultDownloadPath: String
     var defaultDownloadBookmarkData: Data?
     var alwaysStopAfterDownload: Bool
@@ -132,7 +135,8 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     /// preferences made since.
     var hasAppliedSpeedColorsDefault = true
     /// Digits roll into place when a number changes, in the cards and the
-    /// speed chips under the list. Off, they change at once.
+    /// speed chips under the list. Off, they change at once. Read it through
+    /// `rollsNumberChanges`: its switch is hidden for now.
     var animatesNumberChanges = true
     /// Statuses and the speed set in greys. See `setUsesMonochromeAppearance`.
     var usesMonochromeAppearance: Bool = false
@@ -159,6 +163,19 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
 }
 
 extension AppPreferences {
+    /// "Анимировать смену чисел" is kept in the code but hidden from
+    /// Settings for 1.0.6 (the owner, 2026-11-14). While it is hidden,
+    /// digits roll whatever was saved: whoever turned it off could not turn
+    /// it on again. Set to true to bring the switch back.
+    nonisolated static let showsNumberAnimationSetting = false
+
+    /// Whether digits roll, as the cards and the speed chips read it.
+    nonisolated var rollsNumberChanges: Bool {
+        Self.showsNumberAnimationSetting ? animatesNumberChanges : true
+    }
+}
+
+extension AppPreferences {
     private enum CodingKeys: String, CodingKey {
         case launchAtLogin
         case launchMinimized
@@ -168,6 +185,7 @@ extension AppPreferences {
         case isSnapshotDiagnosticsLoggingEnabled
         case isAddTorrentReviewDiagnosticsLoggingEnabled
         case isCardLayoutDiagnosticsLoggingEnabled
+        case showsListScrollReadout
         case defaultDownloadPath
         case defaultDownloadBookmarkData
         case alwaysStopAfterDownload
@@ -214,6 +232,10 @@ extension AppPreferences {
         isCardLayoutDiagnosticsLoggingEnabled = try container.decodeIfPresent(
             Bool.self,
             forKey: .isCardLayoutDiagnosticsLoggingEnabled
+        ) ?? false
+        showsListScrollReadout = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .showsListScrollReadout
         ) ?? false
         defaultDownloadPath = try container.decode(String.self, forKey: .defaultDownloadPath)
         defaultDownloadBookmarkData = try container.decodeIfPresent(Data.self, forKey: .defaultDownloadBookmarkData)

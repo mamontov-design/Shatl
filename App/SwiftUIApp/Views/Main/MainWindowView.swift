@@ -211,7 +211,7 @@ struct MainWindowView: View {
             TorrentTransferSummaryLayer(model: store.torrentTransferSummary)
                 .environment(
                     \.shatlRollsMetricDigits,
-                    store.preferences.animatesNumberChanges && store.cardSimplification < .lightest
+                    store.preferences.rollsNumberChanges && store.cardSimplification < .lightest
                 )
                 .opacity(displayedDropOffer == nil ? 1 : 0)
                 .animation(ShatlMotion.mainContentMode, value: displayedDropOffer)

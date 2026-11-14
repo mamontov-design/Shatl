@@ -104,6 +104,13 @@ static NSError *LTMakeErrorFromCode(ShatlLibtorrentErrorCode code, lt::error_cod
     return LTMakeError(code, message);
 }
 
+/// Connections one torrent may hold: 120 in Orbit, as many as the profile
+/// allows in Halo and Nova (-1). libtorrent has no session setting for it:
+/// each torrent gets it as it is added and again on a switch of profile.
+static int LTConnectionsPerTorrent(LTPerformanceProfile profile) {
+    return profile == LTPerformanceProfileBalanced ? 120 : -1;
+}
+
 /// UPnP and NAT-PMP follow the user's preference, not the profile: see
 /// `LTMakeSessionSettingsPack`.
 static void LTApplyNetworkDiscoverySettings(lt::settings_pack& pack, bool enableLSD) {
@@ -132,6 +139,9 @@ static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile prof
         pack.set_int(lt::settings_pack::aio_threads, 1);
         pack.set_int(lt::settings_pack::hashing_threads, 1);
         pack.set_int(lt::settings_pack::checking_mem_usage, 2);
+        // Set in every profile: a switch applies only what the new profile
+        // names, and Orbit's TCP-first stayed on in Halo and Nova.
+        pack.set_int(lt::settings_pack::mixed_mode_algorithm, lt::settings_pack::peer_proportional);
         LTApplyNetworkDiscoverySettings(pack, false);
         return pack;
     }
@@ -153,13 +163,19 @@ static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile prof
         pack.set_int(lt::settings_pack::hashing_threads, 8);
         pack.set_int(lt::settings_pack::checking_mem_usage, 512);
         pack.set_int(lt::settings_pack::unchoke_slots_limit, -1);
+        pack.set_int(lt::settings_pack::mixed_mode_algorithm, lt::settings_pack::peer_proportional);
         LTApplyNetworkDiscoverySettings(pack, true);
         return pack;
     }
     case LTPerformanceProfileBalanced:
     default: {
         lt::settings_pack pack = lt::default_settings();
-        pack.set_int(lt::settings_pack::connections_limit, 1000);
+        // Closer to qBittorrent (500 in all, 30 new a second; Transmission
+        // 240 and 18): with dozens of downloads 1 000 connections and 100 new
+        // ones a second kept the engine's network thread busy (the owner,
+        // 2026-11-13). Each torrent also takes at most
+        // `LTConnectionsPerTorrent`.
+        pack.set_int(lt::settings_pack::connections_limit, 500);
         pack.set_int(lt::settings_pack::max_peerlist_size, 3000);
         pack.set_int(lt::settings_pack::max_paused_peerlist_size, 1000);
         pack.set_int(lt::settings_pack::download_rate_limit, 0);
@@ -168,7 +184,13 @@ static lt::settings_pack LTMakePerformanceSettingsPack(LTPerformanceProfile prof
         pack.set_int(lt::settings_pack::send_buffer_watermark, 1024 * 1024);
         pack.set_int(lt::settings_pack::send_buffer_watermark_factor, 150);
         pack.set_int(lt::settings_pack::max_queued_disk_bytes, 16 * 1024 * 1024);
-        pack.set_int(lt::settings_pack::connection_speed, 100);
+        pack.set_int(lt::settings_pack::connection_speed, 50);
+        // TCP goes first, as in qBittorrent: uTP yields to it by itself.
+        // libtorrent's default holds TCP to its share so uTP is not starved,
+        // and more of the traffic then goes over uTP, whose packets the
+        // engine handles one by one; it took most of the engine's time with
+        // 26 downloads (2026-11-12).
+        pack.set_int(lt::settings_pack::mixed_mode_algorithm, lt::settings_pack::prefer_tcp);
         pack.set_int(lt::settings_pack::file_pool_size, 200);
         pack.set_int(lt::settings_pack::aio_threads, 8);
         pack.set_int(lt::settings_pack::hashing_threads, 4);
@@ -677,6 +699,63 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @end
 
+#if DEBUG
+@implementation LTTrackerScrapeAnswer
+
+- (instancetype)initWithTracker:(NSString *)tracker
+                   milliseconds:(double)milliseconds
+                          seeds:(NSInteger)seeds
+                       leechers:(NSInteger)leechers
+                   errorMessage:(NSString *)errorMessage {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _tracker = [tracker copy];
+    _milliseconds = milliseconds;
+    _seeds = seeds;
+    _leechers = leechers;
+    _errorMessage = [errorMessage copy];
+    return self;
+}
+
+@end
+
+@implementation LTTrackerScrape
+
+- (instancetype)initWithTrackerCount:(NSInteger)trackerCount
+                 elapsedMilliseconds:(double)elapsedMilliseconds
+                             answers:(NSArray<LTTrackerScrapeAnswer *> *)answers {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _trackerCount = trackerCount;
+    _elapsedMilliseconds = elapsedMilliseconds;
+    _answers = [answers copy];
+    return self;
+}
+
+@end
+
+/// A torrent's trackers asked for seeds and leechers, and their answers.
+struct LTTrackerScrapeProbe {
+    struct Answer {
+        std::string tracker;
+        double milliseconds = 0;
+        int seeds = -1;
+        int leechers = -1;
+        std::string error;
+    };
+
+    std::chrono::steady_clock::time_point startedAt;
+    int trackerCount = 0;
+    std::vector<Answer> answers;
+};
+#endif
+
 /// The soft open-file limit, capped like libtorrent's own `max_open_files()`.
 static int LTCurrentOpenFileLimit() {
     int const unlimited = 10000000;
@@ -744,12 +823,15 @@ static LTDescriptorBudget LTFitProfileIntoOpenFileLimit(lt::settings_pack const&
 /// Alert categories the session posts. Router answers are posted only while
 /// port forwarding is on; tracker replies, peer connections and listen sockets
 /// only while the log is on, so a quiet session queues no alerts nobody reads.
+/// A Debug build always takes tracker replies: its tracker probe reads the
+/// scrape answers from them, a handful an hour per torrent otherwise.
 static int LTSessionAlertMask(BOOL diagnostics, BOOL portForwarding) {
     lt::alert_category_t mask = lt::alert_category::error;
     if (portForwarding) {
         mask |= lt::alert_category::port_mapping;
     }
 #if DEBUG
+    mask |= lt::alert_category::tracker;
     if (diagnostics) {
         mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
     }
@@ -966,6 +1048,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     NSURL *_resumeDataDirectoryURL;
     std::unique_ptr<lt::session> _session;
     std::map<std::string, lt::torrent_handle> _handlesByRecordID;
+#if DEBUG
+    std::map<std::string, LTTrackerScrapeProbe> _trackerScrapesByRecordID;
+#endif
     std::unordered_map<std::string, LTMagnetMetadataFetch> _magnetMetadataFetchesByToken;
     // Metadata of prepared drafts, kept until Swift releases the draft after
     // closing Review or finishing the add. Each draft owns its entry, so a
@@ -1296,6 +1381,10 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
             _portForwardingEnabled,
             LT_DIAGNOSTIC_ALERTS_ENABLED
         ));
+        int const perTorrent = LTConnectionsPerTorrent(profile);
+        for (lt::torrent_handle const& handle : _session->get_torrents()) {
+            handle.set_max_connections(perTorrent);
+        }
     } catch (std::exception const& exception) {
         if (error != nullptr) {
             *error = LTMakeError(ShatlLibtorrentErrorCodeEngineFailure, LTToNSString(exception.what()));
@@ -1339,6 +1428,22 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
 - (BOOL)writesPayloadThroughWriteCalls {
     return _session != nullptr
         && _session->get_settings().get_int(lt::settings_pack::disk_write_mode) == lt::settings_pack::always_pwrite;
+}
+
+- (BOOL)prefersTCPOverUTP {
+    return _session != nullptr
+        && _session->get_settings().get_int(lt::settings_pack::mixed_mode_algorithm) == lt::settings_pack::prefer_tcp;
+}
+
+- (nullable NSNumber *)maxConnectionsForTorrentWithIdentifier:(NSString *)recordIdentifier {
+    auto iterator = _handlesByRecordID.find(LTToStdString(recordIdentifier));
+    if (iterator == _handlesByRecordID.end() || !iterator->second.is_valid()) {
+        return nil;
+    }
+    int const limit = iterator->second.max_connections();
+    // libtorrent keeps the limit in 24 bits and reads "as many as allowed"
+    // back as their largest value.
+    return @(limit < 0 || limit >= (1 << 24) - 1 ? -1 : limit);
 }
 
 - (BOOL)applyPortForwarding:(BOOL)enabled error:(NSError * _Nullable __autoreleasing *)error {
@@ -1522,6 +1627,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     params.flags |= lt::torrent_flags::upload_mode;
     params.flags |= lt::torrent_flags::duplicate_is_error;
     params.flags |= lt::torrent_flags::default_dont_download;
+    params.max_connections = LTConnectionsPerTorrent(self->_performanceProfile);
 
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
@@ -1827,6 +1933,7 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
         }
     }
 
+    params.max_connections = LTConnectionsPerTorrent(self->_performanceProfile);
     lt::error_code ec;
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
@@ -2064,6 +2171,8 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
             isSelected ? lt::default_priority : lt::dont_download;
     }
 
+    // Resume data brings the limit it was saved with; the profile's holds.
+    params.max_connections = LTConnectionsPerTorrent(self->_performanceProfile);
     [self supersedeMagnetMetadataFetchesForInfoHashes:torrentInfo->info_hashes()];
     lt::torrent_handle handle = self->_session->add_torrent(params, ec);
     if (ec || !handle.is_valid()) {
@@ -2409,9 +2518,105 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     [self noteFileErrorAlerts:alerts];
     [self notePortMappingAlerts:alerts];
 #if DEBUG
+    [self noteTrackerScrapeAlerts:alerts];
     [self logDiagnosticAlerts:alerts];
 #endif
 }
+
+#if DEBUG
+- (BOOL)scrapeTrackersForTorrentWithIdentifier:(NSString *)recordIdentifier {
+    auto iterator = _handlesByRecordID.find(LTToStdString(recordIdentifier));
+    if (_session == nullptr || iterator == _handlesByRecordID.end() || !iterator->second.is_valid()) {
+        return NO;
+    }
+    std::vector<lt::announce_entry> const trackers = iterator->second.trackers();
+    LTTrackerScrapeProbe probe;
+    probe.startedAt = std::chrono::steady_clock::now();
+    probe.trackerCount = static_cast<int>(trackers.size());
+    _trackerScrapesByRecordID[iterator->first] = probe;
+    for (int index = 0; index < static_cast<int>(trackers.size()); ++index) {
+        iterator->second.scrape_tracker(index);
+    }
+    return YES;
+}
+
+- (nullable LTTrackerScrape *)trackerScrapeForTorrentWithIdentifier:(NSString *)recordIdentifier {
+    if (_session != nullptr) {
+        std::vector<lt::alert *> alerts;
+        _session->pop_alerts(&alerts);
+        [self noteAlerts:alerts];
+    }
+    auto found = _trackerScrapesByRecordID.find(LTToStdString(recordIdentifier));
+    if (found == _trackerScrapesByRecordID.end()) {
+        return nil;
+    }
+    NSMutableArray<LTTrackerScrapeAnswer *> *answers = [NSMutableArray array];
+    for (auto const& answer : found->second.answers) {
+        [answers addObject:[[LTTrackerScrapeAnswer alloc]
+            initWithTracker:LTToNSString(answer.tracker)
+               milliseconds:answer.milliseconds
+                      seeds:answer.seeds
+                   leechers:answer.leechers
+               errorMessage:answer.error.empty() ? nil : LTToNSString(answer.error)]];
+    }
+    auto const elapsed = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - found->second.startedAt
+    ).count();
+    return [[LTTrackerScrape alloc] initWithTrackerCount:found->second.trackerCount
+                                     elapsedMilliseconds:elapsed
+                                                 answers:answers];
+}
+
+/// One answer per tracker: libtorrent may answer once per listen socket, and
+/// a success counts over a failure.
+- (void)noteTrackerScrapeAlerts:(std::vector<lt::alert *> const&)alerts {
+    if (_trackerScrapesByRecordID.empty()) {
+        return;
+    }
+    for (lt::alert *alert : alerts) {
+        auto *reply = lt::alert_cast<lt::scrape_reply_alert>(alert);
+        auto *failure = reply == nullptr ? lt::alert_cast<lt::scrape_failed_alert>(alert) : nullptr;
+        if (reply == nullptr && failure == nullptr) {
+            continue;
+        }
+        lt::torrent_handle const& handle = reply != nullptr ? reply->handle : failure->handle;
+        for (auto const& entry : _handlesByRecordID) {
+            if (entry.second != handle) {
+                continue;
+            }
+            auto probe = _trackerScrapesByRecordID.find(entry.first);
+            if (probe == _trackerScrapesByRecordID.end()) {
+                break;
+            }
+            LTTrackerScrapeProbe::Answer answer;
+            answer.tracker = LTToStdString(LTRedactedTrackerURL(reply != nullptr ? reply->tracker_url() : failure->tracker_url()));
+            answer.milliseconds = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - probe->second.startedAt
+            ).count();
+            if (reply != nullptr) {
+                answer.seeds = reply->complete;
+                answer.leechers = reply->incomplete;
+            } else {
+                std::string const message = failure->error_message();
+                answer.error = message.empty() ? failure->error.message() : message;
+                if (answer.error.empty()) {
+                    answer.error = "failed";
+                }
+            }
+            auto& answers = probe->second.answers;
+            auto same = std::find_if(answers.begin(), answers.end(), [&](auto const& known) {
+                return known.tracker == answer.tracker;
+            });
+            if (same == answers.end()) {
+                answers.push_back(answer);
+            } else if (!same->error.empty() && answer.error.empty()) {
+                *same = answer;
+            }
+            break;
+        }
+    }
+}
+#endif
 
 /// Keeps the last file error of each download: the status keeps no error
 /// when the disk refuses a write, and the alert alone says why.

@@ -445,6 +445,16 @@
 "settings.debug.logging.snapshot_diagnostics" = "Snapshot update diagnostics";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Add Torrent window diagnostics";
 "settings.debug.logging.card_layout_diagnostics" = "Card layout diagnostics";
+"settings.debug.list_scroll_readout" = "Show list scroll speed";
+"settings.debug.tracker_probe.section" = "Tracker probe";
+"settings.debug.tracker_probe.caption" = "Stopped downloads ask their trackers how many seeds and leechers the torrent has. Nothing is downloaded.";
+"settings.debug.tracker_probe.button" = "Ask Trackers";
+"settings.debug.tracker_probe.empty" = "No stopped downloads.";
+"settings.debug.tracker_probe.more" = "More downloads: %@";
+"settings.debug.tracker_probe.waiting" = "Waiting for the trackers…";
+"settings.debug.tracker_probe.no_trackers" = "This download has no trackers.";
+"settings.debug.tracker_probe.answer" = "Seeds: %1$@, leechers: %2$@. First answer in %3$@ ms, %4$@ of %5$@ answered.";
+"settings.debug.tracker_probe.failed" = "No answer: %1$@ of %2$@ failed. %3$@";
 "settings.debug.performance.budget" = "Debug: open file limit is %1$@ (macOS gave %2$@). Up to %3$@ connections and %4$@ files. Open in total, including service connections: %5$@.";
 "settings.debug.performance.budget_reduced" = "Debug: open file limit is %1$@, macOS allowed no more (it gave %2$@). Up to %3$@ connections instead of %4$@ and %5$@ files instead of %6$@. Open in total, including service connections: %7$@.";
 "settings.debug.performance.engine_not_started" = "Debug: the engine has not started yet.";

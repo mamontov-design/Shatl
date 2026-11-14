@@ -461,6 +461,16 @@
 "settings.debug.logging.snapshot_diagnostics" = "Диагностика snapshot‑обновлений";
 "settings.debug.logging.add_torrent_review_diagnostics" = "Диагностика окна добавления торрента";
 "settings.debug.logging.card_layout_diagnostics" = "Диагностика раскладки карточек";
+"settings.debug.list_scroll_readout" = "Показывать скорость прокрутки списка";
+"settings.debug.tracker_probe.section" = "Опрос трекеров";
+"settings.debug.tracker_probe.caption" = "Остановленные загрузки спрашивают у трекеров, сколько у раздачи сидов и личеров. Ничего не скачивается.";
+"settings.debug.tracker_probe.button" = "Опросить трекеры";
+"settings.debug.tracker_probe.empty" = "Остановленных загрузок нет.";
+"settings.debug.tracker_probe.more" = "И ещё загрузок: %@";
+"settings.debug.tracker_probe.waiting" = "Ждём ответа трекеров…";
+"settings.debug.tracker_probe.no_trackers" = "У загрузки нет трекеров.";
+"settings.debug.tracker_probe.answer" = "Сидов: %1$@, личеров: %2$@. Первый ответ — %3$@ мс, ответили %4$@ из %5$@.";
+"settings.debug.tracker_probe.failed" = "Ответа нет: %1$@ из %2$@ с ошибкой. %3$@";
 "settings.debug.performance.budget" = "Отладка: лимит открытых файлов — %1$@ (macOS выдала %2$@). Соединений до %3$@, файлов до %4$@. Всего открыто, включая служебные соединения: %5$@.";
 "settings.debug.performance.budget_reduced" = "Отладка: лимит открытых файлов — %1$@, выше macOS не дала (выдала %2$@). Соединений до %3$@ вместо %4$@, файлов до %5$@ вместо %6$@. Всего открыто, включая служебные соединения: %7$@.";
 "settings.debug.performance.engine_not_started" = "Отладка: движок ещё не запущен.";

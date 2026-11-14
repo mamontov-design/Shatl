@@ -437,6 +437,16 @@
 "settings.debug.logging.snapshot_diagnostics" = "快照更新诊断";
 "settings.debug.logging.add_torrent_review_diagnostics" = "添加种子窗口诊断";
 "settings.debug.logging.card_layout_diagnostics" = "卡片布局诊断";
+"settings.debug.list_scroll_readout" = "显示列表滚动速度";
+"settings.debug.tracker_probe.section" = "查询 Tracker";
+"settings.debug.tracker_probe.caption" = "已停止的下载会向其 Tracker 查询该种子的做种者和下载者数量，不会下载任何内容。";
+"settings.debug.tracker_probe.button" = "查询 Tracker";
+"settings.debug.tracker_probe.empty" = "没有已停止的下载。";
+"settings.debug.tracker_probe.more" = "更多下载：%@";
+"settings.debug.tracker_probe.waiting" = "正在等待 Tracker 响应…";
+"settings.debug.tracker_probe.no_trackers" = "此下载没有 Tracker。";
+"settings.debug.tracker_probe.answer" = "做种者：%1$@，下载者：%2$@。首个响应用时 %3$@ 毫秒，%5$@ 个中有 %4$@ 个响应。";
+"settings.debug.tracker_probe.failed" = "无响应：%2$@ 个中有 %1$@ 个出错。%3$@";
 "settings.debug.performance.budget" = "调试：打开文件上限为 %1$@（macOS 初始值：%2$@）。最多 %3$@ 个连接和 %4$@ 个文件。合计已打开（含服务连接）：%5$@。";
 "settings.debug.performance.budget_reduced" = "调试：打开文件上限为 %1$@，macOS 不允许更高（初始值：%2$@）。最多 %3$@ 个连接（而非 %4$@）和 %5$@ 个文件（而非 %6$@）。合计已打开（含服务连接）：%7$@。";
 "settings.debug.performance.engine_not_started" = "调试：引擎尚未启动。";

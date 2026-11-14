@@ -74,7 +74,7 @@ final class LibtorrentEngineOpenFileLimitTests: XCTestCase {
     }
 
     /// libtorrent caps connections to the limit only when the session is
-    /// created; a profile switch used to lift the cap to 1000 or 5000.
+    /// created; a profile switch used to lift the cap to 500 or 5000.
     func testSessionStaysWithinTheLimitAcrossProfileSwitches() throws {
         try setSoftOpenFileLimit(256)
         let bridge = makeBridge()
@@ -112,10 +112,10 @@ final class LibtorrentEngineOpenFileLimitTests: XCTestCase {
         try bridge.boot()
 
         let expected: [(LTPerformanceProfile, connections: Int, filePool: Int)] = [
-            (.balanced, 1_000, 200),
+            (.balanced, 500, 200),
             (.maximum, 5_000, 400),
             (.economical, 24, 4),
-            (.balanced, 1_000, 200),
+            (.balanced, 500, 200),
         ]
         for (index, (profile, connections, filePool)) in expected.enumerated() {
             if index > 0 {

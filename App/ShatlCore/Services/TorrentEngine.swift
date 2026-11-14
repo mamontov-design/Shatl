@@ -151,6 +151,13 @@ nonisolated protocol TorrentEngine: Sendable {
     func restartPortMappingCheck() async
     /// Stops the engine before the app exits; it accepts no commands afterwards.
     func shutdown() async
+    #if DEBUG
+    /// Asks every tracker of the download for its seeds and leechers; false
+    /// for a download the engine does not hold. See `EngineTrackerScrape`.
+    func scrapeTrackers(id: UUID) async -> Bool
+    /// What the trackers answered since `scrapeTrackers`.
+    func trackerScrape(id: UUID) async -> EngineTrackerScrape?
+    #endif
 }
 
 extension TorrentEngine {
@@ -158,4 +165,39 @@ extension TorrentEngine {
     nonisolated func portMappingStatus() async -> EnginePortMappingStatus? { nil }
     nonisolated func restartPortMappingCheck() async {}
     nonisolated func shutdown() async {}
+    #if DEBUG
+    nonisolated func scrapeTrackers(id: UUID) async -> Bool { false }
+    nonisolated func trackerScrape(id: UUID) async -> EngineTrackerScrape? { nil }
+    #endif
 }
+
+#if DEBUG
+/// What a download's trackers answered when asked how many seeds and
+/// leechers it has, without it downloading anything. Debug only: the first
+/// step of a queue that would rank downloads by their swarms, tried on the
+/// owner's real trackers (2026-11-13).
+nonisolated struct EngineTrackerScrape: Equatable, Sendable {
+    nonisolated struct Answer: Equatable, Sendable {
+        /// Scheme and host only.
+        var tracker: String
+        var milliseconds: Int
+        /// `nil` when the tracker failed.
+        var seeds: Int?
+        var leechers: Int?
+        var errorMessage: String?
+    }
+
+    var trackerCount: Int
+    var elapsedMilliseconds: Int
+    var answers: [Answer]
+
+    /// The answers with numbers, the most seeds first.
+    var replies: [Answer] {
+        answers.filter { $0.seeds != nil }.sorted { ($0.seeds ?? 0) > ($1.seeds ?? 0) }
+    }
+
+    var firstReplyMilliseconds: Int? {
+        answers.filter { $0.seeds != nil }.map(\.milliseconds).min()
+    }
+}
+#endif

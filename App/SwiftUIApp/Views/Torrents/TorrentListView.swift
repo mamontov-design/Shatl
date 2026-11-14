@@ -16,6 +16,9 @@ struct TorrentListView: View {
     @FocusState private var isListFocused: Bool
     /// Moves the list with a card and after cards that leave; see the type.
     @State private var scrollDriver = TorrentListScrollDriver()
+    /// Tells the store's conductor when the list moves too fast to read;
+    /// see `TorrentRowUpdateConductor`.
+    @State private var scrollSpeedometer = TorrentListScrollSpeedometer()
     /// Counts the expansions, each of which the list follows.
     @State private var expansionCount = 0
     /// Room added under the content while it shrinks: cards leave, or the
@@ -170,13 +173,14 @@ struct TorrentListView: View {
                 // At the content's top left corner: the scroll driver reads
                 // where the content lies in the scroll view from it.
                 .background(alignment: .topLeading) {
-                    TorrentListScrollAnchor(driver: scrollDriver)
+                    TorrentListScrollAnchor(driver: scrollDriver, speedometer: scrollSpeedometer)
                         .frame(width: 0, height: 0)
                         .accessibilityHidden(true)
                 }
                 .coordinateSpace(.named(Self.contentSpace))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .modifier(TorrentListScrollPaceReporting(speedometer: scrollSpeedometer))
             // The keyboard works on the list as the toolbar does on the
             // selected cards: ⌘A selects all, Esc none; Space starts or
             // stops, Delete offers to remove. The search field keeps its own
@@ -408,3 +412,89 @@ private struct TorrentRowPresentationObserver<Content: View>: View {
         content(model.state)
     }
 }
+
+/// Tells the store's conductor when the list moves too fast to read, and
+/// in Debug shows the readout over the list.
+private struct TorrentListScrollPaceReporting: ViewModifier {
+    @EnvironmentObject private var store: AppStore
+    let speedometer: TorrentListScrollSpeedometer
+    #if DEBUG
+    @State private var readout = TorrentListScrollReadout()
+    #endif
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear(perform: reportToTheConductor)
+            #if DEBUG
+            .overlay(alignment: .topTrailing) {
+                if store.preferences.showsListScrollReadout {
+                    TorrentListScrollReadoutView(readout: readout)
+                        .padding(8)
+                        .allowsHitTesting(false)
+                }
+            }
+            .onChange(of: store.preferences.showsListScrollReadout, initial: true) { _, isShown in
+                showReadout(isShown)
+            }
+            #endif
+    }
+
+    private func reportToTheConductor() {
+        let conductor = store.rowUpdateConductor
+        speedometer.onFastChange = { isFast in
+            conductor.setListMovesFast(isFast)
+        }
+    }
+
+    #if DEBUG
+    private func showReadout(_ isShown: Bool) {
+        let conductor = store.rowUpdateConductor
+        guard isShown else {
+            speedometer.readout = nil
+            conductor.onWaitingCountChange = nil
+            return
+        }
+        let readout = readout
+        speedometer.readout = readout
+        readout.waitingCount = conductor.waitingCount
+        conductor.onWaitingCountChange = { count in
+            readout.waitingCount = count
+        }
+    }
+    #endif
+}
+
+#if DEBUG
+/// The Debug readout over the list: its scroll speed in points a second, a
+/// snowflake while the cards start no new changes, and an hourglass with
+/// the cards that wait for their point in the second.
+private struct TorrentListScrollReadoutView: View {
+    let readout: TorrentListScrollReadout
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Label {
+                Text(verbatim: "\(readout.speed)")
+            } icon: {
+                Image(systemName: "gauge.with.dots.needle.67percent")
+            }
+            if readout.isFast {
+                Image(systemName: "snowflake")
+            }
+            Label {
+                Text(verbatim: "\(readout.waitingCount)")
+            } icon: {
+                Image(systemName: "hourglass")
+            }
+        }
+        .labelStyle(.titleAndIcon)
+        .shatlTypography(ShatlTypography.metricSemibold)
+        .monospacedDigit()
+        .foregroundStyle(ShatlColor.typographyPrimary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(ShatlColor.backgroundSecondary, in: Capsule())
+        .accessibilityHidden(true)
+    }
+}
+#endif
