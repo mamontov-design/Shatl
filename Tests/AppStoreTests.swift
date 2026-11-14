@@ -199,7 +199,9 @@ final class AppStoreTests: XCTestCase {
 
         XCTAssertTrue(didPersistTorrentWhileCardIsPending)
         XCTAssertTrue(bundle.store.torrents.isEmpty)
-        XCTAssertTrue(try XCTUnwrap(bundle.store.rowState(for: pendingID)).isPendingAddition)
+        let pendingRow = try XCTUnwrap(bundle.store.rowState(for: pendingID))
+        XCTAssertTrue(pendingRow.isPendingAddition)
+        XCTAssertFalse(pendingRow.skipsAddingToDownloadingTextTransition)
         XCTAssertNil(bundle.store.selectedTorrentID)
 
         let didAddTorrent = await waitForCondition {

@@ -234,11 +234,18 @@ final class AddTorrentQueueTests: XCTestCase {
         XCTAssertNil(bundle.store.currentAddTorrentDraft)
         XCTAssertNil(bundle.store.presentedModal)
 
+        let pendingRows = bundle.store.torrentRowIDs.compactMap { bundle.store.rowState(for: $0) }
+        XCTAssertEqual(pendingRows.count, 3)
+        XCTAssertTrue(pendingRows.allSatisfy(\.skipsAddingToDownloadingTextTransition))
+
         let didAddAll = await waitForCondition(timeoutNanoseconds: 3_000_000_000) {
             bundle.store.torrents.count == 3
         }
         XCTAssertTrue(didAddAll, "Every download kept its prepared metadata until it was added")
         XCTAssertEqual(Set(bundle.store.torrents.map(\.originalName)), ["Alpha", "Bravo", "Charlie"])
+        for row in pendingRows {
+            XCTAssertFalse(try XCTUnwrap(bundle.store.rowState(for: row.id)).skipsAddingToDownloadingTextTransition)
+        }
     }
 
     func testDownloadingTheLastInLineShowsTheOneBefore() async throws {

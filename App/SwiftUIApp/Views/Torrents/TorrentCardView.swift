@@ -738,7 +738,11 @@ struct TorrentCardView: View, Equatable {
         Text(row.statusTitle)
             .shatlTypography(ShatlTypography.metricSemibold)
             .foregroundStyle(ShatlColor.typographyPrimary)
-            .id(statusPresentationKey)
+            // In a batch, keep the pending label in place when downloading
+            // starts. The badge still uses its own presentation key.
+            .id(row.skipsAddingToDownloadingTextTransition && row.isPendingAddition
+                ? TorrentStatus.downloading.rawValue
+                : statusPresentationKey)
     }
 
     /// Days later "Сохранена" may puzzle: the "i" says why the download is

@@ -216,6 +216,58 @@ final class TorrentMultiSelectionStoreTests: XCTestCase {
         XCTAssertEqual(snapshot?.torrents.map(\.torrentID), [ids[2]])
     }
 
+    func testBatchLeavesTheListBeforeEngineCleanupFinishes() async throws {
+        let records = (0..<3).map { _ in makeTestRecord(status: .stopped) }
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let bundle = makeTestStoreBundle(engine: engine, torrents: records, sessionWriteData: writer.write)
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: records)
+        let writesBeforeRemoval = writer.writeCount
+        await engine.setRemoveDelay(nanoseconds: 1_000_000_000)
+
+        let ids = records.map(\.id)
+        bundle.store.selectAllTorrents(visibleTorrentIDs: ids)
+        let removal = Task {
+            await bundle.store.removeTorrents(ids: ids, policy: .removeFromListOnly)
+        }
+
+        let didStartCleanup = await waitForAsyncCondition {
+            await !engine.recordedRemoveCalls().isEmpty
+        }
+        XCTAssertTrue(didStartCleanup)
+        XCTAssertTrue(bundle.store.torrents.isEmpty)
+        XCTAssertEqual(bundle.store.selectedTorrentCount, 0)
+        let snapshot = await bundle.sessionStore.load().snapshot
+        XCTAssertEqual(snapshot?.torrents.count, 0)
+
+        await engine.setRemoveDelay(nanoseconds: 0)
+        await removal.value
+        XCTAssertEqual(writer.writeCount, writesBeforeRemoval + 1)
+    }
+
+    func testFailedBatchSaveKeepsTheListAndSkipsCleanup() async {
+        let records = (0..<2).map { _ in makeTestRecord(status: .stopped) }
+        let engine = FakeTorrentEngine()
+        let writer = ControllableSessionDataWriter()
+        let bundle = makeTestStoreBundle(engine: engine, torrents: records, sessionWriteData: writer.write)
+        defer { try? FileManager.default.removeItem(at: bundle.rootURL) }
+        await bundle.sessionStore.replaceAllRecordsForTesting(from: records)
+        writer.failNextWrite()
+        let ids = records.map(\.id)
+        bundle.store.selectAllTorrents(visibleTorrentIDs: ids)
+
+        await bundle.store.removeTorrents(ids: ids, policy: .removeFromListAndDeleteFiles)
+
+        XCTAssertEqual(bundle.store.torrents.map(\.id), ids)
+        XCTAssertEqual(bundle.store.selectedTorrentCount, ids.count)
+        XCTAssertTrue(bundle.store.transitioningTorrentIDs.isEmpty)
+        let cleanupCalls = await engine.recordedRemoveCalls()
+        XCTAssertTrue(cleanupCalls.isEmpty)
+        let snapshot = await bundle.sessionStore.load().snapshot
+        XCTAssertEqual(snapshot?.torrents.map(\.torrentID), ids)
+    }
+
     /// Unsafe or partial deletion stays visible: one message for all the
     /// downloads, and Finder can show what each of them left.
     func testFilesLeftBySeveralDownloadsAreReportedOnce() async throws {

@@ -69,8 +69,11 @@ nonisolated struct TorrentListSelection: Equatable, Sendable {
 
     /// A card that left the list leaves the selection.
     mutating func remove(_ id: UUID) {
-        guard ids.contains(id) else { return }
-        drop([id])
+        remove([id])
+    }
+
+    mutating func remove(_ removedIDs: Set<UUID>) {
+        drop(ids.intersection(removedIDs))
     }
 
     /// Answers a click. `false` when the card refuses and should say so: it

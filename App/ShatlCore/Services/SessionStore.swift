@@ -275,16 +275,22 @@ actor SessionStore {
 
     @discardableResult
     func commitRemoval(torrentID: UUID) -> SessionSaveOutcome {
+        commitRemoval(torrentIDs: [torrentID])
+    }
+
+    @discardableResult
+    func commitRemoval(torrentIDs: Set<UUID>) -> SessionSaveOutcome {
         guard persistenceState == .writable else { return .blocked }
-        guard canonicalTorrentRecords.contains(where: { $0.torrentID == torrentID }) else {
+        let nextRecords = canonicalTorrentRecords.filter { !torrentIDs.contains($0.torrentID) }
+        guard !torrentIDs.isEmpty,
+              canonicalTorrentRecords.count - nextRecords.count == torrentIDs.count else {
             return .failed
         }
 
-        removalArtifactReservations.insert(torrentID)
-        let nextRecords = canonicalTorrentRecords.filter { $0.torrentID != torrentID }
+        removalArtifactReservations.formUnion(torrentIDs)
         let outcome = persistCandidate(nextRecords)
         if outcome != .saved {
-            removalArtifactReservations.remove(torrentID)
+            removalArtifactReservations.subtract(torrentIDs)
         }
         return outcome
     }

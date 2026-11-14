@@ -37,6 +37,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         let draft: AddTorrentDraft
         let shortDisplayName: String
         let presentationStartedAt: ContinuousClock.Instant
+        let skipsAddingToDownloadingTextTransition: Bool
         /// Goes to the list stopped and past the engine: see `saveDraftToList`.
         var savesToList = false
         /// Saved by choice, not for lack of room; see `saveDraftToList`.
@@ -249,6 +250,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     /// Downloads the engine stopped, told once per stop.
     private var notifiedStoppedTorrentIDs: Set<UUID> = []
     private var unreadStoppedTorrentIDs: Set<UUID> = []
+    private var removingTorrentHashesByID: [UUID: String] = [:]
     private var suppressesTorrentChangePublication = false
     private var torrentRowPresentationModelsByID: [UUID: TorrentRowPresentationModel] = [:]
     /// What each record card was last built from. The 1 Hz tick rebuilds only
@@ -509,6 +511,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             navigationAvailabilityKey: "pending-addition|\(addition.id.uuidString)",
             localeOverride: preferences.localeOverride,
             isPendingAddition: true,
+            skipsAddingToDownloadingTextTransition: addition.skipsAddingToDownloadingTextTransition,
             canExpand: false
         )
         #if DEBUG
@@ -1922,41 +1925,6 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
     }
 
-    /// Removes several downloads one after another, each the way a single
-    /// one is removed: its list entry first, then its files if asked. Files
-    /// that stayed behind are reported once, for all of them.
-    func removeTorrents(ids: [UUID], policy: TorrentRemovalPolicy) async {
-        guard ids.count > 1 else {
-            if let id = ids.first {
-                await removeTorrent(id: id, policy: policy)
-            }
-            return
-        }
-
-        var alerts: [PayloadDeletionAlert] = []
-        for id in ids where !transitioningTorrentIDs.contains(id) {
-            payloadDeletionAlert = nil
-            await removeTorrent(id: id, policy: policy)
-            if let alert = payloadDeletionAlert {
-                alerts.append(alert)
-            }
-            // The list could not be saved: the rest would fail the same way.
-            guard torrentRecord(for: id) == nil else { break }
-        }
-
-        guard alerts.count > 1 else {
-            payloadDeletionAlert = alerts.first
-            return
-        }
-        let revealURLs = alerts.flatMap { [$0.revealURL].compactMap { $0 } + $0.additionalRevealURLs }
-        payloadDeletionAlert = PayloadDeletionAlert(
-            title: L10n.string("payload_deletion.several.title", localeOverride: preferences.localeOverride),
-            message: L10n.string("payload_deletion.several.message", localeOverride: preferences.localeOverride),
-            revealURL: revealURLs.first,
-            additionalRevealURLs: Array(revealURLs.dropFirst())
-        )
-    }
-
     /// Where the files of the selected downloads are, for "Show in Finder".
     /// Downloads with nothing on disk yet are left out.
     func selectedTorrentRevealURLs() async -> [URL] {
@@ -2194,44 +2162,81 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     func removeTorrent(id: UUID, policy: TorrentRemovalPolicy = .removeFromListOnly) async {
-        guard let record = torrents.first(where: { $0.id == id }),
-              !transitioningTorrentIDs.contains(id) else {
-            return
+        await removeTorrents(ids: [id], policy: policy)
+    }
+
+    func removeTorrents(ids: [UUID], policy: TorrentRemovalPolicy) async {
+        var removalIDs: Set<UUID> = []
+        let removals = ids.compactMap { id -> (record: TorrentRecord, policy: TorrentRemovalPolicy)? in
+            guard let record = torrentRecord(for: id),
+                  !transitioningTorrentIDs.contains(id),
+                  removalIDs.insert(id).inserted else { return nil }
+            // A saved download wrote nothing and does not own files at its paths.
+            let resolvedPolicy = record.errorState == nil && !record.isSavedForLater
+                ? policy : .removeFromListOnly
+            return (record, resolvedPolicy)
         }
-        // A saved download leaves the list only, even among several removed
-        // with their files: it wrote nothing, and files at its paths are not
-        // its own.
-        let resolvedPolicy: TorrentRemovalPolicy = record.errorState == nil && !record.isSavedForLater
-            ? policy
-            : .removeFromListOnly
+        guard !removals.isEmpty else { return }
 
-        transitioningTorrentIDs.insert(id)
-        defer { transitioningTorrentIDs.remove(id) }
+        transitioningTorrentIDs.formUnion(removalIDs)
+        defer { transitioningTorrentIDs.subtract(removalIDs) }
 
-        let sessionSaveOutcome = await sessionStore.commitRemoval(torrentID: id)
+        let sessionSaveOutcome = await sessionStore.commitRemoval(torrentIDs: removalIDs)
         recordSessionSaveOutcome(sessionSaveOutcome)
         guard sessionSaveOutcome == .saved else {
             Self.logger.error(
-                "Remove blocked because the session could not be committed for torrent id=\(id.uuidString) outcome=\(String(describing: sessionSaveOutcome))"
+                "Remove blocked for \(removals.count) torrents because the session could not be committed: \(String(describing: sessionSaveOutcome))"
             )
             reportSessionPersistenceFailure(
-                resolvedPolicy == .removeFromListAndDeleteFiles ? .removeWithFiles : .removeFromList
+                removals.contains { $0.policy == .removeFromListAndDeleteFiles } ? .removeWithFiles : .removeFromList
             )
             return
         }
 
-        detachedTorrentIDs.remove(id)
-        clearUnreadUserEvents(for: id)
+        // Keep the hashes reserved until cleanup finishes, so an add cannot
+        // start using the same torrent's files while they are being removed.
+        for (record, _) in removals {
+            removingTorrentHashesByID[record.id] = record.infoHash
+            lastPersistedProgressBucketByID[record.id] = nil
+        }
+        detachedTorrentIDs.subtract(removalIDs)
+        clearUnreadUserEvents(for: removalIDs)
 
-        // Remove the torrent from durable state first so it cannot return after relaunch.
-        torrents.removeAll { $0.id == id }
-        lastPersistedProgressBucketByID[id] = nil
-        selection.remove(id)
-        if expandedTorrentID == id {
-            expandedTorrentID = nil
+        // Publish membership once, before any engine or filesystem work.
+        torrents.removeAll { removalIDs.contains($0.id) }
+        selection.remove(removalIDs)
+        if let expandedTorrentID, removalIDs.contains(expandedTorrentID) {
+            self.expandedTorrentID = nil
         }
         refreshSelectedTorrentNavigationAvailability()
 
+        var alerts: [PayloadDeletionAlert] = []
+        for (record, resolvedPolicy) in removals {
+            if let alert = await finishTorrentRemoval(record, policy: resolvedPolicy) {
+                alerts.append(alert)
+            }
+            removingTorrentHashesByID[record.id] = nil
+        }
+
+        if alerts.count > 1 {
+            let revealURLs = alerts.flatMap { [$0.revealURL].compactMap { $0 } + $0.additionalRevealURLs }
+            payloadDeletionAlert = PayloadDeletionAlert(
+                title: L10n.string("payload_deletion.several.title", localeOverride: preferences.localeOverride),
+                message: L10n.string("payload_deletion.several.message", localeOverride: preferences.localeOverride),
+                revealURL: revealURLs.first,
+                additionalRevealURLs: Array(revealURLs.dropFirst())
+            )
+        } else if let alert = alerts.first {
+            payloadDeletionAlert = alert
+        }
+    }
+
+    private func finishTorrentRemoval(
+        _ record: TorrentRecord,
+        policy resolvedPolicy: TorrentRemovalPolicy
+    ) async -> PayloadDeletionAlert? {
+        let id = record.id
+        var alert: PayloadDeletionAlert?
         var canDeletePayload = false
         do {
             try await engine.removeTorrent(id: id)
@@ -2254,7 +2259,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         }
 
         if resolvedPolicy == .removeFromListAndDeleteFiles, !canDeletePayload {
-            payloadDeletionAlert = PayloadDeletionAlert(
+            alert = PayloadDeletionAlert(
                 title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
                 message: L10n.string("payload_deletion.engine_stop_failed.message", localeOverride: preferences.localeOverride),
                 revealURL: await payloadRevealURL(for: record)
@@ -2270,7 +2275,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 let failedItemCount = deletionResult.failedManagedFileCount
                     + deletionResult.unsafeManagedFileCount
                 if failedItemCount > 0 {
-                    payloadDeletionAlert = PayloadDeletionAlert(
+                    alert = PayloadDeletionAlert(
                         title: L10n.format(
                             L10n.pluralKey(
                                 "payload_deletion.partial_failure.title",
@@ -2286,7 +2291,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                     )
                 } else if deletionResult.failedDirectoryCleanupCount > 0
                             || deletionResult.unsafeCleanupItemCount > 0 {
-                    payloadDeletionAlert = PayloadDeletionAlert(
+                    alert = PayloadDeletionAlert(
                         title: L10n.string("payload_deletion.cleanup_failure.title", localeOverride: preferences.localeOverride),
                         message: L10n.string("payload_deletion.cleanup_failure.message", localeOverride: preferences.localeOverride),
                         revealURL: await payloadRevealURL(for: record)
@@ -2296,7 +2301,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                 Self.logger.notice(
                     "Payload deletion refused for torrent id=\(id.uuidString) unsafeIssueCount=\(failure.issues.count)"
                 )
-                payloadDeletionAlert = PayloadDeletionAlert(
+                alert = PayloadDeletionAlert(
                     title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
                     message: L10n.string("payload_deletion.safety_refused.message", localeOverride: preferences.localeOverride),
                     revealURL: await payloadRevealURL(for: record)
@@ -2319,7 +2324,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
                         "archivePath": failure.archivePath
                     ]
                 )
-                payloadDeletionAlert = PayloadDeletionAlert(
+                alert = PayloadDeletionAlert(
                     title: L10n.string("payload_deletion.files_not_deleted.title", localeOverride: preferences.localeOverride),
                     message: L10n.string("payload_deletion.unresolved.message", localeOverride: preferences.localeOverride),
                     revealURL: await payloadRevealURL(for: record)
@@ -2329,6 +2334,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
 
         await diskIssueDetector.forgetTrackedFiles(for: id)
         await sessionStore.finalizeRemovalArtifacts(torrentID: id)
+        return alert
     }
 
     func redownloadTorrent(id: UUID) {
@@ -2762,6 +2768,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
             draft: draft,
             shortDisplayName: Self.shortenedPendingDisplayName(for: draft),
             presentationStartedAt: ContinuousClock().now,
+            skipsAddingToDownloadingTextTransition: !savesToList && addTorrentReview.isBatch,
             savesToList: savesToList,
             savesByChoice: savesToList && byChoice
         )
@@ -3722,6 +3729,7 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
         guard let infoHash = draft.infoHash else { return false }
         return torrents.contains(where: { $0.infoHash == infoHash })
             || pendingTorrentAdditions.contains(where: { $0.draft.infoHash == infoHash })
+            || removingTorrentHashesByID.values.contains(infoHash)
     }
 
     private func flushPendingIncomingURLs() {
@@ -4395,10 +4403,14 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     }
 
     private func clearUnreadUserEvents(for torrentID: UUID) {
-        unreadCompletedTorrentIDs.remove(torrentID)
-        unreadStoppedTorrentIDs.remove(torrentID)
+        clearUnreadUserEvents(for: [torrentID])
+    }
+
+    private func clearUnreadUserEvents(for torrentIDs: Set<UUID>) {
+        unreadCompletedTorrentIDs.subtract(torrentIDs)
+        unreadStoppedTorrentIDs.subtract(torrentIDs)
         unreadPersistentIssueKeys = Set(
-            unreadPersistentIssueKeys.filter { $0.torrentID != torrentID }
+            unreadPersistentIssueKeys.filter { !torrentIDs.contains($0.torrentID) }
         )
         updateUserEventBadge()
     }
