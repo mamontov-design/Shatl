@@ -89,7 +89,11 @@ struct ShatlWordmark: View {
 
     var body: some View {
         ZStack(alignment: artworkAlignment) {
-            ShatlTypeWordmarkArtwork(isAnimating: selectedBrandMark == .wordmark, isWatched: isWatched)
+            ShatlTypeWordmarkArtwork(
+                isAnimating: selectedBrandMark == .wordmark,
+                isVisible: windowShowsMark && tabIsShown,
+                isActive: appearsActive
+            )
                 .compositingGroup()
                 .opacity(Double(1 - logomarkProgress))
                 .blur(radius: logomarkProgress * ShatlBrandTransition.blurRadius)

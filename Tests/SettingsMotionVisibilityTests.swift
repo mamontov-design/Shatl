@@ -130,7 +130,7 @@ final class SettingsMotionVisibilityTests: XCTestCase {
 
         let active = show(window)
         focus.isActive = false
-        spin(for: 0.3)
+        spin(for: ShatlMotion.wordmarkInertiaDuration + 0.3)
         let inactive = mainThreadMilliseconds(over: 1)
         focus.isActive = true
         spin(for: 0.3)

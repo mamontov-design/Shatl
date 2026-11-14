@@ -548,6 +548,52 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
     private var lastHue: Double
     /// When the last frame was asked for.
     private var lastFrame: Date?
+    private var speed: Double = 1
+    private var speedChange: SpeedChange?
+
+    enum Playback: Equatable {
+        case playing
+        case braking
+        case stopped
+    }
+
+    private struct SpeedChange {
+        let start: Date
+        let from: Double
+        let to: Double
+
+        func fraction(at date: Date) -> Double {
+            min(1, max(0, date.timeIntervalSince(start) / ShatlMotion.wordmarkInertiaDuration))
+        }
+
+        func speed(at date: Date) -> Double {
+            from + (to - from) * fraction(at: date)
+        }
+
+        func timeAdvanced(from earlier: Date, to later: Date) -> TimeInterval {
+            let a = fraction(at: earlier)
+            let b = fraction(at: later)
+            let rampTime = (b - a) * ShatlMotion.wordmarkInertiaDuration
+            let remainingTime = max(0, later.timeIntervalSince(earlier) - rampTime)
+            return rampTime * (speed(at: earlier) + speed(at: later)) / 2 + remainingTime * to
+        }
+    }
+
+    func setPlayback(_ playback: Playback, at date: Date) {
+        let nextSpeed: Double = playback == .playing ? 1 : 0
+        let renderedSpeed = lastFrame.flatMap { speedChange?.speed(at: $0) } ?? speed
+
+        // Anchor at the last rendered frame, including when focus returns
+        // before the braking animation finishes.
+        if let lastFrame, date > lastFrame {
+            delay(by: date.timeIntervalSince(lastFrame))
+            self.lastFrame = date
+        }
+        speed = nextSpeed
+        speedChange = playback == .stopped || renderedSpeed == nextSpeed
+            ? nil
+            : SpeedChange(start: date, from: renderedSpeed, to: nextSpeed)
+    }
 
     /// Tests pass a seeded `random`, so a run can be read again.
     init(random: any RandomNumberGenerator = SystemRandomNumberGenerator(), start: Date = .now) {
@@ -574,7 +620,7 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
     /// `standsStill` under Reduce Motion: the letters stand at the standard
     /// set, at once when it is turned on, and only the hue moves.
     func style(at date: Date, standsStill: Bool = false) -> ShatlTypeWordmark.Style {
-        goOnAfterPause(at: date)
+        let date = advanceClock(to: date)
         if standsStill {
             if drift == nil {
                 drift = ShatlTypeWordmarkMotion.HueDrift(from: lastHue, at: date, using: &random)
@@ -592,18 +638,24 @@ final class ShatlTypeWordmarkPlayer: ObservableObject {
         return style
     }
 
-    /// A frame long after the last one: the wordmark stood paused, out of
-    /// sight, and goes on from the frame it stood at, as if no time had
-    /// passed.
-    private func goOnAfterPause(at date: Date) {
-        defer { lastFrame = date }
-        guard let lastFrame else { return }
+    private func advanceClock(to date: Date) -> Date {
+        guard let lastFrame else {
+            self.lastFrame = date
+            return date
+        }
+        guard date > lastFrame else { return lastFrame }
+        self.lastFrame = date
+        let elapsed = date.timeIntervalSince(lastFrame)
+        let advanced = elapsed > ShatlMotion.wordmarkPauseGap
+            ? 0
+            : speedChange?.timeAdvanced(from: lastFrame, to: date) ?? elapsed * speed
+        delay(by: elapsed - advanced)
+        return date
+    }
 
-        let pause = date.timeIntervalSince(lastFrame)
-        guard pause > ShatlMotion.wordmarkPauseGap else { return }
-
-        cycleStart += pause
-        drift?.delay(by: pause)
+    private func delay(by interval: TimeInterval) {
+        cycleStart += interval
+        drift?.delay(by: interval)
     }
 
     private func movingStyle(at date: Date) -> ShatlTypeWordmark.Style {
@@ -647,10 +699,17 @@ struct ShatlTypeWordmarkArtwork: View {
     @StateObject private var player = ShatlTypeWordmarkPlayer()
 
     let isAnimating: Bool
-    let isWatched: Bool
+    let isVisible: Bool
+    let isActive: Bool
+    @State private var isBraking = false
+
+    private var playback: ShatlTypeWordmarkPlayer.Playback {
+        guard isAnimating, isVisible, !standsStillInOneColour else { return .stopped }
+        return isActive ? .playing : .braking
+    }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: !isAnimating || !isWatched || standsStillInOneColour)) { context in
+        TimelineView(.animation(minimumInterval: nil, paused: playback == .stopped || (playback == .braking && !isBraking))) { context in
             let style = player.style(at: context.date, standsStill: reduceMotion)
             ShatlTypeWordmarkShape(axes: style.axes)
                 .fill(fillColor(for: style))
@@ -659,6 +718,17 @@ struct ShatlTypeWordmarkArtwork: View {
         .onChange(of: isAnimating) { _, isAnimating in
             guard isAnimating else { return }
             player.restart(at: .now)
+        }
+        .onChange(of: playback, initial: true) { previous, next in
+            let shouldBrake = next == .braking && previous == .playing
+            isBraking = shouldBrake
+            player.setPlayback(next == .braking && !shouldBrake ? .stopped : next, at: .now)
+        }
+        .task(id: isBraking) {
+            guard isBraking else { return }
+            try? await Task.sleep(for: .seconds(ShatlMotion.wordmarkInertiaDuration))
+            guard !Task.isCancelled else { return }
+            isBraking = false
         }
     }
 

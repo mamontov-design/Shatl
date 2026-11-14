@@ -224,6 +224,69 @@ final class ShatlTypeWordmarkTests: XCTestCase {
         }
     }
 
+    func testBrakingAdvancesHalfTheRampAndResumesFromTheStoppedFrame() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        let duration = ShatlMotion.wordmarkInertiaDuration
+        for standsStill in [false, true] {
+            let player = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+            let reference = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+            _ = player.style(at: start, standsStill: standsStill)
+            _ = reference.style(at: start, standsStill: standsStill)
+
+            player.setPlayback(.braking, at: start)
+            _ = player.style(at: start + duration / 2, standsStill: standsStill)
+            let stoppedAt = start + duration
+            let stopped = player.style(at: stoppedAt, standsStill: standsStill)
+            let expected = reference.style(at: start + duration / 2, standsStill: standsStill)
+            XCTAssertEqual(stopped.weight, expected.weight, accuracy: 0.001)
+            XCTAssertEqual(stopped.width, expected.width, accuracy: 0.001)
+            XCTAssertEqual(stopped.hue, expected.hue, accuracy: 0.001)
+
+            let resumedAt = stoppedAt + 0.1
+            player.setPlayback(.playing, at: resumedAt)
+            let resumed = player.style(at: resumedAt, standsStill: standsStill)
+            XCTAssertEqual(resumed.weight, stopped.weight, accuracy: 0.001)
+            XCTAssertEqual(resumed.width, stopped.width, accuracy: 0.001)
+            XCTAssertEqual(resumed.hue, stopped.hue, accuracy: 0.001)
+        }
+    }
+
+    func testReturningDuringBrakingAcceleratesFromTheCurrentSpeed() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        let duration = ShatlMotion.wordmarkInertiaDuration
+        let player = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+        let reference = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+        _ = player.style(at: start)
+        player.setPlayback(.braking, at: start)
+        let returnedAt = start + duration / 2
+        _ = player.style(at: returnedAt)
+        player.setPlayback(.playing, at: returnedAt)
+
+        // Half a ramp averaging 0.75, then a full ramp averaging 0.75.
+        _ = player.style(at: returnedAt + duration / 2)
+        let resumed = player.style(at: returnedAt + duration)
+        _ = reference.style(at: start + duration / 2)
+        let expected = reference.style(at: start + duration * 1.125)
+        XCTAssertEqual(resumed.weight, expected.weight, accuracy: 0.001)
+        XCTAssertEqual(resumed.width, expected.width, accuracy: 0.001)
+        XCTAssertEqual(resumed.hue, expected.hue, accuracy: 0.001)
+    }
+
+    func testHidingDuringBrakingFreezesTheLastFrame() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        let player = ShatlTypeWordmarkPlayer(random: SeededRandom(seed: 41), start: start)
+        _ = player.style(at: start)
+        player.setPlayback(.braking, at: start)
+        let last = player.style(at: start + 0.08)
+
+        player.setPlayback(.stopped, at: start + 0.09)
+        player.setPlayback(.playing, at: start + 0.15)
+        let resumed = player.style(at: start + 0.15)
+        XCTAssertEqual(resumed.weight, last.weight, accuracy: 0.001)
+        XCTAssertEqual(resumed.width, last.width, accuracy: 0.001)
+        XCTAssertEqual(resumed.hue, last.hue, accuracy: 0.001)
+    }
+
     /// The step follows the weight: thin letters solid, the standard set on
     /// the pastel step, bold letters pale; the dark theme takes the step one
     /// up at the thin end, as `accentColored` does.

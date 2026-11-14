@@ -123,8 +123,9 @@ something new shows a part listed here, add the place to its line.
   wordmark's colours (`ShatlColor.Wordmark`: four hues, grey in monochrome, the macOS accent
   mixed by weight) and timings (`ShatlMotion.wordmark*`,
   `brandMarkChangeDuration`); under Reduce Motion both marks stand still,
-  and unwatched (out of sight, or in a window that is not active) both
-  stand paused and go on from where they stood.
+  and both pause when unwatched. The wordmark brakes for 600 ms if its
+  window stays visible after losing focus and freezes when hidden. It
+  resumes from the last rendered frame.
   Its four hues also tint the Settings option cards' wink
   (`ShatlColor.InputCardActivationPulse`).
 - Link button (`ShatlLinkButton`): the About footer and the "Лицензии"
