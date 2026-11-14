@@ -197,7 +197,10 @@ something new shows a part listed here, add the place to its line.
   its row inputs. Digits roll only while "Анимировать смену чисел" is on
   (`AppPreferences.animatesNumberChanges`, `TorrentRowState.rollsDigits`;
   the speed chips follow it too), and its "i" names the count of 25
-  (`CopyPromiseTests`). A finished
+  (`CopyPromiseTests`). For 1.0.6 its switch is hidden from Settings and
+  the code kept (`AppPreferences.showsNumberAnimationSetting`); while
+  hidden, digits roll whatever was saved (`rollsNumberChanges`), so nobody
+  is left with a switch they cannot see turned off. A finished
   download's card is one line, the status badge beside the title naming the
   status under the pointer (`TorrentRowState.usesFinishedLayout`). Cards
   built for finished downloads, at launch too, start on one line without

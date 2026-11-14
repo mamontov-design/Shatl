@@ -135,7 +135,8 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     /// preferences made since.
     var hasAppliedSpeedColorsDefault = true
     /// Digits roll into place when a number changes, in the cards and the
-    /// speed chips under the list. Off, they change at once.
+    /// speed chips under the list. Off, they change at once. Read it through
+    /// `rollsNumberChanges`: its switch is hidden for now.
     var animatesNumberChanges = true
     /// Statuses and the speed set in greys. See `setUsesMonochromeAppearance`.
     var usesMonochromeAppearance: Bool = false
@@ -158,6 +159,19 @@ nonisolated struct AppPreferences: Equatable, Codable, Sendable {
     /// after "Больше не показывать" nothing else in the app says it.
     var namesHaloSpeedLimitInSettings: Bool {
         !showsHaloSpeedNotice
+    }
+}
+
+extension AppPreferences {
+    /// "Анимировать смену чисел" is kept in the code but hidden from
+    /// Settings for 1.0.6 (the owner, 2026-11-14). While it is hidden,
+    /// digits roll whatever was saved: whoever turned it off could not turn
+    /// it on again. Set to true to bring the switch back.
+    nonisolated static let showsNumberAnimationSetting = false
+
+    /// Whether digits roll, as the cards and the speed chips read it.
+    nonisolated var rollsNumberChanges: Bool {
+        Self.showsNumberAnimationSetting ? animatesNumberChanges : true
     }
 }
 

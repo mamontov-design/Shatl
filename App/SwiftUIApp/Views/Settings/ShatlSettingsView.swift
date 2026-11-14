@@ -1137,7 +1137,7 @@ private struct AppearanceSettingsTab: View {
                 metricsMode: store.preferences.metricsMode,
                 colorizesDownloadSpeed: store.preferences.colorizesDownloadSpeed,
                 usesMonochromeAppearance: store.preferences.usesMonochromeAppearance,
-                animatesNumberChanges: store.preferences.animatesNumberChanges,
+                animatesNumberChanges: store.preferences.rollsNumberChanges,
                 downloadSpeedOutlineFlashTrigger: downloadSpeedPreviewPulseTrigger,
                 initiallyExpanded: true,
                 centersExpandedCard: true,
@@ -1177,21 +1177,25 @@ private struct AppearanceSettingsTab: View {
                     SpeedColorsInfoPopover(localeOverride: store.preferences.localeOverride)
                 }
 
-                ShatlSettingsParameterDivider()
+                // Hidden for 1.0.6, kept for later: see
+                // `AppPreferences.showsNumberAnimationSetting`.
+                if AppPreferences.showsNumberAnimationSetting {
+                    ShatlSettingsParameterDivider()
 
-                ShatlSettingsInfoToggleRow(
-                    localizedTitle: "settings.appearance.number_changes.toggle",
-                    localizedHelp: "settings.appearance.number_changes.info.help",
-                    isOn: Binding(
-                        get: { store.preferences.animatesNumberChanges },
-                        set: {
-                            store.preferences.animatesNumberChanges = $0
-                            metricPreviewPulseTrigger += 1
-                            focusPreview(on: .metrics)
-                        }
-                    )
-                ) {
-                    NumberChangesInfoPopover()
+                    ShatlSettingsInfoToggleRow(
+                        localizedTitle: "settings.appearance.number_changes.toggle",
+                        localizedHelp: "settings.appearance.number_changes.info.help",
+                        isOn: Binding(
+                            get: { store.preferences.animatesNumberChanges },
+                            set: {
+                                store.preferences.animatesNumberChanges = $0
+                                metricPreviewPulseTrigger += 1
+                                focusPreview(on: .metrics)
+                            }
+                        )
+                    ) {
+                        NumberChangesInfoPopover()
+                    }
                 }
 
                 ShatlSettingsParameterDivider()

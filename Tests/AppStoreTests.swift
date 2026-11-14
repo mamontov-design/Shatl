@@ -1318,7 +1318,12 @@ final class AppStoreTests: XCTestCase {
 
         XCTAssertTrue(try XCTUnwrap(bundle.store.rowState(for: record.id)).rollsDigits)
         bundle.store.preferences.animatesNumberChanges = false
-        XCTAssertFalse(try XCTUnwrap(bundle.store.rowState(for: record.id)).rollsDigits)
+        // Its switch hidden (1.0.6), the setting saved off must not hold:
+        // nobody could turn it on again.
+        XCTAssertEqual(
+            try XCTUnwrap(bundle.store.rowState(for: record.id)).rollsDigits,
+            !AppPreferences.showsNumberAnimationSetting
+        )
         bundle.store.preferences.animatesNumberChanges = true
 
         var row = try XCTUnwrap(bundle.store.rowState(for: record.id))
