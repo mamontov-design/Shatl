@@ -797,7 +797,7 @@ private struct AboutSettingsTab: View {
                             .foregroundStyle(ShatlColor.typographyPrimary)
                             .lineLimit(1)
 
-                        Text(appVersion)
+                        Text(verbatim: appVersionLabel)
                             .shatlTypography(ShatlTypography.bodyRegular)
                             .foregroundStyle(ShatlColor.typographySecondary)
                             .lineLimit(1)
@@ -927,8 +927,9 @@ private struct AboutSettingsTab: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    private var appVersionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        return version == "1.0.6" ? "\(version) — Cluster" : version
     }
 
     private func composeFeedbackEmail() {
