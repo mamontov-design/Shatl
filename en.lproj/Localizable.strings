@@ -478,6 +478,7 @@
 "add_torrent.review.metadata.receiving.title" = "Receiving the file list.";
 "add_torrent.review.metadata.receiving.message" = "Once the list is ready, you can start downloading.";
 "add_torrent.review.metadata.received.title" = "File list received.";
+"add_torrent.review.metadata.received.message" = "Preparing to download…";
 "add_torrent.review.metadata.offline.title" = "Connection interrupted.";
 "add_torrent.review.metadata.offline.message" = "Connect to the internet to continue receiving the file list.";
 "add_torrent.review.metadata.timeout.message" = "Peers didn’t respond in time. This can happen with rare torrents or a slow connection.";

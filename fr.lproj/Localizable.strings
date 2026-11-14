@@ -478,6 +478,7 @@
 "add_torrent.review.metadata.receiving.title" = "Réception de la liste des fichiers.";
 "add_torrent.review.metadata.receiving.message" = "Une fois la liste prête, vous pourrez lancer le téléchargement.";
 "add_torrent.review.metadata.received.title" = "Liste des fichiers reçue.";
+"add_torrent.review.metadata.received.message" = "Préparation du téléchargement…";
 "add_torrent.review.metadata.offline.title" = "Connexion interrompue.";
 "add_torrent.review.metadata.offline.message" = "Connectez-vous à Internet pour continuer à recevoir la liste des fichiers.";
 "add_torrent.review.metadata.timeout.message" = "Les participants n’ont pas répondu à temps. Cela peut arriver avec un torrent rare ou une connexion lente.";

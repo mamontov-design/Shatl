@@ -478,6 +478,7 @@
 "add_torrent.review.metadata.receiving.title" = "Die Dateiliste wird geladen.";
 "add_torrent.review.metadata.receiving.message" = "Sobald die Liste bereit ist, können Sie den Download starten.";
 "add_torrent.review.metadata.received.title" = "Dateiliste empfangen.";
+"add_torrent.review.metadata.received.message" = "Download wird vorbereitet…";
 "add_torrent.review.metadata.offline.title" = "Verbindung unterbrochen.";
 "add_torrent.review.metadata.offline.message" = "Stellen Sie eine Internetverbindung her, um die Dateiliste weiter zu laden.";
 "add_torrent.review.metadata.timeout.message" = "Die Teilnehmer haben nicht rechtzeitig geantwortet. Das kann bei seltenen Torrents oder einer langsamen Verbindung vorkommen.";

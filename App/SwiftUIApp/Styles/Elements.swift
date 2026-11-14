@@ -491,9 +491,9 @@ struct ShatlMessageBlockPrimaryButton {
 /// look everywhere: its own fill on the window's own background.
 ///
 /// When the message changes, the block stays in place and its content is
-/// replaced, so waiting turns into the result without a jump: the text and
-/// the buttons blur into the new ones and the block takes its new height,
-/// then the icon is replaced.
+/// replaced in order: the icon changes in place first, then the text rows
+/// change one at a time. The buttons move with the first changed row.
+/// A departing bar fades before the text changes, filling first on success.
 struct ShatlMessageBlockPrimary: View {
     enum Tone {
         case neutral
@@ -518,7 +518,8 @@ struct ShatlMessageBlockPrimary: View {
     /// The block's width; `nil` takes its container's.
     var width: CGFloat? = 340
     var progress: Double?
-    var onSymbolSettled: (String) -> Void = { _ in }
+    var completesProgressBeforeHiding = false
+    var onContentSettled: (String) -> Void = { _ in }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown: Presentation?
@@ -551,11 +552,17 @@ struct ShatlMessageBlockPrimary: View {
         .onAppear {
             shown = requested
             target = requested
-            onSymbolSettled(systemImage)
+            onContentSettled(systemImage)
         }
         .onChange(of: requested.signature) { _, _ in
             target = requested
             startTransition()
+        }
+        .onChange(of: progress) { _, value in
+            // Keep the last visible fill while the bar is leaving.
+            guard let value else { return }
+            if target?.hasProgress == true { target?.progress = value }
+            if shown?.hasProgress == true { shown?.progress = value }
         }
         .onDisappear {
             transitionTask?.cancel()
@@ -594,10 +601,14 @@ struct ShatlMessageBlockPrimary: View {
         var parts: [String]
         var buttons: [ShatlMessageBlockPrimaryButton]
         var progress: Double?
+        var completesProgressBeforeHiding: Bool
         var hasProgress: Bool { progress != nil }
 
         var signature: Signature {
-            Signature(symbol: symbol, parts: parts, buttons: buttons.map(\.title), hasProgress: hasProgress)
+            Signature(
+                symbol: symbol, parts: parts, buttons: buttons.map(\.title),
+                hasProgress: hasProgress, completesProgressBeforeHiding: completesProgressBeforeHiding
+            )
         }
     }
 
@@ -606,13 +617,15 @@ struct ShatlMessageBlockPrimary: View {
         var parts: [String]
         var buttons: [String]
         var hasProgress: Bool
+        var completesProgressBeforeHiding: Bool
     }
 
     private var requested: Presentation {
         Presentation(
             symbol: systemImage, parts: [title] + details,
             buttons: [primaryButton].compactMap { $0 } + secondaryButtons,
-            progress: progress
+            progress: progress,
+            completesProgressBeforeHiding: completesProgressBeforeHiding
         )
     }
 
@@ -625,29 +638,39 @@ struct ShatlMessageBlockPrimary: View {
         transitionTask = Task { @MainActor in
             while !Task.isCancelled, var current = shown, let target,
                   current.signature != target.signature {
-                if let next = ShatlMessagePartsSequence.nextStep(from: current.parts, to: target.parts) {
+                var animation = ShatlMotion.primaryMessageTransition
+                if current.symbol != target.symbol {
+                    current.symbol = target.symbol
+                } else if !target.hasProgress, let progress = current.progress {
+                    if target.completesProgressBeforeHiding, progress < 1 {
+                        current.progress = 1
+                        animation = ShatlMotion.progressBarFill
+                    } else {
+                        current.progress = nil
+                    }
+                } else if let next = ShatlMessagePartsSequence.nextStep(from: current.parts, to: target.parts) {
                     current.parts = next
+                    current.buttons = target.buttons
                 } else if current.hasProgress != target.hasProgress {
                     current.progress = target.progress
                 } else if current.signature.buttons != target.signature.buttons {
                     current.buttons = target.buttons
                 } else {
-                    current.symbol = target.symbol
+                    current.completesProgressBeforeHiding = target.completesProgressBeforeHiding
                 }
-                let previousSymbol = shown?.symbol
                 await withCheckedContinuation { continuation in
-                    withAnimation(ShatlMotion.messageBlockContent, completionCriteria: .removed) {
+                    withAnimation(animation, completionCriteria: .removed) {
                         shown = current
                     } completion: {
                         continuation.resume()
                     }
                 }
-                guard !Task.isCancelled else { return }
-                if previousSymbol != current.symbol, current.symbol == self.target?.symbol {
-                    onSymbolSettled(current.symbol)
-                }
             }
-            if !Task.isCancelled { transitionTask = nil }
+            guard !Task.isCancelled else { return }
+            transitionTask = nil
+            if let shown {
+                onContentSettled(shown.symbol)
+            }
         }
     }
 
@@ -666,10 +689,10 @@ struct ShatlMessageBlockPrimary: View {
 
             ShatlMessageParts(parts: presentation.parts)
                 .geometryGroup()
-            if presentation.hasProgress {
-                ShatlDownloadProgressBar(progress: progress ?? presentation.progress ?? 0, isComplete: false)
+            if let visibleProgress = presentation.progress {
+                ShatlDownloadProgressBar(progress: visibleProgress, isComplete: false)
                     .accessibilityLabel(Text("add_torrent.review.metadata.receiving.title"))
-                    .transition(contentReplace)
+                    .transition(.opacity)
             }
         }
         .padding(8)

@@ -494,6 +494,7 @@
 "add_torrent.review.metadata.receiving.title" = "Список файлов загружается.";
 "add_torrent.review.metadata.receiving.message" = "Когда список будет готов, можно приступить к скачиванию.";
 "add_torrent.review.metadata.received.title" = "Список файлов получен.";
+"add_torrent.review.metadata.received.message" = "Подготовка к скачиванию…";
 "add_torrent.review.metadata.offline.title" = "Соединение прервалось.";
 "add_torrent.review.metadata.offline.message" = "Подключитесь к интернету, чтобы продолжить получение списка файлов.";
 "add_torrent.review.metadata.timeout.message" = "Участники раздачи не ответили вовремя. Так бывает с редкими торрентами или при слабом подключении.";

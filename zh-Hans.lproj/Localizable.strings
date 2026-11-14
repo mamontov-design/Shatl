@@ -470,6 +470,7 @@
 "add_torrent.review.metadata.receiving.title" = "正在接收文件列表。";
 "add_torrent.review.metadata.receiving.message" = "列表准备就绪后，即可开始下载。";
 "add_torrent.review.metadata.received.title" = "已收到文件列表。";
+"add_torrent.review.metadata.received.message" = "正在准备下载…";
 "add_torrent.review.metadata.offline.title" = "连接已中断。";
 "add_torrent.review.metadata.offline.message" = "连接到互联网后即可继续接收文件列表。";
 "add_torrent.review.metadata.timeout.message" = "参与者未及时响应。种子较冷门或连接较慢时可能会出现这种情况。";

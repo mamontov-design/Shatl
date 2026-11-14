@@ -1469,7 +1469,8 @@ private struct AddTorrentReviewContent: View {
                 ? [review.count > 1 ? nextDownloadButton(leadsForward: message.leadsForward) : closeWindowButton]
                 : secondaryMessageButtons(for: message.actions, leadsForward: message.leadsForward),
             progress: message.showsProgress ? review.metadataProgress : nil,
-            onSymbolSettled: { symbol in
+            completesProgressBeforeHiding: message.isConfirmation,
+            onContentSettled: { symbol in
                 guard symbol == "checkmark.circle", magnetPresentation == .received else { return }
                 confirmationTask?.cancel()
                 confirmationTask = Task { @MainActor in
@@ -1678,8 +1679,13 @@ private struct AddTorrentReviewContent: View {
             if reviewState == .loadingMetadata {
                 let receiving = magnetPresentation == .receiving
                 let phase = networkOffline ? "offline" : receiving ? "receiving" : "connecting"
+                let symbol: String = switch phase {
+                case "offline": "wifi.slash"
+                case "receiving": "doc.text.magnifyingglass"
+                default: "point.3.connected.trianglepath.dotted"
+                }
                 return ReviewMessage(
-                    systemImage: networkOffline ? "wifi.slash" : "doc.text.magnifyingglass",
+                    systemImage: symbol,
                     title: L10n.string("add_torrent.review.metadata.\(phase).title", localeOverride: locale),
                     message: L10n.string("add_torrent.review.metadata.\(phase).message", localeOverride: locale),
                     isMagnet: true, showsProgress: receiving,
@@ -1691,6 +1697,7 @@ private struct AddTorrentReviewContent: View {
                     return ReviewMessage(
                         systemImage: "checkmark.circle",
                         title: L10n.string("add_torrent.review.metadata.received.title", localeOverride: locale),
+                        message: L10n.string("add_torrent.review.metadata.received.message", localeOverride: locale),
                         isMagnet: true, isConfirmation: true,
                         actions: actions, leadsForward: review.hasNext
                     )

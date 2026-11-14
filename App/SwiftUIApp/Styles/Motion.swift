@@ -46,6 +46,7 @@ enum ShatlMotion {
     /// replace only looks right in place.
     static let messageBlockContent = Animation.smooth(duration: messageBlockContentDuration)
     static let messageBlockContentDuration: TimeInterval = 0.38
+    static let primaryMessageTransition = Animation.smooth(duration: 0.35)
 
     /// Reveals the pinned row with a subtle lift from the list and no zoom.
     static let stickyPinInsertion = AnyTransition

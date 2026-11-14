@@ -470,6 +470,7 @@
 "add_torrent.review.metadata.receiving.title" = "ファイル一覧を受信しています。";
 "add_torrent.review.metadata.receiving.message" = "一覧の準備ができたら、ダウンロードを開始できます。";
 "add_torrent.review.metadata.received.title" = "ファイル一覧を受信しました。";
+"add_torrent.review.metadata.received.message" = "ダウンロードを準備しています…";
 "add_torrent.review.metadata.offline.title" = "接続が途切れました。";
 "add_torrent.review.metadata.offline.message" = "インターネットに接続すると、ファイル一覧の受信を続けられます。";
 "add_torrent.review.metadata.timeout.message" = "参加者から時間内に応答がありませんでした。配信が少ないトレントや、接続が遅いときに起こることがあります。";

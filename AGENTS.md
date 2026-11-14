@@ -104,11 +104,13 @@ something new shows a part listed here, add the place to its line.
   loading and recovery, both empty searches, the drop screen, the 1.0.6
   update message, the add window's messages and its summary. Callers supply
   content, actions, tone and width. The block owns the layout and motion:
-  the symbol and labels move together. Each text row finishes its native
-  blur replacement or numeric transition before the next row changes.
-  Then the optional progress bar below the labels and the button group
-  take their turns. A single button fits its title and a group fills the
-  width. The native symbol replacement runs after layout has settled.
+  the native symbol replacement runs first in a fixed-height cell. A
+  departing progress bar fades before the text changes. On successful
+  magnet preparation it fills to 100% before fading. Each text row
+  finishes its native blur replacement or numeric transition before the
+  next row changes. Button changes run with the first changed text row.
+  A single button fits its title and multiple buttons fill the width.
+  The block uses `primaryMessageTransition` (350 ms per step).
   Debug → Test Message Block exercises these changes individually and in
   random combinations.
   Screens own the transition that brings the whole block into their layout.
