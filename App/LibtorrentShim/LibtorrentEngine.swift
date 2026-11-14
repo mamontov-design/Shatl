@@ -78,6 +78,29 @@ actor LibtorrentEngine: TorrentEngine {
         }
     }
 
+    #if DEBUG
+    func scrapeTrackers(id: UUID) async -> Bool {
+        bridge.scrapeTrackersForTorrent(withIdentifier: id.uuidString)
+    }
+
+    func trackerScrape(id: UUID) async -> EngineTrackerScrape? {
+        guard let scrape = bridge.trackerScrapeForTorrent(withIdentifier: id.uuidString) else { return nil }
+        return EngineTrackerScrape(
+            trackerCount: scrape.trackerCount,
+            elapsedMilliseconds: Int(scrape.elapsedMilliseconds.rounded()),
+            answers: scrape.answers.map { answer in
+                EngineTrackerScrape.Answer(
+                    tracker: answer.tracker,
+                    milliseconds: Int(answer.milliseconds.rounded()),
+                    seeds: answer.seeds < 0 ? nil : answer.seeds,
+                    leechers: answer.leechers < 0 ? nil : answer.leechers,
+                    errorMessage: answer.errorMessage
+                )
+            }
+        )
+    }
+    #endif
+
     func portMappingStatus() async -> EnginePortMappingStatus? {
         let status = bridge.currentPortMappingStatus()
         switch status.state {

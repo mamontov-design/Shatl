@@ -207,6 +207,51 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 
 /// The single entry point into the Objective-C++ layer.
 /// All implementation details of `libtorrent` remain inside it.
+#if DEBUG
+/// What one tracker answered when asked how many seeds and leechers a
+/// torrent has (a scrape), without the torrent downloading anything. Debug
+/// only: the first step of a queue that would rank downloads by their
+/// swarms, tried on real trackers.
+@interface LTTrackerScrapeAnswer : NSObject
+
+/// The tracker's scheme and host; a private tracker keeps the user's key in
+/// the rest of its address.
+@property (nonatomic, readonly) NSString *tracker;
+/// From the request to the answer.
+@property (nonatomic, readonly) double milliseconds;
+/// -1 when the tracker failed.
+@property (nonatomic, readonly) NSInteger seeds;
+@property (nonatomic, readonly) NSInteger leechers;
+@property (nonatomic, readonly, nullable) NSString *errorMessage;
+
+- (instancetype)initWithTracker:(NSString *)tracker
+                   milliseconds:(double)milliseconds
+                          seeds:(NSInteger)seeds
+                       leechers:(NSInteger)leechers
+                   errorMessage:(nullable NSString *)errorMessage NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+@end
+
+/// Every tracker of one torrent asked at once, and what came back so far.
+@interface LTTrackerScrape : NSObject
+
+@property (nonatomic, readonly) NSInteger trackerCount;
+/// Since the trackers were asked.
+@property (nonatomic, readonly) double elapsedMilliseconds;
+/// One per tracker that answered or failed, in the order they did.
+@property (nonatomic, readonly) NSArray<LTTrackerScrapeAnswer *> *answers;
+
+- (instancetype)initWithTrackerCount:(NSInteger)trackerCount
+                 elapsedMilliseconds:(double)elapsedMilliseconds
+                             answers:(NSArray<LTTrackerScrapeAnswer *> *)answers NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+@end
+#endif
+
 @interface LibtorrentSessionBridge : NSObject
 
 /// The resume directory comes from `ShatlDirectories` so the bridge never
@@ -253,6 +298,17 @@ typedef NS_ENUM(NSInteger, LTPortMappingState) {
 /// How many connections the torrent may hold, read back from libtorrent:
 /// -1 for as many as the session allows; nil for a torrent it does not hold.
 - (nullable NSNumber *)maxConnectionsForTorrentWithIdentifier:(NSString *)recordIdentifier;
+
+#if DEBUG
+/// Asks every tracker of the torrent for its seeds and leechers. The torrent
+/// stays as it is: a stopped one sends no announce and connects to nobody.
+/// NO for a torrent the session does not hold.
+- (BOOL)scrapeTrackersForTorrentWithIdentifier:(NSString *)recordIdentifier;
+
+/// What the trackers answered since `scrapeTrackersForTorrentWithIdentifier:`;
+/// nil before it was asked.
+- (nullable LTTrackerScrape *)trackerScrapeForTorrentWithIdentifier:(NSString *)recordIdentifier;
+#endif
 
 /// Descriptors the process has open right now.
 + (NSInteger)openFileDescriptorCount;

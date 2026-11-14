@@ -876,6 +876,21 @@ final class AppStore: ObservableObject, ShatlTerminationPreparing, ShatlUserAtte
     func enginePortMappingStatus() async -> EnginePortMappingStatus? {
         await engine.portMappingStatus()
     }
+
+    /// Stopped downloads not finished yet, for the tracker probe in Debug.
+    var trackerProbeCandidates: [(id: UUID, name: String)] {
+        torrents
+            .filter { $0.status == .stopped && $0.progress < 1 }
+            .map { ($0.id, $0.displayName) }
+    }
+
+    func engineScrapeTrackers(id: UUID) async -> Bool {
+        await engine.scrapeTrackers(id: id)
+    }
+
+    func engineTrackerScrape(id: UUID) async -> EngineTrackerScrape? {
+        await engine.trackerScrape(id: id)
+    }
     #endif
 
     func setDefaultDownloadLocation(_ url: URL, bookmarkData: Data?) {

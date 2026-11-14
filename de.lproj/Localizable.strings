@@ -446,6 +446,15 @@
 "settings.debug.logging.add_torrent_review_diagnostics" = "Diagnose des Fensters „Torrent hinzufügen“";
 "settings.debug.logging.card_layout_diagnostics" = "Diagnose des Kartenlayouts";
 "settings.debug.list_scroll_readout" = "Scrollgeschwindigkeit der Liste anzeigen";
+"settings.debug.tracker_probe.section" = "Tracker-Abfrage";
+"settings.debug.tracker_probe.caption" = "Gestoppte Downloads fragen ihre Tracker, wie viele Seeds und Leecher der Torrent hat. Es wird nichts heruntergeladen.";
+"settings.debug.tracker_probe.button" = "Tracker abfragen";
+"settings.debug.tracker_probe.empty" = "Keine gestoppten Downloads.";
+"settings.debug.tracker_probe.more" = "Weitere Downloads: %@";
+"settings.debug.tracker_probe.waiting" = "Warten auf die Tracker …";
+"settings.debug.tracker_probe.no_trackers" = "Dieser Download hat keine Tracker.";
+"settings.debug.tracker_probe.answer" = "Seeds: %1$@, Leecher: %2$@. Erste Antwort nach %3$@ ms, %4$@ von %5$@ haben geantwortet.";
+"settings.debug.tracker_probe.failed" = "Keine Antwort: %1$@ von %2$@ mit Fehler. %3$@";
 "settings.debug.performance.budget" = "Debug: Limit für geöffnete Dateien: %1$@ (von macOS vergeben: %2$@). Bis zu %3$@ Verbindungen und %4$@ Dateien. Insgesamt geöffnet, einschließlich Dienstverbindungen: %5$@.";
 "settings.debug.performance.budget_reduced" = "Debug: Limit für geöffnete Dateien: %1$@, mehr hat macOS nicht erlaubt (vergeben: %2$@). Bis zu %3$@ statt %4$@ Verbindungen und %5$@ statt %6$@ Dateien. Insgesamt geöffnet, einschließlich Dienstverbindungen: %7$@.";
 "settings.debug.performance.engine_not_started" = "Debug: Die Engine wurde noch nicht gestartet.";

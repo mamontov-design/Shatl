@@ -446,6 +446,15 @@
 "settings.debug.logging.add_torrent_review_diagnostics" = "Diagnostic de la fenêtre « Ajouter un torrent »";
 "settings.debug.logging.card_layout_diagnostics" = "Diagnostic de la mise en page des cartes";
 "settings.debug.list_scroll_readout" = "Afficher la vitesse de défilement de la liste";
+"settings.debug.tracker_probe.section" = "Interrogation des trackers";
+"settings.debug.tracker_probe.caption" = "Les téléchargements arrêtés demandent à leurs trackers combien de seeds et de leechers compte le torrent. Rien n’est téléchargé.";
+"settings.debug.tracker_probe.button" = "Interroger les trackers";
+"settings.debug.tracker_probe.empty" = "Aucun téléchargement arrêté.";
+"settings.debug.tracker_probe.more" = "Autres téléchargements : %@";
+"settings.debug.tracker_probe.waiting" = "En attente des trackers…";
+"settings.debug.tracker_probe.no_trackers" = "Ce téléchargement n’a pas de tracker.";
+"settings.debug.tracker_probe.answer" = "Seeds : %1$@, leechers : %2$@. Première réponse en %3$@ ms, %4$@ sur %5$@ ont répondu.";
+"settings.debug.tracker_probe.failed" = "Pas de réponse : %1$@ sur %2$@ en erreur. %3$@";
 "settings.debug.performance.budget" = "Débogage : limite de fichiers ouverts : %1$@ (macOS en a attribué %2$@). Jusqu’à %3$@ connexions et %4$@ fichiers. Ouverts au total, connexions de service comprises : %5$@.";
 "settings.debug.performance.budget_reduced" = "Débogage : limite de fichiers ouverts : %1$@, macOS n’en a pas autorisé davantage (attribué : %2$@). Jusqu’à %3$@ connexions au lieu de %4$@ et %5$@ fichiers au lieu de %6$@. Ouverts au total, connexions de service comprises : %7$@.";
 "settings.debug.performance.engine_not_started" = "Débogage : le moteur n’a pas encore démarré.";

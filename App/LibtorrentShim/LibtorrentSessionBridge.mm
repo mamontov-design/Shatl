@@ -699,6 +699,63 @@ static LTTorrentRuntimeStatus LTRuntimeStatusFromTorrentStatus(lt::torrent_statu
 
 @end
 
+#if DEBUG
+@implementation LTTrackerScrapeAnswer
+
+- (instancetype)initWithTracker:(NSString *)tracker
+                   milliseconds:(double)milliseconds
+                          seeds:(NSInteger)seeds
+                       leechers:(NSInteger)leechers
+                   errorMessage:(NSString *)errorMessage {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _tracker = [tracker copy];
+    _milliseconds = milliseconds;
+    _seeds = seeds;
+    _leechers = leechers;
+    _errorMessage = [errorMessage copy];
+    return self;
+}
+
+@end
+
+@implementation LTTrackerScrape
+
+- (instancetype)initWithTrackerCount:(NSInteger)trackerCount
+                 elapsedMilliseconds:(double)elapsedMilliseconds
+                             answers:(NSArray<LTTrackerScrapeAnswer *> *)answers {
+    self = [super init];
+    if (self == nil) {
+        return nil;
+    }
+
+    _trackerCount = trackerCount;
+    _elapsedMilliseconds = elapsedMilliseconds;
+    _answers = [answers copy];
+    return self;
+}
+
+@end
+
+/// A torrent's trackers asked for seeds and leechers, and their answers.
+struct LTTrackerScrapeProbe {
+    struct Answer {
+        std::string tracker;
+        double milliseconds = 0;
+        int seeds = -1;
+        int leechers = -1;
+        std::string error;
+    };
+
+    std::chrono::steady_clock::time_point startedAt;
+    int trackerCount = 0;
+    std::vector<Answer> answers;
+};
+#endif
+
 /// The soft open-file limit, capped like libtorrent's own `max_open_files()`.
 static int LTCurrentOpenFileLimit() {
     int const unlimited = 10000000;
@@ -766,12 +823,15 @@ static LTDescriptorBudget LTFitProfileIntoOpenFileLimit(lt::settings_pack const&
 /// Alert categories the session posts. Router answers are posted only while
 /// port forwarding is on; tracker replies, peer connections and listen sockets
 /// only while the log is on, so a quiet session queues no alerts nobody reads.
+/// A Debug build always takes tracker replies: its tracker probe reads the
+/// scrape answers from them, a handful an hour per torrent otherwise.
 static int LTSessionAlertMask(BOOL diagnostics, BOOL portForwarding) {
     lt::alert_category_t mask = lt::alert_category::error;
     if (portForwarding) {
         mask |= lt::alert_category::port_mapping;
     }
 #if DEBUG
+    mask |= lt::alert_category::tracker;
     if (diagnostics) {
         mask |= lt::alert_category::tracker | lt::alert_category::connect | lt::alert_category::status;
     }
@@ -988,6 +1048,9 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     NSURL *_resumeDataDirectoryURL;
     std::unique_ptr<lt::session> _session;
     std::map<std::string, lt::torrent_handle> _handlesByRecordID;
+#if DEBUG
+    std::map<std::string, LTTrackerScrapeProbe> _trackerScrapesByRecordID;
+#endif
     std::unordered_map<std::string, LTMagnetMetadataFetch> _magnetMetadataFetchesByToken;
     // Metadata of prepared drafts, kept until Swift releases the draft after
     // closing Review or finishing the add. Each draft owns its entry, so a
@@ -2455,10 +2518,105 @@ static bool LTIsUTPSocket(lt::socket_type_t type) {
     [self noteFileErrorAlerts:alerts];
     [self notePortMappingAlerts:alerts];
 #if DEBUG
+    [self noteTrackerScrapeAlerts:alerts];
     [self logDiagnosticAlerts:alerts];
 #endif
 }
 
+#if DEBUG
+- (BOOL)scrapeTrackersForTorrentWithIdentifier:(NSString *)recordIdentifier {
+    auto iterator = _handlesByRecordID.find(LTToStdString(recordIdentifier));
+    if (_session == nullptr || iterator == _handlesByRecordID.end() || !iterator->second.is_valid()) {
+        return NO;
+    }
+    std::vector<lt::announce_entry> const trackers = iterator->second.trackers();
+    LTTrackerScrapeProbe probe;
+    probe.startedAt = std::chrono::steady_clock::now();
+    probe.trackerCount = static_cast<int>(trackers.size());
+    _trackerScrapesByRecordID[iterator->first] = probe;
+    for (int index = 0; index < static_cast<int>(trackers.size()); ++index) {
+        iterator->second.scrape_tracker(index);
+    }
+    return YES;
+}
+
+- (nullable LTTrackerScrape *)trackerScrapeForTorrentWithIdentifier:(NSString *)recordIdentifier {
+    if (_session != nullptr) {
+        std::vector<lt::alert *> alerts;
+        _session->pop_alerts(&alerts);
+        [self noteAlerts:alerts];
+    }
+    auto found = _trackerScrapesByRecordID.find(LTToStdString(recordIdentifier));
+    if (found == _trackerScrapesByRecordID.end()) {
+        return nil;
+    }
+    NSMutableArray<LTTrackerScrapeAnswer *> *answers = [NSMutableArray array];
+    for (auto const& answer : found->second.answers) {
+        [answers addObject:[[LTTrackerScrapeAnswer alloc]
+            initWithTracker:LTToNSString(answer.tracker)
+               milliseconds:answer.milliseconds
+                      seeds:answer.seeds
+                   leechers:answer.leechers
+               errorMessage:answer.error.empty() ? nil : LTToNSString(answer.error)]];
+    }
+    auto const elapsed = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - found->second.startedAt
+    ).count();
+    return [[LTTrackerScrape alloc] initWithTrackerCount:found->second.trackerCount
+                                     elapsedMilliseconds:elapsed
+                                                 answers:answers];
+}
+
+/// One answer per tracker: libtorrent may answer once per listen socket, and
+/// a success counts over a failure.
+- (void)noteTrackerScrapeAlerts:(std::vector<lt::alert *> const&)alerts {
+    if (_trackerScrapesByRecordID.empty()) {
+        return;
+    }
+    for (lt::alert *alert : alerts) {
+        auto *reply = lt::alert_cast<lt::scrape_reply_alert>(alert);
+        auto *failure = reply == nullptr ? lt::alert_cast<lt::scrape_failed_alert>(alert) : nullptr;
+        if (reply == nullptr && failure == nullptr) {
+            continue;
+        }
+        lt::torrent_handle const& handle = reply != nullptr ? reply->handle : failure->handle;
+        for (auto const& entry : _handlesByRecordID) {
+            if (entry.second != handle) {
+                continue;
+            }
+            auto probe = _trackerScrapesByRecordID.find(entry.first);
+            if (probe == _trackerScrapesByRecordID.end()) {
+                break;
+            }
+            LTTrackerScrapeProbe::Answer answer;
+            answer.tracker = LTToStdString(LTRedactedTrackerURL(reply != nullptr ? reply->tracker_url() : failure->tracker_url()));
+            answer.milliseconds = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - probe->second.startedAt
+            ).count();
+            if (reply != nullptr) {
+                answer.seeds = reply->complete;
+                answer.leechers = reply->incomplete;
+            } else {
+                std::string const message = failure->error_message();
+                answer.error = message.empty() ? failure->error.message() : message;
+                if (answer.error.empty()) {
+                    answer.error = "failed";
+                }
+            }
+            auto& answers = probe->second.answers;
+            auto same = std::find_if(answers.begin(), answers.end(), [&](auto const& known) {
+                return known.tracker == answer.tracker;
+            });
+            if (same == answers.end()) {
+                answers.push_back(answer);
+            } else if (!same->error.empty() && answer.error.empty()) {
+                *same = answer;
+            }
+            break;
+        }
+    }
+}
+#endif
 
 /// Keeps the last file error of each download: the status keeps no error
 /// when the disk refuses a write, and the alert alone says why.

@@ -244,6 +244,8 @@ struct ShatlSettingsView: View {
                     isOn: binding(for: \.showsListScrollReadout)
                 )
             }
+
+            TrackerProbeSettingsSection()
         }
         .padding(.horizontal, 16)
         .padding(.top, 0)

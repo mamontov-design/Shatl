@@ -438,6 +438,15 @@
 "settings.debug.logging.add_torrent_review_diagnostics" = "トレント追加ウインドウの診断";
 "settings.debug.logging.card_layout_diagnostics" = "カードレイアウトの診断";
 "settings.debug.list_scroll_readout" = "リストのスクロール速度を表示";
+"settings.debug.tracker_probe.section" = "トラッカーの照会";
+"settings.debug.tracker_probe.caption" = "停止中のダウンロードが、トレントのシードとリーチャーの数をトラッカーに問い合わせます。何もダウンロードされません。";
+"settings.debug.tracker_probe.button" = "トラッカーに問い合わせる";
+"settings.debug.tracker_probe.empty" = "停止中のダウンロードはありません。";
+"settings.debug.tracker_probe.more" = "ほかのダウンロード：%@";
+"settings.debug.tracker_probe.waiting" = "トラッカーの応答を待っています…";
+"settings.debug.tracker_probe.no_trackers" = "このダウンロードにはトラッカーがありません。";
+"settings.debug.tracker_probe.answer" = "シード：%1$@、リーチャー：%2$@。最初の応答まで %3$@ ms、%5$@ 件中 %4$@ 件が応答。";
+"settings.debug.tracker_probe.failed" = "応答なし：%2$@ 件中 %1$@ 件がエラー。%3$@";
 "settings.debug.performance.budget" = "デバッグ：開いているファイルの上限は%1$@です（macOSの初期値：%2$@）。接続は最大%3$@、ファイルは最大%4$@。サービス接続を含む合計：%5$@。";
 "settings.debug.performance.budget_reduced" = "デバッグ：開いているファイルの上限は%1$@で、macOSはそれ以上を許可しませんでした（初期値：%2$@）。接続は%4$@ではなく最大%3$@、ファイルは%6$@ではなく最大%5$@。サービス接続を含む合計：%7$@。";
 "settings.debug.performance.engine_not_started" = "デバッグ：エンジンはまだ起動していません。";
